@@ -23,7 +23,10 @@ type PriceId =
   | "all_access_3mo_onetime_aud"
   | "all_access_6mo_onetime_aud"
   | "all_access_12mo_onetime_aud"
-  | "lifetime_onetime_aud";
+  | "lifetime_onetime_aud"
+  | "panty_24hr_aud"
+  | "panty_48hr_aud"
+  | "panty_72hr_aud";
 
 function SubscribePage() {
   const navigate = useNavigate();
@@ -157,8 +160,81 @@ function SubscribePage() {
               </button>
             </div>
 
+            {/* Panty Drawer */}
+            <div className="mt-12">
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.3em] text-primary">
+                    The Panty Drawer
+                  </div>
+                  <h2 className="mt-1 font-display text-3xl font-extrabold sm:text-4xl">
+                    For your extra kinky side 💋
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Worn, sealed, shipped discreetly across Australia. Shipping (A$15)
+                    added at checkout.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-4">
+                <PassCard
+                  label="24 Hours Worn"
+                  price="A$60"
+                  cadence="+ shipping"
+                  perks={["Worn 24 hours", "Sealed pouch", "Signed thank-you note"]}
+                  cta="Buy 24hr"
+                  onClick={() => buy("panty_24hr_aud")}
+                />
+                <PassCard
+                  label="48 Hours Worn"
+                  price="A$90"
+                  cadence="+ shipping"
+                  perks={["Worn 48 hours", "Sealed pouch", "Signed thank-you note"]}
+                  cta="Buy 48hr"
+                  onClick={() => buy("panty_48hr_aud")}
+                />
+                <PassCard
+                  label="72 Hours Worn"
+                  price="A$120"
+                  cadence="+ shipping"
+                  highlight="Popular"
+                  perks={[
+                    "Worn 72 hours",
+                    "Sealed pouch",
+                    "Handwritten note + polaroid",
+                  ]}
+                  cta="Buy 72hr"
+                  onClick={() => buy("panty_72hr_aud")}
+                />
+                <div className="relative flex flex-col rounded-2xl border border-dashed border-primary/40 bg-background/40 p-6">
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
+                    Custom Order
+                  </div>
+                  <div className="mt-2 font-display text-2xl font-extrabold">
+                    Ask nicely
+                  </div>
+                  <p className="mt-4 flex-1 text-xs text-muted-foreground">
+                    Specific style, colour, wear time, or add-ons? Send a private
+                    request and I'll quote you back.
+                  </p>
+                  <Link
+                    to="/support"
+                    className="mt-5 w-full rounded-md border border-primary/60 px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+                  >
+                    Enquire
+                  </Link>
+                </div>
+              </div>
+
+              <p className="mt-4 text-[11px] text-muted-foreground">
+                18+ only. Australia-only shipping. All sales final; discreet plain
+                packaging.
+              </p>
+            </div>
           </>
         )}
+
       </section>
     </>
   );
