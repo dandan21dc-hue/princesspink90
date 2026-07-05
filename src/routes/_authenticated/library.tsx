@@ -211,6 +211,7 @@ function LifetimePerks({ membership }: { membership: any }) {
             </p>
           )}
         </div>
+        )}
       </div>
     </div>
   );
