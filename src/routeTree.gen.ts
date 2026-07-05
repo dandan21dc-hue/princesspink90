@@ -29,6 +29,7 @@ import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authen
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
+import { Route as AuthenticatedEventsIdCheckinPrintRouteImport } from './routes/_authenticated/events.$id.checkin.print'
 
 const UnlockRoute = UnlockRouteImport.update({
   id: '/unlock',
@@ -135,6 +136,12 @@ const AuthenticatedEventsIdCheckinRoute =
     path: '/events/$id/checkin',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEventsIdCheckinPrintRoute =
+  AuthenticatedEventsIdCheckinPrintRouteImport.update({
+    id: '/print',
+    path: '/print',
+    getParentRoute: () => AuthenticatedEventsIdCheckinRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -153,9 +160,10 @@ export interface FileRoutesByFullPath {
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
-  '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRoute
+  '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -174,9 +182,10 @@ export interface FileRoutesByTo {
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
-  '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRoute
+  '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -197,9 +206,10 @@ export interface FileRoutesById {
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
-  '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRoute
+  '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/_authenticated/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -223,6 +233,7 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/api/public/payments/webhook'
+    | '/events/$id/checkin/print'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/api/public/payments/webhook'
+    | '/events/$id/checkin/print'
   id:
     | '__root__'
     | '/'
@@ -266,6 +278,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
     | '/api/public/payments/webhook'
+    | '/_authenticated/events/$id/checkin/print'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -420,6 +433,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEventsIdCheckinRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/events/$id/checkin/print': {
+      id: '/_authenticated/events/$id/checkin/print'
+      path: '/print'
+      fullPath: '/events/$id/checkin/print'
+      preLoaderRoute: typeof AuthenticatedEventsIdCheckinPrintRouteImport
+      parentRoute: typeof AuthenticatedEventsIdCheckinRoute
+    }
   }
 }
 
@@ -434,6 +454,21 @@ const AuthenticatedContentRouteChildren: AuthenticatedContentRouteChildren = {
 const AuthenticatedContentRouteWithChildren =
   AuthenticatedContentRoute._addFileChildren(AuthenticatedContentRouteChildren)
 
+interface AuthenticatedEventsIdCheckinRouteChildren {
+  AuthenticatedEventsIdCheckinPrintRoute: typeof AuthenticatedEventsIdCheckinPrintRoute
+}
+
+const AuthenticatedEventsIdCheckinRouteChildren: AuthenticatedEventsIdCheckinRouteChildren =
+  {
+    AuthenticatedEventsIdCheckinPrintRoute:
+      AuthenticatedEventsIdCheckinPrintRoute,
+  }
+
+const AuthenticatedEventsIdCheckinRouteWithChildren =
+  AuthenticatedEventsIdCheckinRoute._addFileChildren(
+    AuthenticatedEventsIdCheckinRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedContentRoute: typeof AuthenticatedContentRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -443,7 +478,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
-  AuthenticatedEventsIdCheckinRoute: typeof AuthenticatedEventsIdCheckinRoute
+  AuthenticatedEventsIdCheckinRoute: typeof AuthenticatedEventsIdCheckinRouteWithChildren
   AuthenticatedEventsIdEditRoute: typeof AuthenticatedEventsIdEditRoute
 }
 
@@ -456,7 +491,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
   AuthenticatedEventsNewRoute: AuthenticatedEventsNewRoute,
-  AuthenticatedEventsIdCheckinRoute: AuthenticatedEventsIdCheckinRoute,
+  AuthenticatedEventsIdCheckinRoute:
+    AuthenticatedEventsIdCheckinRouteWithChildren,
   AuthenticatedEventsIdEditRoute: AuthenticatedEventsIdEditRoute,
 }
 
