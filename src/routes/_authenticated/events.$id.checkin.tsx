@@ -472,6 +472,7 @@ function Roster({
   guests: {
     id: string;
     ticket_code: string;
+    entry_code: string;
     guest_count: number;
     checked_in_at: string;
     display_name: string | null;
