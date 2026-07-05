@@ -21,6 +21,8 @@ export type Database = {
           event_id: string
           id: string
           note: string | null
+          used_at: string | null
+          used_by_name: string | null
         }
         Insert: {
           code: string
@@ -28,6 +30,8 @@ export type Database = {
           event_id: string
           id?: string
           note?: string | null
+          used_at?: string | null
+          used_by_name?: string | null
         }
         Update: {
           code?: string
@@ -35,6 +39,8 @@ export type Database = {
           event_id?: string
           id?: string
           note?: string | null
+          used_at?: string | null
+          used_by_name?: string | null
         }
         Relationships: [
           {
