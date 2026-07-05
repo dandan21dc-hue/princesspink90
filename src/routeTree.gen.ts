@@ -39,6 +39,7 @@ import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
 import { Route as AuthenticatedAdminEmailSetupRouteImport } from './routes/_authenticated/admin.email-setup'
+import { Route as AuthenticatedAdminEmailDeliveryRouteImport } from './routes/_authenticated/admin.email-delivery'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
@@ -214,6 +215,12 @@ const AuthenticatedAdminEmailSetupRoute =
     path: '/admin/email-setup',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminEmailDeliveryRoute =
+  AuthenticatedAdminEmailDeliveryRouteImport.update({
+    id: '/admin/email-delivery',
+    path: '/admin/email-delivery',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminCompliancePolicyRoute =
   AuthenticatedAdminCompliancePolicyRouteImport.update({
     id: '/admin/compliance-policy',
@@ -313,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
+  '/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
@@ -357,6 +365,7 @@ export interface FileRoutesByTo {
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
+  '/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
@@ -403,6 +412,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
+  '/_authenticated/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/_authenticated/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/_authenticated/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
@@ -449,6 +459,7 @@ export interface FileRouteTypes {
     | '/admin/cohosts'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
+    | '/admin/email-delivery'
     | '/admin/email-setup'
     | '/admin/events-compliance'
     | '/admin/health-purge'
@@ -493,6 +504,7 @@ export interface FileRouteTypes {
     | '/admin/cohosts'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
+    | '/admin/email-delivery'
     | '/admin/email-setup'
     | '/admin/events-compliance'
     | '/admin/health-purge'
@@ -538,6 +550,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/cohosts'
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
+    | '/_authenticated/admin/email-delivery'
     | '/_authenticated/admin/email-setup'
     | '/_authenticated/admin/events-compliance'
     | '/_authenticated/admin/health-purge'
@@ -794,6 +807,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEmailSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/email-delivery': {
+      id: '/_authenticated/admin/email-delivery'
+      path: '/admin/email-delivery'
+      fullPath: '/admin/email-delivery'
+      preLoaderRoute: typeof AuthenticatedAdminEmailDeliveryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/compliance-policy': {
       id: '/_authenticated/admin/compliance-policy'
       path: '/admin/compliance-policy'
@@ -923,6 +943,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
+  AuthenticatedAdminEmailDeliveryRoute: typeof AuthenticatedAdminEmailDeliveryRoute
   AuthenticatedAdminEmailSetupRoute: typeof AuthenticatedAdminEmailSetupRoute
   AuthenticatedAdminEventsComplianceRoute: typeof AuthenticatedAdminEventsComplianceRoute
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
@@ -951,6 +972,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminComplianceAuditRoute,
   AuthenticatedAdminCompliancePolicyRoute:
     AuthenticatedAdminCompliancePolicyRoute,
+  AuthenticatedAdminEmailDeliveryRoute: AuthenticatedAdminEmailDeliveryRoute,
   AuthenticatedAdminEmailSetupRoute: AuthenticatedAdminEmailSetupRoute,
   AuthenticatedAdminEventsComplianceRoute:
     AuthenticatedAdminEventsComplianceRoute,
