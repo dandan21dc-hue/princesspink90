@@ -1,20 +1,53 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import { videoConsentSchema, type VideoConsent } from "@/lib/verification.functions";
 
 export const rsvpToEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { event_id: string; guest_count?: number }) =>
+  .inputValidator((data: {
+    event_id: string;
+    guest_count?: number;
+    age_confirmed: boolean;
+    video_consent: VideoConsent;
+  }) =>
     z.object({
       event_id: z.string().uuid(),
       guest_count: z.number().int().min(1).max(10).default(1),
+      age_confirmed: z.literal(true, {
+        errorMap: () => ({ message: "You must confirm you are 18+." }),
+      }),
+      video_consent: videoConsentSchema,
     }).parse(data),
   )
   .handler(async ({ data, context }) => {
+    // Require an approved age verification on file
+    const { data: av } = await context.supabase
+      .from("age_verifications")
+      .select("status")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!av || av.status !== "approved") {
+      throw new Error(
+        av?.status === "pending"
+          ? "Your ID is still under review — you'll be able to RSVP once approved."
+          : "Please submit ID for age verification before RSVPing.",
+      );
+    }
+
+    const now = new Date().toISOString();
     const { data: row, error } = await context.supabase
       .from("rsvps")
       .upsert(
-        { event_id: data.event_id, user_id: context.userId, guest_count: data.guest_count, status: "confirmed" },
+        {
+          event_id: data.event_id,
+          user_id: context.userId,
+          guest_count: data.guest_count,
+          status: "confirmed",
+          age_confirmed_at: now,
+          consent_confirmed_at: now,
+          video_consent: data.video_consent,
+        },
         { onConflict: "event_id,user_id" },
       )
       .select("ticket_code")
@@ -34,7 +67,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       await context.supabase
         .from("memberships")
         .update({
-          event_ticket_used_at: new Date().toISOString(),
+          event_ticket_used_at: now,
           event_ticket_event_id: data.event_id,
         })
         .eq("id", mem.id);
@@ -65,7 +98,7 @@ export const myRsvpForEvent = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row } = await context.supabase
       .from("rsvps")
-      .select("ticket_code, guest_count, status")
+      .select("ticket_code, guest_count, status, video_consent, age_confirmed_at, consent_confirmed_at")
       .eq("event_id", data.event_id)
       .eq("user_id", context.userId)
       .maybeSingle();
