@@ -26,7 +26,9 @@ function CheckinPage() {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<Lookup | null>(null);
   const [scanner, setScanner] = useState(false);
+  const [camera, setCamera] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastScanRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
 
   // Keep focus on the input while scanner mode is on so a keyboard-wedge
   // barcode/QR scanner always lands its keystrokes here.
