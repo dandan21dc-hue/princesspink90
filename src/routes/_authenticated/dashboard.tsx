@@ -173,6 +173,38 @@ function Dashboard() {
         </div>
       </div>
 
+      <div className="mt-10 rounded-2xl border border-border/60 bg-card/60 p-5">
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-primary shadow-[var(--shadow-glow-pink)]" />
+          <div className="text-sm">
+            <div className="font-display text-base">Health screenings — retention notice</div>
+            <p className="mt-1.5 text-muted-foreground leading-relaxed">
+              Screenings are only kept while they're useful, then purged
+              automatically along with the underlying file:
+            </p>
+            <ul className="mt-2 space-y-1 text-muted-foreground leading-relaxed">
+              <li>
+                <span className="text-foreground">Approved screenings</span> are
+                valid until the test's <em>valid until</em> date and purged the
+                day after they expire.
+              </li>
+              <li>
+                <span className="text-foreground">Pending submissions</span> that
+                aren't reviewed within <span className="text-foreground">90 days</span>{" "}
+                are purged automatically — re-upload if you still need one.
+              </li>
+              <li>
+                <span className="text-foreground">Rejected submissions</span> are
+                kept for 30 days after review, then purged.
+              </li>
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Only a small audit record (date, status, reason) is retained after purge — never the file itself.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <ComplianceChecklist
         isLoading={compliance.isLoading}
         data={compliance.data ?? []}
