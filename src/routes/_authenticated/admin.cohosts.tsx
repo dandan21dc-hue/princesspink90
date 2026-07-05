@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { amIAdmin } from "@/lib/admin.functions";
 import {
@@ -10,6 +10,15 @@ import {
   adminReviewCohostApplication,
 } from "@/lib/cohost.functions";
 
+type StatusFilter = "all" | "pending" | "approved" | "rejected" | "withdrawn";
+
+const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+  { value: "withdrawn", label: "Withdrawn" },
+];
 
 export const Route = createFileRoute("/_authenticated/admin/cohosts")({
   head: () => ({ meta: [{ title: "Co-host applications · Admin" }] }),
@@ -26,6 +35,32 @@ function AdminCohosts() {
     enabled: me.data?.isAdmin === true,
   });
 
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [search, setSearch] = useState("");
+
+  const counts = useMemo(() => {
+    const c: Record<StatusFilter, number> = {
+      all: 0, pending: 0, approved: 0, rejected: 0, withdrawn: 0,
+    };
+    for (const r of q.data ?? []) {
+      c.all += 1;
+      const s = (r as any).status as StatusFilter;
+      if (s in c) c[s] += 1;
+    }
+    return c;
+  }, [q.data]);
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (q.data ?? []).filter((r: any) => {
+      if (status !== "all" && r.status !== status) return false;
+      if (!term) return true;
+      return [r.display_name, r.email, r.city, r.instagram_handle]
+        .filter(Boolean)
+        .some((v: string) => v.toLowerCase().includes(term));
+    });
+  }, [q.data, status, search]);
+
   if (me.isLoading) return <Shell><p className="text-muted-foreground">Loading…</p></Shell>;
   if (!me.data?.isAdmin) {
     return (
@@ -39,18 +74,54 @@ function AdminCohosts() {
 
   return (
     <Shell>
+      <div className="mb-6 space-y-4">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, email, city, or Instagram…"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+        />
+        <div className="flex flex-wrap gap-2">
+          {STATUS_TABS.map((t) => {
+            const active = status === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setStatus(t.value)}
+                className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-widest transition ${
+                  active
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t.label}
+                <span className="ml-2 text-muted-foreground/80">{counts[t.value]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {q.isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : !q.data?.length ? (
         <p className="text-muted-foreground">No applications yet.</p>
+      ) : !filtered.length ? (
+        <p className="text-muted-foreground">
+          No applications match{search ? ` "${search}"` : ""}
+          {status !== "all" ? ` in ${status}` : ""}.
+        </p>
       ) : (
         <ul className="space-y-4">
-          {q.data.map((r: any) => <Row key={r.id} row={r} />)}
+          {filtered.map((r: any) => <Row key={r.id} row={r} />)}
         </ul>
       )}
     </Shell>
   );
 }
+
 
 function Row({ row }: { row: any }) {
   const qc = useQueryClient();
