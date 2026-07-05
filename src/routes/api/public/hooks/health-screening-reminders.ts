@@ -37,7 +37,8 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
         // Respect the configured daily run time (UTC). If invoked before it,
         // skip so the cron/hosted scheduler stays the source of truth on WHEN,
         // while the config row is the source of truth on the target time.
-        const dailyRunTime = await readDailyRunTimeUtc(); // "HH:MM"
+        const { daily_run_time_utc: dailyRunTime, expiring_within_days: windowDays } =
+          await readReminderJobConfig();
         const now = new Date();
         const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
         const [h, m] = dailyRunTime.split(':').map(Number);
@@ -54,9 +55,9 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           )
         }
 
-        // Target date: exactly 7 days from today (UTC).
+        // Target date: exactly `windowDays` from today (UTC).
         const target = new Date()
-        target.setUTCDate(target.getUTCDate() + 7)
+        target.setUTCDate(target.getUTCDate() + windowDays)
         const targetDate = target.toISOString().slice(0, 10)
 
         const { data: candidates, error: selErr } = await supabase
