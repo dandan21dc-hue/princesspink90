@@ -177,9 +177,25 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
           <div className="font-semibold uppercase tracking-widest text-destructive">Uploads blocked</div>
           <p className="mt-1 text-destructive/90">
             You must agree to compliance policy v{policy.data?.version} before you can upload
-            permits, insurance, or capacity documents. Check the agreement box above — uploads
-            will unlock as soon as your agreement is recorded.
+            permits, insurance, or capacity documents.
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground shadow-sm transition hover:bg-destructive/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/60 disabled:opacity-60"
+              disabled={recordAgreement.isPending}
+              onClick={() => {
+                const el = document.getElementById("policy-agree");
+                el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                (el as HTMLInputElement | null)?.focus({ preventScroll: true });
+              }}
+            >
+              Review & agree to policy v{policy.data?.version} →
+            </button>
+            <span className="text-[11px] text-destructive/80">
+              Uploads unlock as soon as your agreement is recorded.
+            </span>
+          </div>
           {lastRejection && (
             <div className="mt-2 rounded border border-destructive/40 bg-background/60 p-2 text-[11px] text-destructive">
               <div className="font-semibold uppercase tracking-widest text-destructive/80">
