@@ -194,11 +194,26 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
               ...(isLifetime && { membership: "lifetime" }),
               ...(termMonths && { membership: "term_pass", term_months: String(termMonths) }),
               ...(isPanty && { panty_order: data.priceId }),
+              ...(privateRoomBookingId && {
+                booking: "private_room",
+                private_room_booking_id: privateRoomBookingId,
+              }),
             },
             ...(isRecurring && { subscription_data: { metadata: { userId: data.userId } } }),
           }),
         });
+
+        // Save Stripe session id on the pending booking so the webhook can confirm it.
+        if (privateRoomBookingId) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          await supabaseAdmin
+            .from("private_room_bookings")
+            .update({ stripe_session_id: session.id })
+            .eq("id", privateRoomBookingId);
+        }
+
         return { clientSecret: session.client_secret ?? "" };
+
 
 
       }
