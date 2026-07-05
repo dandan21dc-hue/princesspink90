@@ -568,7 +568,10 @@ export const listMyComplianceDocuments = createServerFn({ method: "GET" })
             .order("accepted_at", { ascending: true })
         : Promise.resolve({ data: [], error: null }),
       uploaderIds.length
-        ? context.supabase.from("profiles").select("user_id, display_name").in("user_id", uploaderIds)
+        ? (async () => {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            return supabaseAdmin.from("profiles").select("user_id, display_name").in("user_id", uploaderIds);
+          })()
         : Promise.resolve({ data: [], error: null }),
     ]);
     if (agreementsRes.error) throw agreementsRes.error;
