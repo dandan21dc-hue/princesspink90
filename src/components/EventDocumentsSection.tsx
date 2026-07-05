@@ -10,6 +10,7 @@ import {
 } from "@/lib/host.functions";
 import { uploadEventDocument } from "@/lib/eventDocumentUpload";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { isDocumentStale } from "@/lib/complianceStale";
 
 type DocType = "permit" | "insurance" | "capacity" | "other";
 
