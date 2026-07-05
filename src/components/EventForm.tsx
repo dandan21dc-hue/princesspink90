@@ -151,6 +151,60 @@ export function EventForm({
         </div>
       </Section>
 
+      <Section title="Venue compliance">
+        <p className="text-xs text-muted-foreground">
+          Confirm each item below before publishing. Guests deserve a safe, legal night.
+        </p>
+
+        <div className="rounded-lg border border-border/60 p-4 space-y-3">
+          <Toggle
+            checked={v.permits_confirmed}
+            onChange={(c) => setV({ ...v, permits_confirmed: c })}
+            label="Permits secured (event, liquor, noise, etc.)"
+          />
+          <Field label="Permit numbers / notes">
+            <textarea rows={2} className={inputCls} {...bind("permit_details")} placeholder="e.g. Event permit #12345 (city), TABC license #ABC…" />
+          </Field>
+        </div>
+
+        <div className="rounded-lg border border-border/60 p-4 space-y-3">
+          <Toggle
+            checked={v.insurance_confirmed}
+            onChange={(c) => setV({ ...v, insurance_confirmed: c })}
+            label="Liability insurance in force for this event"
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Insurance provider"><input className={inputCls} {...bind("insurance_provider")} placeholder="e.g. Hiscox" /></Field>
+            <Field label="Policy number"><input className={inputCls} {...bind("insurance_policy_number")} /></Field>
+          </div>
+          <Field label="Policy expires on">
+            <input type="date" className={inputCls} {...bind("insurance_expires_on")} />
+          </Field>
+        </div>
+
+        <div className="rounded-lg border border-border/60 p-4 space-y-3">
+          <Toggle
+            checked={v.capacity_confirmed}
+            onChange={(c) => setV({ ...v, capacity_confirmed: c })}
+            label="Capacity verified against venue's legal max"
+          />
+          <Field label="Venue legal max capacity">
+            <input type="number" min={1} className={inputCls} {...bind("legal_capacity")} placeholder="From the venue's occupancy certificate" />
+          </Field>
+          {v.capacity && v.legal_capacity && parseInt(v.capacity, 10) > parseInt(v.legal_capacity, 10) && (
+            <p className="text-xs text-red-400">
+              Event capacity ({v.capacity}) exceeds the venue's legal max ({v.legal_capacity}).
+            </p>
+          )}
+        </div>
+
+        <Field label="Compliance notes (internal)">
+          <textarea rows={3} className={inputCls} {...bind("compliance_notes")} placeholder="Fire marshal walkthrough date, security staffing, medical on-site, etc." />
+        </Field>
+      </Section>
+
+
+
       <button
         type="submit" disabled={submitting}
         className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-60"
