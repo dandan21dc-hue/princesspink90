@@ -282,10 +282,24 @@ function Row({ r, currentHash }: { r: RsvpRow; currentHash: string }) {
             {shortHash}
           </button>
         </td>
+        <td className="px-3 py-3">
+          {r.waiver_accepted ? (
+            <button
+              type="button"
+              onClick={() => pdf.download(r.id)}
+              disabled={pdf.isPending(r.id)}
+              className="rounded-md border border-border px-2 py-1 text-[10px] uppercase tracking-widest hover:bg-card disabled:opacity-60"
+            >
+              {pdf.isPending(r.id) ? "…" : "Download"}
+            </button>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">—</span>
+          )}
+        </td>
       </tr>
       {open && r.waiver_text_hash && (
         <tr className="bg-background/60">
-          <td colSpan={5} className="px-3 py-3 text-[11px] text-muted-foreground">
+          <td colSpan={6} className="px-3 py-3 text-[11px] text-muted-foreground">
             <div className="break-all font-mono">
               <span className="uppercase tracking-widest text-foreground/70">Signed hash:</span>{" "}
               {r.waiver_text_hash}
