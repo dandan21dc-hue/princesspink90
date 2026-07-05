@@ -62,6 +62,12 @@ function AdminSafetyIncidentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [exportCols, setExportCols] = useState<string[]>(DEFAULT_EXPORT_COLS);
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  const dateRangeError =
+    fromDate && toDate && fromDate > toDate
+      ? "'From' date must be on or before 'To' date."
+      : null;
 
   useEffect(() => {
     try {
