@@ -335,7 +335,7 @@ export const listSafetyIncidentExportLog = createServerFn({ method: "GET" })
       const { data: profs } = await supabaseAdmin
         .from("profiles")
         .select("user_id, display_name")
-        .in("user_id", ids);
+        .in("user_id", ids as string[]);
       profileMap = Object.fromEntries(
         (profs ?? []).map((p: any) => [p.user_id, p.display_name ?? ""]),
       );
