@@ -740,6 +740,60 @@ export type Database = {
         }
         Relationships: []
       }
+      waiver_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          event_id: string
+          id: string
+          ip_address: string | null
+          rsvp_id: string | null
+          user_agent: string | null
+          user_id: string
+          waiver_signature: string | null
+          waiver_text_hash: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          event_id: string
+          id?: string
+          ip_address?: string | null
+          rsvp_id?: string | null
+          user_agent?: string | null
+          user_id: string
+          waiver_signature?: string | null
+          waiver_text_hash?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          ip_address?: string | null
+          rsvp_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+          waiver_signature?: string | null
+          waiver_text_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waiver_audit_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "waiver_audit_log_rsvp_id_fkey"
+            columns: ["rsvp_id"]
+            isOneToOne: false
+            referencedRelation: "rsvps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
