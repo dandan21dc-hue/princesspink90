@@ -6,8 +6,10 @@ import { toast } from "sonner";
 import { amIAdmin } from "@/lib/admin.functions";
 import {
   adminListCohostApplications,
+  adminListCohostApplicationReviews,
   adminReviewCohostApplication,
 } from "@/lib/cohost.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/cohosts")({
   head: () => ({ meta: [{ title: "Co-host applications · Admin" }] }),
@@ -53,14 +55,27 @@ function AdminCohosts() {
 function Row({ row }: { row: any }) {
   const qc = useQueryClient();
   const reviewFn = useServerFn(adminReviewCohostApplication);
+  const listReviewsFn = useServerFn(adminListCohostApplicationReviews);
   const [notes, setNotes] = useState<string>(row.admin_notes ?? "");
+  const [showLog, setShowLog] = useState(false);
+
+  const reviews = useQuery({
+    queryKey: ["cohost-application-reviews", row.id],
+    queryFn: () => listReviewsFn({ data: { applicationId: row.id } }),
+    enabled: showLog,
+  });
 
   const decide = useMutation({
-    mutationFn: (decision: "approved" | "rejected") =>
-      reviewFn({ data: { id: row.id, decision, notes } }),
-    onSuccess: () => {
-      toast.success("Saved");
+    mutationFn: (decision: "approved" | "rejected") => {
+      if (decision === "rejected" && !notes.trim()) {
+        throw new Error("Add a reviewer note before rejecting.");
+      }
+      return reviewFn({ data: { id: row.id, decision, notes: notes.trim() || undefined } });
+    },
+    onSuccess: (_data, decision) => {
+      toast.success(decision === "approved" ? "Application approved" : "Application rejected");
       qc.invalidateQueries({ queryKey: ["admin-cohost-applications"] });
+      qc.invalidateQueries({ queryKey: ["cohost-application-reviews", row.id] });
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -99,17 +114,21 @@ function Row({ row }: { row: any }) {
       </div>
 
       <div className="mt-4">
-        <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Reviewer notes</label>
+        <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Admin notes <span className="normal-case tracking-normal text-muted-foreground/70">(required for rejection, visible in audit log)</span>
+        </label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          rows={2}
+          rows={3}
           maxLength={2000}
+          placeholder="Reason for decision, follow-ups, context…"
           className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
         />
+        <div className="mt-1 text-right text-[10px] text-muted-foreground">{notes.length}/2000</div>
       </div>
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           onClick={() => decide.mutate("approved")}
           disabled={decide.isPending}
@@ -124,10 +143,61 @@ function Row({ row }: { row: any }) {
         >
           Reject
         </button>
+        <button
+          type="button"
+          onClick={() => setShowLog((v) => !v)}
+          className="ml-auto rounded-md border border-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
+          {showLog ? "Hide" : "Show"} audit log
+        </button>
       </div>
+
+      {showLog && (
+        <div className="mt-4 rounded-lg border border-border/60 bg-background/60 p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Decision history
+          </div>
+          {reviews.isLoading ? (
+            <p className="mt-2 text-xs text-muted-foreground">Loading…</p>
+          ) : !reviews.data?.length ? (
+            <p className="mt-2 text-xs text-muted-foreground">No decisions recorded yet.</p>
+          ) : (
+            <ol className="mt-3 space-y-3">
+              {reviews.data.map((r: any) => (
+                <li key={r.id} className="border-l-2 border-border pl-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${
+                        r.decision === "approved"
+                          ? "border-neon/50 bg-neon/10 text-neon"
+                          : "border-red-500/40 bg-red-500/10 text-red-300"
+                      }`}
+                    >
+                      {r.decision}
+                    </span>
+                    {r.previous_status && (
+                      <span className="text-muted-foreground">from {r.previous_status}</span>
+                    )}
+                    <span className="text-muted-foreground">
+                      · {new Date(r.created_at).toLocaleString()}
+                    </span>
+                    <span className="text-muted-foreground">
+                      · by {r.reviewer_email ?? r.reviewer_id}
+                    </span>
+                  </div>
+                  {r.notes && (
+                    <p className="mt-1 whitespace-pre-wrap text-foreground">{r.notes}</p>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
     </li>
   );
 }
+
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (

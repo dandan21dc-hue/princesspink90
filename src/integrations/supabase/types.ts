@@ -62,6 +62,44 @@ export type Database = {
         }
         Relationships: []
       }
+      cohost_application_reviews: {
+        Row: {
+          application_id: string
+          created_at: string
+          decision: string
+          id: string
+          notes: string | null
+          previous_status: string | null
+          reviewer_id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          decision: string
+          id?: string
+          notes?: string | null
+          previous_status?: string | null
+          reviewer_id: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          decision?: string
+          id?: string
+          notes?: string | null
+          previous_status?: string | null
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohost_application_reviews_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "cohost_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cohost_applications: {
         Row: {
           admin_notes: string | null
