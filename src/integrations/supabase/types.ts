@@ -927,6 +927,54 @@ export type Database = {
         }
         Relationships: []
       }
+      private_room_bookings: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          currency: string
+          customer_email: string | null
+          duration_minutes: number
+          environment: string
+          id: string
+          notes: string | null
+          starts_at: string
+          status: string
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          duration_minutes: number
+          environment?: string
+          id?: string
+          notes?: string | null
+          starts_at: string
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          duration_minutes?: number
+          environment?: string
+          id?: string
+          notes?: string | null
+          starts_at?: string
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1579,6 +1627,13 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      get_private_room_busy: {
+        Args: { from_ts: string; to_ts: string }
+        Returns: {
+          duration_minutes: number
+          starts_at: string
+        }[]
       }
       go_live_status: { Args: never; Returns: Json }
       has_role: {

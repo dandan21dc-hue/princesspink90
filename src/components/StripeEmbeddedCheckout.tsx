@@ -8,6 +8,7 @@ interface Props {
   returnUrl?: string;
   userId?: string;
   customerEmail?: string;
+  bookingStartsAt?: string;
 }
 
 export function StripeEmbeddedCheckout(props: Props) {
@@ -20,12 +21,14 @@ export function StripeEmbeddedCheckout(props: Props) {
         customerEmail: props.customerEmail,
         returnUrl: props.returnUrl || window.location.href,
         environment: getStripeEnvironment(),
+        bookingStartsAt: props.bookingStartsAt,
       },
     });
     if ("error" in result) throw new Error(result.error);
     if (!result.clientSecret) throw new Error("Stripe did not return a client secret");
     return result.clientSecret;
   };
+
 
   return (
     <div id="checkout">

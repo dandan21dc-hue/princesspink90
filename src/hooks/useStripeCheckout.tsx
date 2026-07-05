@@ -7,7 +7,9 @@ interface CheckoutOptions {
   returnUrl?: string;
   userId?: string;
   customerEmail?: string;
+  bookingStartsAt?: string;
 }
+
 
 export function useStripeCheckout() {
   const [isOpen, setIsOpen] = useState(false);

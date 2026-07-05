@@ -19,6 +19,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
+import { Route as StorePrivateRoomRouteImport } from './routes/store.private-room'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -111,6 +112,11 @@ const IndexRoute = IndexRouteImport.update({
 const StoreSubscribeRoute = StoreSubscribeRouteImport.update({
   id: '/subscribe',
   path: '/subscribe',
+  getParentRoute: () => StoreRoute,
+} as any)
+const StorePrivateRoomRoute = StorePrivateRoomRouteImport.update({
+  id: '/private-room',
+  path: '/private-room',
   getParentRoute: () => StoreRoute,
 } as any)
 const StoreIdRoute = StoreIdRouteImport.update({
@@ -384,6 +390,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
+  '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -439,6 +446,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
+  '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -496,6 +504,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
+  '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -553,6 +562,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/events/$id'
     | '/store/$id'
+    | '/store/private-room'
     | '/store/subscribe'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
@@ -608,6 +618,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/events/$id'
     | '/store/$id'
+    | '/store/private-room'
     | '/store/subscribe'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
@@ -664,6 +675,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/events/$id'
     | '/store/$id'
+    | '/store/private-room'
     | '/store/subscribe'
     | '/_authenticated/admin/cohosts'
     | '/_authenticated/admin/compliance-audit'
@@ -797,6 +809,13 @@ declare module '@tanstack/react-router' {
       path: '/subscribe'
       fullPath: '/store/subscribe'
       preLoaderRoute: typeof StoreSubscribeRouteImport
+      parentRoute: typeof StoreRoute
+    }
+    '/store/private-room': {
+      id: '/store/private-room'
+      path: '/private-room'
+      fullPath: '/store/private-room'
+      preLoaderRoute: typeof StorePrivateRoomRouteImport
       parentRoute: typeof StoreRoute
     }
     '/store/$id': {
@@ -1212,11 +1231,13 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface StoreRouteChildren {
   StoreIdRoute: typeof StoreIdRoute
+  StorePrivateRoomRoute: typeof StorePrivateRoomRoute
   StoreSubscribeRoute: typeof StoreSubscribeRoute
 }
 
 const StoreRouteChildren: StoreRouteChildren = {
   StoreIdRoute: StoreIdRoute,
+  StorePrivateRoomRoute: StorePrivateRoomRoute,
   StoreSubscribeRoute: StoreSubscribeRoute,
 }
 

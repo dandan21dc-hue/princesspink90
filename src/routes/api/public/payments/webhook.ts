@@ -123,6 +123,35 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   const userId = session.metadata?.userId;
   if (!userId) return;
 
+  // Private room booking — confirm the pre-created pending booking.
+  if (session.metadata?.booking === "private_room") {
+    const bookingId = session.metadata?.private_room_booking_id;
+    if (bookingId) {
+      await getSupabase()
+        .from("private_room_bookings")
+        .update({
+          status: "confirmed",
+          amount_cents: session.amount_total ?? null,
+          stripe_session_id: session.id,
+          environment: env,
+          customer_email: session.customer_details?.email ?? null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", bookingId);
+
+      const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
+      await notifyAllCreators({
+        kind: "private_room_booking",
+        title: `Private room booked — $${amount} 🔒`,
+        body: "A private-room session has been paid for.",
+        link_url: "/dashboard",
+        metadata: { booking_id: bookingId, session_id: session.id, env } as any,
+      });
+    }
+    return;
+  }
+
+
   // Lifetime membership purchase
   if (session.metadata?.membership === "lifetime") {
     await getSupabase()

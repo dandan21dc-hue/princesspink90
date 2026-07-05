@@ -45,6 +45,29 @@ export const getStoreItem = createServerFn({ method: "GET" })
     return row;
   });
 
+// Public read: busy time ranges for the private room within [from, to].
+export const listPrivateRoomBusy = createServerFn({ method: "GET" })
+  .inputValidator((data: { from: string; to: string }) => {
+    if (!data.from || !data.to) throw new Error("from/to required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const { data: rows, error } = await supabase.rpc("get_private_room_busy", {
+      from_ts: data.from,
+      to_ts: data.to,
+    });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as Array<{ starts_at: string; duration_minutes: number }>;
+  });
+
+
+
 // ---------- Authenticated ----------
 
 async function resolveOrCreateCustomer(
@@ -88,6 +111,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       userId?: string;
       returnUrl: string;
       environment: StripeEnv;
+      bookingStartsAt?: string; // ISO timestamp for private-room bookings
     }) => {
       if (!data.priceId && !data.contentItemId) throw new Error("priceId or contentItemId required");
       if (data.priceId && !/^[a-zA-Z0-9_-]+$/.test(data.priceId)) throw new Error("Invalid priceId");
@@ -95,6 +119,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       return data;
     },
   )
+
   .handler(async ({ data }): Promise<CheckoutResult> => {
     try {
       const stripe = createStripeClient(data.environment);
@@ -125,6 +150,48 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const termPassMatch = /^all_access_(3|6|12)mo_onetime(?:_aud)?$/.exec(data.priceId);
         const termMonths = termPassMatch ? Number(termPassMatch[1]) : null;
         const isPanty = /^panty_(24|48|72)hr_aud$/.test(data.priceId);
+        const privateRoomMatch = /^private_room_(30|60)min_aud$/.exec(data.priceId);
+        const privateRoomMinutes = privateRoomMatch ? Number(privateRoomMatch[1]) : null;
+
+        // Private room: create a pending booking BEFORE checkout so the slot is
+        // held. Verify no overlap with confirmed or recent-pending bookings.
+        let privateRoomBookingId: string | null = null;
+        if (privateRoomMinutes) {
+          if (!data.userId) throw new Error("Sign in required to book the private room");
+          if (!data.bookingStartsAt) throw new Error("Please pick a start time");
+          const startsAt = new Date(data.bookingStartsAt);
+          if (Number.isNaN(startsAt.getTime())) throw new Error("Invalid start time");
+          if (startsAt.getTime() < Date.now() + 60 * 60 * 1000) {
+            throw new Error("Bookings must be at least 1 hour in advance");
+          }
+          const endsAt = new Date(startsAt.getTime() + privateRoomMinutes * 60_000);
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data: busy, error: busyErr } = await supabaseAdmin.rpc(
+            "get_private_room_busy",
+            { from_ts: startsAt.toISOString(), to_ts: endsAt.toISOString() },
+          );
+          if (busyErr) throw new Error(busyErr.message);
+          if ((busy ?? []).length > 0) throw new Error("That time is no longer available. Please pick another slot.");
+          const env = data.environment;
+          const { data: booking, error: bookErr } = await supabaseAdmin
+            .from("private_room_bookings")
+            .insert({
+              user_id: data.userId,
+              starts_at: startsAt.toISOString(),
+              duration_minutes: privateRoomMinutes,
+              status: "pending",
+              amount_cents: privateRoomMinutes === 30 ? 15000 : 27500,
+              currency: "aud",
+              environment: env,
+              customer_email: data.customerEmail ?? null,
+            })
+            .select("id")
+            .single();
+          if (bookErr || !booking) throw new Error(bookErr?.message ?? "Could not hold slot");
+          privateRoomBookingId = booking.id as string;
+        }
+
+
         const session = await stripe.checkout.sessions.create({
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
@@ -150,11 +217,26 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
               ...(isLifetime && { membership: "lifetime" }),
               ...(termMonths && { membership: "term_pass", term_months: String(termMonths) }),
               ...(isPanty && { panty_order: data.priceId }),
+              ...(privateRoomBookingId && {
+                booking: "private_room",
+                private_room_booking_id: privateRoomBookingId,
+              }),
             },
             ...(isRecurring && { subscription_data: { metadata: { userId: data.userId } } }),
           }),
         });
+
+        // Save Stripe session id on the pending booking so the webhook can confirm it.
+        if (privateRoomBookingId) {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          await supabaseAdmin
+            .from("private_room_bookings")
+            .update({ stripe_session_id: session.id })
+            .eq("id", privateRoomBookingId);
+        }
+
         return { clientSecret: session.client_secret ?? "" };
+
 
 
       }
