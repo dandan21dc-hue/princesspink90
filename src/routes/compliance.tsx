@@ -479,13 +479,31 @@ function MyDocumentsSection() {
                   <span className="rounded bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-foreground/80">
                     <DocTypeLabel type={d.doc_type} />
                   </span>
-                  <span className="font-medium text-foreground truncate">{d.file_name}</span>
+                  <button
+                    type="button"
+                    onClick={() => openDoc(d.id)}
+                    disabled={openingId === d.id}
+                    title="Open document in a new tab"
+                    className="font-medium text-foreground truncate hover:text-primary underline-offset-2 hover:underline disabled:opacity-60"
+                  >
+                    {d.file_name}
+                  </button>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {d.event_title ? <span>{d.event_title} · </span> : null}
-                  Uploaded {new Date(d.uploaded_at).toLocaleString()}
-                  {d.uploaded_by_display_name ? <span> by {d.uploaded_by_display_name}</span> : null}
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  {d.event_title ? <span>{d.event_title} ·</span> : null}
+                  <span>Uploaded {new Date(d.uploaded_at).toLocaleString()}</span>
+                  {d.uploaded_by_display_name ? <span>by {d.uploaded_by_display_name}</span> : null}
+                  <span aria-hidden>·</span>
+                  <button
+                    type="button"
+                    onClick={() => openDoc(d.id)}
+                    disabled={openingId === d.id}
+                    className="text-primary hover:underline disabled:opacity-60"
+                  >
+                    {openingId === d.id ? "Opening…" : "Preview / download →"}
+                  </button>
                 </div>
+
               </div>
               <div className="flex flex-col items-end gap-1 text-xs">
                 {d.policy_version_label ? (
