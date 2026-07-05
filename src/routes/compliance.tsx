@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { Loader2 } from "lucide-react";
 
 
 
@@ -843,8 +844,10 @@ function MyDocumentsSection() {
             <AlertDialogCancel disabled={reAck.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               disabled={reAck.isPending || !currentId}
+              aria-busy={reAck.isPending}
               onClick={(e) => {
                 e.preventDefault();
+                if (reAck.isPending) return;
                 if (!currentId || !confirmTarget) return;
                 reAck.mutate(
                   { policy_version_id: currentId, event_id: confirmTarget.event_id },
@@ -853,7 +856,9 @@ function MyDocumentsSection() {
                   // the mutation's onError already surfaces a toast.
                 );
               }}
+              className="inline-flex items-center gap-2"
             >
+              {reAck.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               {reAck.isPending ? "Recording…" : `Record agreement to v${currentVersion ?? "?"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -892,17 +897,21 @@ function MyDocumentsSection() {
                   <AlertDialogCancel disabled={bulkReAck.isPending}>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     disabled={bulkReAck.isPending || !currentId || uniqueEventIds.length === 0}
+                    aria-busy={bulkReAck.isPending}
                     onClick={(e) => {
                       e.preventDefault();
+                      if (bulkReAck.isPending) return;
                       if (!currentId) return;
                       bulkReAck.mutate({
                         policy_version_id: currentId,
                         event_ids: uniqueEventIds,
                       });
                     }}
+                    className="inline-flex items-center gap-2"
                   >
+                    {bulkReAck.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
                     {bulkReAck.isPending
-                      ? "Recording…"
+                      ? `Recording ${uniqueEventIds.length}…`
                       : `Record ${uniqueEventIds.length} agreement${uniqueEventIds.length === 1 ? "" : "s"}`}
                   </AlertDialogAction>
                 </AlertDialogFooter>
