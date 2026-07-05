@@ -29,7 +29,7 @@ Guidelines:
 - Do not ask for or repeat sensitive personal data (full addresses, IDs, health details). If the user shares them, do not echo them back.`;
 
 async function loadConversation(
-  supabase: ReturnType<typeof createClient>,
+  supabase: ReturnType<typeof createClient<any, any, any>>,
   userId: string,
 ) {
   const { data: existing } = await supabase
@@ -96,7 +96,7 @@ export const Route = createFileRoute("/api/chat")({
         const { supabaseAdmin } = await import(
           "@/integrations/supabase/client.server"
         );
-        const admin = supabaseAdmin as unknown as ReturnType<typeof createClient>;
+        const admin = supabaseAdmin as unknown as ReturnType<typeof createClient<any, any, any>>;
 
         const conversationId = await loadConversation(admin, userId);
 
