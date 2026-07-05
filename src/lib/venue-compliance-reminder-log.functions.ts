@@ -128,7 +128,17 @@ export const listVenueComplianceReminderLog = createServerFn({ method: "GET" })
 
     return {
       rows: filtered.map((r) => ({
-        ...r,
+        id: r.id,
+        document_id: r.document_id,
+        kind: r.kind,
+        reminder_type: r.reminder_type,
+        expires_on: r.expires_on,
+        channels: Array.isArray(r.channels) ? (r.channels as string[]) : [],
+        status: r.status,
+        error_message: r.error_message,
+        idempotency_key: r.idempotency_key,
+        created_at: r.created_at,
+        document: r.document ?? null,
         recipient_list: toRecipientList(r.recipients),
       })),
       summary: {
