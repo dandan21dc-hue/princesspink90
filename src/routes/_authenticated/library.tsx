@@ -188,19 +188,35 @@ function LifetimePerks({ membership }: { membership: any }) {
         </div>
         {isLifetime && (
         <div className="rounded-xl border border-border/60 bg-card/60 p-4">
-          <div className="font-medium">🔥 Private session <span className="text-xs text-muted-foreground">(no anal)</span></div>
+          <div className="font-medium">
+            🔥 Private session{" "}
+            <span className="text-xs text-muted-foreground">
+              ({membership.private_session_duration_minutes ?? 30} min · no anal)
+            </span>
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {sessionFulfilled
-              ? "Fulfilled."
+              ? membership.private_session_bundle_granted_at
+                ? "Fulfilled — your photo/video bundle is unlocked below."
+                : "Fulfilled."
               : sessionRequested
                 ? "Request sent — I'll reach out to schedule."
-                : "One-time perk. Press below and I'll DM you to schedule."}
+                : `One-time perk: a ${membership.private_session_duration_minutes ?? 30}-minute private session plus a picture & video bundle delivered afterwards. Press below and I'll DM you to schedule.`}
           </p>
+          {membership.private_session_bundle_id && membership.private_session_bundle_granted_at && (
+            <Link
+              to="/store/$id"
+              params={{ id: membership.private_session_bundle_id }}
+              className="mt-3 inline-block rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+            >
+              View your bundle
+            </Link>
+          )}
           {!sessionRequested && (
             <button
               onClick={() => request.mutate()}
               disabled={request.isPending}
-              className="mt-3 rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-60"
+              className="mt-3 ml-2 rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-60"
             >
               {request.isPending ? "Sending…" : "Request session"}
             </button>
