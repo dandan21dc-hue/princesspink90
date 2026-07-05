@@ -366,32 +366,55 @@ export const registerEventDocument = createServerFn({ method: "POST" })
     if (!data.file_path.startsWith(`${data.event_id}/`)) {
       throw new Error("Invalid file path");
     }
-    // Verify the policy version is the currently-active one; otherwise reject.
-    const { data: pv, error: pvErr } = await context.supabase
+    // Re-fetch the currently-active policy at upload time so a version bump
+    // that happened after the client loaded is enforced here — the client's
+    // cached policy_version_id may already be stale.
+    const { data: currentPv, error: curErr } = await context.supabase
       .from("compliance_policy_versions")
-      .select("id, version, is_current")
+      .select("id, version")
+      .eq("is_current", true)
+      .maybeSingle();
+    if (curErr) throw curErr;
+    if (!currentPv) throw new Error("No active compliance policy is configured.");
+
+    // Look up the version the client submitted, purely for a clearer error.
+    const { data: submittedPv, error: pvErr } = await context.supabase
+      .from("compliance_policy_versions")
+      .select("id, version")
       .eq("id", data.policy_version_id)
       .maybeSingle();
     if (pvErr) throw pvErr;
-    if (!pv) throw new Error("Unknown policy version");
-    if (!pv.is_current) {
-      throw new Error("Compliance policy has been updated. Review and agree to the current version before uploading.");
-    }
-    // Require an existing agreement for this host + current policy version.
-    // The agreement is recorded when the host checks the agreement box in the UI.
-    const { data: agreement, error: agErr } = await context.supabase
-      .from("compliance_policy_agreements")
-      .select("id")
-      .eq("accepted_by_user_id", context.userId)
-      .eq("policy_version_id", pv.id)
-      .limit(1)
-      .maybeSingle();
-    if (agErr) throw agErr;
-    if (!agreement) {
+    if (!submittedPv) throw new Error("Unknown policy version");
+
+    if (submittedPv.id !== currentPv.id) {
       throw new Error(
-        `You must agree to compliance policy v${pv.version} before uploading documents. Check the agreement box above the upload slots and try again.`,
+        `Compliance policy has been updated to v${currentPv.version} (you submitted v${submittedPv.version}). Reload the page, review the current policy, and agree to v${currentPv.version} before uploading.`,
       );
     }
+
+    // Require an existing agreement for this host against the CURRENT policy
+    // version. Check for any prior agreements too so we can tell the host
+    // exactly which older version they last accepted.
+    const { data: agreements, error: agErr } = await context.supabase
+      .from("compliance_policy_agreements")
+      .select("policy_version_id, policy_version_label, accepted_at")
+      .eq("accepted_by_user_id", context.userId)
+      .order("accepted_at", { ascending: false });
+    if (agErr) throw agErr;
+    const currentAgreement = (agreements ?? []).find((a) => a.policy_version_id === currentPv.id);
+    if (!currentAgreement) {
+      const latestOld = (agreements ?? []).find((a) => a.policy_version_id !== currentPv.id);
+      if (latestOld) {
+        throw new Error(
+          `Your last agreement was to compliance policy v${latestOld.policy_version_label}, but v${currentPv.version} is now in effect. Review and agree to v${currentPv.version} before uploading documents.`,
+        );
+      }
+      throw new Error(
+        `You must agree to compliance policy v${currentPv.version} before uploading documents. Check the agreement box above the upload slots and try again.`,
+      );
+    }
+
+    const pv = currentPv;
 
 
     const { data: row, error } = await context.supabase
