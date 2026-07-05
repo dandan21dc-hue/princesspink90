@@ -51,6 +51,13 @@ function EditEvent() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-event", id] }),
   });
 
+  const markUsedFn = useServerFn(setAccessCodeUsed);
+  const markUsed = useMutation({
+    mutationFn: (v: { id: string; used: boolean; used_by_name?: string }) => markUsedFn({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-event", id] }),
+    onError: (e) => toast.error(e.message),
+  });
+
   const bulkFn = useServerFn(bulkAddAccessCodes);
   const [bulkQty, setBulkQty] = useState(10);
   const [bulkPrefix, setBulkPrefix] = useState("PINK");
