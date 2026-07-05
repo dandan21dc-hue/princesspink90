@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { sendResendEmail } from '@/lib/resend.server'
 import { renderHealthScreeningReminder } from '@/lib/email-templates-resend/health-screening-reminder'
+import { resolveAppOrigin } from '@/lib/app-origin.server'
 
 // Admin-only test endpoint: renders the 7-day reminder template and sends via
 // Resend so you can verify branding, layout, and the portal link.
@@ -36,12 +37,8 @@ export const Route = createFileRoute('/api/public/hooks/test-reminder-email')({
         const to = body.to?.trim()
         if (!to) return json({ error: 'missing "to" in body' }, 400)
 
-        const origin =
-          process.env.PUBLIC_APP_URL ??
-          process.env.SITE_URL ??
-          request.headers.get('origin') ??
-          `https://${request.headers.get('host') ?? 'princesspink90.com'}`
-        const portalUrl = `${origin.replace(/\/$/, '')}/health-screenings`
+        const origin = resolveAppOrigin(request)
+        const portalUrl = `${origin}/health-screenings`
 
         const days = body.days ?? 7
         const validUntil =
