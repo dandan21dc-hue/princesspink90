@@ -313,9 +313,26 @@ function AdminGoLivePage() {
       </section>
 
       <section className="mx-auto max-w-4xl px-5 pb-8">
-        <h2 className="mb-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          Last successful email
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
+            Last successful email
+          </h2>
+          <button
+            type="button"
+            onClick={() => testMutation.mutate()}
+            disabled={testMutation.isPending}
+            aria-busy={testMutation.isPending}
+            className="inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-medium uppercase tracking-widest text-primary hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span
+              aria-hidden="true"
+              className={`inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent ${
+                testMutation.isPending ? "animate-spin" : "opacity-40"
+              }`}
+            />
+            {testMutation.isPending ? "Sending test…" : "Send test reminder to me"}
+          </button>
+        </div>
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4 text-sm">
           {data?.last_email_sent_at ? (
             <dl className="grid gap-2 sm:grid-cols-3">
@@ -330,11 +347,76 @@ function AdminGoLivePage() {
           ) : (
             <div className="text-muted-foreground">
               No emails have been successfully sent yet. Trigger a signup or
-              RSVP to exercise the path.
+              RSVP to exercise the path — or use “Send test reminder to me” above.
             </div>
           )}
         </div>
+
+        {testMutation.isError && (
+          <div
+            role="alert"
+            className="mt-3 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive"
+          >
+            Test reminder failed:{" "}
+            {testMutation.error instanceof Error
+              ? testMutation.error.message
+              : "unknown error"}
+          </div>
+        )}
+        {testResult && (
+          <div
+            role="status"
+            className={`mt-3 rounded-lg border p-3 text-xs ${
+              testResult.ok
+                ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                : "border-destructive/50 bg-destructive/10 text-destructive"
+            }`}
+          >
+            <div className="font-semibold">
+              {testResult.ok
+                ? "Test reminder sent"
+                : "Test reminder recorded as failed"}
+            </div>
+            <dl className="mt-2 grid gap-1 sm:grid-cols-2">
+              <div>
+                <dt className="opacity-70">Recipient</dt>
+                <dd className="font-mono break-all">{testResult.recipient_email}</dd>
+              </div>
+              <div>
+                <dt className="opacity-70">Message ID</dt>
+                <dd className="font-mono break-all">{testResult.message_id}</dd>
+              </div>
+              <div>
+                <dt className="opacity-70">Attempted at</dt>
+                <dd>{new Date(testResult.sent_at).toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt className="opacity-70">Template</dt>
+                <dd className="font-mono">{testResult.template}</dd>
+              </div>
+            </dl>
+            {testResult.error && (
+              <div className="mt-2 opacity-90">Error: {testResult.error}</div>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                to="/admin/email-delivery"
+                className="rounded-md border border-current/40 px-2.5 py-1 font-medium uppercase tracking-widest hover:bg-current/10"
+              >
+                Open email delivery log →
+              </Link>
+              <button
+                type="button"
+                onClick={() => query.refetch()}
+                className="rounded-md border border-current/40 px-2.5 py-1 font-medium uppercase tracking-widest hover:bg-current/10"
+              >
+                Re-check status
+              </button>
+            </div>
+          </div>
+        )}
       </section>
+
 
       <section className="mx-auto max-w-4xl px-5 pb-16">
         <h2 className="mb-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
