@@ -86,12 +86,13 @@ function WaiversPage() {
                   <th className="px-3 py-2 text-left">Accepted</th>
                   <th className="px-3 py-2 text-left">Signature</th>
                   <th className="px-3 py-2 text-left">Waiver hash</th>
+                  <th className="px-3 py-2 text-left">PDF</th>
                 </tr>
               </thead>
               <tbody>
                 {q.data.rsvps.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
                       No RSVPs yet.
                     </td>
                   </tr>
