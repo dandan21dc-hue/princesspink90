@@ -197,11 +197,11 @@ export const getDoorSheet = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, guest_count, status, video_consent, checked_in_at",
+        "id, user_id, ticket_code, entry_code, guest_count, status, video_consent, checked_in_at",
       )
       .eq("event_id", data.event_id)
       .eq("status", "confirmed")
-      .order("ticket_code", { ascending: true });
+      .order("entry_code", { ascending: true });
     if (error) throw error;
 
     const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
