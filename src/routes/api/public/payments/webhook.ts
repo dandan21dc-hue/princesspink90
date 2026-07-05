@@ -474,6 +474,15 @@ async function handleWebhook(req: Request, env: StripeEnv) {
     case "checkout.session.async_payment_failed":
       await handleAsyncPaymentFailed(event.data.object, env);
       break;
+    case "charge.refunded":
+      await handleChargeRefunded(event.data.object, env);
+      break;
+    case "charge.dispute.created":
+      await handleDisputeCreated(event.data.object, env);
+      break;
+    case "charge.dispute.closed":
+      await handleDisputeClosed(event.data.object, env);
+      break;
     default:
       console.log("Unhandled event:", event.type);
   }
