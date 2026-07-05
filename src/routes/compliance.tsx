@@ -485,8 +485,10 @@ function MyDocumentsSection() {
             </li>
           );
         })}
-      </ul>
+        </ul>
+      )}
     </Section>
+
   );
 }
 
