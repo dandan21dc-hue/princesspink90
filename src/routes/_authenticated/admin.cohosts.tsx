@@ -5,10 +5,12 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { amIAdmin } from "@/lib/admin.functions";
 import {
+  adminExportCohostReviews,
   adminListCohostApplications,
   adminListCohostApplicationReviews,
   adminReviewCohostApplication,
 } from "@/lib/cohost.functions";
+
 import {
   Sheet,
   SheetContent,
@@ -83,13 +85,16 @@ function AdminCohosts() {
   return (
     <Shell>
       <div className="mb-6 space-y-4">
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, city, or Instagram…"
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, email, city, or Instagram…"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+          <ExportAuditLogButton />
+        </div>
         <div className="flex flex-wrap gap-2">
           {STATUS_TABS.map((t) => {
             const active = status === t.value;
@@ -112,6 +117,7 @@ function AdminCohosts() {
         </div>
       </div>
 
+
       {q.isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : !q.data?.length ? (
@@ -130,6 +136,44 @@ function AdminCohosts() {
   );
 }
 
+
+function ExportAuditLogButton() {
+  const exportFn = useServerFn(adminExportCohostReviews);
+  const [busy, setBusy] = useState(false);
+
+  const download = async () => {
+    setBusy(true);
+    try {
+      const { csv, count } = await exportFn();
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `cohost-audit-log-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${count} decision${count === 1 ? "" : "s"}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={download}
+      disabled={busy}
+      className="shrink-0 rounded-md border border-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground disabled:opacity-50"
+    >
+      {busy ? "Exporting…" : "Export audit log (CSV)"}
+    </button>
+  );
+}
 
 function Row({ row }: { row: any }) {
   const [open, setOpen] = useState(false);
