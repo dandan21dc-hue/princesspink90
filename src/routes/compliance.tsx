@@ -540,6 +540,14 @@ function MyDocumentsSection() {
                     No policy version recorded
                   </span>
                 )}
+                {stale && d.current_agreement_accepted_at && d.current_policy_version_label && (
+                  <span
+                    className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-emerald-400"
+                    title={new Date(d.current_agreement_accepted_at).toISOString()}
+                  >
+                    Re-acknowledged v{d.current_policy_version_label}
+                  </span>
+                )}
                 {d.agreement_accepted_at ? (
                   <span
                     className="text-muted-foreground"
@@ -553,7 +561,15 @@ function MyDocumentsSection() {
                 ) : (
                   <span className="text-amber-300">No agreement record on file</span>
                 )}
-                {stale && currentVersion && currentId && (
+                {stale && d.current_agreement_accepted_at && (
+                  <span className="text-emerald-400">
+                    Re-acknowledged {new Date(d.current_agreement_accepted_at).toLocaleString()}
+                    {d.current_agreement_accepted_by_display_name
+                      ? ` by ${d.current_agreement_accepted_by_display_name}`
+                      : ""}
+                  </span>
+                )}
+                {stale && currentVersion && currentId && !d.current_agreement_accepted_at && (
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-amber-300">
                       Current policy is v{currentVersion} — consider re-uploading.
