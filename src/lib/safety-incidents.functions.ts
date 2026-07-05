@@ -10,11 +10,14 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Admin access required");
 }
 
+const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD");
 const listSchema = z.object({
   search: z.string().trim().max(200).default(""),
   limit: z.number().int().min(1).max(500).default(200),
   include_archived: z.boolean().default(false),
   only_archived: z.boolean().default(false),
+  from_date: dateStr.optional().nullable(),
+  to_date: dateStr.optional().nullable(),
 });
 
 export const listSafetyIncidents = createServerFn({ method: "GET" })
