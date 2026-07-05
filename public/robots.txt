@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://princesspink90.lovable.app/sitemap.xml
