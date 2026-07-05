@@ -24,7 +24,7 @@ function Home() {
   return (
     <>
       <Hero />
-      <section className="mx-auto max-w-6xl px-5 pb-24">
+      <section className="mx-auto max-w-6xl px-5 pb-16">
         <div className="mb-8 flex items-end justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-primary">Upcoming</div>
@@ -41,7 +41,64 @@ function Home() {
           <EventList />
         </Suspense>
       </section>
+      <HostBlock />
     </>
+  );
+}
+
+function HostBlock() {
+  const tags = [
+    "Glory hole nights",
+    "Gang bangs",
+    "Adult theatre takeovers",
+    "Custom scenes",
+  ];
+  return (
+    <section id="host" className="mx-auto max-w-6xl px-5 pb-24">
+      <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background p-8 sm:p-12 shadow-[var(--shadow-glow-pink)]">
+        <div className="text-xs uppercase tracking-[0.3em] text-primary">Your host</div>
+        <h2 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
+          Princess <span className="text-neon">Pink</span>
+        </h2>
+        <p className="mt-5 max-w-2xl text-muted-foreground leading-relaxed">
+          I curate discreet, consent-first nights at adult theatres and private
+          venues — from anonymous booth play to hand-picked group scenes. Every
+          guest is vetted. Every room is safe, filthy, and unforgettable.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {tags.map((t) => (
+            <span
+              key={t}
+              className="rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs uppercase tracking-widest text-primary"
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+        <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <ContactCard label="Email" value="princess@pink.invalid" href="mailto:princess@pink.invalid" />
+          <ContactCard label="FetLife" value="/PrincessPink" href="https://fetlife.com/" />
+          <ContactCard label="Reddit" value="u/PrincessPink" href="https://reddit.com/" />
+        </div>
+        <p className="mt-6 text-[11px] uppercase tracking-widest text-muted-foreground">
+          Update these handles anytime in the code — placeholders shown.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function ContactCard({ label, value, href }: { label: string; value: string; href: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="group rounded-2xl border border-border/60 bg-card/40 p-4 backdrop-blur hover:border-primary/50 hover:bg-card/60 transition"
+    >
+      <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{label}</div>
+      <div className="mt-1 font-display text-lg text-foreground group-hover:text-neon transition">{value}</div>
+    </a>
   );
 }
 
