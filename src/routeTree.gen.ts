@@ -34,6 +34,7 @@ import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminVenueComplianceRemindersRouteImport } from './routes/_authenticated/admin.venue-compliance-reminders'
 import { Route as AuthenticatedAdminVenueComplianceRouteImport } from './routes/_authenticated/admin.venue-compliance'
 import { Route as AuthenticatedAdminSystemLogsRouteImport } from './routes/_authenticated/admin.system-logs'
+import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
@@ -188,6 +189,12 @@ const AuthenticatedAdminSystemLogsRoute =
   AuthenticatedAdminSystemLogsRouteImport.update({
     id: '/admin/system-logs',
     path: '/admin/system-logs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminSupportRoute =
+  AuthenticatedAdminSupportRouteImport.update({
+    id: '/admin/support',
+    path: '/admin/support',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminSettingsRoute =
@@ -379,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -431,6 +439,7 @@ export interface FileRoutesByTo {
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -485,6 +494,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/_authenticated/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/_authenticated/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -539,6 +549,7 @@ export interface FileRouteTypes {
     | '/admin/lifetime'
     | '/admin/safety-incidents'
     | '/admin/settings'
+    | '/admin/support'
     | '/admin/system-logs'
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
@@ -591,6 +602,7 @@ export interface FileRouteTypes {
     | '/admin/lifetime'
     | '/admin/safety-incidents'
     | '/admin/settings'
+    | '/admin/support'
     | '/admin/system-logs'
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
@@ -644,6 +656,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/lifetime'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/support'
     | '/_authenticated/admin/system-logs'
     | '/_authenticated/admin/venue-compliance'
     | '/_authenticated/admin/venue-compliance-reminders'
@@ -863,6 +876,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/system-logs'
       fullPath: '/admin/system-logs'
       preLoaderRoute: typeof AuthenticatedAdminSystemLogsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/support': {
+      id: '/_authenticated/admin/support'
+      path: '/admin/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/settings': {
@@ -1096,6 +1116,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminSystemLogsRoute: typeof AuthenticatedAdminSystemLogsRoute
   AuthenticatedAdminVenueComplianceRoute: typeof AuthenticatedAdminVenueComplianceRoute
   AuthenticatedAdminVenueComplianceRemindersRoute: typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -1132,6 +1153,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
   AuthenticatedAdminSystemLogsRoute: AuthenticatedAdminSystemLogsRoute,
   AuthenticatedAdminVenueComplianceRoute:
     AuthenticatedAdminVenueComplianceRoute,
