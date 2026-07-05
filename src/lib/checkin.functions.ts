@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { videoConsentSchema, type VideoConsent } from "@/lib/verification.functions";
+import { normalizeEntryPhrase } from "@/lib/entry-phrase";
+
 
 async function assertEventHostOrAdmin(
   supabase: any,
