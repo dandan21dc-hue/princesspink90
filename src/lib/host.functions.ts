@@ -750,8 +750,9 @@ export const listWaiverAudit = createServerFn({ method: "GET" })
     if (error) throw error;
 
     const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+    const { supabaseAdmin: sbAdmin3 } = await import("@/integrations/supabase/client.server");
     const { data: profs } = userIds.length
-      ? await context.supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+      ? await sbAdmin3.from("profiles").select("user_id, display_name").in("user_id", userIds)
       : { data: [] as { user_id: string; display_name: string | null }[] };
     const nameByUser = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
 
