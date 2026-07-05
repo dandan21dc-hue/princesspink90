@@ -27,6 +27,7 @@ export type EventFormValues = {
   legal_capacity: string;
   capacity_confirmed: boolean;
   compliance_notes: string;
+  waiver_text: string;
 };
 
 export function emptyForm(): EventFormValues {
