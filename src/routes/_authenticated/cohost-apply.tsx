@@ -15,6 +15,18 @@ export const Route = createFileRoute("/_authenticated/cohost-apply")({
   component: CohostApply,
 });
 
+const DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const EVENT_TYPE_OPTIONS = [
+  "Private parties",
+  "Club nights",
+  "Adult theatre",
+  "Play parties",
+  "Brand collabs",
+  "Photo/video shoots",
+  "Custom scenes",
+  "Travel events",
+];
+
 function CohostApply() {
   const eligibilityFn = useServerFn(getCohostEligibility);
   const mineFn = useServerFn(getMyCohostApplication);
