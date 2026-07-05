@@ -122,7 +122,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
     // `data.entry_phrase` is already normalized by the input validator:
     // null when the caller sent blank / whitespace-only. Omit the field
     // entirely in that case so the BEFORE INSERT trigger picks one.
-    const upsertPayload: Record<string, unknown> = {
+    const basePayload = {
       event_id: data.event_id,
       user_id: context.userId,
       guest_count: data.guest_count,
@@ -134,14 +134,16 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       waiver_accepted_at: now,
       waiver_text_hash: currentHash,
     };
-    if (data.entry_phrase !== null) {
-      upsertPayload.entry_phrase = data.entry_phrase;
-    }
+    const upsertPayload =
+      data.entry_phrase !== null
+        ? { ...basePayload, entry_phrase: data.entry_phrase }
+        : basePayload;
     const { data: row, error } = await context.supabase
       .from("rsvps")
       .upsert(upsertPayload, { onConflict: "event_id,user_id" })
       .select("id, ticket_code, entry_code, entry_phrase")
       .single();
+
 
     if (error) throw error;
 
