@@ -149,6 +149,17 @@ async function postWebhook(opts: {
   timestamp?: number
   secret?: string
 }) {
+  // For checkout.session.completed events, default payment_status to 'paid'
+  // so pre-existing tests keep asserting the "funds settled → grant" path.
+  // Tests that specifically exercise unpaid/async gating set it explicitly.
+  const rawBody = opts.body as any
+  if (
+    rawBody?.type === 'checkout.session.completed' &&
+    rawBody?.data?.object &&
+    rawBody.data.object.payment_status === undefined
+  ) {
+    rawBody.data.object.payment_status = 'paid'
+  }
   const body = JSON.stringify(opts.body)
   let signature: string | null | undefined = opts.signature
   if (signature === undefined) {
