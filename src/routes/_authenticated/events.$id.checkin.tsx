@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation } from "@tanstack/react-query";
-import { useState } from "react";
-import { lookupCheckin, performCheckin } from "@/lib/checkin.functions";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { lookupCheckin, performCheckin, listCheckins } from "@/lib/checkin.functions";
 import type { VideoConsent } from "@/lib/verification.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$id/checkin")({
