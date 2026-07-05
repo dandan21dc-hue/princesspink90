@@ -119,7 +119,17 @@ function EditEvent() {
     ticket_price_cents: String(event.ticket_price_cents ?? 0),
     cover_image_url: event.cover_image_url ?? "",
     is_private: event.is_private, published: event.published,
+    permits_confirmed: (event as any).permits_confirmed ?? false,
+    permit_details: (event as any).permit_details ?? "",
+    insurance_confirmed: (event as any).insurance_confirmed ?? false,
+    insurance_provider: (event as any).insurance_provider ?? "",
+    insurance_policy_number: (event as any).insurance_policy_number ?? "",
+    insurance_expires_on: (event as any).insurance_expires_on ?? "",
+    legal_capacity: (event as any).legal_capacity ? String((event as any).legal_capacity) : "",
+    capacity_confirmed: (event as any).capacity_confirmed ?? false,
+    compliance_notes: (event as any).compliance_notes ?? "",
   };
+
 
   return (
     <section className="mx-auto max-w-3xl px-5 py-10">
