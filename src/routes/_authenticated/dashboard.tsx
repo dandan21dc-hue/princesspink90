@@ -15,9 +15,11 @@ function Dashboard() {
   const myEventsFn = useServerFn(listMyEvents);
   const myRsvpsFn = useServerFn(listMyRsvps);
   const amIAdminFn = useServerFn(amIAdmin);
+  const complianceFn = useServerFn(getMyEventsCompliance);
   const events = useQuery({ queryKey: ["my-events"], queryFn: () => myEventsFn() });
   const rsvps = useQuery({ queryKey: ["my-rsvps"], queryFn: () => myRsvpsFn() });
   const admin = useQuery({ queryKey: ["am-i-admin"], queryFn: () => amIAdminFn() });
+  const compliance = useQuery({ queryKey: ["my-events-compliance"], queryFn: () => complianceFn() });
 
 
   return (
