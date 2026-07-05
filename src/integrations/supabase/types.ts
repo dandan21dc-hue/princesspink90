@@ -527,6 +527,53 @@ export type Database = {
         }
         Relationships: []
       }
+      health_screening_reminder_log: {
+        Row: {
+          channels: Json
+          created_at: string
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          reminder_type: string
+          screening_id: string
+          status: string
+          user_id: string
+          valid_until: string
+        }
+        Insert: {
+          channels?: Json
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          reminder_type?: string
+          screening_id: string
+          status?: string
+          user_id: string
+          valid_until: string
+        }
+        Update: {
+          channels?: Json
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          reminder_type?: string
+          screening_id?: string
+          status?: string
+          user_id?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_screening_reminder_log_screening_id_fkey"
+            columns: ["screening_id"]
+            isOneToOne: false
+            referencedRelation: "health_screenings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_screenings: {
         Row: {
           created_at: string
