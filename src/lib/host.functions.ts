@@ -375,10 +375,24 @@ export const registerEventDocument = createServerFn({ method: "POST" })
     if (pvErr) throw pvErr;
     if (!pv) throw new Error("Unknown policy version");
     if (!pv.is_current) {
-      throw new Error("Policy has been updated. Please review the current version before uploading.");
+      throw new Error("Compliance policy has been updated. Review and agree to the current version before uploading.");
     }
-    // Ensure an agreement record exists for this host / version / event.
-    await recordAgreementRow(context.supabase, context.userId, pv.id, pv.version, data.event_id);
+    // Require an existing agreement for this host + current policy version.
+    // The agreement is recorded when the host checks the agreement box in the UI.
+    const { data: agreement, error: agErr } = await context.supabase
+      .from("compliance_policy_agreements")
+      .select("id")
+      .eq("accepted_by_user_id", context.userId)
+      .eq("policy_version_id", pv.id)
+      .limit(1)
+      .maybeSingle();
+    if (agErr) throw agErr;
+    if (!agreement) {
+      throw new Error(
+        `You must agree to compliance policy v${pv.version} before uploading documents. Check the agreement box above the upload slots and try again.`,
+      );
+    }
+
 
     const { data: row, error } = await context.supabase
       .from("event_documents")

@@ -72,19 +72,26 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
   const [uploadingType, setUploadingType] = useState<DocType | null>(null);
 
   async function upload(type: DocType, file: File) {
-    if (!currentVersionId) { toast.error("Policy version unavailable — try again in a moment"); return; }
+    if (!currentVersionId) {
+      toast.error("Compliance policy hasn't loaded yet — try again in a moment.");
+      return;
+    }
     if (!hasAgreedToCurrent) {
-      toast.error(`Agree to compliance policy v${policy.data?.version} before uploading.`);
+      toast.error(
+        `You must agree to compliance policy v${policy.data?.version ?? "?"} before uploading. Check the agreement box above.`,
+      );
       return;
     }
     if (file.size > MAX_BYTES) { toast.error("File must be under 20 MB"); return; }
     setUploadingType(type);
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+    const key = `${eventId}/${type}-${crypto.randomUUID()}-${safeName}`;
+    let uploaded = false;
     try {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
-      const key = `${eventId}/${type}-${crypto.randomUUID()}-${safeName}`;
       const { error: upErr } = await supabase.storage
         .from("event-documents").upload(key, file, { contentType: file.type || undefined, upsert: false });
       if (upErr) throw upErr;
+      uploaded = true;
       await registerFn({
         data: {
           event_id: eventId,
@@ -99,11 +106,19 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
       toast.success(`Uploaded (against policy v${policy.data?.version})`);
       qc.invalidateQueries({ queryKey: ["event-documents", eventId] });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
+      const msg = e instanceof Error ? e.message : "Upload failed";
+      // Server rejected because no policy agreement is on file — clean up the
+      // orphaned storage object and refresh the agreement state.
+      if (uploaded && /agree to compliance policy/i.test(msg)) {
+        await supabase.storage.from("event-documents").remove([key]).catch(() => {});
+        qc.invalidateQueries({ queryKey: ["my-policy-agreements", eventId] });
+      }
+      toast.error(msg);
     } finally {
       setUploadingType(null);
     }
   }
+
 
   async function openDoc(id: string) {
     try {
@@ -162,7 +177,22 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
         </div>
       )}
 
+      {!hasAgreedToCurrent && !policy.isLoading && currentVersionId && (
+        <div
+          role="alert"
+          className="mt-3 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive-foreground"
+        >
+          <div className="font-semibold uppercase tracking-widest text-destructive">Uploads blocked</div>
+          <p className="mt-1 text-destructive/90">
+            You must agree to compliance policy v{policy.data?.version} before you can upload
+            permits, insurance, or capacity documents. Check the agreement box above — uploads
+            will unlock as soon as your agreement is recorded.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-4 mt-5">
+
         {REQUIRED.map((r) => (
           <DocSlot
             key={r.type} type={r.type} label={r.label} hint={r.hint} required
