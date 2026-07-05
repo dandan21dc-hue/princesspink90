@@ -115,6 +115,7 @@ export function EventForm({
 
   const policyFn = useServerFn(getCurrentPolicyVersion);
   const listDocsFn = useServerFn(listEventDocuments);
+  const listAgreementsFn = useServerFn(listMyPolicyAgreements);
   const policy = useQuery({
     queryKey: ["compliance-policy-current"],
     queryFn: () => policyFn(),
@@ -124,9 +125,17 @@ export function EventForm({
     queryFn: () => listDocsFn({ data: { event_id: eventId! } }),
     enabled: !!eventId,
   });
+  const agreements = useQuery({
+    queryKey: ["my-policy-agreements", eventId],
+    queryFn: () => listAgreementsFn({ data: { event_id: eventId! } }),
+    enabled: !!eventId,
+  });
 
   const currentPolicyId = policy.data?.id ?? null;
   const currentPolicyVersion = policy.data?.version ?? null;
+  const hasAgreedToCurrent =
+    !!currentPolicyId &&
+    !!agreements.data?.some((a) => a.policy_version_id === currentPolicyId);
   const REQUIRED_DOCS: { type: "permit" | "insurance" | "capacity"; label: string }[] = [
     { type: "permit", label: "Event permit" },
     { type: "insurance", label: "Insurance certificate" },
@@ -136,12 +145,15 @@ export function EventForm({
   const missingDocs = eventId
     ? REQUIRED_DOCS.filter((r) => !docList.some((d) => d.doc_type === r.type))
     : [];
-  const staleDocs = eventId && currentPolicyId
+  const staleDocs = eventId
     ? docList.filter(
         (d) =>
           (d.doc_type === "permit" || d.doc_type === "insurance" || d.doc_type === "capacity") &&
-          d.policy_version_id &&
-          d.policy_version_id !== currentPolicyId,
+          isDocumentStale({
+            docPolicyVersionId: d.policy_version_id,
+            currentPolicyVersionId: currentPolicyId,
+            reAcknowledged: hasAgreedToCurrent,
+          }),
       )
     : [];
 
