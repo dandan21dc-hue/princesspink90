@@ -77,6 +77,7 @@ function Home() {
 }
 
 function HostBlock() {
+  const { data: settings } = useSuspenseQuery(settingsQuery);
   const tags = [
     "Glory hole nights",
     "Gang bangs",
@@ -106,13 +107,10 @@ function HostBlock() {
           ))}
         </div>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          <ContactCard label="Email" value="princesspink9014@gmail.com" href="mailto:princesspink9014@gmail.com" />
-          <ContactCard label="FetLife" value="/pink_princess90" href="https://fetlife.com/pink_princess90" />
-          <ContactCard label="Reddit" value="u/19pink-princess90" href="https://reddit.com/u/19pink-princess90" />
+          <ContactCard label="Email" value={settings.email} href={`mailto:${settings.email}`} />
+          <ContactCard label="FetLife" value={`/${settings.fetlife_handle}`} href={`https://fetlife.com/${settings.fetlife_handle}`} />
+          <ContactCard label="Reddit" value={`u/${settings.reddit_handle}`} href={`https://reddit.com/u/${settings.reddit_handle}`} />
         </div>
-        <p className="mt-6 text-[11px] uppercase tracking-widest text-muted-foreground">
-          Update these handles anytime in the code — placeholders shown.
-        </p>
       </div>
     </section>
   );
