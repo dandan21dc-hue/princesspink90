@@ -883,6 +883,39 @@ export type Database = {
           },
         ]
       }
+      safety_incident_export_log: {
+        Row: {
+          columns: string[]
+          exported_at: string
+          exported_by: string
+          format: string
+          id: string
+          row_count: number
+          search: string
+          view: string
+        }
+        Insert: {
+          columns?: string[]
+          exported_at?: string
+          exported_by: string
+          format: string
+          id?: string
+          row_count?: number
+          search?: string
+          view: string
+        }
+        Update: {
+          columns?: string[]
+          exported_at?: string
+          exported_by?: string
+          format?: string
+          id?: string
+          row_count?: number
+          search?: string
+          view?: string
+        }
+        Relationships: []
+      }
       safety_incident_reports: {
         Row: {
           archive_reason: string | null
