@@ -540,16 +540,28 @@ export const listMyComplianceDocuments = createServerFn({ method: "GET" })
     if (error) throw error;
 
     const rows = (docs ?? []) as any[];
-    const versionIds = Array.from(new Set(rows.map((d) => d.policy_version_id).filter(Boolean))) as string[];
+    const docVersionIds = Array.from(new Set(rows.map((d) => d.policy_version_id).filter(Boolean))) as string[];
     const uploaderIds = Array.from(new Set(rows.map((d) => d.uploaded_by).filter(Boolean))) as string[];
 
-    // Fetch this user's agreements for the versions used by their uploads.
-    // Prefer the same-event agreement, else the earliest global agreement.
+    // Fetch the currently-active policy so we can surface a
+    // "re-acknowledged under current policy" agreement even when the doc
+    // itself is on an older policy version.
+    const currentPvRes = await context.supabase
+      .from("compliance_policy_versions")
+      .select("id, version")
+      .eq("is_current", true)
+      .maybeSingle();
+    if (currentPvRes.error) throw currentPvRes.error;
+    const currentPv = currentPvRes.data as { id: string; version: string } | null;
+    const versionIds = Array.from(new Set([...docVersionIds, ...(currentPv ? [currentPv.id] : [])]));
+
+    // Fetch this user's agreements for the versions we care about (doc
+    // versions + current). Prefer same-event agreements, else global.
     const [agreementsRes, profilesRes] = await Promise.all([
       versionIds.length
         ? context.supabase
             .from("compliance_policy_agreements")
-            .select("policy_version_id, event_id, accepted_at, accepted_by_user_id")
+            .select("policy_version_id, policy_version_label, event_id, accepted_at, accepted_by_user_id")
             .eq("accepted_by_user_id", context.userId)
             .in("policy_version_id", versionIds)
             .order("accepted_at", { ascending: true })
@@ -564,8 +576,6 @@ export const listMyComplianceDocuments = createServerFn({ method: "GET" })
     const nameByUser = new Map<string, string>();
     for (const p of (profilesRes.data ?? []) as any[]) nameByUser.set(p.user_id, p.display_name);
 
-    // key: `${versionId}|${eventId ?? ""}` → prefer event-scoped agreement,
-    // fall back to the earliest global (event_id null) agreement for that version.
     const agreements = (agreementsRes.data ?? []) as any[];
     const globalByVersion = new Map<string, any>();
     const scopedByKey = new Map<string, any>();
@@ -578,12 +588,17 @@ export const listMyComplianceDocuments = createServerFn({ method: "GET" })
       }
     }
 
+    function findAgreement(versionId: string | null, eventId: string | null) {
+      if (!versionId) return null;
+      const scoped = eventId ? scopedByKey.get(`${versionId}|${eventId}`) ?? null : null;
+      return scoped ?? globalByVersion.get(versionId) ?? null;
+    }
+
     return rows.map((d) => {
-      const scoped = d.policy_version_id
-        ? scopedByKey.get(`${d.policy_version_id}|${d.event_id}`) ?? null
+      const agreement = findAgreement(d.policy_version_id ?? null, d.event_id ?? null);
+      const currentAgreement = currentPv
+        ? findAgreement(currentPv.id, d.event_id ?? null)
         : null;
-      const fallback = d.policy_version_id ? globalByVersion.get(d.policy_version_id) ?? null : null;
-      const agreement = scoped ?? fallback;
       return {
         id: d.id as string,
         doc_type: d.doc_type as string,
@@ -599,6 +614,13 @@ export const listMyComplianceDocuments = createServerFn({ method: "GET" })
         agreement_accepted_by_user_id: (agreement?.accepted_by_user_id as string | null) ?? null,
         agreement_accepted_by_display_name:
           agreement?.accepted_by_user_id ? nameByUser.get(agreement.accepted_by_user_id) ?? null : null,
+        current_policy_version_id: currentPv?.id ?? null,
+        current_policy_version_label: currentPv?.version ?? null,
+        current_agreement_accepted_at: (currentAgreement?.accepted_at as string | null) ?? null,
+        current_agreement_accepted_by_display_name:
+          currentAgreement?.accepted_by_user_id
+            ? nameByUser.get(currentAgreement.accepted_by_user_id) ?? null
+            : null,
       };
     });
   });
