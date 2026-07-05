@@ -71,6 +71,7 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
   });
 
   const [uploadingType, setUploadingType] = useState<DocType | null>(null);
+  const [lastRejection, setLastRejection] = useState<string | null>(null);
 
   async function upload(type: DocType, file: File) {
     if (!currentVersionId) {
@@ -78,9 +79,9 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
       return;
     }
     if (!hasAgreedToCurrent) {
-      toast.error(
-        `You must agree to compliance policy v${policy.data?.version ?? "?"} before uploading. Check the agreement box above.`,
-      );
+      const msg = `You must agree to compliance policy v${policy.data?.version ?? "?"} before uploading. Check the agreement box above.`;
+      setLastRejection(msg);
+      toast.error(msg);
       return;
     }
     if (file.size > MAX_BYTES) { toast.error("File must be under 20 MB"); return; }
@@ -95,13 +96,15 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
         currentVersionId,
       });
       if (result.ok) {
+        setLastRejection(null);
         toast.success(`Uploaded (against policy v${policy.data?.version})`);
         qc.invalidateQueries({ queryKey: ["event-documents", eventId] });
       } else {
         if (result.cleanedUp) {
           qc.invalidateQueries({ queryKey: ["my-policy-agreements", eventId] });
         }
-        toast.error(result.error.message);
+        setLastRejection(result.error.message);
+        toast.error(result.error.message, { description: "Reported by the compliance service" });
       }
     } finally {
       setUploadingType(null);
@@ -177,6 +180,16 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
             permits, insurance, or capacity documents. Check the agreement box above — uploads
             will unlock as soon as your agreement is recorded.
           </p>
+          {lastRejection && (
+            <div className="mt-2 rounded border border-destructive/40 bg-background/60 p-2 text-[11px] text-destructive">
+              <div className="font-semibold uppercase tracking-widest text-destructive/80">
+                Server response
+              </div>
+              <p className="mt-1 font-mono leading-snug text-destructive/90 break-words">
+                {lastRejection}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
