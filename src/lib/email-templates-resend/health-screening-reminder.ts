@@ -30,6 +30,8 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
     '',
     `Update your screening: ${portalUrl}`,
     '',
+    `View in browser: ${portalUrl}`,
+    '',
     'With love,',
     'Princess Pink',
     '',
@@ -73,6 +75,12 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
                    style="display:inline-block;background:#c94b8b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:600;font-size:15px;">
                   Update your screening
                 </a>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:0 32px 24px 32px;font-size:12px;color:#8a5b74;line-height:1.5;word-break:break-all;">
+                Button not working? <a href="${escapeAttr(portalUrl)}" style="color:#c94b8b;text-decoration:underline;">View in browser</a><br />
+                <span style="color:#a07a8e;">${escapeHtml(portalUrl)}</span>
               </td>
             </tr>
             <tr>
