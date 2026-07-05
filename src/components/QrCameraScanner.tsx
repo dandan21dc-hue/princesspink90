@@ -142,12 +142,55 @@ export function QrCameraScanner({
               : "Camera live — point at QR"
             : "Starting camera…"}
         </div>
-        <button
-          onClick={onClose}
-          className="text-[10px] uppercase tracking-widest text-white/70 hover:text-white"
-        >
-          Close ✕
-        </button>
+        <div className="flex items-center gap-2">
+          {hasTorch && (
+            <button
+              onClick={toggleTorch}
+              className={`rounded-md border px-2 py-1 text-[10px] uppercase tracking-widest transition ${
+                torchOn
+                  ? "border-neon bg-neon/20 text-neon"
+                  : "border-white/30 text-white/80 hover:bg-white/10"
+              }`}
+              aria-pressed={torchOn}
+              title="Toggle torch"
+            >
+              {torchOn ? "🔦 Torch on" : "🔦 Torch"}
+            </button>
+          )}
+          {cameras.length > 1 && (
+            <button
+              onClick={switchFacing}
+              className="rounded-md border border-white/30 px-2 py-1 text-[10px] uppercase tracking-widest text-white/80 hover:bg-white/10"
+              title="Swap front/back camera"
+            >
+              ⇆ {facing === "environment" ? "Back" : "Front"}
+            </button>
+          )}
+          {cameras.length > 2 && (
+            <select
+              onChange={(e) => pickCamera(e.target.value)}
+              className="max-w-[9rem] rounded-md border border-white/30 bg-black px-1.5 py-1 text-[10px] uppercase tracking-widest text-white/80"
+              defaultValue=""
+              title="Pick a specific camera"
+            >
+              <option value="" disabled>
+                Camera…
+              </option>
+              {cameras.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label || c.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={onClose}
+            className="text-[10px] uppercase tracking-widest text-white/70 hover:text-white"
+          >
+            Close ✕
+          </button>
+        </div>
+
       </div>
       <div className="relative aspect-square w-full">
         <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
