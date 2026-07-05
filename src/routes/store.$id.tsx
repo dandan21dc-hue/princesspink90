@@ -67,7 +67,7 @@ function ItemPage() {
       return;
     }
     openCheckout({
-      priceId: "all_access_monthly",
+      priceId: "all_access_monthly_aud",
       userId: user.id,
       customerEmail: user.email,
       returnUrl: `${window.location.origin}/library?checkout=success`,
