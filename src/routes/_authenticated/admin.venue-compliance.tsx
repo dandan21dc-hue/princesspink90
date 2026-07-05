@@ -82,17 +82,32 @@ function AdminVenueCompliancePage() {
     recipient: "",
   });
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState(emptyForm);
+
   const listFn = useServerFn(listVenueComplianceDocs);
   const uploadFn = useServerFn(uploadVenueComplianceDoc);
+  const updateFn = useServerFn(updateVenueComplianceDoc);
   const deleteFn = useServerFn(deleteVenueComplianceDoc);
   const dlFn = useServerFn(getVenueComplianceDownloadUrl);
   const pdfFn = useServerFn(generateComplianceSummaryPdf);
+  const auditFn = useServerFn(listVenueComplianceAudit);
   const qc = useQueryClient();
 
   const query = useQuery({
     queryKey: ["admin-venue-compliance"],
     queryFn: () => listFn(),
   });
+
+  const auditQuery = useQuery({
+    queryKey: ["admin-venue-compliance-audit"],
+    queryFn: () => auditFn(),
+  });
+
+  function invalidateAll() {
+    qc.invalidateQueries({ queryKey: ["admin-venue-compliance"] });
+    qc.invalidateQueries({ queryKey: ["admin-venue-compliance-audit"] });
+  }
 
   const uploadMut = useMutation({
     mutationFn: async () => {
