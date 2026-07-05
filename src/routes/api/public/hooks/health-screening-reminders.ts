@@ -90,6 +90,36 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
         // These let inbound portal traffic be attributed back to the exact
         // reminder that triggered the click.
         const origin = resolveAppOrigin(request)
+
+        // Structured, single-line JSON logs make cron-driven runs easy to grep
+        // (`event:"reminder_cron_start"` / `"reminder_email_send"`) and to
+        // audit which origin/portal URL any given email actually used.
+        const runId =
+          (globalThis.crypto?.randomUUID?.() as string | undefined) ??
+          `run_${Date.now().toString(36)}`
+        const logEvent = (event: string, fields: Record<string, unknown>) => {
+          console.log(
+            JSON.stringify({
+              event,
+              run_id: runId,
+              hook: 'health-screening-reminders',
+              ts: new Date().toISOString(),
+              ...fields,
+            }),
+          )
+        }
+        logEvent('reminder_cron_start', {
+          resolved_origin: origin,
+          public_app_url_set: Boolean(process.env.PUBLIC_APP_URL),
+          site_url_set: Boolean(process.env.SITE_URL),
+          forwarded_host: request.headers.get('x-forwarded-host'),
+          forwarded_proto: request.headers.get('x-forwarded-proto'),
+          host: request.headers.get('host'),
+          target_date: targetDate,
+          window_days: windowDays,
+          candidates: candidates?.length ?? 0,
+        })
+
         const buildPortalUrl = (params: {
           rid: string
           sid: string
@@ -105,6 +135,7 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           })
           return `${origin}/health-screenings?${qs.toString()}`
         }
+
 
         let emailed = 0
         for (const row of candidates ?? []) {
