@@ -113,7 +113,7 @@ function PrivateRoomPage() {
       userId: user.id,
       customerEmail: user.email,
       bookingStartsAt: selectedSlot.toISOString(),
-      returnUrl: `${window.location.origin}/dashboard?booking=confirmed`,
+      returnUrl: `${window.location.origin}/checkout/return?next=%2Fdashboard`,
     });
   }
 

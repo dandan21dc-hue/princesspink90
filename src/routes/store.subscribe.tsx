@@ -48,7 +48,7 @@ function SubscribePage() {
       priceId,
       userId: user.id,
       customerEmail: user.email,
-      returnUrl: `${window.location.origin}/library?checkout=success`,
+      returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
     });
   }
 

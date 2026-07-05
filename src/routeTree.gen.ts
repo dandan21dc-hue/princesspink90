@@ -22,6 +22,7 @@ import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
 import { Route as StorePrivateRoomRouteImport } from './routes/store.private-room'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
@@ -127,6 +128,11 @@ const StoreIdRoute = StoreIdRouteImport.update({
 const EventsIdRoute = EventsIdRouteImport.update({
   id: '/events/$id',
   path: '/events/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
+  id: '/checkout/return',
+  path: '/checkout/return',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -388,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
@@ -444,6 +451,7 @@ export interface FileRoutesByTo {
   '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
@@ -502,6 +510,7 @@ export interface FileRoutesById {
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
+  '/checkout/return': typeof CheckoutReturnRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
@@ -560,6 +569,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/verify'
     | '/api/chat'
+    | '/checkout/return'
     | '/events/$id'
     | '/store/$id'
     | '/store/private-room'
@@ -616,6 +626,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/verify'
     | '/api/chat'
+    | '/checkout/return'
     | '/events/$id'
     | '/store/$id'
     | '/store/private-room'
@@ -673,6 +684,7 @@ export interface FileRouteTypes {
     | '/_authenticated/support'
     | '/_authenticated/verify'
     | '/api/chat'
+    | '/checkout/return'
     | '/events/$id'
     | '/store/$id'
     | '/store/private-room'
@@ -725,6 +737,7 @@ export interface RootRouteChildren {
   StoreRoute: typeof StoreRouteWithChildren
   UnlockRoute: typeof UnlockRoute
   ApiChatRoute: typeof ApiChatRoute
+  CheckoutReturnRoute: typeof CheckoutReturnRoute
   EventsIdRoute: typeof EventsIdRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
@@ -830,6 +843,13 @@ declare module '@tanstack/react-router' {
       path: '/events/$id'
       fullPath: '/events/$id'
       preLoaderRoute: typeof EventsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/return': {
+      id: '/checkout/return'
+      path: '/checkout/return'
+      fullPath: '/checkout/return'
+      preLoaderRoute: typeof CheckoutReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -1254,6 +1274,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoreRoute: StoreRouteWithChildren,
   UnlockRoute: UnlockRoute,
   ApiChatRoute: ApiChatRoute,
+  CheckoutReturnRoute: CheckoutReturnRoute,
   EventsIdRoute: EventsIdRoute,
   ApiPublicHooksCronHealthCheckRoute: ApiPublicHooksCronHealthCheckRoute,
   ApiPublicHooksHealthScreeningRemindersRoute:
