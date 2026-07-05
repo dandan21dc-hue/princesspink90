@@ -276,8 +276,8 @@ function EditEvent() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmBulk?.used
-                ? `This will mark ${selected.size} access code${selected.size === 1 ? "" : "s"} as used${bulkGuestName.trim() ? ` and record the guest name "${bulkGuestName.trim()}"` : ""}.`
-                : `This will clear the used status on ${selected.size} access code${selected.size === 1 ? "" : "s"}, allowing them to unlock the invitation again.`}
+                ? `This will mark ${selected.size} access code${selected.size === 1 ? "" : "s"} as used and record the guest name "${bulkGuestName.trim()}".`
+                : `This will clear the used status on ${selected.size} access code${selected.size === 1 ? "" : "s"}, allowing them to unlock the invitation again. Any guest name entered above will be ignored.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
