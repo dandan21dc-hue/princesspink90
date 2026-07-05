@@ -442,3 +442,34 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
   );
 }
 
+function StatusDot({ ok }: { ok: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={
+        "inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold " +
+        (ok ? "bg-emerald-500/25 text-emerald-300" : "bg-amber-500/25 text-amber-300")
+      }
+    >
+      {ok ? "✓" : "!"}
+    </span>
+  );
+}
+
+function StatusChip({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <div
+      className={
+        "flex items-center gap-1.5 rounded-md border px-2 py-1.5 " +
+        (ok
+          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+          : "border-amber-500/30 bg-amber-500/5 text-amber-200/80")
+      }
+    >
+      <StatusDot ok={ok} />
+      <span className="uppercase tracking-widest text-[10px]">{label}</span>
+    </div>
+  );
+}
+
+
