@@ -15,7 +15,9 @@ type MediaEntry = { url: string; type: "image" | "video" };
 
 function LibraryPage() {
   const libFn = useServerFn(getMyLibrary);
+  const memFn = useServerFn(getMyMembership);
   const { data, isLoading } = useQuery({ queryKey: ["my-library"], queryFn: () => libFn() });
+  const mem = useQuery({ queryKey: ["my-membership"], queryFn: () => memFn() });
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
   return (
@@ -26,9 +28,11 @@ function LibraryPage() {
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-primary">Your library</div>
             <h1 className="mt-2 font-display text-3xl font-semibold">Unlocked collection</h1>
-            {data?.hasSubscription && (
+            {mem.data?.membership ? (
+              <p className="mt-2 text-xs uppercase tracking-widest text-primary">💎 Lifetime member</p>
+            ) : data?.hasSubscription ? (
               <p className="mt-2 text-xs uppercase tracking-widest text-neon">All-Access active</p>
-            )}
+            ) : null}
           </div>
           <Link
             to="/store"
@@ -37,6 +41,8 @@ function LibraryPage() {
             Browse store
           </Link>
         </div>
+
+        {mem.data?.membership && <LifetimePerks membership={mem.data.membership} />}
 
         {isLoading ? (
           <div className="mt-10 text-sm text-muted-foreground">Loading…</div>
