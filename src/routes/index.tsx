@@ -95,9 +95,9 @@ function HostBlock() {
           ))}
         </div>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          <ContactCard label="Email" value="princess@pink.invalid" href="mailto:princess@pink.invalid" />
-          <ContactCard label="FetLife" value="/PrincessPink" href="https://fetlife.com/" />
-          <ContactCard label="Reddit" value="u/PrincessPink" href="https://reddit.com/" />
+          <ContactCard label="Email" value="princesspink9014@gmail.com" href="mailto:princesspink9014@gmail.com" />
+          <ContactCard label="FetLife" value="/pink_princess90" href="https://fetlife.com/pink_princess90" />
+          <ContactCard label="Reddit" value="u/19pink-princess90" href="https://reddit.com/u/19pink-princess90" />
         </div>
         <p className="mt-6 text-[11px] uppercase tracking-widest text-muted-foreground">
           Update these handles anytime in the code — placeholders shown.
