@@ -149,6 +149,9 @@ function EditEvent() {
           onSubmit={(v) => update.mutate(toPayload(v))} />
       </div>
 
+      <EventDocumentsSection eventId={id} />
+
+
       {event.is_private && (
         <div className="mt-10 rounded-2xl border border-border/60 bg-card/60 p-6">
           <div className="text-[10px] uppercase tracking-[0.3em] text-primary mb-4">Access codes</div>
