@@ -6,10 +6,26 @@ import { toast } from "sonner";
 import {
   listVenueComplianceDocs,
   uploadVenueComplianceDoc,
+  updateVenueComplianceDoc,
   deleteVenueComplianceDoc,
   getVenueComplianceDownloadUrl,
   generateComplianceSummaryPdf,
+  listVenueComplianceAudit,
 } from "@/lib/venue-compliance.functions";
+
+const ACTION_LABEL: Record<string, string> = {
+  uploaded: "Uploaded",
+  updated: "Updated",
+  deleted: "Deleted",
+  summary_generated: "Generated summary PDF",
+};
+
+const ACTION_COLOR: Record<string, string> = {
+  uploaded: "text-emerald-500",
+  updated: "text-amber-500",
+  deleted: "text-destructive",
+  summary_generated: "text-primary",
+};
 
 export const Route = createFileRoute("/_authenticated/admin/venue-compliance")({
   head: () => ({
