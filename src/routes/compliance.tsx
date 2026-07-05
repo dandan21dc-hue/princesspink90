@@ -680,6 +680,11 @@ function MyDocumentsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <DocumentPreviewDialog
+        target={previewTarget}
+        onOpenChange={(open) => { if (!open) setPreviewTarget(null); }}
+        signUrl={signUrlFor}
+      />
     </Section>
 
   );
