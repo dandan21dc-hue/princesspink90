@@ -127,6 +127,9 @@ export const submitCohostApplication = createServerFn({ method: "POST" })
       event_types: data.event_types || null,
       agreement_file_path: data.agreement_file_path,
       agreement_uploaded_at: nowIso,
+      co_host_agreement_signed_at: nowIso,
+      handbook_signature_name: data.handbook_signature_name,
+      handbook_version: data.handbook_version || "1.0",
       status: "pending" as const,
       submitted_at: nowIso,
     };
