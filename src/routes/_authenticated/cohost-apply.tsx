@@ -47,12 +47,15 @@ function CohostApply() {
     other_socials: "",
     bio: "",
     hosting_experience: "",
+    relevant_experience: "",
     why_join: "",
     availability_days: [] as string[],
     availability_notes: "",
     event_types_presets: [] as string[],
     event_types_other: "",
   });
+  const [agreementFile, setAgreementFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (mine.data) {
@@ -70,6 +73,7 @@ function CohostApply() {
         other_socials: mine.data.other_socials ?? "",
         bio: (mine.data as any).bio ?? "",
         hosting_experience: mine.data.hosting_experience ?? "",
+        relevant_experience: (mine.data as any).relevant_experience ?? "",
         why_join: mine.data.why_join ?? "",
         availability_days: availDays,
         availability_notes: availNotes,
@@ -80,7 +84,27 @@ function CohostApply() {
   }, [mine.data]);
 
   const submit = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      if (!agreementFile) {
+        throw new Error("Please upload a signed copy of the Co-Host Agreement.");
+      }
+      const allowed = ["application/pdf", "image/png", "image/jpeg"];
+      if (!allowed.includes(agreementFile.type)) {
+        throw new Error("Agreement must be a PDF, PNG, or JPG file.");
+      }
+      if (agreementFile.size > 10 * 1024 * 1024) {
+        throw new Error("Agreement file must be under 10MB.");
+      }
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) throw new Error("You must be signed in.");
+      const userId = userData.user.id;
+      const ext = agreementFile.name.split(".").pop() || "bin";
+      const path = `${userId}/signed-agreement-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("cohost-agreements")
+        .upload(path, agreementFile, { upsert: true, contentType: agreementFile.type });
+      if (upErr) throw new Error(upErr.message);
+
       const availability = [
         form.availability_days.join(", "),
         form.availability_notes.trim(),
@@ -98,18 +122,24 @@ function CohostApply() {
           other_socials: form.other_socials.trim(),
           bio: form.bio.trim(),
           hosting_experience: form.hosting_experience.trim(),
+          relevant_experience: form.relevant_experience.trim(),
           why_join: form.why_join.trim(),
           availability,
           event_types,
+          agreement_file_path: path,
         },
       });
     },
     onSuccess: () => {
-      toast.success("Application submitted");
+      toast.success("Application submitted — status: Pending Review");
+      setAgreementFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["my-cohost-application"] });
     },
     onError: (e) => toast.error((e as Error).message),
   });
+
+
 
   const withdraw = useMutation({
     mutationFn: () => withdrawFn(),
