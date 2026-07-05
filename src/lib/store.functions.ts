@@ -209,10 +209,27 @@ export const getMyLibrary = createServerFn({ method: "GET" })
       .maybeSingle();
     const now = Date.now();
     const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end).getTime() : null;
-    const hasSubscription = !!sub && (
+    const hasRecurring = !!sub && (
       (["active", "trialing", "past_due"].includes(sub.status) && (!periodEnd || periodEnd > now))
       || (sub.status === "canceled" && !!periodEnd && periodEnd > now)
     );
+
+    // Lifetime or active term-pass memberships also unlock the library
+    const { data: memberships } = await supabase
+      .from("memberships")
+      .select("kind,expires_at")
+      .eq("user_id", userId)
+      .eq("environment", env);
+    const hasMembershipAccess = (memberships ?? []).some((m) => {
+      if (m.kind === "lifetime") return true;
+      if (m.kind?.startsWith("term_pass_") && m.expires_at) {
+        return new Date(m.expires_at).getTime() > now;
+      }
+      return false;
+    });
+
+    const hasSubscription = hasRecurring || hasMembershipAccess;
+
 
     const { data: purchases } = await supabase
       .from("content_purchases")
