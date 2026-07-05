@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { videoConsentSchema, type VideoConsent } from "@/lib/verification.functions";
+import { normalizeEntryPhrase } from "@/lib/entry-phrase";
+
 
 async function sha256Hex(input: string): Promise<string> {
   const buf = new TextEncoder().encode(input);
