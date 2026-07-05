@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnlockRouteImport } from './routes/unlock'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as LegalRouteImport } from './routes/legal'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -53,6 +54,11 @@ const StoreRoute = StoreRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LegalRoute = LegalRouteImport.update({
+  id: '/legal',
+  path: '/legal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComplianceRoute = ComplianceRouteImport.update({
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
+  '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
   '/store': typeof StoreRouteWithChildren
   '/unlock': typeof UnlockRoute
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
+  '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
   '/store': typeof StoreRouteWithChildren
   '/unlock': typeof UnlockRoute
@@ -272,6 +280,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
+  '/legal': typeof LegalRoute
   '/privacy': typeof PrivacyRoute
   '/store': typeof StoreRouteWithChildren
   '/unlock': typeof UnlockRoute
@@ -305,6 +314,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/compliance'
+    | '/legal'
     | '/privacy'
     | '/store'
     | '/unlock'
@@ -336,6 +346,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/compliance'
+    | '/legal'
     | '/privacy'
     | '/store'
     | '/unlock'
@@ -368,6 +379,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/compliance'
+    | '/legal'
     | '/privacy'
     | '/store'
     | '/unlock'
@@ -401,6 +413,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
+  LegalRoute: typeof LegalRoute
   PrivacyRoute: typeof PrivacyRoute
   StoreRoute: typeof StoreRouteWithChildren
   UnlockRoute: typeof UnlockRoute
@@ -429,6 +442,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/legal': {
+      id: '/legal'
+      path: '/legal'
+      fullPath: '/legal'
+      preLoaderRoute: typeof LegalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compliance': {
@@ -713,6 +733,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
+  LegalRoute: LegalRoute,
   PrivacyRoute: PrivacyRoute,
   StoreRoute: StoreRouteWithChildren,
   UnlockRoute: UnlockRoute,
