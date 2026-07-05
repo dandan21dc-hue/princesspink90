@@ -9,6 +9,7 @@ import {
   getCurrentPolicyVersion, recordPolicyAgreement, listMyPolicyAgreements,
 } from "@/lib/host.functions";
 import { uploadEventDocument } from "@/lib/eventDocumentUpload";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 type DocType = "permit" | "insurance" | "capacity" | "other";
 
@@ -112,13 +113,13 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
   }
 
 
-  async function openDoc(id: string) {
-    try {
-      const { url } = await signFn({ data: { id } });
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Cannot open");
-    }
+  const [previewTarget, setPreviewTarget] = useState<{ id: string; file_name: string; content_type?: string | null } | null>(null);
+  function openDoc(doc: { id: string; file_name: string; content_type?: string | null }) {
+    setPreviewTarget({ id: doc.id, file_name: doc.file_name, content_type: doc.content_type ?? null });
+  }
+  async function signUrlFor(id: string): Promise<string> {
+    const { url } = await signFn({ data: { id } });
+    return url;
   }
 
   const docs = q.data ?? [];
@@ -234,6 +235,11 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
           onDelete={(id) => del.mutate(id)}
         />
       </div>
+      <DocumentPreviewDialog
+        target={previewTarget}
+        onOpenChange={(open) => { if (!open) setPreviewTarget(null); }}
+        signUrl={signUrlFor}
+      />
     </div>
   );
 }
@@ -304,13 +310,14 @@ function DocSlot({
   type: DocType; label: string; hint: string; required?: boolean;
   docs: {
     id: string; file_name: string; size_bytes: number | null; uploaded_at: string;
+    content_type?: string | null;
     policy_version_id?: string | null; policy_version_label?: string | null;
   }[];
   uploading: boolean;
   uploadDisabled: boolean;
   currentPolicyId: string | null;
   onUpload: (file: File) => void;
-  onOpen: (id: string) => void;
+  onOpen: (doc: { id: string; file_name: string; content_type?: string | null }) => void;
   onDelete: (id: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -354,7 +361,7 @@ function DocSlot({
             return (
               <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-xs">
                 <button
-                  type="button" onClick={() => onOpen(d.id)}
+                  type="button" onClick={() => onOpen(d)}
                   className="min-w-0 text-left text-foreground hover:text-primary truncate"
                   title={d.file_name}
                 >
