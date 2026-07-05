@@ -337,6 +337,11 @@ function RsvpBox({ eventId }: { eventId: string }) {
 
   return (
     <div className="space-y-4 rounded-lg border border-border/60 bg-card/40 p-4">
+      <ScreeningGate
+        current={screeningCurrent}
+        latestStatus={latestScreening?.status ?? null}
+        validUntil={latestScreening?.valid_until ?? null}
+      />
       <div className="rounded-md border border-border/60 bg-background/40 p-3">
         <div className="mb-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
           Waiver status
