@@ -90,7 +90,7 @@ beforeEach(() => {
     PUBLIC_APP_URL: 'https://app.princesspink90.com',
   }
   sendResendEmail.mockReset()
-  sendResendEmail.mockResolvedValue({ ok: true as const })
+  sendResendEmail.mockResolvedValue({ ok: true })
 })
 
 afterEach(() => {
@@ -180,7 +180,7 @@ function assertNoRawRecipient(lines: string[], scenario: string) {
 
 describe('reminder hook — recipient email PII containment across all paths', () => {
   it('does not leak the raw recipient email on the happy send path', async () => {
-    sendResendEmail.mockResolvedValueOnce({ ok: true as const })
+    sendResendEmail.mockResolvedValueOnce({ ok: true })
     const lines = await runHealthScreeningHook()
     expect(lines.length).toBeGreaterThan(0)
     assertNoRawRecipient(lines, 'happy-path')
@@ -214,7 +214,7 @@ describe('reminder hook — recipient email PII containment across all paths', (
     // may hit the same code path with different provider responses; none
     // may leak the raw address.
     sendResendEmail
-      .mockResolvedValueOnce({ ok: true as const })
+      .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({
         ok: false as const,
         error: `retry attempt failed for ${RECIPIENT_EMAIL}: 5xx`,
