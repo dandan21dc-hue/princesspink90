@@ -586,6 +586,55 @@ function MyDocumentsSection() {
         })}
         </ul>
       )}
+      <AlertDialog
+        open={confirmTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !reAck.isPending) setConfirmTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Re-acknowledge compliance policy v{currentVersion ?? "?"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  This records a new agreement dated now under your account
+                  {confirmTarget?.event_title ? (
+                    <> for <span className="text-foreground">{confirmTarget.event_title}</span></>
+                  ) : null}
+                  {confirmTarget?.old_version ? (
+                    <> (previously agreed to v{confirmTarget.old_version})</>
+                  ) : null}
+                  . The uploaded document&nbsp;
+                  <span className="text-foreground">{confirmTarget?.file_name}</span> stays as-is —
+                  re-upload it under the current policy when convenient.
+                </p>
+                <p className="text-xs">
+                  Agreements are auditable and cannot be deleted.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={reAck.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={reAck.isPending || !currentId}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!currentId || !confirmTarget) return;
+                reAck.mutate(
+                  { policy_version_id: currentId, event_id: confirmTarget.event_id },
+                  { onSettled: () => setConfirmTarget(null) },
+                );
+              }}
+            >
+              {reAck.isPending ? "Recording…" : `Record agreement to v${currentVersion ?? "?"}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Section>
 
   );
