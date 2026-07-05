@@ -5,6 +5,10 @@ import { useState } from "react";
 import { EventForm, toPayload, type EventFormValues } from "@/components/EventForm";
 import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes, setAccessCodeUsed, bulkSetAccessCodesUsed } from "@/lib/host.functions";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/events/$id/edit")({
   head: () => ({ meta: [{ title: "Edit event · AFTERDARK" }] }),
@@ -61,6 +65,7 @@ function EditEvent() {
   const bulkMarkFn = useServerFn(bulkSetAccessCodesUsed);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkGuestName, setBulkGuestName] = useState("");
+  const [confirmBulk, setConfirmBulk] = useState<null | { used: boolean }>(null);
   const bulkMark = useMutation({
     mutationFn: (v: { used: boolean }) =>
       bulkMarkFn({ data: { ids: Array.from(selected), used: v.used, used_by_name: bulkGuestName.trim() || undefined } }),
@@ -158,11 +163,11 @@ function EditEvent() {
                   <input value={bulkGuestName} onChange={(e) => setBulkGuestName(e.target.value)}
                     placeholder="Guest name (optional)"
                     className="rounded-md border border-input bg-background px-2 py-1 text-xs w-44" />
-                  <button disabled={bulkMark.isPending} onClick={() => bulkMark.mutate({ used: true })}
+                  <button disabled={bulkMark.isPending} onClick={() => setConfirmBulk({ used: true })}
                     className="rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
                     Mark used
                   </button>
-                  <button disabled={bulkMark.isPending} onClick={() => bulkMark.mutate({ used: false })}
+                  <button disabled={bulkMark.isPending} onClick={() => setConfirmBulk({ used: false })}
                     className="rounded-md border border-border px-3 py-1.5 text-[11px] uppercase tracking-widest hover:bg-secondary/50 disabled:opacity-50">
                     Unmark
                   </button>
@@ -246,6 +251,34 @@ function EditEvent() {
           Delete event
         </button>
       </div>
+
+
+
+      <AlertDialog open={!!confirmBulk} onOpenChange={(o) => !o && setConfirmBulk(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmBulk?.used ? "Mark codes as used?" : "Unmark codes?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmBulk?.used
+                ? `This will mark ${selected.size} access code${selected.size === 1 ? "" : "s"} as used${bulkGuestName.trim() ? ` and record the guest name "${bulkGuestName.trim()}"` : ""}.`
+                : `This will clear the used status on ${selected.size} access code${selected.size === 1 ? "" : "s"}, allowing them to unlock the invitation again.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmBulk) bulkMark.mutate({ used: confirmBulk.used });
+                setConfirmBulk(null);
+              }}
+            >
+              {confirmBulk?.used ? "Mark used" : "Unmark"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
