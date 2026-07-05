@@ -13,6 +13,33 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Admin access required");
 }
 
+// Best-effort audit writer. Never throws — a failed audit write must not
+// mask or roll back the real action (which has its own error handling).
+async function writeAudit(
+  supabase: any,
+  actorId: string,
+  entry: {
+    action: "uploaded" | "updated" | "deleted" | "summary_generated";
+    document_id?: string | null;
+    document_title?: string | null;
+    document_kind?: string | null;
+    details?: Record<string, unknown>;
+  },
+) {
+  try {
+    await supabase.from("venue_compliance_audit_log").insert({
+      action: entry.action,
+      document_id: entry.document_id ?? null,
+      document_title: entry.document_title ?? null,
+      document_kind: entry.document_kind ?? null,
+      actor_id: actorId,
+      details: entry.details ?? {},
+    });
+  } catch (e) {
+    console.error("[venue-compliance] audit write failed", e);
+  }
+}
+
 const kindEnum = z.enum(["public_liability_insurance", "event_permit", "other"]);
 
 export const listVenueComplianceDocs = createServerFn({ method: "GET" })
@@ -94,6 +121,87 @@ export const uploadVenueComplianceDoc = createServerFn({ method: "POST" })
       await supabaseAdmin.storage.from(BUCKET).remove([path]);
       throw error;
     }
+
+    await writeAudit(context.supabase, context.userId, {
+      action: "uploaded",
+      document_id: row.id,
+      document_title: row.title,
+      document_kind: row.kind,
+      details: {
+        file_name: safeName,
+        file_size: bytes.byteLength,
+        file_mime_type: data.file_mime_type ?? null,
+        issuer: data.issuer ?? null,
+        reference_number: data.reference_number ?? null,
+        issued_on: data.issued_on ?? null,
+        expires_on: data.expires_on ?? null,
+      },
+    });
+
+    return { row };
+  });
+
+const updateSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().trim().min(1).max(200),
+  kind: kindEnum,
+  issuer: z.string().trim().max(200).optional().nullable(),
+  reference_number: z.string().trim().max(200).optional().nullable(),
+  issued_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  expires_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  notes: z.string().trim().max(4000).optional().nullable(),
+});
+
+export const updateVenueComplianceDoc = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => updateSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const { data: before, error: bErr } = await context.supabase
+      .from("venue_compliance_documents")
+      .select("kind, title, issuer, reference_number, issued_on, expires_on, notes")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (bErr) throw bErr;
+    if (!before) throw new Error("Document not found");
+
+    const patch = {
+      kind: data.kind,
+      title: data.title,
+      issuer: data.issuer ?? null,
+      reference_number: data.reference_number ?? null,
+      issued_on: data.issued_on ?? null,
+      expires_on: data.expires_on ?? null,
+      notes: data.notes ?? null,
+    };
+
+    const { data: row, error } = await context.supabase
+      .from("venue_compliance_documents")
+      .update(patch)
+      .eq("id", data.id)
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Record a diff of changed fields only, so the audit trail is readable.
+    const changed: Record<string, { from: unknown; to: unknown }> = {};
+    for (const key of Object.keys(patch) as Array<keyof typeof patch>) {
+      const from = (before as any)[key] ?? null;
+      const to = (patch as any)[key] ?? null;
+      if (from !== to) changed[key] = { from, to };
+    }
+
+    if (Object.keys(changed).length > 0) {
+      await writeAudit(context.supabase, context.userId, {
+        action: "updated",
+        document_id: row.id,
+        document_title: row.title,
+        document_kind: row.kind,
+        details: { changes: changed },
+      });
+    }
+
     return { row };
   });
 
@@ -128,7 +236,7 @@ export const deleteVenueComplianceDoc = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { data: row, error } = await context.supabase
       .from("venue_compliance_documents")
-      .select("file_path")
+      .select("file_path, title, kind, file_name")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw error;
@@ -140,7 +248,65 @@ export const deleteVenueComplianceDoc = createServerFn({ method: "POST" })
       .delete()
       .eq("id", data.id);
     if (dErr) throw dErr;
+
+    await writeAudit(context.supabase, context.userId, {
+      action: "deleted",
+      document_id: data.id,
+      document_title: row.title,
+      document_kind: row.kind,
+      details: { file_name: row.file_name, file_path: row.file_path },
+    });
+
     return { ok: true };
+  });
+
+export const listVenueComplianceAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const { data: rows, error } = await context.supabase
+      .from("venue_compliance_audit_log")
+      .select("id, action, document_id, document_title, document_kind, actor_id, details, created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+
+    // Resolve actor display names / emails via profiles (public) and Auth admin.
+    const actorIds = Array.from(new Set((rows ?? []).map((r: any) => r.actor_id)));
+    const actorMap: Record<string, { name: string | null; email: string | null }> = {};
+
+    if (actorIds.length > 0) {
+      const { data: profs } = await context.supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", actorIds);
+      for (const p of profs ?? []) {
+        actorMap[(p as any).user_id] = {
+          name: (p as any).display_name ?? null,
+          email: null,
+        };
+      }
+
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      for (const id of actorIds) {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
+          const email = u?.user?.email ?? null;
+          actorMap[id] = { name: actorMap[id]?.name ?? null, email };
+        } catch {
+          // ignore; actor may have been deleted
+        }
+      }
+    }
+
+    return {
+      rows: (rows ?? []).map((r: any) => ({
+        ...r,
+        actor_name: actorMap[r.actor_id]?.name ?? null,
+        actor_email: actorMap[r.actor_id]?.email ?? null,
+      })),
+    };
   });
 
 // -------- Compliance summary PDF --------
@@ -180,7 +346,7 @@ export const generateComplianceSummaryPdf = createServerFn({ method: "POST" })
     const { data: rows, error } = await context.supabase
       .from("venue_compliance_documents")
       .select(
-        "kind, title, issuer, reference_number, issued_on, expires_on, notes",
+        "id, kind, title, issuer, reference_number, issued_on, expires_on, notes",
       )
       .order("kind", { ascending: true })
       .order("expires_on", { ascending: true, nullsFirst: false });
@@ -333,9 +499,26 @@ export const generateComplianceSummaryPdf = createServerFn({ method: "POST" })
         .replace(/-+/g, "-")
         .replace(/^-|-$/g, "")
         .slice(0, 40) || "venue";
+    const filename = `compliance-summary-${slug}-${stamp}.pdf`;
+
+    await writeAudit(context.supabase, context.userId, {
+      action: "summary_generated",
+      document_id: null,
+      document_title: filename,
+      details: {
+        filename,
+        venue_name: data.venue_name || null,
+        event_date: data.event_date || null,
+        recipient: data.recipient || null,
+        document_count: rows?.length ?? 0,
+        document_ids: (rows ?? []).map((r: any) => r.id),
+        byte_size: bytes.byteLength,
+      },
+    });
+
     return {
       base64: bytesToBase64(bytes),
-      filename: `compliance-summary-${slug}-${stamp}.pdf`,
+      filename,
       contentType: "application/pdf",
     };
   });
