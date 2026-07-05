@@ -39,6 +39,7 @@ const emptyForm = {
 };
 
 type View = "active" | "archived" | "all";
+type Tab = "incidents" | "exports";
 
 const ALL_COLUMNS: { key: string; label: string }[] = [
   { key: "id", label: "ID" },
