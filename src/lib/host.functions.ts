@@ -479,3 +479,81 @@ export const listWaiverAudit = createServerFn({ method: "GET" })
       display_name: nameByUser.get(r.user_id) ?? null,
     }));
   });
+
+export const getMyEventsCompliance = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: events, error } = await context.supabase
+      .from("events")
+      .select("id, title, starts_at, venue_name, published, insurance_expires_on, capacity_confirmed")
+      .eq("host_id", context.userId)
+      .order("starts_at", { ascending: false });
+    if (error) throw error;
+    const eventList = events ?? [];
+    if (eventList.length === 0) return [];
+
+    const ids = eventList.map((e) => e.id);
+    const { data: docs, error: docErr } = await context.supabase
+      .from("event_documents")
+      .select("event_id, doc_type, file_name, uploaded_at")
+      .in("event_id", ids);
+    if (docErr) throw docErr;
+
+    const now = Date.now();
+    const SOON_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
+
+    return eventList.map((e) => {
+      const eventDocs = (docs ?? []).filter((d) => d.event_id === e.id);
+      const byType = (t: string) =>
+        eventDocs
+          .filter((d) => d.doc_type === t)
+          .sort((a, b) => (b.uploaded_at ?? "").localeCompare(a.uploaded_at ?? ""))[0] ?? null;
+
+      const permitDoc = byType("permit");
+      const insuranceDoc = byType("insurance");
+      const capacityDoc = byType("capacity");
+
+      const insExp = e.insurance_expires_on ? new Date(e.insurance_expires_on).getTime() : null;
+      let insuranceStatus: "missing" | "expired" | "expiring" | "ok" = "missing";
+      if (insuranceDoc) {
+        if (insExp != null && insExp < now) insuranceStatus = "expired";
+        else if (insExp != null && insExp - now < SOON_MS) insuranceStatus = "expiring";
+        else insuranceStatus = "ok";
+      }
+
+      const items = {
+        permit: {
+          status: permitDoc ? "ok" : "missing",
+          file_name: permitDoc?.file_name ?? null,
+          uploaded_at: permitDoc?.uploaded_at ?? null,
+        },
+        insurance: {
+          status: insuranceStatus,
+          file_name: insuranceDoc?.file_name ?? null,
+          uploaded_at: insuranceDoc?.uploaded_at ?? null,
+          expires_on: e.insurance_expires_on,
+        },
+        capacity: {
+          status: capacityDoc ? (e.capacity_confirmed ? "ok" : "unconfirmed") : "missing",
+          file_name: capacityDoc?.file_name ?? null,
+          uploaded_at: capacityDoc?.uploaded_at ?? null,
+          confirmed: e.capacity_confirmed,
+        },
+      } as const;
+
+      const ready =
+        items.permit.status === "ok" &&
+        items.insurance.status === "ok" &&
+        items.capacity.status === "ok";
+
+      return {
+        id: e.id,
+        title: e.title,
+        starts_at: e.starts_at,
+        venue_name: e.venue_name,
+        published: e.published,
+        ready,
+        items,
+      };
+    });
+  });
