@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Loader2 } from "lucide-react";
+import { isDocumentStale } from "@/lib/complianceStale";
 
 
 
@@ -644,12 +645,12 @@ function MyDocumentsSection() {
       </div>
 
       {(() => {
-        const eligible = rows.filter(
-          (d) =>
-            currentId &&
-            d.policy_version_id &&
-            d.policy_version_id !== currentId &&
-            !d.current_agreement_accepted_at,
+        const eligible = rows.filter((d) =>
+          isDocumentStale({
+            docPolicyVersionId: d.policy_version_id,
+            currentPolicyVersionId: currentId,
+            reAcknowledged: d.current_agreement_accepted_at,
+          }),
         );
         const eligibleIds = eligible.map((d) => d.id);
         const visibleSelected = eligibleIds.filter((id) => selected.has(id));
@@ -707,8 +708,21 @@ function MyDocumentsSection() {
         <ul className="mt-4 space-y-3">
 
         {rows.map((d) => {
-          const stale = currentId && d.policy_version_id && d.policy_version_id !== currentId;
-          const canBulkSelect = !!(stale && !d.current_agreement_accepted_at);
+          // Split the two related concepts:
+          //   versionMismatch — the doc was uploaded under an older policy.
+          //   needsReAck      — versionMismatch AND no re-ack recorded yet.
+          // The amber "action needed" state uses `needsReAck`; the historical
+          // "Re-acknowledged v{n}" pill uses `versionMismatch` so we still
+          // show what happened once the user has actioned it.
+          const versionMismatch = !!(
+            currentId && d.policy_version_id && d.policy_version_id !== currentId
+          );
+          const needsReAck = isDocumentStale({
+            docPolicyVersionId: d.policy_version_id,
+            currentPolicyVersionId: currentId,
+            reAcknowledged: d.current_agreement_accepted_at,
+          });
+          const canBulkSelect = needsReAck;
           return (
             <li
               key={d.id}
@@ -756,11 +770,15 @@ function MyDocumentsSection() {
                 {d.policy_version_label ? (
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${
-                      stale
+                      needsReAck
                         ? "bg-amber-500/15 text-amber-300"
                         : "bg-emerald-500/15 text-emerald-400"
                     }`}
-                    title={stale && currentVersion ? `Current policy is v${currentVersion}` : "Agreed to current policy"}
+                    title={
+                      needsReAck && currentVersion
+                        ? `Current policy is v${currentVersion}`
+                        : "Agreed to current policy"
+                    }
                   >
                     Agreed to policy v{d.policy_version_label}
                   </span>
@@ -769,7 +787,7 @@ function MyDocumentsSection() {
                     No policy version recorded
                   </span>
                 )}
-                {stale && d.current_agreement_accepted_at && d.current_policy_version_label && (
+                {versionMismatch && d.current_agreement_accepted_at && d.current_policy_version_label && (
                   <span
                     className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-emerald-400"
                     title={new Date(d.current_agreement_accepted_at).toISOString()}
@@ -790,7 +808,7 @@ function MyDocumentsSection() {
                 ) : (
                   <span className="text-amber-300">No agreement record on file</span>
                 )}
-                {stale && d.current_agreement_accepted_at && (
+                {versionMismatch && d.current_agreement_accepted_at && (
                   <span className="text-emerald-400">
                     Re-acknowledged {new Date(d.current_agreement_accepted_at).toLocaleString()}
                     {d.current_agreement_accepted_by_display_name
@@ -798,7 +816,7 @@ function MyDocumentsSection() {
                       : ""}
                   </span>
                 )}
-                {stale && currentVersion && currentId && !d.current_agreement_accepted_at && (
+                {needsReAck && currentVersion && currentId && (
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-amber-300">
                       Current policy is v{currentVersion} — consider re-uploading.

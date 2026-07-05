@@ -10,6 +10,7 @@ import {
 } from "@/lib/host.functions";
 import { uploadEventDocument } from "@/lib/eventDocumentUpload";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
+import { isDocumentStale } from "@/lib/complianceStale";
 
 type DocType = "permit" | "insurance" | "capacity" | "other";
 
@@ -131,7 +132,13 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
   }
   const missing = REQUIRED.filter((r) => !byType.get(r.type)?.length);
   const staleDocs = policy.data
-    ? docs.filter((d) => d.policy_version_id && d.policy_version_id !== policy.data!.id)
+    ? docs.filter((d) =>
+        isDocumentStale({
+          docPolicyVersionId: d.policy_version_id,
+          currentPolicyVersionId: policy.data!.id,
+          reAcknowledged: hasAgreedToCurrent,
+        }),
+      )
     : [];
 
   return (
@@ -219,6 +226,7 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
             uploading={uploadingType === r.type}
             uploadDisabled={!hasAgreedToCurrent}
             currentPolicyId={currentVersionId}
+            reAcknowledged={hasAgreedToCurrent}
             onUpload={(f) => upload(r.type, f)}
             onOpen={openDoc}
             onDelete={(id) => del.mutate(id)}
@@ -230,6 +238,7 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
           uploading={uploadingType === "other"}
           uploadDisabled={!hasAgreedToCurrent}
           currentPolicyId={currentVersionId}
+          reAcknowledged={hasAgreedToCurrent}
           onUpload={(f) => upload("other", f)}
           onOpen={openDoc}
           onDelete={(id) => del.mutate(id)}
@@ -305,7 +314,7 @@ function PolicyAgreementCard({
 }
 
 function DocSlot({
-  type, label, hint, required, docs, uploading, uploadDisabled, currentPolicyId, onUpload, onOpen, onDelete,
+  type, label, hint, required, docs, uploading, uploadDisabled, currentPolicyId, reAcknowledged, onUpload, onOpen, onDelete,
 }: {
   type: DocType; label: string; hint: string; required?: boolean;
   docs: {
@@ -316,6 +325,7 @@ function DocSlot({
   uploading: boolean;
   uploadDisabled: boolean;
   currentPolicyId: string | null;
+  reAcknowledged: boolean;
   onUpload: (file: File) => void;
   onOpen: (doc: { id: string; file_name: string; content_type?: string | null }) => void;
   onDelete: (id: string) => void;
@@ -357,7 +367,11 @@ function DocSlot({
       {has && (
         <ul className="mt-3 divide-y divide-border/50">
           {docs.map((d) => {
-            const stale = d.policy_version_id && currentPolicyId && d.policy_version_id !== currentPolicyId;
+            const stale = isDocumentStale({
+              docPolicyVersionId: d.policy_version_id,
+              currentPolicyVersionId: currentPolicyId,
+              reAcknowledged,
+            });
             return (
               <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-xs">
                 <button
