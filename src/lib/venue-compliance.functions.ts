@@ -228,6 +228,9 @@ export const updateVenueComplianceDoc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => updateSchema.parse(data))
   .handler(async ({ data, context }) => {
+    const expiryCheck = validateExpiryDate(data.expires_on);
+    if (!expiryCheck.ok) throw new Error(expiryCheck.error);
+
     await assertAdmin(context.supabase, context.userId);
 
     const { data: before, error: bErr } = await context.supabase
