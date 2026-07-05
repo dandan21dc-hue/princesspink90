@@ -121,6 +121,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           productDescription = product.name;
         }
 
+        const isLifetime = data.priceId === "lifetime_onetime";
         const session = await stripe.checkout.sessions.create({
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
@@ -129,7 +130,10 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           ...(customerId && { customer: customerId }),
           ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
           ...(data.userId && {
-            metadata: { userId: data.userId },
+            metadata: {
+              userId: data.userId,
+              ...(isLifetime && { membership: "lifetime" }),
+            },
             ...(isRecurring && { subscription_data: { metadata: { userId: data.userId } } }),
           }),
         });
