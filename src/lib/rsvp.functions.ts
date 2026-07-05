@@ -129,7 +129,7 @@ export const myRsvpForEvent = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row } = await context.supabase
       .from("rsvps")
-      .select("ticket_code, guest_count, status, video_consent, age_confirmed_at, consent_confirmed_at")
+      .select("ticket_code, guest_count, status, video_consent, age_confirmed_at, consent_confirmed_at, waiver_signature, waiver_accepted_at")
       .eq("event_id", data.event_id)
       .eq("user_id", context.userId)
       .maybeSingle();
