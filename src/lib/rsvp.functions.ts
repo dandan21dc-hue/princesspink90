@@ -21,6 +21,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
     waiver_accepted: boolean;
     waiver_signature: string;
     waiver_text_hash: string;
+    entry_phrase?: string | null;
   }) =>
     z.object({
       event_id: z.string().uuid(),
@@ -34,8 +35,18 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       }),
       waiver_signature: z.string().trim().min(2, "Type your full legal name to sign.").max(120),
       waiver_text_hash: z.string().regex(/^[a-f0-9]{64}$/, "Waiver signature is invalid — please refresh."),
+      // Server-side mirror of the DB trigger: trim, and treat empty /
+      // whitespace-only as null so the trigger picks a phrase.
+      entry_phrase: z
+        .union([z.string(), z.null()])
+        .optional()
+        .transform((v) => normalizeEntryPhrase(v ?? null))
+        .refine((v) => v === null || v.length <= 120, {
+          message: "Entry phrase must be 120 characters or fewer.",
+        }),
     }).parse(data),
   )
+
   .handler(async ({ data, context }) => {
     // Require an approved age verification on file
     const { data: av } = await context.supabase
