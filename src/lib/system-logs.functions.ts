@@ -104,7 +104,7 @@ export type SystemLogDetail = {
   label: string;
   at: string;
   summary: string;
-  payload: Record<string, unknown>;
+  payload: any;
 };
 
 const detailInput = z.object({
@@ -133,7 +133,7 @@ export const getSystemLogDetail = createServerFn({ method: "GET" })
         label: "New Guest RSVP",
         at: row.created_at as string,
         summary: `Guest RSVP · ${row.guest_count ?? 1} guest(s)`,
-        payload: row as Record<string, unknown>,
+        payload: row as any,
       };
     }
 
@@ -151,7 +151,7 @@ export const getSystemLogDetail = createServerFn({ method: "GET" })
         label: "Health Check Approved",
         at: (row.reviewed_at ?? row.submitted_at) as string,
         summary: row.valid_until ? `Valid until ${row.valid_until}` : "Screening approved",
-        payload: row as Record<string, unknown>,
+        payload: row as any,
       };
     }
 
@@ -169,7 +169,7 @@ export const getSystemLogDetail = createServerFn({ method: "GET" })
         label: "Co-Host Applied",
         at: row.submitted_at as string,
         summary: [row.display_name, row.city].filter(Boolean).join(" · ") || "Application submitted",
-        payload: row as Record<string, unknown>,
+        payload: row as any,
       };
     }
 
@@ -187,6 +187,6 @@ export const getSystemLogDetail = createServerFn({ method: "GET" })
       label: "Incident Reported",
       at: row.created_at as string,
       summary: [row.venue, row.nature_of_incident].filter(Boolean).join(" · "),
-      payload: row as Record<string, unknown>,
+      payload: row as any,
     };
   });
