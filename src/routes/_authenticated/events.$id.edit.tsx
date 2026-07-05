@@ -62,6 +62,13 @@ function EditEvent() {
     onError: (e) => toast.error(e.message),
   });
 
+  const renameFn = useServerFn(updateAccessCodeGuestName);
+  const renameGuest = useMutation({
+    mutationFn: (v: { id: string; used_by_name: string }) => renameFn({ data: v }),
+    onSuccess: () => { toast.success("Guest name updated"); qc.invalidateQueries({ queryKey: ["my-event", id] }); },
+    onError: (e) => toast.error(e.message),
+  });
+
   const bulkMarkFn = useServerFn(bulkSetAccessCodesUsed);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkGuestName, setBulkGuestName] = useState("");
