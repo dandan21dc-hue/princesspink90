@@ -103,7 +103,7 @@ function AdminSafetyIncidentsPage() {
   const qc = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["admin-safety-incidents", search, view],
+    queryKey: ["admin-safety-incidents", search, view, fromDate, toDate],
     queryFn: () =>
       listFn({
         data: {
@@ -111,8 +111,11 @@ function AdminSafetyIncidentsPage() {
           limit: 200,
           include_archived: view === "all",
           only_archived: view === "archived",
+          from_date: fromDate || null,
+          to_date: toDate || null,
         },
       }),
+    enabled: !dateRangeError,
   });
 
   const createMut = useMutation({
