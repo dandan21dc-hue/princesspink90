@@ -53,6 +53,7 @@ import { Route as ApiPublicHooksReminderRetriesRouteImport } from './routes/api/
 import { Route as ApiPublicHooksPreviewReminderEmailRouteImport } from './routes/api/public/hooks/preview-reminder-email'
 import { Route as ApiPublicHooksPreviewPortalLinkRouteImport } from './routes/api/public/hooks/preview-portal-link'
 import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './routes/api/public/hooks/health-screening-reminders'
+import { Route as ApiPublicHooksCronHealthCheckRouteImport } from './routes/api/public/hooks/cron-health-check'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
@@ -303,6 +304,12 @@ const ApiPublicHooksHealthScreeningRemindersRoute =
     path: '/api/public/hooks/health-screening-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksCronHealthCheckRoute =
+  ApiPublicHooksCronHealthCheckRouteImport.update({
+    id: '/api/public/hooks/cron-health-check',
+    path: '/api/public/hooks/cron-health-check',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedEventsIdWaiversRoute =
   AuthenticatedEventsIdWaiversRouteImport.update({
     id: '/events/$id/waivers',
@@ -367,6 +374,7 @@ export interface FileRoutesByFullPath {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
@@ -416,6 +424,7 @@ export interface FileRoutesByTo {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
@@ -467,6 +476,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
@@ -518,6 +528,7 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
+    | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
@@ -567,6 +578,7 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
+    | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
@@ -617,6 +629,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
     | '/_authenticated/events/$id/waivers'
+    | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
@@ -639,6 +652,7 @@ export interface RootRouteChildren {
   StoreRoute: typeof StoreRouteWithChildren
   UnlockRoute: typeof UnlockRoute
   EventsIdRoute: typeof EventsIdRoute
+  ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
   ApiPublicHooksPreviewPortalLinkRoute: typeof ApiPublicHooksPreviewPortalLinkRoute
   ApiPublicHooksPreviewReminderEmailRoute: typeof ApiPublicHooksPreviewReminderEmailRoute
@@ -959,6 +973,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksHealthScreeningRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/cron-health-check': {
+      id: '/api/public/hooks/cron-health-check'
+      path: '/api/public/hooks/cron-health-check'
+      fullPath: '/api/public/hooks/cron-health-check'
+      preLoaderRoute: typeof ApiPublicHooksCronHealthCheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/events/$id/waivers': {
       id: '/_authenticated/events/$id/waivers'
       path: '/events/$id/waivers'
@@ -1109,6 +1130,7 @@ const rootRouteChildren: RootRouteChildren = {
   StoreRoute: StoreRouteWithChildren,
   UnlockRoute: UnlockRoute,
   EventsIdRoute: EventsIdRoute,
+  ApiPublicHooksCronHealthCheckRoute: ApiPublicHooksCronHealthCheckRoute,
   ApiPublicHooksHealthScreeningRemindersRoute:
     ApiPublicHooksHealthScreeningRemindersRoute,
   ApiPublicHooksPreviewPortalLinkRoute: ApiPublicHooksPreviewPortalLinkRoute,
