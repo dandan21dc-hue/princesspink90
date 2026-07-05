@@ -12,7 +12,9 @@ export type CohostApplication = {
   other_socials: string | null;
   hosting_experience: string;
   why_join: string;
+  bio: string | null;
   availability: string | null;
+  availability_days: string | null;
   event_types: string | null;
   status: "pending" | "approved" | "rejected" | "withdrawn";
   admin_notes: string | null;
