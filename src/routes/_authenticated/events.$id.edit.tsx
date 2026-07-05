@@ -332,12 +332,45 @@ function AccessCodeRow({
   const [name, setName] = useState(c.used_by_name ?? "");
   const [nameDraft, setNameDraft] = useState(c.used_by_name ?? "");
   const used = !!c.used_at;
+  const reactId = useId();
+  const markInputId = `${reactId}-mark-name`;
+  const markHelpId = `${reactId}-mark-help`;
+  const renameInputId = `${reactId}-rename-name`;
+  const renameHelpId = `${reactId}-rename-help`;
+  const editRegionId = `${reactId}-edit-region`;
+  const renameRegionId = `${reactId}-rename-region`;
+  const markTriggerRef = useRef<HTMLButtonElement>(null);
+  const renameTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const closeEditing = () => {
+    setEditing(false);
+    // Return focus to the trigger for keyboard users
+    requestAnimationFrame(() => markTriggerRef.current?.focus());
+  };
+  const closeRenaming = () => {
+    setEditingName(false);
+    requestAnimationFrame(() => renameTriggerRef.current?.focus());
+  };
+
+  const submitMark = () => {
+    const n = name.trim();
+    if (!n) { toast.error("Guest name is required to mark this code as used"); return; }
+    onToggle(true, n);
+    setEditing(false);
+  };
+  const submitRename = () => {
+    const n = nameDraft.trim();
+    if (!n) { toast.error("Guest name is required"); return; }
+    if (n === (c.used_by_name ?? "")) return;
+    onRename(n);
+    setEditingName(false);
+  };
 
   return (
     <li className={`rounded-md border px-3 py-2 text-sm ${used ? "border-primary/40 bg-primary/5" : "border-border/50"}`}>
       <div className="flex items-center justify-between gap-3">
         <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)}
-          className="shrink-0" aria-label={`Select ${c.code}`} />
+          className="shrink-0" aria-label={`Select access code ${c.code}`} />
         <div className="min-w-0 flex-1">
           <div className={`font-mono ${used ? "text-muted-foreground line-through" : ""}`}>{c.code}</div>
           {used && (
@@ -351,71 +384,126 @@ function AccessCodeRow({
           {c.note && !used && <span className="text-xs text-muted-foreground">{c.note}</span>}
           {used ? (
             <>
-              <button disabled={pending}
+              <button
+                ref={renameTriggerRef}
+                disabled={pending}
+                aria-expanded={editingName}
+                aria-controls={renameRegionId}
+                aria-label={editingName ? `Close guest name editor for ${c.code}` : `Edit guest name for ${c.code}`}
                 onClick={() => { setNameDraft(c.used_by_name ?? ""); setEditingName((v) => !v); }}
-                className="text-xs uppercase tracking-widest text-primary hover:brightness-125">
+                className="text-xs uppercase tracking-widest text-primary hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
                 {editingName ? "Close" : "Edit name"}
               </button>
-              <button disabled={pending} onClick={() => onToggle(false)}
-                className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+              <button
+                disabled={pending}
+                onClick={() => onToggle(false)}
+                aria-label={`Unmark ${c.code} as used`}
+                className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
                 Unmark
               </button>
             </>
           ) : (
-            <button disabled={pending} onClick={() => setEditing((v) => !v)}
-              className="text-xs uppercase tracking-widest text-primary hover:brightness-125">
+            <button
+              ref={markTriggerRef}
+              disabled={pending}
+              aria-expanded={editing}
+              aria-controls={editRegionId}
+              aria-label={editing ? `Close mark-used editor for ${c.code}` : `Mark ${c.code} as used`}
+              onClick={() => setEditing((v) => !v)}
+              className="text-xs uppercase tracking-widest text-primary hover:brightness-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
               Mark used
             </button>
           )}
-          <button onClick={onDelete} className="text-xs text-muted-foreground hover:text-destructive">
+          <button
+            onClick={onDelete}
+            aria-label={`Delete access code ${c.code}`}
+            className="text-xs text-muted-foreground hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
             Delete
           </button>
         </div>
       </div>
       {editing && !used && (
-        <div className="mt-2 flex gap-2">
-          <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
+        <div
+          id={editRegionId}
+          role="group"
+          aria-label={`Mark ${c.code} as used`}
+          className="mt-2 flex flex-wrap gap-2"
+        >
+          <label htmlFor={markInputId} className="sr-only">Guest name for {c.code}</label>
+          <input
+            id={markInputId}
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); submitMark(); }
+              else if (e.key === "Escape") { e.preventDefault(); closeEditing(); }
+            }}
             placeholder="Guest name (required)"
             maxLength={120}
-            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm" />
+            required
+            aria-required="true"
+            aria-invalid={!name.trim()}
+            aria-describedby={markHelpId}
+            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          <p id={markHelpId} className="sr-only">
+            Guest name is required. Press Enter to confirm or Escape to cancel.
+          </p>
           <button
+            type="button"
             disabled={pending || !name.trim()}
             title={!name.trim() ? "Guest name is required" : undefined}
-            onClick={() => {
-              const n = name.trim();
-              if (!n) { toast.error("Guest name is required to mark this code as used"); return; }
-              onToggle(true, n);
-              setEditing(false);
-            }}
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
+            onClick={submitMark}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             Confirm
           </button>
-          <button onClick={() => setEditing(false)}
-            className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest">
+          <button
+            type="button"
+            onClick={closeEditing}
+            className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             Cancel
           </button>
         </div>
       )}
       {editingName && used && (
-        <div className="mt-2 flex gap-2">
-          <input autoFocus value={nameDraft} onChange={(e) => setNameDraft(e.target.value)}
+        <div
+          id={renameRegionId}
+          role="group"
+          aria-label={`Edit guest name for ${c.code}`}
+          className="mt-2 flex flex-wrap gap-2"
+        >
+          <label htmlFor={renameInputId} className="sr-only">Guest name for {c.code}</label>
+          <input
+            id={renameInputId}
+            autoFocus
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); submitRename(); }
+              else if (e.key === "Escape") { e.preventDefault(); closeRenaming(); }
+            }}
             placeholder="Guest name (required)"
             maxLength={120}
-            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm" />
+            required
+            aria-required="true"
+            aria-invalid={!nameDraft.trim()}
+            aria-describedby={renameHelpId}
+            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+          <p id={renameHelpId} className="sr-only">
+            Guest name is required. Press Enter to save or Escape to cancel.
+          </p>
           <button
+            type="button"
             disabled={pending || !nameDraft.trim() || nameDraft.trim() === (c.used_by_name ?? "")}
             title={!nameDraft.trim() ? "Guest name is required" : undefined}
-            onClick={() => {
-              const n = nameDraft.trim();
-              if (!n) { toast.error("Guest name is required"); return; }
-              onRename(n);
-              setEditingName(false);
-            }}
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
+            onClick={submitRename}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             Save
           </button>
-          <button onClick={() => setEditingName(false)}
-            className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest">
+          <button
+            type="button"
+            onClick={closeRenaming}
+            className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             Cancel
           </button>
         </div>
