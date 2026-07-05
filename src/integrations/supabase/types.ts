@@ -842,6 +842,9 @@ export type Database = {
           expires_at: string | null
           id: string
           kind: string
+          private_session_bundle_granted_at: string | null
+          private_session_bundle_id: string | null
+          private_session_duration_minutes: number
           private_session_fulfilled_at: string | null
           private_session_requested_at: string | null
           stripe_session_id: string | null
@@ -858,6 +861,9 @@ export type Database = {
           expires_at?: string | null
           id?: string
           kind?: string
+          private_session_bundle_granted_at?: string | null
+          private_session_bundle_id?: string | null
+          private_session_duration_minutes?: number
           private_session_fulfilled_at?: string | null
           private_session_requested_at?: string | null
           stripe_session_id?: string | null
@@ -874,6 +880,9 @@ export type Database = {
           expires_at?: string | null
           id?: string
           kind?: string
+          private_session_bundle_granted_at?: string | null
+          private_session_bundle_id?: string | null
+          private_session_duration_minutes?: number
           private_session_fulfilled_at?: string | null
           private_session_requested_at?: string | null
           stripe_session_id?: string | null
@@ -887,6 +896,13 @@ export type Database = {
             columns: ["event_ticket_event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_private_session_bundle_id_fkey"
+            columns: ["private_session_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
             referencedColumns: ["id"]
           },
         ]

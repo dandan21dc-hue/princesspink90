@@ -31,11 +31,14 @@ async function loadPerkMembership(
   expires_at: string | null;
   private_session_requested_at: string | null;
   private_session_fulfilled_at: string | null;
+  private_session_duration_minutes: number;
+  private_session_bundle_id: string | null;
+  private_session_bundle_granted_at: string | null;
 } | null> {
   const { data: rows } = await supabase
     .from("memberships")
     .select(
-      "id, kind, event_ticket_used_at, event_ticket_event_id, expires_at, private_session_requested_at, private_session_fulfilled_at",
+      "id, kind, event_ticket_used_at, event_ticket_event_id, expires_at, private_session_requested_at, private_session_fulfilled_at, private_session_duration_minutes, private_session_bundle_id, private_session_bundle_granted_at",
     )
     .eq("user_id", userId)
     .eq("environment", env())
