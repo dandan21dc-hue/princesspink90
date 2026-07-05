@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { listMyEvents } from "@/lib/host.functions";
+import { listMyEvents, getMyEventsCompliance } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
 import { amIAdmin } from "@/lib/admin.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
