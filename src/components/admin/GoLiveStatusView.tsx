@@ -70,6 +70,35 @@ export function GoLiveStatusView({
       </section>
 
       <section
+        aria-label="Signup pipeline diagnostics"
+        className="mx-auto max-w-4xl px-5 pb-8"
+      >
+        <h2 className="mb-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+          Signup pipeline diagnostics
+        </h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Mirrors the three checks in the E2E smoke test — trigger, webhook,
+          and queue. A failing card points to the exact stage that broke.
+        </p>
+        <div className="grid gap-3">
+          {(data?.diagnostics ?? []).map((d) => (
+            <DiagnosticRow key={d.label} d={d} />
+          ))}
+          {!data && (
+            <div className="rounded-2xl border border-border/60 bg-card/60 p-4 text-sm text-muted-foreground">
+              Loading…
+            </div>
+          )}
+          {data && (data.diagnostics ?? []).length === 0 && (
+            <div className="rounded-2xl border border-border/60 bg-card/60 p-4 text-sm text-muted-foreground">
+              Diagnostics unavailable — update the go_live_status RPC.
+            </div>
+          )}
+        </div>
+      </section>
+
+
+      <section
         id="scheduled-jobs"
         aria-label="Scheduled jobs"
         className="mx-auto max-w-4xl px-5 pb-8 scroll-mt-16"
