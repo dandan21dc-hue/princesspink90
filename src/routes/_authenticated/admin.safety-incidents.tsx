@@ -151,8 +151,16 @@ function AdminSafetyIncidentsPage() {
 
   async function logExport(format: "csv" | "xlsx", headers: string[], rowCount: number) {
     try {
+      const rangeSuffix =
+        fromDate || toDate ? ` [dates: ${fromDate || "*"}..${toDate || "*"}]` : "";
       await logExportFn({
-        data: { format, view, search, columns: headers, row_count: rowCount },
+        data: {
+          format,
+          view,
+          search: (search + rangeSuffix).slice(0, 200),
+          columns: headers,
+          row_count: rowCount,
+        },
       });
     } catch (e) {
       console.warn("Failed to log export", e);
