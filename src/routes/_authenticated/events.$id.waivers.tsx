@@ -44,10 +44,13 @@ function WaiversPage() {
           )}
         </div>
         <button
-          onClick={() => q.refetch()}
+          onClick={() => {
+            q.refetch();
+            auditQ.refetch();
+          }}
           className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest hover:bg-card"
         >
-          {q.isFetching ? "…" : "Refresh"}
+          {q.isFetching || auditQ.isFetching ? "…" : "Refresh"}
         </button>
       </div>
 
