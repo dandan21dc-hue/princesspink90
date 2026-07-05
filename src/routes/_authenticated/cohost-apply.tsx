@@ -250,6 +250,15 @@ function CohostApply() {
               placeholder="Events you've hosted, promoted, or worked at."
             />
           </Field>
+          <Field label="Relevant experience" required>
+            <Textarea
+              value={form.relevant_experience}
+              onChange={(v) => setForm((f) => ({ ...f, relevant_experience: v }))}
+              rows={4}
+              maxLength={2000}
+              placeholder="Any additional relevant experience — hospitality, community moderation, safety training, kink/adult industry work, etc."
+            />
+          </Field>
           <Field label="Why do you want to co-host?" required>
             <Textarea
               value={form.why_join}
