@@ -209,7 +209,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
       });
     },
     onSuccess: (r) => {
-      toast.success(`Confirmed! Ticket ${r.ticket_code}`);
+      toast.success(`Confirmed! Entry code ${r.entry_code}`);
       qc.invalidateQueries({ queryKey: ["my-rsvp", eventId] });
       router.invalidate();
     },
