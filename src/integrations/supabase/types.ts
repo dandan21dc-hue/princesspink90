@@ -201,6 +201,59 @@ export type Database = {
         }
         Relationships: []
       }
+      memberships: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          environment: string
+          event_ticket_event_id: string | null
+          event_ticket_used_at: string | null
+          id: string
+          kind: string
+          private_session_fulfilled_at: string | null
+          private_session_requested_at: string | null
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          environment?: string
+          event_ticket_event_id?: string | null
+          event_ticket_used_at?: string | null
+          id?: string
+          kind?: string
+          private_session_fulfilled_at?: string | null
+          private_session_requested_at?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          environment?: string
+          event_ticket_event_id?: string | null
+          event_ticket_used_at?: string | null
+          id?: string
+          kind?: string
+          private_session_fulfilled_at?: string | null
+          private_session_requested_at?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_event_ticket_event_id_fkey"
+            columns: ["event_ticket_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
