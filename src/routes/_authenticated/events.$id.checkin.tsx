@@ -336,10 +336,11 @@ function CheckinPage() {
                     id: crypto.randomUUID(),
                     code: result.rsvp.ticket_code,
                     guest: who,
-                    outcome: "admitted",
+                    outcome: "admitted" as const,
                     detail: "Admitted at door",
                     at: Date.now(),
                   },
+
                   ...h,
                 ].slice(0, 20);
               });
