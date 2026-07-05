@@ -29,6 +29,7 @@ import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authentica
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
@@ -143,6 +144,12 @@ const AuthenticatedAdminSettingsRoute =
     path: '/admin/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSafetyIncidentsRoute =
+  AuthenticatedAdminSafetyIncidentsRouteImport.update({
+    id: '/admin/safety-incidents',
+    path: '/admin/safety-incidents',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminLifetimeRoute =
   AuthenticatedAdminLifetimeRouteImport.update({
     id: '/admin/lifetime',
@@ -232,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
@@ -264,6 +272,7 @@ export interface FileRoutesByTo {
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
@@ -298,6 +307,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/admin/events-compliance'
     | '/admin/health-purge'
     | '/admin/lifetime'
+    | '/admin/safety-incidents'
     | '/admin/settings'
     | '/admin/verifications'
     | '/content/new'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/admin/events-compliance'
     | '/admin/health-purge'
     | '/admin/lifetime'
+    | '/admin/safety-incidents'
     | '/admin/settings'
     | '/admin/verifications'
     | '/content/new'
@@ -397,6 +409,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/events-compliance'
     | '/_authenticated/admin/health-purge'
     | '/_authenticated/admin/lifetime'
+    | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/verifications'
     | '/_authenticated/content/new'
@@ -563,6 +576,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/safety-incidents': {
+      id: '/_authenticated/admin/safety-incidents'
+      path: '/admin/safety-incidents'
+      fullPath: '/admin/safety-incidents'
+      preLoaderRoute: typeof AuthenticatedAdminSafetyIncidentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/lifetime': {
       id: '/_authenticated/admin/lifetime'
       path: '/admin/lifetime'
@@ -681,6 +701,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminEventsComplianceRoute: typeof AuthenticatedAdminEventsComplianceRoute
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
+  AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
@@ -704,6 +725,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminEventsComplianceRoute,
   AuthenticatedAdminHealthPurgeRoute: AuthenticatedAdminHealthPurgeRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
+  AuthenticatedAdminSafetyIncidentsRoute:
+    AuthenticatedAdminSafetyIncidentsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
   AuthenticatedEventsNewRoute: AuthenticatedEventsNewRoute,

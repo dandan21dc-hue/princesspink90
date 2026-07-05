@@ -780,6 +780,42 @@ export type Database = {
           },
         ]
       }
+      safety_incident_reports: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          incident_date: string
+          involved_party: string
+          nature_of_incident: string
+          resolution_taken: string
+          updated_at: string
+          venue: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          incident_date: string
+          involved_party: string
+          nature_of_incident: string
+          resolution_taken: string
+          updated_at?: string
+          venue: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          incident_date?: string
+          involved_party?: string
+          nature_of_incident?: string
+          resolution_taken?: string
+          updated_at?: string
+          venue?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           email: string
