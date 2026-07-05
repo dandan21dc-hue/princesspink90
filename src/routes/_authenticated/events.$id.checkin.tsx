@@ -47,6 +47,19 @@ function CheckinPage() {
   const [camera, setCamera] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastScanRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
+  const [scanFeedback, setScanFeedback] = useState<ScanFeedback>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flashFeedback = (fb: NonNullable<ScanFeedback>, ms = 4000) => {
+    setScanFeedback(fb);
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = setTimeout(() => setScanFeedback(null), ms);
+  };
+
+  useEffect(() => () => {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+  }, []);
+
 
   // Keep focus on the input while scanner mode is on so a keyboard-wedge
   // barcode/QR scanner always lands its keystrokes here.
