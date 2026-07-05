@@ -115,7 +115,94 @@ function AdminGoLivePage() {
         </section>
       )}
 
+      {data && (missingJobs.length > 0 || inactiveJobs.length > 0 || emailStale) && (
+        <section
+          className="mx-auto max-w-4xl px-5 pb-6 space-y-3"
+          aria-label="Go-live alerts"
+        >
+          {(missingJobs.length > 0 || inactiveJobs.length > 0) && (
+            <AlertBanner
+              severity="critical"
+              title={
+                missingJobs.length > 0
+                  ? `${missingJobs.length} scheduled job${missingJobs.length === 1 ? "" : "s"} missing from cron`
+                  : `${inactiveJobs.length} scheduled job${inactiveJobs.length === 1 ? "" : "s"} inactive`
+              }
+              body={
+                <>
+                  {missingJobs.length > 0 && (
+                    <p>
+                      <span className="font-semibold">Missing:</span>{" "}
+                      <span className="font-mono text-[11px]">
+                        {missingJobs.join(", ")}
+                      </span>
+                    </p>
+                  )}
+                  {inactiveJobs.length > 0 && (
+                    <p className="mt-1">
+                      <span className="font-semibold">Inactive:</span>{" "}
+                      <span className="font-mono text-[11px]">
+                        {inactiveJobs.join(", ")}
+                      </span>
+                    </p>
+                  )}
+                  <p className="mt-2 text-[11px] opacity-80">
+                    Reminders, retries, and purges will not run until each
+                    expected job is present and active.
+                  </p>
+                </>
+              }
+              actions={
+                <>
+                  <a
+                    href="#scheduled-jobs"
+                    className="rounded-md border border-current/40 px-2.5 py-1 text-[11px] font-medium uppercase tracking-widest hover:bg-current/10"
+                  >
+                    Jump to jobs table
+                  </a>
+                  <Link
+                    to="/admin/system-logs"
+                    className="rounded-md border border-current/40 px-2.5 py-1 text-[11px] font-medium uppercase tracking-widest hover:bg-current/10"
+                  >
+                    View system logs →
+                  </Link>
+                </>
+              }
+            />
+          )}
+
+          {emailStale && (
+            <AlertBanner
+              severity={data?.last_email_sent_at ? "warning" : "critical"}
+              title={
+                data?.last_email_sent_at
+                  ? "No email sends in the last 24 hours"
+                  : "No successful email sends recorded yet"
+              }
+              body={
+                <p>
+                  {data?.last_email_sent_at
+                    ? `Last successful send: ${new Date(
+                        data.last_email_sent_at,
+                      ).toLocaleString()} — reminder and transactional queues should produce at least one send per day in normal operation.`
+                    : "The email_send_log table has no rows with status 'sent'. Trigger a signup, RSVP, or reminder cron to exercise the send path."}
+                </p>
+              }
+              actions={
+                <Link
+                  to="/admin/email-delivery"
+                  className="rounded-md border border-current/40 px-2.5 py-1 text-[11px] font-medium uppercase tracking-widest hover:bg-current/10"
+                >
+                  Open email delivery log →
+                </Link>
+              }
+            />
+          )}
+        </section>
+      )}
+
       <section className="mx-auto max-w-4xl px-5 pb-6 grid gap-4 sm:grid-cols-3">
+
         <StatusCard
           label="Cron jobs"
           ok={cronOk}
