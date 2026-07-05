@@ -5,7 +5,22 @@ export type GoLiveDiagnostic = {
   label: string;
   status: "ok" | "warn" | "fail" | "unknown";
   detail: string;
-  [key: string]: unknown;
+  // Optional structured extras any check may include.
+  recent_total?: number | null;
+  recent_missing?: number | null;
+  last_assigned_at?: string | null;
+  total?: number | null;
+  sent?: number | null;
+  pending?: number | null;
+  failed?: number | null;
+  suppressed?: number | null;
+  last_at?: string | null;
+  last_status?: string | null;
+  last_error?: string | null;
+  queue_auth?: number | null;
+  queue_transactional?: number | null;
+  cron_active?: boolean | null;
+  retry_after_until?: string | null;
 };
 
 export type GoLiveStatus = {
@@ -18,6 +33,7 @@ export type GoLiveStatus = {
   last_entry_phrase_at: string | null;
   diagnostics?: GoLiveDiagnostic[];
 };
+
 
 
 export const getGoLiveStatus = createServerFn({ method: "GET" })
