@@ -13,15 +13,11 @@ function makeFile(name = "permit.pdf", type = "application/pdf", size = 1024): F
 function makeSupabase(overrides?: {
   uploadError?: { message: string } | null;
   removeError?: { message: string } | null;
-  removeSpy?: ReturnType<typeof vi.fn>;
-  uploadSpy?: ReturnType<typeof vi.fn>;
-}): { supabase: SupabaseLike; upload: ReturnType<typeof vi.fn>; remove: ReturnType<typeof vi.fn> } {
-  const upload =
-    overrides?.uploadSpy ??
-    vi.fn(async () => ({ error: overrides?.uploadError ?? null }));
-  const remove =
-    overrides?.removeSpy ??
-    vi.fn(async () => ({ error: overrides?.removeError ?? null }));
+}) {
+  const upload = vi.fn(
+    async (_path: string, _file: Blob | File) => ({ error: overrides?.uploadError ?? null }),
+  );
+  const remove = vi.fn(async (_paths: string[]) => ({ error: overrides?.removeError ?? null }));
   const supabase: SupabaseLike = {
     storage: {
       from: (bucket: string) => {
