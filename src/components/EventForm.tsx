@@ -59,8 +59,9 @@ export function toPayload(v: EventFormValues) {
     throw new Error("Event capacity cannot exceed the venue's legal capacity.");
   }
   if (v.published && !(v.permits_confirmed && v.insurance_confirmed && v.capacity_confirmed)) {
-    throw new Error("Confirm permits, insurance, and capacity before publishing. Uncheck 'Published' to save as draft.");
+    throw new Error("Confirm permits, insurance, and capacity before publishing. See /compliance for what's required, or uncheck 'Published' to save as draft.");
   }
+
   return {
     title: v.title.trim(),
     tagline: v.tagline.trim() || null,
