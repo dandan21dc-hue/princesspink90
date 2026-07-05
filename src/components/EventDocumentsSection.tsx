@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listEventDocuments, registerEventDocument, deleteEventDocument, signEventDocumentUrl,
-  getCurrentPolicyVersion,
+  getCurrentPolicyVersion, recordPolicyAgreement, listMyPolicyAgreements,
 } from "@/lib/host.functions";
 
 type DocType = "permit" | "insurance" | "capacity" | "other";
@@ -27,6 +27,8 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
   const deleteFn = useServerFn(deleteEventDocument);
   const signFn = useServerFn(signEventDocumentUrl);
   const policyFn = useServerFn(getCurrentPolicyVersion);
+  const recordAgreementFn = useServerFn(recordPolicyAgreement);
+  const listAgreementsFn = useServerFn(listMyPolicyAgreements);
 
   const q = useQuery({
     queryKey: ["event-documents", eventId],
@@ -38,9 +40,28 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
     queryFn: () => policyFn(),
   });
 
-  const [agreedVersion, setAgreedVersion] = useState<string | null>(null);
+  const agreements = useQuery({
+    queryKey: ["my-policy-agreements", eventId],
+    queryFn: () => listAgreementsFn({ data: { event_id: eventId } }),
+  });
+
   const currentVersionId = policy.data?.id ?? null;
-  const hasAgreedToCurrent = !!currentVersionId && agreedVersion === currentVersionId;
+  const existingAgreement =
+    currentVersionId && agreements.data
+      ? agreements.data.find((a) => a.policy_version_id === currentVersionId) ?? null
+      : null;
+  const hasAgreedToCurrent = !!existingAgreement;
+
+  const recordAgreement = useMutation({
+    mutationFn: () =>
+      recordAgreementFn({
+        data: { policy_version_id: currentVersionId!, event_id: eventId },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-policy-agreements", eventId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not record agreement"),
+  });
 
   const del = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
@@ -122,12 +143,16 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
       </p>
 
       <PolicyAgreementCard
-        loading={policy.isLoading}
+        loading={policy.isLoading || agreements.isLoading}
         version={policy.data?.version ?? null}
         effectiveAt={policy.data?.effective_at ?? null}
         summary={policy.data?.summary ?? null}
         agreed={hasAgreedToCurrent}
-        onAgreeChange={(checked) => setAgreedVersion(checked ? currentVersionId : null)}
+        acceptedAt={existingAgreement?.accepted_at ?? null}
+        recording={recordAgreement.isPending}
+        onAgreeChange={(checked) => {
+          if (checked && !hasAgreedToCurrent && currentVersionId) recordAgreement.mutate();
+        }}
       />
 
       {staleDocs.length > 0 && (
@@ -166,13 +191,15 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
 }
 
 function PolicyAgreementCard({
-  loading, version, effectiveAt, summary, agreed, onAgreeChange,
+  loading, version, effectiveAt, summary, agreed, acceptedAt, recording, onAgreeChange,
 }: {
   loading: boolean;
   version: string | null;
   effectiveAt: string | null;
   summary: string | null;
   agreed: boolean;
+  acceptedAt: string | null;
+  recording: boolean;
   onAgreeChange: (checked: boolean) => void;
 }) {
   if (loading) {
@@ -199,17 +226,26 @@ function PolicyAgreementCard({
           id="policy-agree"
           type="checkbox"
           checked={agreed}
+          disabled={agreed || recording}
           onChange={(e) => onAgreeChange(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-primary"
+          className="mt-0.5 h-4 w-4 accent-primary disabled:opacity-70"
         />
         <label htmlFor="policy-agree" className="text-xs text-foreground">
           I have read and agree to the current{" "}
           <Link to="/compliance" target="_blank" className="text-primary underline underline-offset-2">
             compliance policy (v{version})
           </Link>{" "}
-          for every document I upload in this session.
+          for every document I upload against this event.
         </label>
       </div>
+      {agreed && acceptedAt && (
+        <div className="mt-2 text-[11px] text-emerald-400">
+          Agreement recorded {new Date(acceptedAt).toLocaleString()}. Your acceptance is stored with your account.
+        </div>
+      )}
+      {recording && (
+        <div className="mt-2 text-[11px] text-muted-foreground">Recording agreement…</div>
+      )}
     </div>
   );
 }
