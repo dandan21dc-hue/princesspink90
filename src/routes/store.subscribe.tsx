@@ -147,8 +147,8 @@ function SubscribePage() {
                   host (no expiry)
                 </li>
                 <li>
-                  · <span className="text-foreground">1 private session</span> with me (no
-                  anal)
+                  · <span className="text-foreground">1 private 30-min session</span> with me
+                  (no anal) + a picture &amp; video bundle delivered after
                 </li>
                 <li>· No recurring charges, ever</li>
               </ul>
