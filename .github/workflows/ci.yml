@@ -32,3 +32,37 @@ jobs:
 
       - name: Run tests
         run: bun run test
+
+  aud_checkout:
+    name: AUD Checkout Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Runs the AUD-specific unit / integration suites (subscribe page
+      # PriceIds, end-to-end Stripe checkout flow per plan, and webhook
+      # signature + event mapping). Fails on any drift in price IDs,
+      # return_url templating, or Stripe metadata.
+      - name: Run AUD checkout test suites
+        run: bun run test:checkout:aud
+
+      # Static wiring check + optional live Stripe sandbox lookup. The
+      # script skips the live lookup when the sandbox secrets aren't set
+      # and passes; when they ARE set it confirms every canonical AUD
+      # PriceId resolves to a real Stripe price in currency=aud.
+      - name: Verify AUD checkout against Stripe sandbox
+        env:
+          STRIPE_SANDBOX_API_KEY: ${{ secrets.STRIPE_SANDBOX_API_KEY }}
+          LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
+        run: bun run verify:checkout:aud
+

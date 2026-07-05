@@ -12,6 +12,8 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:checkout:aud": "vitest run src/lib/stripeCheckoutFlow.test.ts src/routes/store.subscribe.test.ts src/routes/api/public/payments/webhook.test.ts",
+    "verify:checkout:aud": "node scripts/verify-aud-checkout.mjs",
     "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
   },
   "dependencies": {
