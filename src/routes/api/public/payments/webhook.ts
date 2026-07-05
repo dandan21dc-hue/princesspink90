@@ -283,9 +283,58 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   }
 
 
+  // Panty order (24 / 48 / 72 hour worn variants). Session carries
+  // `panty_order` = "panty_24hr_aud" | "panty_48hr_aud" | "panty_72hr_aud",
+  // plus a shipping address collected at checkout.
+  const pantyOrder = session.metadata?.panty_order as string | undefined;
+  const pantyMatch = pantyOrder ? /^panty_(24|48|72)hr_aud$/.exec(pantyOrder) : null;
+  if (pantyMatch) {
+    const hours = Number(pantyMatch[1]);
+    // Stripe puts the collected shipping address under `collected_information`
+    // on the new API and `shipping_details` on older ones — read both.
+    const ship =
+      session.collected_information?.shipping_details ??
+      session.shipping_details ??
+      null;
+    const addr = ship?.address ?? null;
+    await (getSupabase() as any)
+      .from("panty_orders")
+      .upsert(
+        {
+          user_id: userId,
+          variant: pantyOrder,
+          hours,
+          stripe_session_id: session.id,
+          amount_cents: session.amount_total ?? 0,
+          currency: (session.currency ?? "aud").toLowerCase(),
+          environment: env,
+          status: "paid",
+          customer_email: session.customer_details?.email ?? null,
+          shipping_name: ship?.name ?? session.customer_details?.name ?? null,
+          shipping_line1: addr?.line1 ?? null,
+          shipping_line2: addr?.line2 ?? null,
+          shipping_city: addr?.city ?? null,
+          shipping_state: addr?.state ?? null,
+          shipping_postal_code: addr?.postal_code ?? null,
+          shipping_country: addr?.country ?? null,
+        },
+        { onConflict: "stripe_session_id" },
+      );
+    const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
+    await notifyAllCreators({
+      kind: "panty_order",
+      title: `New ${hours}h panty order — $${amount} 🩲`,
+      body: "Ship it discreetly to the address on file.",
+      link_url: "/dashboard",
+      metadata: { session_id: session.id, env, hours, variant: pantyOrder } as any,
+    });
+    return;
+  }
+
   // One-time content-item purchase
   const contentItemId = session.metadata?.content_item_id;
   if (!contentItemId) return;
+
 
   await getSupabase()
     .from("content_purchases")
