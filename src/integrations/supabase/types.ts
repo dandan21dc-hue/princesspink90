@@ -62,6 +62,69 @@ export type Database = {
         }
         Relationships: []
       }
+      cohost_applications: {
+        Row: {
+          admin_notes: string | null
+          age: number
+          availability: string | null
+          city: string
+          created_at: string
+          display_name: string
+          event_types: string | null
+          hosting_experience: string
+          id: string
+          instagram_handle: string | null
+          other_socials: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          updated_at: string
+          user_id: string
+          why_join: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          age: number
+          availability?: string | null
+          city: string
+          created_at?: string
+          display_name: string
+          event_types?: string | null
+          hosting_experience: string
+          id?: string
+          instagram_handle?: string | null
+          other_socials?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+          why_join: string
+        }
+        Update: {
+          admin_notes?: string | null
+          age?: number
+          availability?: string | null
+          city?: string
+          created_at?: string
+          display_name?: string
+          event_types?: string | null
+          hosting_experience?: string
+          id?: string
+          instagram_handle?: string | null
+          other_socials?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+          why_join?: string
+        }
+        Relationships: []
+      }
       content_items: {
         Row: {
           cover_url: string | null
@@ -571,7 +634,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "cohost"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -699,7 +762,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "cohost"],
     },
   },
 } as const
