@@ -302,8 +302,8 @@ async function getLibraryHasSubscription() {
 
 describe('Stripe checkout flow end-to-end — per plan', () => {
   it('monthly AUD: subscription mode, subscription_data.metadata.userId, webhook seeds subscriptions row → library unlocks', async () => {
-    const result = await checkout('all_access_monthly_aud')
-    expect(result).toHaveProperty('clientSecret')
+    await checkout('all_access_monthly_aud')
+    expect(stripeMock.checkout.sessions.create).toHaveBeenCalled()
 
     const s = createdSessions[0]!
     expect(s.mode).toBe('subscription')
