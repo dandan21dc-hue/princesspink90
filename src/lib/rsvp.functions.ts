@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { videoConsentSchema, type VideoConsent } from "@/lib/verification.functions";
+import { normalizeEntryPhrase } from "@/lib/entry-phrase";
+
 
 async function sha256Hex(input: string): Promise<string> {
   const buf = new TextEncoder().encode(input);
@@ -19,6 +21,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
     waiver_accepted: boolean;
     waiver_signature: string;
     waiver_text_hash: string;
+    entry_phrase?: string | null;
   }) =>
     z.object({
       event_id: z.string().uuid(),
@@ -32,8 +35,18 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       }),
       waiver_signature: z.string().trim().min(2, "Type your full legal name to sign.").max(120),
       waiver_text_hash: z.string().regex(/^[a-f0-9]{64}$/, "Waiver signature is invalid — please refresh."),
+      // Server-side mirror of the DB trigger: trim, and treat empty /
+      // whitespace-only as null so the trigger picks a phrase.
+      entry_phrase: z
+        .union([z.string(), z.null()])
+        .optional()
+        .transform((v) => normalizeEntryPhrase(v ?? null))
+        .refine((v) => v === null || v.length <= 120, {
+          message: "Entry phrase must be 120 characters or fewer.",
+        }),
     }).parse(data),
   )
+
   .handler(async ({ data, context }) => {
     // Require an approved age verification on file
     const { data: av } = await context.supabase
@@ -106,25 +119,32 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const now = new Date().toISOString();
+    // `data.entry_phrase` is already normalized by the input validator:
+    // null when the caller sent blank / whitespace-only. Omit the field
+    // entirely in that case so the BEFORE INSERT trigger picks one.
+    const basePayload = {
+      event_id: data.event_id,
+      user_id: context.userId,
+      guest_count: data.guest_count,
+      status: "confirmed",
+      age_confirmed_at: now,
+      consent_confirmed_at: now,
+      video_consent: data.video_consent,
+      waiver_signature: data.waiver_signature.trim(),
+      waiver_accepted_at: now,
+      waiver_text_hash: currentHash,
+    };
+    const upsertPayload =
+      data.entry_phrase !== null
+        ? { ...basePayload, entry_phrase: data.entry_phrase }
+        : basePayload;
     const { data: row, error } = await context.supabase
       .from("rsvps")
-      .upsert(
-        {
-          event_id: data.event_id,
-          user_id: context.userId,
-          guest_count: data.guest_count,
-          status: "confirmed",
-          age_confirmed_at: now,
-          consent_confirmed_at: now,
-          video_consent: data.video_consent,
-          waiver_signature: data.waiver_signature.trim(),
-          waiver_accepted_at: now,
-          waiver_text_hash: currentHash,
-        },
-        { onConflict: "event_id,user_id" },
-      )
+      .upsert(upsertPayload, { onConflict: "event_id,user_id" })
       .select("id, ticket_code, entry_code, entry_phrase")
       .single();
+
+
     if (error) throw error;
 
     // Record an audit entry for this waiver acceptance

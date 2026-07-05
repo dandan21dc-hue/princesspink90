@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { videoConsentSchema, type VideoConsent } from "@/lib/verification.functions";
+import { normalizeEntryPhrase } from "@/lib/entry-phrase";
+
 
 async function assertEventHostOrAdmin(
   supabase: any,
@@ -35,22 +37,30 @@ export const lookupCheckin = createServerFn({ method: "POST" })
     await assertEventHostOrAdmin(context.supabase, context.userId, data.event_id);
     const raw = data.ticket_code.trim();
     const upper = raw.toUpperCase();
+    // Only search entry_phrase when the input is a non-blank string —
+    // matches the DB trigger's normalization so ' ' or '' can't match
+    // rows whose phrase happens to contain a space.
+    const phraseSearch = normalizeEntryPhrase(raw);
 
     // Accept the scan-code (ticket_code), the entry_code, OR the secret entry
     // phrase (case-insensitive) so the door monitor can look a guest up by
     // whichever value the guest offers.
+    const orClauses = [
+      `ticket_code.eq.${upper}`,
+      `entry_code.eq.${upper}`,
+      ...(phraseSearch ? [`entry_phrase.ilike.${phraseSearch}`] : []),
+    ].join(",");
     const { data: rsvp, error } = await context.supabase
       .from("rsvps")
       .select(
         "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at, door_notes",
       )
       .eq("event_id", data.event_id)
-      .or(
-        `ticket_code.eq.${upper},entry_code.eq.${upper},entry_phrase.ilike.${raw}`,
-      )
+      .or(orClauses)
       .maybeSingle();
     if (error) throw error;
     if (!rsvp) return { found: false as const };
+
 
     // Load profile + age verification via admin-scoped queries (host can't
     // read other users' profiles/verifications directly).
