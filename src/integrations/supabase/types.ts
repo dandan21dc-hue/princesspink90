@@ -14,7 +14,160 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      event_access_codes: {
+        Row: {
+          code: string
+          created_at: string
+          event_id: string
+          id: string
+          note: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          event_id: string
+          id?: string
+          note?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_access_codes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          address: string | null
+          capacity: number | null
+          city: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          dress_code: string | null
+          ends_at: string | null
+          host_id: string
+          id: string
+          is_private: boolean
+          published: boolean
+          starts_at: string
+          tagline: string | null
+          theme: string | null
+          ticket_price_cents: number
+          title: string
+          updated_at: string
+          venue_name: string
+        }
+        Insert: {
+          address?: string | null
+          capacity?: number | null
+          city?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          dress_code?: string | null
+          ends_at?: string | null
+          host_id: string
+          id?: string
+          is_private?: boolean
+          published?: boolean
+          starts_at: string
+          tagline?: string | null
+          theme?: string | null
+          ticket_price_cents?: number
+          title: string
+          updated_at?: string
+          venue_name: string
+        }
+        Update: {
+          address?: string | null
+          capacity?: number | null
+          city?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          dress_code?: string | null
+          ends_at?: string | null
+          host_id?: string
+          id?: string
+          is_private?: boolean
+          published?: boolean
+          starts_at?: string
+          tagline?: string | null
+          theme?: string | null
+          ticket_price_cents?: number
+          title?: string
+          updated_at?: string
+          venue_name?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rsvps: {
+        Row: {
+          created_at: string
+          event_id: string
+          guest_count: number
+          id: string
+          status: string
+          ticket_code: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          guest_count?: number
+          id?: string
+          status?: string
+          ticket_code?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          guest_count?: number
+          id?: string
+          status?: string
+          ticket_code?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
