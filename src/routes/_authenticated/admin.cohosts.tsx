@@ -93,6 +93,7 @@ function Row({ row }: { row: any }) {
         {row.event_types && <Info label="Event types">{row.event_types}</Info>}
       </div>
       <div className="mt-3 space-y-3 text-sm">
+        {row.bio && <Info label="Bio">{row.bio}</Info>}
         <Info label="Experience">{row.hosting_experience}</Info>
         <Info label="Why join">{row.why_join}</Info>
       </div>

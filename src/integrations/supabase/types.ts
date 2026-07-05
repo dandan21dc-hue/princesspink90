@@ -67,6 +67,7 @@ export type Database = {
           admin_notes: string | null
           age: number
           availability: string | null
+          bio: string | null
           city: string
           created_at: string
           display_name: string
@@ -87,6 +88,7 @@ export type Database = {
           admin_notes?: string | null
           age: number
           availability?: string | null
+          bio?: string | null
           city: string
           created_at?: string
           display_name: string
@@ -107,6 +109,7 @@ export type Database = {
           admin_notes?: string | null
           age?: number
           availability?: string | null
+          bio?: string | null
           city?: string
           created_at?: string
           display_name?: string

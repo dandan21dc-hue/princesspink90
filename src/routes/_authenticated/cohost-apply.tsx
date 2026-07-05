@@ -15,6 +15,18 @@ export const Route = createFileRoute("/_authenticated/cohost-apply")({
   component: CohostApply,
 });
 
+const DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const EVENT_TYPE_OPTIONS = [
+  "Private parties",
+  "Club nights",
+  "Adult theatre",
+  "Play parties",
+  "Brand collabs",
+  "Photo/video shoots",
+  "Custom scenes",
+  "Travel events",
+];
+
 function CohostApply() {
   const eligibilityFn = useServerFn(getCohostEligibility);
   const mineFn = useServerFn(getMyCohostApplication);
@@ -31,43 +43,65 @@ function CohostApply() {
     city: "",
     instagram_handle: "",
     other_socials: "",
+    bio: "",
     hosting_experience: "",
     why_join: "",
-    availability: "",
-    event_types: "",
+    availability_days: [] as string[],
+    availability_notes: "",
+    event_types_presets: [] as string[],
+    event_types_other: "",
   });
 
   useEffect(() => {
     if (mine.data) {
+      const savedAvail = mine.data.availability ?? "";
+      const availDays = DAY_OPTIONS.filter((d: string) => savedAvail.split("|")[0]?.includes(d));
+      const availNotes = savedAvail.split("|")[1]?.trim() ?? "";
+      const savedTypes = (mine.data.event_types ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      const presets = savedTypes.filter((t) => EVENT_TYPE_OPTIONS.includes(t));
+      const other = savedTypes.filter((t) => !EVENT_TYPE_OPTIONS.includes(t)).join(", ");
       setForm({
         display_name: mine.data.display_name ?? "",
         age: String(mine.data.age ?? ""),
         city: mine.data.city ?? "",
         instagram_handle: mine.data.instagram_handle ?? "",
         other_socials: mine.data.other_socials ?? "",
+        bio: (mine.data as any).bio ?? "",
         hosting_experience: mine.data.hosting_experience ?? "",
         why_join: mine.data.why_join ?? "",
-        availability: mine.data.availability ?? "",
-        event_types: mine.data.event_types ?? "",
+        availability_days: availDays,
+        availability_notes: availNotes,
+        event_types_presets: presets,
+        event_types_other: other,
       });
     }
   }, [mine.data]);
 
   const submit = useMutation({
-    mutationFn: () =>
-      submitFn({
+    mutationFn: () => {
+      const availability = [
+        form.availability_days.join(", "),
+        form.availability_notes.trim(),
+      ].filter(Boolean).join(" | ");
+      const event_types = [
+        ...form.event_types_presets,
+        ...form.event_types_other.split(",").map((s) => s.trim()).filter(Boolean),
+      ].join(", ");
+      return submitFn({
         data: {
           display_name: form.display_name.trim(),
           age: Number(form.age),
           city: form.city.trim(),
           instagram_handle: form.instagram_handle.trim(),
           other_socials: form.other_socials.trim(),
+          bio: form.bio.trim(),
           hosting_experience: form.hosting_experience.trim(),
           why_join: form.why_join.trim(),
-          availability: form.availability.trim(),
-          event_types: form.event_types.trim(),
+          availability,
+          event_types,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("Application submitted");
       qc.invalidateQueries({ queryKey: ["my-cohost-application"] });
@@ -163,6 +197,18 @@ function CohostApply() {
               placeholder="TikTok, OnlyFans, portfolio…"
             />
           </Field>
+          <Field label="Short bio">
+            <Textarea
+              value={form.bio}
+              onChange={(v) => setForm((f) => ({ ...f, bio: v }))}
+              rows={3}
+              maxLength={600}
+              placeholder="A couple sentences about you — vibe, scene, what makes you a good host."
+            />
+            <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+              {form.bio.length}/600
+            </div>
+          </Field>
           <Field label="Hosting / event experience" required>
             <Textarea
               value={form.hosting_experience}
@@ -180,23 +226,52 @@ function CohostApply() {
               maxLength={2000}
             />
           </Field>
-          <Field label="Availability">
-            <Textarea
-              value={form.availability}
-              onChange={(v) => setForm((f) => ({ ...f, availability: v }))}
-              rows={2}
-              maxLength={500}
-              placeholder="Weekends, evenings, travel-ready…"
+
+          <Field label="Availability — days you're usually free">
+            <ChipGroup
+              options={DAY_OPTIONS}
+              selected={form.availability_days}
+              onToggle={(v) =>
+                setForm((f) => ({
+                  ...f,
+                  availability_days: f.availability_days.includes(v)
+                    ? f.availability_days.filter((d) => d !== v)
+                    : [...f.availability_days, v],
+                }))
+              }
             />
+            <div className="mt-3">
+              <Textarea
+                value={form.availability_notes}
+                onChange={(v) => setForm((f) => ({ ...f, availability_notes: v }))}
+                rows={2}
+                maxLength={400}
+                placeholder="Notes — evenings only, travel-ready, blackout weeks…"
+              />
+            </div>
           </Field>
+
           <Field label="Event types you're interested in">
-            <Textarea
-              value={form.event_types}
-              onChange={(v) => setForm((f) => ({ ...f, event_types: v }))}
-              rows={2}
-              maxLength={500}
-              placeholder="Private, club nights, brand collabs…"
+            <ChipGroup
+              options={EVENT_TYPE_OPTIONS}
+              selected={form.event_types_presets}
+              onToggle={(v) =>
+                setForm((f) => ({
+                  ...f,
+                  event_types_presets: f.event_types_presets.includes(v)
+                    ? f.event_types_presets.filter((t) => t !== v)
+                    : [...f.event_types_presets, v],
+                }))
+              }
             />
+            <div className="mt-3">
+              <Input
+                value={form.event_types_other}
+                onChange={(v) => setForm((f) => ({ ...f, event_types_other: v }))}
+                maxLength={300}
+                placeholder="Other (comma-separated)"
+              />
+            </div>
           </Field>
 
           <button
@@ -209,6 +284,38 @@ function CohostApply() {
         </form>
       )}
     </section>
+  );
+}
+
+function ChipGroup({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: string[];
+  selected: string[];
+  onToggle: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const active = selected.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onToggle(opt)}
+            className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-widest transition ${
+              active
+                ? "border-primary bg-primary/20 text-primary"
+                : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+            }`}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -245,6 +352,8 @@ function StatusPanel({
         {app.availability && <Info label="Availability">{app.availability}</Info>}
       </dl>
       <div className="mt-4 space-y-3 text-sm">
+        {(app as any).bio && <Info label="Bio">{(app as any).bio}</Info>}
+        {app.event_types && <Info label="Event types">{app.event_types}</Info>}
         <Info label="Experience">{app.hosting_experience}</Info>
         <Info label="Why">{app.why_join}</Info>
         {app.admin_notes && <Info label="Reviewer notes">{app.admin_notes}</Info>}

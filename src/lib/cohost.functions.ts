@@ -12,6 +12,7 @@ export type CohostApplication = {
   other_socials: string | null;
   hosting_experience: string;
   why_join: string;
+  bio: string | null;
   availability: string | null;
   event_types: string | null;
   status: "pending" | "approved" | "rejected" | "withdrawn";
@@ -26,6 +27,7 @@ const applicationInput = z.object({
   city: z.string().trim().min(2).max(120),
   instagram_handle: z.string().trim().max(80).optional().or(z.literal("")),
   other_socials: z.string().trim().max(500).optional().or(z.literal("")),
+  bio: z.string().trim().max(600).optional().or(z.literal("")),
   hosting_experience: z.string().trim().min(10).max(2000),
   why_join: z.string().trim().min(10).max(2000),
   availability: z.string().trim().max(500).optional().or(z.literal("")),
@@ -53,7 +55,7 @@ export const getMyCohostApplication = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("cohost_applications")
       .select(
-        "id, user_id, display_name, age, city, instagram_handle, other_socials, hosting_experience, why_join, availability, event_types, status, admin_notes, submitted_at, reviewed_at",
+        "id, user_id, display_name, age, city, instagram_handle, other_socials, bio, hosting_experience, why_join, availability, event_types, status, admin_notes, submitted_at, reviewed_at",
       )
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -89,6 +91,7 @@ export const submitCohostApplication = createServerFn({ method: "POST" })
       city: data.city,
       instagram_handle: data.instagram_handle || null,
       other_socials: data.other_socials || null,
+      bio: data.bio || null,
       hosting_experience: data.hosting_experience,
       why_join: data.why_join,
       availability: data.availability || null,
