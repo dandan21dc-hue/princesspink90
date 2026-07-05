@@ -64,7 +64,7 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
 
         const { data: candidates, error: selErr } = await supabase
           .from('health_screenings')
-          .select('id, user_id, valid_until')
+          .select('id, user_id, valid_until, status, test_date')
           .eq('status', 'approved')
           .eq('valid_until', targetDate)
           .is('expiry_reminder_sent_at', null)
