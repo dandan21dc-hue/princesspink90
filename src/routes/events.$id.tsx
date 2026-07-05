@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getPublicEventById } from "@/lib/events.functions";
 import { rsvpToEvent, cancelRsvp, myRsvpForEvent } from "@/lib/rsvp.functions";
 import { getMyAgeVerification, type VideoConsent } from "@/lib/verification.functions";
+import { useWaiverPdfDownload } from "@/lib/useWaiverPdfDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
