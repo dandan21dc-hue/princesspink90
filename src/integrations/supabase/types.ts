@@ -780,6 +780,50 @@ export type Database = {
           },
         ]
       }
+      safety_incident_attachments: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_name: string
+          file_path: string
+          id: string
+          incident_id: string
+          mime_type: string | null
+          size_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_path: string
+          id?: string
+          incident_id: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_path?: string
+          id?: string
+          incident_id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_incident_attachments_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "safety_incident_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       safety_incident_reports: {
         Row: {
           archive_reason: string | null
