@@ -45,6 +45,29 @@ export const getStoreItem = createServerFn({ method: "GET" })
     return row;
   });
 
+// Public read: busy time ranges for the private room within [from, to].
+export const listPrivateRoomBusy = createServerFn({ method: "GET" })
+  .inputValidator((data: { from: string; to: string }) => {
+    if (!data.from || !data.to) throw new Error("from/to required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const { data: rows, error } = await supabase.rpc("get_private_room_busy", {
+      from_ts: data.from,
+      to_ts: data.to,
+    });
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as Array<{ starts_at: string; duration_minutes: number }>;
+  });
+
+
+
 // ---------- Authenticated ----------
 
 async function resolveOrCreateCustomer(
