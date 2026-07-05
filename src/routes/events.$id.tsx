@@ -192,6 +192,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
     no_filming: true,
   });
   const [complianceOk, setComplianceOk] = useState(false);
+  const [termsOk, setTermsOk] = useState(false);
 
   const rsvp = useMutation({
     mutationFn: async () => {
