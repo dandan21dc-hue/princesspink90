@@ -11,6 +11,7 @@ import {
   createIncidentAttachmentUploadUrl,
   recordIncidentAttachment,
   deleteIncidentAttachment,
+  logSafetyIncidentExport,
 } from "@/lib/safety-incidents.functions";
 import { supabase } from "@/integrations/supabase/client";
 
