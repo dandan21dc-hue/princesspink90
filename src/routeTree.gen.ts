@@ -29,6 +29,7 @@ import { Route as AuthenticatedCohostApplyRouteImport } from './routes/_authenti
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
+import { Route as AuthenticatedAdminVenueComplianceRemindersRouteImport } from './routes/_authenticated/admin.venue-compliance-reminders'
 import { Route as AuthenticatedAdminVenueComplianceRouteImport } from './routes/_authenticated/admin.venue-compliance'
 import { Route as AuthenticatedAdminSystemLogsRouteImport } from './routes/_authenticated/admin.system-logs'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
@@ -147,6 +148,12 @@ const AuthenticatedAdminVerificationsRoute =
   AuthenticatedAdminVerificationsRouteImport.update({
     id: '/admin/verifications',
     path: '/admin/verifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminVenueComplianceRemindersRoute =
+  AuthenticatedAdminVenueComplianceRemindersRouteImport.update({
+    id: '/admin/venue-compliance-reminders',
+    path: '/admin/venue-compliance-reminders',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminVenueComplianceRoute =
@@ -286,6 +293,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
+  '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
@@ -325,6 +333,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
+  '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
@@ -366,6 +375,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/_authenticated/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
+  '/_authenticated/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
@@ -407,6 +417,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/system-logs'
     | '/admin/venue-compliance'
+    | '/admin/venue-compliance-reminders'
     | '/admin/verifications'
     | '/content/new'
     | '/events/new'
@@ -446,6 +457,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/system-logs'
     | '/admin/venue-compliance'
+    | '/admin/venue-compliance-reminders'
     | '/admin/verifications'
     | '/content/new'
     | '/events/new'
@@ -486,6 +498,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/system-logs'
     | '/_authenticated/admin/venue-compliance'
+    | '/_authenticated/admin/venue-compliance-reminders'
     | '/_authenticated/admin/verifications'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
@@ -654,6 +667,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/verifications'
       fullPath: '/admin/verifications'
       preLoaderRoute: typeof AuthenticatedAdminVerificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/venue-compliance-reminders': {
+      id: '/_authenticated/admin/venue-compliance-reminders'
+      path: '/admin/venue-compliance-reminders'
+      fullPath: '/admin/venue-compliance-reminders'
+      preLoaderRoute: typeof AuthenticatedAdminVenueComplianceRemindersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/venue-compliance': {
@@ -828,6 +848,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSystemLogsRoute: typeof AuthenticatedAdminSystemLogsRoute
   AuthenticatedAdminVenueComplianceRoute: typeof AuthenticatedAdminVenueComplianceRoute
+  AuthenticatedAdminVenueComplianceRemindersRoute: typeof AuthenticatedAdminVenueComplianceRemindersRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
   AuthenticatedEventsIdCheckinRoute: typeof AuthenticatedEventsIdCheckinRouteWithChildren
@@ -858,6 +879,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSystemLogsRoute: AuthenticatedAdminSystemLogsRoute,
   AuthenticatedAdminVenueComplianceRoute:
     AuthenticatedAdminVenueComplianceRoute,
+  AuthenticatedAdminVenueComplianceRemindersRoute:
+    AuthenticatedAdminVenueComplianceRemindersRoute,
   AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
   AuthenticatedEventsNewRoute: AuthenticatedEventsNewRoute,
   AuthenticatedEventsIdCheckinRoute:
