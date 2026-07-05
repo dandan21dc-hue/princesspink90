@@ -223,6 +223,7 @@ export const getDoorSheet = createServerFn({ method: "GET" })
       id: r.id,
       ticket_code: r.ticket_code,
       entry_code: r.entry_code,
+      entry_phrase: r.entry_phrase,
       guest_count: r.guest_count,
       display_name: nameByUser.get(r.user_id) ?? null,
       age_status: ageByUser.get(r.user_id) ?? "missing",
