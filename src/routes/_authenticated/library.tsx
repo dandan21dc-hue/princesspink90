@@ -143,3 +143,64 @@ function MediaTile({
     <img src={url} alt="" className="w-full rounded-lg" />
   );
 }
+
+function LifetimePerks({ membership }: { membership: any }) {
+  const qc = useQueryClient();
+  const reqFn = useServerFn(requestPrivateSession);
+  const request = useMutation({
+    mutationFn: () => reqFn(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-membership"] }),
+  });
+
+  const ticketUsed = !!membership.event_ticket_used_at;
+  const sessionRequested = !!membership.private_session_requested_at;
+  const sessionFulfilled = !!membership.private_session_fulfilled_at;
+
+  return (
+    <div className="mt-6 rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-5">
+      <div className="text-xs uppercase tracking-[0.3em] text-primary">Lifetime perks</div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl border border-border/60 bg-card/60 p-4">
+          <div className="font-medium">🎟️ Free event ticket</div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {ticketUsed
+              ? "Redeemed. Thanks for coming!"
+              : "Redeemed automatically when you RSVP to any event."}
+          </p>
+          {!ticketUsed && (
+            <Link
+              to="/"
+              className="mt-3 inline-block rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+            >
+              Browse events
+            </Link>
+          )}
+        </div>
+        <div className="rounded-xl border border-border/60 bg-card/60 p-4">
+          <div className="font-medium">🔥 Private session <span className="text-xs text-muted-foreground">(no anal)</span></div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {sessionFulfilled
+              ? "Fulfilled."
+              : sessionRequested
+                ? "Request sent — I'll reach out to schedule."
+                : "One-time perk. Press below and I'll DM you to schedule."}
+          </p>
+          {!sessionRequested && (
+            <button
+              onClick={() => request.mutate()}
+              disabled={request.isPending}
+              className="mt-3 rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-60"
+            >
+              {request.isPending ? "Sending…" : "Request session"}
+            </button>
+          )}
+          {request.isError && (
+            <p className="mt-2 text-xs text-destructive">
+              {(request.error as Error).message}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
