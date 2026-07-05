@@ -124,7 +124,7 @@ function RootComponent() {
         <SiteHeader />
         <Outlet />
         <footer className="border-t border-border/50 mt-24 py-10 text-center text-xs text-muted-foreground">
-          AFTERDARK · Adults only · 18+ · Consent, safety and discretion are non-negotiable.
+          PRINCESS PINK · Adults only · 18+ · Consent, safety and discretion are non-negotiable.
         </footer>
       </div>
       <AgeGate />
