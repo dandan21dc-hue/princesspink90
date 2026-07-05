@@ -123,7 +123,7 @@ function EditEvent() {
             {rsvps.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2 text-sm">
                 <div>
-                  <div>{r.profiles?.display_name ?? "Guest"}</div>
+                  <div>{r.display_name ?? "Guest"}</div>
                   <div className="text-xs text-muted-foreground">
                     {r.guest_count} guest{r.guest_count > 1 ? "s" : ""} · {new Date(r.created_at).toLocaleDateString()}
                   </div>

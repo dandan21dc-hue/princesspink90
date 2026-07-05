@@ -49,12 +49,18 @@ export const getMyEvent = createServerFn({ method: "GET" })
       .select("*")
       .eq("event_id", data.id)
       .order("created_at");
-    const { data: rsvps } = await context.supabase
+    const { data: rsvpsRaw } = await context.supabase
       .from("rsvps")
-      .select("id, user_id, guest_count, ticket_code, status, created_at, profiles:profiles!rsvps_user_id_fkey(display_name)")
+      .select("id, user_id, guest_count, ticket_code, status, created_at")
       .eq("event_id", data.id)
       .order("created_at", { ascending: false });
-    return { event, codes: codes ?? [], rsvps: rsvps ?? [] };
+    const userIds = (rsvpsRaw ?? []).map((r) => r.user_id);
+    const { data: profs } = userIds.length
+      ? await context.supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+      : { data: [] as { user_id: string; display_name: string | null }[] };
+    const nameByUser = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
+    const rsvps = (rsvpsRaw ?? []).map((r) => ({ ...r, display_name: nameByUser.get(r.user_id) ?? null }));
+    return { event, codes: codes ?? [], rsvps };
   });
 
 export const createEvent = createServerFn({ method: "POST" })
