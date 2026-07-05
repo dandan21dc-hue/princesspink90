@@ -335,7 +335,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
     });
   };
 
-  const canSubmit = ageOk && waiverOk && complianceOk && screeningCurrent && signature.trim().length >= 2 && !rsvp.isPending;
+  const canSubmit = ageOk && waiverOk && complianceOk && termsOk && screeningCurrent && signature.trim().length >= 2 && !rsvp.isPending;
 
   const waiverRead = showWaiver || waiverOk;
   const waiverSigned = signature.trim().length >= 2;
