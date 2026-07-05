@@ -277,3 +277,40 @@ export function Badge({
     </span>
   );
 }
+
+export function DiagnosticRow({ d }: { d: GoLiveDiagnostic }) {
+  const kind =
+    d.status === "ok"
+      ? "ok"
+      : d.status === "fail"
+        ? "bad"
+        : d.status === "warn"
+          ? "warn"
+          : "warn";
+  const border =
+    d.status === "fail"
+      ? "border-destructive/50"
+      : d.status === "warn"
+        ? "border-amber-500/40"
+        : d.status === "ok"
+          ? "border-emerald-500/30"
+          : "border-border/60";
+  return (
+    <div
+      className={`rounded-2xl border ${border} bg-card/60 p-4`}
+      data-testid={`diag-${d.label.replace(/\s+/g, "-").toLowerCase()}`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-medium">{d.label}</div>
+        <Badge kind={kind}>{d.status}</Badge>
+      </div>
+      <div className="mt-2 text-sm text-foreground/80">{d.detail}</div>
+      {d.last_error && (
+        <div className="mt-2 rounded border border-destructive/40 bg-destructive/10 p-2 font-mono text-[11px] text-destructive">
+          {d.last_error}
+        </div>
+      )}
+    </div>
+  );
+}
+
