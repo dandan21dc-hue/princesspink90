@@ -121,8 +121,8 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           productDescription = product.name;
         }
 
-        const isLifetime = data.priceId === "lifetime_onetime";
-        const termPassMatch = /^all_access_(3|6|12)mo_onetime$/.exec(data.priceId);
+        const isLifetime = data.priceId === "lifetime_onetime_aud" || data.priceId === "lifetime_onetime";
+        const termPassMatch = /^all_access_(3|6|12)mo_onetime(?:_aud)?$/.exec(data.priceId);
         const termMonths = termPassMatch ? Number(termPassMatch[1]) : null;
         const session = await stripe.checkout.sessions.create({
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
