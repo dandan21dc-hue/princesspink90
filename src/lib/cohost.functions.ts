@@ -11,10 +11,13 @@ export type CohostApplication = {
   instagram_handle: string | null;
   other_socials: string | null;
   hosting_experience: string;
+  relevant_experience: string | null;
   why_join: string;
   bio: string | null;
   availability: string | null;
   event_types: string | null;
+  agreement_file_path: string | null;
+  agreement_uploaded_at: string | null;
   status: "pending" | "approved" | "rejected" | "withdrawn";
   admin_notes: string | null;
   submitted_at: string;
@@ -29,10 +32,13 @@ const applicationInput = z.object({
   other_socials: z.string().trim().max(500).optional().or(z.literal("")),
   bio: z.string().trim().max(600).optional().or(z.literal("")),
   hosting_experience: z.string().trim().min(10).max(2000),
+  relevant_experience: z.string().trim().min(10).max(2000),
   why_join: z.string().trim().min(10).max(2000),
   availability: z.string().trim().max(500).optional().or(z.literal("")),
   event_types: z.string().trim().max(500).optional().or(z.literal("")),
+  agreement_file_path: z.string().trim().min(1).max(500),
 });
+
 
 async function assertEligible(supabase: any, userId: string) {
   const { data, error } = await supabase
