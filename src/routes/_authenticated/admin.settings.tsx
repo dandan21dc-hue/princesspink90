@@ -118,7 +118,85 @@ function AdminSettings() {
           )}
         </div>
       </form>
+
+      <ReminderJobConfigSection />
     </Shell>
+  );
+}
+
+function ReminderJobConfigSection() {
+  const getFn = useServerFn(getReminderJobConfig);
+  const updateFn = useServerFn(updateReminderJobConfig);
+  const qc = useQueryClient();
+
+  const config = useQuery({
+    queryKey: ["reminder-job-config"],
+    queryFn: () => getFn(),
+  });
+
+  const [time, setTime] = useState("08:00");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (config.data) setTime(config.data.daily_run_time_utc);
+  }, [config.data]);
+
+  const save = useMutation({
+    mutationFn: () => updateFn({ data: { daily_run_time_utc: time } }),
+    onSuccess: () => {
+      setSaved(true);
+      qc.invalidateQueries({ queryKey: ["reminder-job-config"] });
+      setTimeout(() => setSaved(false), 2500);
+    },
+  });
+
+  return (
+    <section className="mt-12 border-t border-border pt-8">
+      <h2 className="font-display text-xl font-bold">Reminder job</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Time of day (UTC) the daily reminder job runs — sends health screening
+        expiry reminders 7 days before expiration. Defaults to 08:00 UTC.
+      </p>
+      <form
+        className="mt-5 space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate();
+        }}
+      >
+        <Field label="Daily run time (UTC)" hint="24-hour HH:MM, e.g. 08:00">
+          <input
+            type="time"
+            required
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            className="w-40 rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+        </Field>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={save.isPending || config.isLoading}
+            className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+          >
+            {save.isPending ? "Saving…" : "Save"}
+          </button>
+          {saved && <span className="text-sm text-primary">Saved ✓</span>}
+          {save.error && (
+            <span className="text-sm text-destructive">
+              {(save.error as Error).message}
+            </span>
+          )}
+        </div>
+        {config.data?.updated_at && (
+          <p className="text-[11px] text-muted-foreground">
+            Last updated {new Date(config.data.updated_at).toLocaleString()}.
+            Note: the cron schedule itself is managed by the platform — update it
+            there to match this value.
+          </p>
+        )}
+      </form>
+    </section>
   );
 }
 
