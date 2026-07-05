@@ -4,6 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { amIAdmin } from "@/lib/admin.functions";
 import { getSiteSettings, updateSiteSettings } from "@/lib/settings.functions";
+import {
+  getReminderJobConfig,
+  updateReminderJobConfig,
+} from "@/lib/reminder-job-config.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Site settings · Admin" }] }),
