@@ -20,7 +20,9 @@ export const Route = createFileRoute("/store")({
       },
       { property: "og:title", content: "Princess Pink · Store" },
       { property: "og:description", content: "Photo sets, videos, bundles, and an all-access pass." },
+      { property: "og:url", content: "https://princesspink90.lovable.app/store" },
     ],
+    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/store" }],
   }),
   component: StorePage,
   errorComponent: ({ error }) => (

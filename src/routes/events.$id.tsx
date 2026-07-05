@@ -23,22 +23,62 @@ export const Route = createFileRoute("/events/$id")({
     if (!e) throw notFound();
     return e;
   },
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.title} · AFTERDARK` },
-          { name: "description", content: loaderData.tagline ?? loaderData.description ?? "" },
-          { property: "og:title", content: loaderData.title },
-          { property: "og:description", content: loaderData.tagline ?? "" },
-          ...(loaderData.cover_image_url
-            ? [
-                { property: "og:image", content: loaderData.cover_image_url },
-                { name: "twitter:image", content: loaderData.cover_image_url },
-              ]
-            : []),
-        ]
-      : [],
-  }),
+  head: ({ params, loaderData }) => {
+    const url = `https://princesspink90.lovable.app/events/${params.id}`;
+    if (!loaderData) {
+      return {
+        meta: [{ property: "og:url", content: url }],
+        links: [{ rel: "canonical", href: url }],
+      };
+    }
+    return {
+      meta: [
+        { title: `${loaderData.title} · AFTERDARK` },
+        { name: "description", content: loaderData.tagline ?? loaderData.description ?? "" },
+        { property: "og:title", content: loaderData.title },
+        { property: "og:description", content: loaderData.tagline ?? "" },
+        { property: "og:type", content: "event" },
+        { property: "og:url", content: url },
+        ...(loaderData.cover_image_url
+          ? [
+              { property: "og:image", content: loaderData.cover_image_url },
+              { name: "twitter:image", content: loaderData.cover_image_url },
+            ]
+          : []),
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Event",
+            name: loaderData.title,
+            description: loaderData.tagline ?? loaderData.description ?? undefined,
+            startDate: loaderData.starts_at,
+            eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+            eventStatus: "https://schema.org/EventScheduled",
+            image: loaderData.cover_image_url ?? undefined,
+            url,
+            location: {
+              "@type": "Place",
+              name: loaderData.venue_name,
+              address: [loaderData.address, loaderData.city].filter(Boolean).join(", ") || undefined,
+            },
+            offers: loaderData.ticket_price_cents
+              ? {
+                  "@type": "Offer",
+                  price: (loaderData.ticket_price_cents / 100).toFixed(2),
+                  priceCurrency: "USD",
+                  url,
+                  availability: "https://schema.org/InStock",
+                }
+              : undefined,
+          }),
+        },
+      ],
+    };
+  },
   component: EventPage,
 });
 

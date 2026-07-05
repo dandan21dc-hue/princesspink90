@@ -79,12 +79,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "Glory holes, gang bangs, and adult theatre takeovers hosted by Princess Pink. 18+ only.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Princess Pink" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#0a0a0f" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            { "@type": "Organization", name: "Princess Pink", url: "https://princesspink90.lovable.app" },
+            { "@type": "WebSite", name: "Princess Pink", url: "https://princesspink90.lovable.app" },
+          ],
+        }),
+      },
     ],
   }),
   shellComponent: RootShell,
