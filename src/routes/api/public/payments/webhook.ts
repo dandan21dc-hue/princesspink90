@@ -33,7 +33,7 @@ async function notifyAllCreators(payload: {
       title: payload.title,
       body: payload.body ?? null,
       link_url: payload.link_url ?? null,
-      metadata: payload.metadata ?? {},
+      metadata: (payload.metadata ?? {}) as any,
     })),
   );
 }
