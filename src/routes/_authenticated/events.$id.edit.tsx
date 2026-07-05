@@ -89,9 +89,17 @@ function EditEvent() {
           <p className="text-xs text-muted-foreground mb-4">
             Share a code so guests can unlock this private invitation via <span className="font-mono">/unlock</span>.
           </p>
-          <div className="flex gap-2">
-            <input placeholder="AFTERDARK-XXXX" value={newCode} onChange={(e) => setNewCode(e.target.value)}
-              className="flex-1 rounded-md border border-input bg-background px-3 py-2 font-mono text-sm uppercase" />
+          <div className="flex flex-wrap gap-2">
+            <input placeholder="PINK-XXXX" value={newCode} onChange={(e) => setNewCode(e.target.value)}
+              className="flex-1 min-w-[140px] rounded-md border border-input bg-background px-3 py-2 font-mono text-sm uppercase" />
+            <button type="button"
+              onClick={() => {
+                const rand = Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
+                setNewCode(`PINK-${rand}`);
+              }}
+              className="rounded-md border border-border px-3 py-2 text-xs uppercase tracking-widest hover:bg-secondary/50">
+              Generate
+            </button>
             <input placeholder="Note (optional)" value={newNote} onChange={(e) => setNewNote(e.target.value)}
               className="w-48 rounded-md border border-input bg-background px-3 py-2 text-sm" />
             <button onClick={() => addC.mutate()} disabled={!newCode.trim() || addC.isPending}
