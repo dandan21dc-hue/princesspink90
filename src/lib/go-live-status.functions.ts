@@ -39,7 +39,17 @@ export type GoLiveStatus = {
 export const getGoLiveStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<GoLiveStatus> => {
-    const { data, error } = await context.supabase.rpc("go_live_status");
+    // Authorize caller as admin, then invoke via service role
+    // (RPC EXECUTE is granted only to service_role).
+    const { data: isAdmin, error: roleError } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleError) throw roleError;
+    if (!isAdmin) throw new Error("Admin access required");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("go_live_status");
     if (error) throw error;
     return data as GoLiveStatus;
   });
