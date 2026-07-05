@@ -716,6 +716,7 @@ describe('webhook event → database mapping', () => {
     })
   })
 
+  it('unhandled event types are accepted (200) without touching the database', async () => {
     const res = await postWebhook({
       body: {
         type: 'invoice.payment_failed',
