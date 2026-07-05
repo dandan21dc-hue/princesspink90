@@ -182,6 +182,18 @@ export const adminReviewCohostApplication = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (updErr) throw new Error(updErr.message);
 
+    // Audit log entry
+    const { error: logErr } = await supabaseAdmin
+      .from("cohost_application_reviews")
+      .insert({
+        application_id: data.id,
+        reviewer_id: context.userId,
+        decision: data.decision,
+        notes: data.notes ?? null,
+        previous_status: app.status,
+      });
+    if (logErr) throw new Error(logErr.message);
+
     if (data.decision === "approved") {
       // Grant cohost role (idempotent via unique constraint)
       const { error: roleErr } = await supabaseAdmin
@@ -193,3 +205,31 @@ export const adminReviewCohostApplication = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+export const adminListCohostApplicationReviews = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { applicationId: string }) =>
+    z.object({ applicationId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("cohost_application_reviews")
+      .select("id, decision, notes, previous_status, created_at, reviewer_id")
+      .eq("application_id", data.applicationId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const list = rows ?? [];
+    const emails: Record<string, string | null> = {};
+    for (const r of list) {
+      if (emails[r.reviewer_id] === undefined) {
+        const { data: u } = await supabaseAdmin.auth.admin.getUserById(r.reviewer_id);
+        emails[r.reviewer_id] = u.user?.email ?? null;
+      }
+    }
+    return list.map((r) => ({ ...r, reviewer_email: emails[r.reviewer_id] ?? null }));
+  });
+
