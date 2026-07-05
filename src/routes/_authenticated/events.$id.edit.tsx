@@ -140,9 +140,14 @@ function EditEvent() {
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Editing</div>
           <h1 className="mt-2 font-display text-3xl font-semibold">{event.title}</h1>
         </div>
-        <Link to="/events/$id" params={{ id }} className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
-          View public →
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link to="/events/$id/waivers" params={{ id }} className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+            Waivers →
+          </Link>
+          <Link to="/events/$id" params={{ id }} className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+            View public →
+          </Link>
+        </div>
       </div>
 
       <div className="mt-8">

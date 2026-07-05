@@ -31,6 +31,7 @@ import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
 import { Route as AuthenticatedEventsIdCheckinPrintRouteImport } from './routes/_authenticated/events.$id.checkin.print'
@@ -151,6 +152,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedEventsIdWaiversRoute =
+  AuthenticatedEventsIdWaiversRouteImport.update({
+    id: '/events/$id/waivers',
+    path: '/events/$id/waivers',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEventsIdEditRoute =
   AuthenticatedEventsIdEditRouteImport.update({
     id: '/events/$id/edit',
@@ -193,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
+  '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
@@ -219,6 +227,7 @@ export interface FileRoutesByTo {
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
+  '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
@@ -247,6 +256,7 @@ export interface FileRoutesById {
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
+  '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_authenticated/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/events/new'
     | '/events/$id/checkin'
     | '/events/$id/edit'
+    | '/events/$id/waivers'
     | '/api/public/payments/webhook'
     | '/events/$id/checkin/print'
   fileRoutesByTo: FileRoutesByTo
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/events/new'
     | '/events/$id/checkin'
     | '/events/$id/edit'
+    | '/events/$id/waivers'
     | '/api/public/payments/webhook'
     | '/events/$id/checkin/print'
   id:
@@ -328,6 +340,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/new'
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
+    | '/_authenticated/events/$id/waivers'
     | '/api/public/payments/webhook'
     | '/_authenticated/events/$id/checkin/print'
   fileRoutesById: FileRoutesById
@@ -499,6 +512,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/events/$id/waivers': {
+      id: '/_authenticated/events/$id/waivers'
+      path: '/events/$id/waivers'
+      fullPath: '/events/$id/waivers'
+      preLoaderRoute: typeof AuthenticatedEventsIdWaiversRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/events/$id/edit': {
       id: '/_authenticated/events/$id/edit'
       path: '/events/$id/edit'
@@ -563,6 +583,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
   AuthenticatedEventsIdCheckinRoute: typeof AuthenticatedEventsIdCheckinRouteWithChildren
   AuthenticatedEventsIdEditRoute: typeof AuthenticatedEventsIdEditRoute
+  AuthenticatedEventsIdWaiversRoute: typeof AuthenticatedEventsIdWaiversRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -581,6 +602,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEventsIdCheckinRoute:
     AuthenticatedEventsIdCheckinRouteWithChildren,
   AuthenticatedEventsIdEditRoute: AuthenticatedEventsIdEditRoute,
+  AuthenticatedEventsIdWaiversRoute: AuthenticatedEventsIdWaiversRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
