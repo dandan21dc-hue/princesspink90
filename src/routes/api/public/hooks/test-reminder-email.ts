@@ -28,6 +28,8 @@ export const Route = createFileRoute('/api/public/hooks/test-reminder-email')({
           testDate?: string
           validUntil?: string
           days?: number
+          portalUrl?: string
+          portalPath?: string
         } = {}
         try {
           body = (await request.json()) as typeof body
@@ -38,7 +40,33 @@ export const Route = createFileRoute('/api/public/hooks/test-reminder-email')({
         if (!to) return json({ error: 'missing "to" in body' }, 400)
 
         const origin = resolveAppOrigin(request)
-        const portalUrl = `${origin}/health-screenings`
+        // Portal destination precedence:
+        // 1. Explicit full URL (`portalUrl`) — must be http(s), used verbatim.
+        // 2. Explicit path (`portalPath`) — joined onto the resolved origin.
+        // 3. Default `/health-screenings` on the resolved origin.
+        let portalUrl: string
+        let portalSource: 'override_url' | 'override_path' | 'default' = 'default'
+        if (body.portalUrl?.trim()) {
+          const raw = body.portalUrl.trim()
+          let parsed: URL
+          try {
+            parsed = new URL(raw)
+          } catch {
+            return json({ error: 'invalid "portalUrl" — must be an absolute URL' }, 400)
+          }
+          if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+            return json({ error: 'invalid "portalUrl" — must be http or https' }, 400)
+          }
+          portalUrl = parsed.toString()
+          portalSource = 'override_url'
+        } else if (body.portalPath?.trim()) {
+          const path = body.portalPath.trim()
+          const normalized = path.startsWith('/') ? path : `/${path}`
+          portalUrl = `${origin}${normalized}`
+          portalSource = 'override_path'
+        } else {
+          portalUrl = `${origin}/health-screenings`
+        }
 
         const days = body.days ?? 7
         const validUntil =
