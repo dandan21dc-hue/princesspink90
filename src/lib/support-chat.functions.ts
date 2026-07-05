@@ -168,12 +168,11 @@ export const listEscalatedConversations = createServerFn({ method: "GET" })
     }>) {
       if (p.display_name) nameByUser.set(p.user_id, p.display_name);
     }
-    return {
-      rows: rows.map((r) => ({
-        ...r,
-        display_name: nameByUser.get(r.user_id) ?? null,
-      })),
-    };
+    const out: OutRow[] = rows.map((r) => ({
+      ...r,
+      display_name: nameByUser.get(r.user_id) ?? null,
+    }));
+    return { rows: out };
   });
 
 export const getConversationMessages = createServerFn({ method: "GET" })
