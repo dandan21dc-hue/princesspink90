@@ -185,9 +185,23 @@ function AdminVenueCompliancePage() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 5_000);
+      qc.invalidateQueries({ queryKey: ["admin-venue-compliance-audit"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Could not generate PDF"),
   });
+
+  function startEdit(r: any) {
+    setEditingId(r.id);
+    setEditForm({
+      kind: r.kind,
+      title: r.title ?? "",
+      issuer: r.issuer ?? "",
+      reference_number: r.reference_number ?? "",
+      issued_on: r.issued_on ?? "",
+      expires_on: r.expires_on ?? "",
+      notes: r.notes ?? "",
+    });
+  }
 
   async function openDoc(id: string) {
     try {
