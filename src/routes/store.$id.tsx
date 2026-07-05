@@ -58,7 +58,7 @@ function ItemPage() {
       contentItemId: item!.id,
       userId: user.id,
       customerEmail: user.email,
-      returnUrl: `${window.location.origin}/library?checkout=success`,
+      returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
     });
   }
   function subscribe() {
@@ -70,7 +70,7 @@ function ItemPage() {
       priceId: "all_access_monthly_aud",
       userId: user.id,
       customerEmail: user.email,
-      returnUrl: `${window.location.origin}/library?checkout=success`,
+      returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
     });
   }
 
