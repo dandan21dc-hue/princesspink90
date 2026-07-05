@@ -90,6 +90,36 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
         // These let inbound portal traffic be attributed back to the exact
         // reminder that triggered the click.
         const origin = resolveAppOrigin(request)
+
+        // Structured, single-line JSON logs make cron-driven runs easy to grep
+        // (`event:"reminder_cron_start"` / `"reminder_email_send"`) and to
+        // audit which origin/portal URL any given email actually used.
+        const runId =
+          (globalThis.crypto?.randomUUID?.() as string | undefined) ??
+          `run_${Date.now().toString(36)}`
+        const logEvent = (event: string, fields: Record<string, unknown>) => {
+          console.log(
+            JSON.stringify({
+              event,
+              run_id: runId,
+              hook: 'health-screening-reminders',
+              ts: new Date().toISOString(),
+              ...fields,
+            }),
+          )
+        }
+        logEvent('reminder_cron_start', {
+          resolved_origin: origin,
+          public_app_url_set: Boolean(process.env.PUBLIC_APP_URL),
+          site_url_set: Boolean(process.env.SITE_URL),
+          forwarded_host: request.headers.get('x-forwarded-host'),
+          forwarded_proto: request.headers.get('x-forwarded-proto'),
+          host: request.headers.get('host'),
+          target_date: targetDate,
+          window_days: windowDays,
+          candidates: candidates?.length ?? 0,
+        })
+
         const buildPortalUrl = (params: {
           rid: string
           sid: string
@@ -105,6 +135,20 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           })
           return `${origin}/health-screenings?${qs.toString()}`
         }
+
+        // Mask an email for logs: keep first char + domain, drop the rest of
+        // the local part. Avoids raw PII in log stores while keeping enough
+        // signal to correlate with support tickets.
+        const maskEmail = (e: string): string => {
+          const at = e.indexOf('@')
+          if (at <= 0) return '***'
+          const local = e.slice(0, at)
+          const domain = e.slice(at + 1)
+          const head = local.slice(0, 1)
+          return `${head}***@${domain}`
+        }
+
+
 
         let emailed = 0
         for (const row of candidates ?? []) {
@@ -213,11 +257,35 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
                 status: result.ok ? 'sent' : 'failed',
                 error_message: result.ok ? null : result.error?.slice(0, 1000) ?? null,
               })
+              // Structured audit line — one per email attempt. The portal URL
+              // is safe to log (no PII, tracing params only); the recipient
+              // email is masked so log stores never hold raw addresses.
+              logEvent('reminder_email_send', {
+                reminder_id: logRow.id,
+                screening_id: row.id,
+                user_id: row.user_id,
+                resolved_origin: origin,
+                portal_url: portalUrl,
+                template: 'health_screening_expiry_7_day',
+                idempotency_key: idempotencyKey,
+                recipient_masked: maskEmail(email),
+                status: result.ok ? 'sent' : 'failed',
+                error: result.ok ? null : result.error?.slice(0, 200) ?? null,
+              })
               if (result.ok) emailed += 1
             }
           } catch (e) {
-            console.warn('[health-screening-reminders] email send failed', (e as Error).message)
+            const err = e as Error
+            logEvent('reminder_email_send', {
+              reminder_id: logRow.id,
+              screening_id: row.id,
+              user_id: row.user_id,
+              resolved_origin: origin,
+              status: 'exception',
+              error: err.message,
+            })
           }
+
 
           // Step 4: flip the screening flag so future scans skip this row fast.
           await supabase
