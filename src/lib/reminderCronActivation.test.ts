@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mockSendResendEmail } from '@/lib/test-utils/sendResendEmailMock'
 
 // Integration test for the reminder cron activation contract.
 //
@@ -12,18 +13,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 //      health_screening_reminder_log makes the second attempt skip via a
 //      Postgres 23505 unique_violation.
 
-type SendResendEmailArgs = {
-  to: string
-  idempotencyKey: string
-  subject?: string
-  html?: string
-  from?: string
-  [key: string]: unknown
-}
-const sendResendEmail = vi.fn(
-  async (_args: SendResendEmailArgs) => ({ ok: true as const }),
-)
-vi.mock('@/lib/resend.server', () => ({ sendResendEmail }))
+const email = mockSendResendEmail()
+vi.mock('@/lib/resend.server', () => ({ sendResendEmail: email.sendResendEmail }))
+
 
 
 // Fixed target: today + 7 days in UTC (matches hook's window logic).
@@ -170,7 +162,7 @@ beforeEach(() => {
     SUPABASE_PUBLISHABLE_KEY: 'pub-key',
     PUBLIC_APP_URL: 'https://app.princesspink90.com',
   }
-  sendResendEmail.mockClear()
+  email.reset()
   claimedKeys.clear()
   configuredRunTime = '00:00'
 })
@@ -220,7 +212,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     const body = await invokeHook()
     expect(body.success).toBe(true)
     expect(body.skipped_reason).toBe('before_configured_run_time')
-    expect(sendResendEmail).not.toHaveBeenCalled()
+    expect(email.sendResendEmail).not.toHaveBeenCalled()
   })
 
   it('sends exactly one email per due reminder when cron fires at/after the run time', async () => {
@@ -236,9 +228,9 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     expect(body.failures).toEqual([])
 
     // Exactly one send per due reminder — no duplicates, no missed rows.
-    expect(sendResendEmail).toHaveBeenCalledTimes(DUE.length)
+    expect(email.sendResendEmail).toHaveBeenCalledTimes(DUE.length)
 
-    const recipients = sendResendEmail.mock.calls.map((c) => c[0].to)
+    const recipients = email.recipients()
     const unique = new Set(recipients)
     expect(unique.size).toBe(DUE.length)
     for (const s of DUE) {
@@ -246,7 +238,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     }
 
     // Every send used the deterministic per-screening idempotency key.
-    const keys = sendResendEmail.mock.calls.map((c) => c[0].idempotencyKey)
+    const keys = email.keys()
     for (const s of DUE) {
       expect(keys).toContain(`expiry_7_day:${s.id}:${s.valid_until}`)
     }
@@ -259,7 +251,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
 
     const first = await invokeHook()
     expect(first.emailed).toBe(DUE.length)
-    expect(sendResendEmail).toHaveBeenCalledTimes(DUE.length)
+    expect(email.sendResendEmail).toHaveBeenCalledTimes(DUE.length)
 
     // Second invocation: the log filter (expiry_reminder_sent_at IS NULL) is
     // mirrored by our mock — already-claimed keys are excluded from the
@@ -270,7 +262,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     expect(second.success).toBe(true)
     expect(second.candidates).toBe(0)
     expect(second.emailed).toBe(0)
-    expect(sendResendEmail).toHaveBeenCalledTimes(DUE.length)
+    expect(email.sendResendEmail).toHaveBeenCalledTimes(DUE.length)
   })
 
   it('re-uses the idempotency key to skip on unique_violation when a stale candidate is retried', async () => {
@@ -291,8 +283,8 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     // after step 4 flips the flag. The remaining two are sent once each.
     expect(body.candidates).toBe(DUE.length - 1)
     expect(body.emailed).toBe(DUE.length - 1)
-    expect(sendResendEmail).toHaveBeenCalledTimes(DUE.length - 1)
-    const recipients = sendResendEmail.mock.calls.map((c) => c[0].to)
+    expect(email.sendResendEmail).toHaveBeenCalledTimes(DUE.length - 1)
+    const recipients = email.recipients()
     expect(recipients).not.toContain(
       `user-${preClaimed.user_id.slice(-2)}@example.com`,
     )
