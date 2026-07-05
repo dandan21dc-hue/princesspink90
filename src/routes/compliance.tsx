@@ -205,3 +205,47 @@ function CompliancePage() {
     </main>
   );
 }
+
+function PolicyVersionBanner() {
+  const currentFn = useServerFn(getCurrentPolicyVersion);
+  const listFn = useServerFn(listPolicyVersions);
+  const current = useQuery({ queryKey: ["compliance-policy-current"], queryFn: () => currentFn() });
+  const list = useQuery({ queryKey: ["compliance-policy-list"], queryFn: () => listFn() });
+
+  if (current.isLoading) return null;
+  if (!current.data) return null;
+
+  return (
+    <div className="mt-6 rounded-xl border border-primary/40 bg-primary/5 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
+          Current policy · v{current.data.version}
+        </div>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          Effective {new Date(current.data.effective_at).toLocaleDateString()}
+        </div>
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">{current.data.summary}</p>
+      {list.data && list.data.length > 1 && (
+        <details className="mt-3 text-xs text-muted-foreground">
+          <summary className="cursor-pointer text-foreground/80 hover:text-foreground">
+            Version history ({list.data.length})
+          </summary>
+          <ul className="mt-2 space-y-1">
+            {list.data.map((v) => (
+              <li key={v.id} className="flex items-center gap-2">
+                <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${
+                  v.is_current ? "bg-emerald-500/15 text-emerald-400" : "bg-muted/40"
+                }`}>
+                  v{v.version}
+                </span>
+                <span>{new Date(v.effective_at).toLocaleDateString()}</span>
+                {v.is_current && <span className="text-emerald-400">· current</span>}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
