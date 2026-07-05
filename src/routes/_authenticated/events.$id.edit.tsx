@@ -5,6 +5,10 @@ import { useState } from "react";
 import { EventForm, toPayload, type EventFormValues } from "@/components/EventForm";
 import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes, setAccessCodeUsed, bulkSetAccessCodesUsed } from "@/lib/host.functions";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/events/$id/edit")({
   head: () => ({ meta: [{ title: "Edit event · AFTERDARK" }] }),
