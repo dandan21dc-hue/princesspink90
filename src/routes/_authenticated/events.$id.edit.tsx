@@ -65,6 +65,7 @@ function EditEvent() {
   const bulkMarkFn = useServerFn(bulkSetAccessCodesUsed);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkGuestName, setBulkGuestName] = useState("");
+  const [confirmBulk, setConfirmBulk] = useState<null | { used: boolean }>(null);
   const bulkMark = useMutation({
     mutationFn: (v: { used: boolean }) =>
       bulkMarkFn({ data: { ids: Array.from(selected), used: v.used, used_by_name: bulkGuestName.trim() || undefined } }),
