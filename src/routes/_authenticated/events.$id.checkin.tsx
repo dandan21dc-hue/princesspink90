@@ -319,6 +319,31 @@ function CheckinPage() {
           data={result}
           eventId={eventId}
           onCheckedIn={() => {
+            if (result.found) {
+              const who = result.guest.display_name ?? result.guest.email ?? "Guest";
+              setHistory((h) => {
+                // Upgrade the most recent "matched" entry for this ticket → "admitted"
+                const idx = h.findIndex(
+                  (e) => e.code === result.rsvp.ticket_code && e.outcome === "matched",
+                );
+                if (idx >= 0) {
+                  const next = h.slice();
+                  next[idx] = { ...next[idx], outcome: "admitted", detail: "Admitted at door" };
+                  return next;
+                }
+                return [
+                  {
+                    id: crypto.randomUUID(),
+                    code: result.rsvp.ticket_code,
+                    guest: who,
+                    outcome: "admitted",
+                    detail: "Admitted at door",
+                    at: Date.now(),
+                  },
+                  ...h,
+                ].slice(0, 20);
+              });
+            }
             setCode("");
             setResult(null);
             qc.invalidateQueries({ queryKey: ["checkin-roster", eventId] });
@@ -328,6 +353,10 @@ function CheckinPage() {
           checkinFn={checkinFn}
         />
       )}
+
+      <ScanHistory entries={history} onClear={() => setHistory([])} />
+
+
 
       <Roster
         guests={roster.data?.guests ?? []}
