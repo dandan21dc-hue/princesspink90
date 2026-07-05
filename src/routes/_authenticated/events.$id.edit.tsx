@@ -58,6 +58,20 @@ function EditEvent() {
     onError: (e) => toast.error(e.message),
   });
 
+  const bulkMarkFn = useServerFn(bulkSetAccessCodesUsed);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkGuestName, setBulkGuestName] = useState("");
+  const bulkMark = useMutation({
+    mutationFn: (v: { used: boolean }) =>
+      bulkMarkFn({ data: { ids: Array.from(selected), used: v.used, used_by_name: bulkGuestName.trim() || undefined } }),
+    onSuccess: (r, v) => {
+      toast.success(`${v.used ? "Marked" : "Unmarked"} ${r.count} code${r.count === 1 ? "" : "s"}`);
+      setSelected(new Set()); setBulkGuestName("");
+      qc.invalidateQueries({ queryKey: ["my-event", id] });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const bulkFn = useServerFn(bulkAddAccessCodes);
   const [bulkQty, setBulkQty] = useState(10);
   const [bulkPrefix, setBulkPrefix] = useState("PINK");
