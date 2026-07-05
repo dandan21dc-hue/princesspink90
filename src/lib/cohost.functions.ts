@@ -91,6 +91,19 @@ export const submitCohostApplication = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertEligible(context.supabase, context.userId);
 
+    // Verify the uploaded agreement file exists in the user's folder
+    if (!data.agreement_file_path.startsWith(`${context.userId}/`)) {
+      throw new Error("Agreement file must be uploaded to your own folder.");
+    }
+    const { data: fileCheck, error: fileErr } = await context.supabase.storage
+      .from("cohost-agreements")
+      .list(context.userId, { search: data.agreement_file_path.split("/").pop() });
+    if (fileErr) throw new Error(fileErr.message);
+    if (!fileCheck || fileCheck.length === 0) {
+      throw new Error("Signed Co-Host Agreement upload not found. Please re-upload.");
+    }
+
+    const nowIso = new Date().toISOString();
     const payload = {
       user_id: context.userId,
       display_name: data.display_name,
@@ -100,19 +113,48 @@ export const submitCohostApplication = createServerFn({ method: "POST" })
       other_socials: data.other_socials || null,
       bio: data.bio || null,
       hosting_experience: data.hosting_experience,
+      relevant_experience: data.relevant_experience,
       why_join: data.why_join,
       availability: data.availability || null,
       event_types: data.event_types || null,
+      agreement_file_path: data.agreement_file_path,
+      agreement_uploaded_at: nowIso,
       status: "pending" as const,
-      submitted_at: new Date().toISOString(),
+      submitted_at: nowIso,
     };
 
     const { error } = await context.supabase
       .from("cohost_applications")
       .upsert(payload, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
+
+    // Notify admins (best-effort; do not fail submission if email is not configured)
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: admins } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      const adminEmails: string[] = [];
+      for (const row of admins ?? []) {
+        const { data: u } = await supabaseAdmin.auth.admin.getUserById(row.user_id);
+        if (u.user?.email) adminEmails.push(u.user.email);
+      }
+      if (adminEmails.length > 0) {
+        const { sendCohostApplicationAdminEmail } = await import("./cohost-email.server");
+        await sendCohostApplicationAdminEmail({
+          adminEmails,
+          applicantName: data.display_name,
+          applicantCity: data.city,
+        });
+      }
+    } catch (e) {
+      console.error("[cohost] admin notify failed:", (e as Error).message);
+    }
+
     return { ok: true };
   });
+
 
 export const withdrawMyCohostApplication = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
