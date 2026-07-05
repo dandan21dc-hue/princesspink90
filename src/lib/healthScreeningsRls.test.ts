@@ -82,7 +82,10 @@ describe.skipIf(!HAS_ENV)("health_screenings RLS + bucket isolation", () => {
         await admin.storage.from(BUCKET).remove([c.filePath]).catch(() => {});
       }
       if (c.screeningId) {
-        await admin.from("health_screenings").delete().eq("id", c.screeningId).catch(() => {});
+        await admin.from("health_screenings").delete().eq("id", c.screeningId).then(
+          () => undefined,
+          () => undefined,
+        );
       }
       await admin.auth.admin.deleteUser(c.userId).catch(() => {});
     }
