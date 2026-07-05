@@ -511,21 +511,75 @@ export const listMyComplianceDocuments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data: docs, error } = await context.supabase
       .from("event_documents")
-      .select("id, doc_type, file_name, uploaded_at, policy_version_id, policy_version_label, event_id, events!inner(id, title, host_id)")
+      .select("id, doc_type, file_name, uploaded_at, policy_version_id, policy_version_label, event_id, uploaded_by, events!inner(id, title, host_id)")
       .eq("uploaded_by", context.userId)
       .order("uploaded_at", { ascending: false });
     if (error) throw error;
-    return (docs ?? []).map((d: any) => ({
-      id: d.id as string,
-      doc_type: d.doc_type as string,
-      file_name: d.file_name as string,
-      uploaded_at: d.uploaded_at as string,
-      policy_version_id: (d.policy_version_id as string | null) ?? null,
-      policy_version_label: (d.policy_version_label as string | null) ?? null,
-      event_id: d.event_id as string,
-      event_title: (d.events?.title as string | null) ?? null,
-    }));
+
+    const rows = (docs ?? []) as any[];
+    const versionIds = Array.from(new Set(rows.map((d) => d.policy_version_id).filter(Boolean))) as string[];
+    const uploaderIds = Array.from(new Set(rows.map((d) => d.uploaded_by).filter(Boolean))) as string[];
+
+    // Fetch this user's agreements for the versions used by their uploads.
+    // Prefer the same-event agreement, else the earliest global agreement.
+    const [agreementsRes, profilesRes] = await Promise.all([
+      versionIds.length
+        ? context.supabase
+            .from("compliance_policy_agreements")
+            .select("policy_version_id, event_id, accepted_at, accepted_by_user_id")
+            .eq("accepted_by_user_id", context.userId)
+            .in("policy_version_id", versionIds)
+            .order("accepted_at", { ascending: true })
+        : Promise.resolve({ data: [], error: null }),
+      uploaderIds.length
+        ? context.supabase.from("profiles").select("user_id, display_name").in("user_id", uploaderIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (agreementsRes.error) throw agreementsRes.error;
+    if (profilesRes.error) throw profilesRes.error;
+
+    const nameByUser = new Map<string, string>();
+    for (const p of (profilesRes.data ?? []) as any[]) nameByUser.set(p.user_id, p.display_name);
+
+    // key: `${versionId}|${eventId ?? ""}` → prefer event-scoped agreement,
+    // fall back to the earliest global (event_id null) agreement for that version.
+    const agreements = (agreementsRes.data ?? []) as any[];
+    const globalByVersion = new Map<string, any>();
+    const scopedByKey = new Map<string, any>();
+    for (const a of agreements) {
+      if (a.event_id) {
+        const key = `${a.policy_version_id}|${a.event_id}`;
+        if (!scopedByKey.has(key)) scopedByKey.set(key, a);
+      } else if (!globalByVersion.has(a.policy_version_id)) {
+        globalByVersion.set(a.policy_version_id, a);
+      }
+    }
+
+    return rows.map((d) => {
+      const scoped = d.policy_version_id
+        ? scopedByKey.get(`${d.policy_version_id}|${d.event_id}`) ?? null
+        : null;
+      const fallback = d.policy_version_id ? globalByVersion.get(d.policy_version_id) ?? null : null;
+      const agreement = scoped ?? fallback;
+      return {
+        id: d.id as string,
+        doc_type: d.doc_type as string,
+        file_name: d.file_name as string,
+        uploaded_at: d.uploaded_at as string,
+        policy_version_id: (d.policy_version_id as string | null) ?? null,
+        policy_version_label: (d.policy_version_label as string | null) ?? null,
+        event_id: d.event_id as string,
+        event_title: (d.events?.title as string | null) ?? null,
+        uploaded_by: d.uploaded_by as string,
+        uploaded_by_display_name: nameByUser.get(d.uploaded_by) ?? null,
+        agreement_accepted_at: (agreement?.accepted_at as string | null) ?? null,
+        agreement_accepted_by_user_id: (agreement?.accepted_by_user_id as string | null) ?? null,
+        agreement_accepted_by_display_name:
+          agreement?.accepted_by_user_id ? nameByUser.get(agreement.accepted_by_user_id) ?? null : null,
+      };
+    });
   });
+
 
 
 

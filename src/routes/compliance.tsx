@@ -346,7 +346,8 @@ function MyDocumentsSection() {
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
                   {d.event_title ? <span>{d.event_title} · </span> : null}
-                  Uploaded {new Date(d.uploaded_at).toLocaleDateString()}
+                  Uploaded {new Date(d.uploaded_at).toLocaleString()}
+                  {d.uploaded_by_display_name ? <span> by {d.uploaded_by_display_name}</span> : null}
                 </div>
               </div>
               <div className="flex flex-col items-end gap-1 text-xs">
@@ -366,12 +367,26 @@ function MyDocumentsSection() {
                     No policy version recorded
                   </span>
                 )}
+                {d.agreement_accepted_at ? (
+                  <span
+                    className="text-muted-foreground"
+                    title={new Date(d.agreement_accepted_at).toISOString()}
+                  >
+                    Accepted {new Date(d.agreement_accepted_at).toLocaleString()}
+                    {d.agreement_accepted_by_display_name
+                      ? ` by ${d.agreement_accepted_by_display_name}`
+                      : ""}
+                  </span>
+                ) : (
+                  <span className="text-amber-300">No agreement record on file</span>
+                )}
                 {stale && currentVersion && (
                   <span className="text-amber-300">
                     Current policy is v{currentVersion} — consider re-uploading.
                   </span>
                 )}
               </div>
+
             </li>
           );
         })}
