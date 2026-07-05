@@ -67,16 +67,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AFTERDARK — Members-only adult events" },
+      { title: "Princess Pink — Glory holes, gang bangs & theatre nights" },
       {
         name: "description",
         content:
-          "AFTERDARK curates private, members-only nights at adult theatres and grown-up venues. Browse events, RSVP, unlock invites.",
+          "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only.",
       },
-      { property: "og:title", content: "AFTERDARK — Members-only adult events" },
+      { property: "og:title", content: "Princess Pink — Adult events, hosted with care" },
       {
         property: "og:description",
-        content: "Private nights at adult theatres and grown-up venues. 18+ only.",
+        content: "Glory holes, gang bangs, and adult theatre takeovers hosted by Princess Pink. 18+ only.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
