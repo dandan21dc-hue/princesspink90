@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 
 export type EventFormValues = {
   title: string;
@@ -58,8 +59,9 @@ export function toPayload(v: EventFormValues) {
     throw new Error("Event capacity cannot exceed the venue's legal capacity.");
   }
   if (v.published && !(v.permits_confirmed && v.insurance_confirmed && v.capacity_confirmed)) {
-    throw new Error("Confirm permits, insurance, and capacity before publishing. Uncheck 'Published' to save as draft.");
+    throw new Error("Confirm permits, insurance, and capacity before publishing. See /compliance for what's required, or uncheck 'Published' to save as draft.");
   }
+
   return {
     title: v.title.trim(),
     tagline: v.tagline.trim() || null,
@@ -156,8 +158,25 @@ export function EventForm({
 
       <Section title="Venue compliance">
         <p className="text-xs text-muted-foreground">
-          Confirm each item below before publishing. Guests deserve a safe, legal night.
+          Confirm each item below before publishing. Guests deserve a safe, legal night.{" "}
+          <Link to="/compliance" target="_blank" className="text-primary underline underline-offset-2 hover:brightness-125">
+            Review the compliance policy →
+          </Link>
         </p>
+
+        {v.published && !(v.permits_confirmed && v.insurance_confirmed && v.capacity_confirmed) && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+            <div className="font-semibold uppercase tracking-widest">Publish blocked</div>
+            <p className="mt-1">
+              Permits, insurance, and capacity must all be confirmed before this event can be published.
+              Uncheck "Published" to save as a draft while you gather the required documents.
+            </p>
+            <Link to="/compliance" target="_blank" className="mt-2 inline-block font-semibold text-amber-100 underline underline-offset-2">
+              See what documents are required →
+            </Link>
+          </div>
+        )}
+
 
         <div className="rounded-lg border border-border/60 p-4 space-y-3">
           <Toggle
