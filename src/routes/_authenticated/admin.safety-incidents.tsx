@@ -38,11 +38,55 @@ const emptyForm = {
 
 type View = "active" | "archived" | "all";
 
+const ALL_COLUMNS: { key: string; label: string }[] = [
+  { key: "id", label: "ID" },
+  { key: "incident_date", label: "Incident date" },
+  { key: "venue", label: "Venue" },
+  { key: "involved_party", label: "Involved party" },
+  { key: "nature_of_incident", label: "Nature of incident" },
+  { key: "resolution_taken", label: "Resolution taken" },
+  { key: "created_at", label: "Created at" },
+  { key: "created_by", label: "Created by" },
+  { key: "archived_at", label: "Archived at" },
+  { key: "archived_by", label: "Archived by" },
+  { key: "archive_reason", label: "Archive reason" },
+];
+const DEFAULT_EXPORT_COLS = ALL_COLUMNS.map((c) => c.key);
+const EXPORT_COLS_STORAGE_KEY = "admin-safety-incidents-export-cols-v1";
+
 function AdminSafetyIncidentsPage() {
   const [search, setSearch] = useState("");
   const [view, setView] = useState<View>("active");
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
+  const [showColumnPicker, setShowColumnPicker] = useState(false);
+  const [exportCols, setExportCols] = useState<string[]>(DEFAULT_EXPORT_COLS);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(EXPORT_COLS_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const valid = parsed.filter(
+          (k: unknown): k is string =>
+            typeof k === "string" && ALL_COLUMNS.some((c) => c.key === k),
+        );
+        if (valid.length > 0) setExportCols(valid);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(EXPORT_COLS_STORAGE_KEY, JSON.stringify(exportCols));
+    } catch {
+      /* ignore */
+    }
+  }, [exportCols]);
+
 
   const listFn = useServerFn(listSafetyIncidents);
   const createFn = useServerFn(createSafetyIncident);
