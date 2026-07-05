@@ -110,8 +110,30 @@ function EditEvent() {
     onError: (e) => toast.error(e.message),
   });
 
-  if (q.isLoading) return <div className="mx-auto max-w-3xl px-5 py-10">Loading…</div>;
+  if (q.isLoading || ackQ.isLoading) return <div className="mx-auto max-w-3xl px-5 py-10">Loading…</div>;
   if (q.isError || !q.data) return <div className="mx-auto max-w-3xl px-5 py-10">Not found.</div>;
+  if (!ackQ.data) {
+    return (
+      <section className="mx-auto max-w-2xl px-5 py-16 text-center">
+        <div className="text-xs uppercase tracking-[0.3em] text-primary">Locked</div>
+        <h1 className="mt-2 font-display text-3xl font-semibold">Handbook acknowledgement required</h1>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Before you can manage an event you must read and acknowledge the
+          Princess Pink Co-Host Handbook. Head to the Co-Host Management page,
+          download the handbook, and tick the acknowledgement checkbox.
+        </p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link to="/admin/cohosts" className="rounded-md border border-primary/50 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20">
+            Go to Resources
+          </Link>
+          <Link to="/dashboard" className="rounded-md border border-border px-4 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground">
+            Back to dashboard
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
 
   const { event, codes, rsvps } = q.data;
   const initial: Partial<EventFormValues> = {
