@@ -26,6 +26,10 @@ export function QrCameraScanner({
   const scannerRef = useRef<QrScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [cameras, setCameras] = useState<{ id: string; label: string }[]>([]);
+  const [facing, setFacing] = useState<"environment" | "user">("environment");
+  const [hasTorch, setHasTorch] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -38,7 +42,7 @@ export function QrCameraScanner({
       {
         highlightScanRegion: true,
         highlightCodeOutline: true,
-        preferredCamera: "environment",
+        preferredCamera: facing,
         maxScansPerSecond: 5,
       },
     );
@@ -46,8 +50,20 @@ export function QrCameraScanner({
 
     scanner
       .start()
-      .then(() => {
-        if (!cancelled) setReady(true);
+      .then(async () => {
+        if (cancelled) return;
+        setReady(true);
+        try {
+          const list = await QrScanner.listCameras(true);
+          if (!cancelled) setCameras(list.map((c) => ({ id: c.id, label: c.label })));
+        } catch { /* ignore */ }
+        try {
+          const flash = await scanner.hasFlash();
+          if (!cancelled) {
+            setHasTorch(flash);
+            setTorchOn(scanner.isFlashOn());
+          }
+        } catch { /* ignore */ }
       })
       .catch((e: unknown) => {
         if (!cancelled)
@@ -64,7 +80,47 @@ export function QrCameraScanner({
       scanner.destroy();
       scannerRef.current = null;
     };
-  }, [onScan]);
+  }, [onScan, facing]);
+
+  const toggleTorch = async () => {
+    const s = scannerRef.current;
+    if (!s) return;
+    try {
+      if (torchOn) {
+        await s.turnFlashOff();
+        setTorchOn(false);
+      } else {
+        await s.turnFlashOn();
+        setTorchOn(true);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Torch unavailable on this camera.");
+    }
+  };
+
+  const switchFacing = () => {
+    setReady(false);
+    setTorchOn(false);
+    setHasTorch(false);
+    setFacing((f) => (f === "environment" ? "user" : "environment"));
+  };
+
+  const pickCamera = async (id: string) => {
+    const s = scannerRef.current;
+    if (!s) return;
+    setReady(false);
+    setTorchOn(false);
+    setHasTorch(false);
+    try {
+      await s.setCamera(id);
+      setReady(true);
+      const flash = await s.hasFlash();
+      setHasTorch(flash);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't switch camera.");
+    }
+  };
+
 
   const toneCls =
     feedback?.tone === "ok"
