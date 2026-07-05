@@ -438,9 +438,11 @@ function MyDocumentsSection() {
       }
       setSelected(new Set());
     },
-    onSettled: () => {
+    onSettled: (res) => {
       qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
-      setBulkConfirmOpen(false);
+      // Only close the confirm modal if every request succeeded — otherwise
+      // keep it open so the user can retry the failed ones.
+      if (res && res.failed === 0) setBulkConfirmOpen(false);
     },
   });
 
@@ -846,7 +848,9 @@ function MyDocumentsSection() {
                 if (!currentId || !confirmTarget) return;
                 reAck.mutate(
                   { policy_version_id: currentId, event_id: confirmTarget.event_id },
-                  { onSettled: () => setConfirmTarget(null) },
+                  { onSuccess: () => setConfirmTarget(null) },
+                  // On failure: keep the modal open so the user can retry;
+                  // the mutation's onError already surfaces a toast.
                 );
               }}
             >
