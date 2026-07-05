@@ -199,7 +199,7 @@ export const getDoorSheet = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, entry_code, guest_count, status, video_consent, checked_in_at",
+        "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at",
       )
       .eq("event_id", data.event_id)
       .eq("status", "confirmed")
