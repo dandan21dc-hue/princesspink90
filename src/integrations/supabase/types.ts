@@ -16,34 +16,46 @@ export type Database = {
     Tables: {
       age_verifications: {
         Row: {
+          adult_content_release: boolean
+          adult_content_release_at: string | null
+          adult_content_release_version: string | null
           date_of_birth: string
           id: string
           id_file_path: string
           notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          selfie_file_path: string | null
           status: string
           submitted_at: string
           user_id: string
         }
         Insert: {
+          adult_content_release?: boolean
+          adult_content_release_at?: string | null
+          adult_content_release_version?: string | null
           date_of_birth: string
           id?: string
           id_file_path: string
           notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          selfie_file_path?: string | null
           status?: string
           submitted_at?: string
           user_id: string
         }
         Update: {
+          adult_content_release?: boolean
+          adult_content_release_at?: string | null
+          adult_content_release_version?: string | null
           date_of_birth?: string
           id?: string
           id_file_path?: string
           notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          selfie_file_path?: string | null
           status?: string
           submitted_at?: string
           user_id?: string

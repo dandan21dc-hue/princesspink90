@@ -16,13 +16,18 @@ export const videoConsentSchema = z.object({
   no_filming: z.boolean(),
 });
 
+/** Current wording version of the adult-content release. Bump when copy changes. */
+export const ADULT_CONTENT_RELEASE_VERSION = "draft-2026-07-05";
+
 /** Fetch current user's age-verification record (if any). */
 export const getMyAgeVerification = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data } = await context.supabase
       .from("age_verifications")
-      .select("id, date_of_birth, status, submitted_at, reviewed_at, notes, id_file_path")
+      .select(
+        "id, date_of_birth, status, submitted_at, reviewed_at, notes, id_file_path, selfie_file_path, adult_content_release, adult_content_release_at, adult_content_release_version",
+      )
       .eq("user_id", context.userId)
       .maybeSingle();
     return data;
@@ -31,11 +36,21 @@ export const getMyAgeVerification = createServerFn({ method: "GET" })
 /** Submit or replace the guest's pending age-verification record. */
 export const submitAgeVerification = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { date_of_birth: string; id_file_path: string }) =>
-    z.object({
-      date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
-      id_file_path: z.string().min(1).max(500),
-    }).parse(input),
+  .inputValidator(
+    (input: {
+      date_of_birth: string;
+      id_file_path: string;
+      selfie_file_path: string;
+      adult_content_release: boolean;
+      adult_content_release_version?: string;
+    }) =>
+      z.object({
+        date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
+        id_file_path: z.string().min(1).max(500),
+        selfie_file_path: z.string().min(1).max(500),
+        adult_content_release: z.boolean(),
+        adult_content_release_version: z.string().max(100).optional(),
+      }).parse(input),
   )
   .handler(async ({ data, context }) => {
     // Server-side 18+ check
@@ -44,6 +59,19 @@ export const submitAgeVerification = createServerFn({ method: "POST" })
     cutoff.setFullYear(cutoff.getFullYear() - 18);
     if (dob > cutoff) throw new Error("You must be 18 or older.");
 
+    const releaseFields = data.adult_content_release
+      ? {
+          adult_content_release: true,
+          adult_content_release_at: new Date().toISOString(),
+          adult_content_release_version:
+            data.adult_content_release_version ?? ADULT_CONTENT_RELEASE_VERSION,
+        }
+      : {
+          adult_content_release: false,
+          adult_content_release_at: null,
+          adult_content_release_version: null,
+        };
+
     const { data: existing } = await context.supabase
       .from("age_verifications")
       .select("id, status")
@@ -51,7 +79,14 @@ export const submitAgeVerification = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (existing && existing.status === "approved") {
-      throw new Error("Your ID is already approved.");
+      // Approved users can still update ONLY their adult-content release toggle
+      // (they may revoke or grant it later) without re-triggering review.
+      const { error } = await context.supabase
+        .from("age_verifications")
+        .update(releaseFields)
+        .eq("id", existing.id);
+      if (error) throw error;
+      return { ok: true, release_only: true as const };
     }
 
     if (existing) {
@@ -60,11 +95,13 @@ export const submitAgeVerification = createServerFn({ method: "POST" })
         .update({
           date_of_birth: data.date_of_birth,
           id_file_path: data.id_file_path,
+          selfie_file_path: data.selfie_file_path,
           status: "pending",
           submitted_at: new Date().toISOString(),
           reviewed_at: null,
           reviewed_by: null,
           notes: null,
+          ...releaseFields,
         })
         .eq("id", existing.id);
       if (error) throw error;
@@ -73,12 +110,41 @@ export const submitAgeVerification = createServerFn({ method: "POST" })
         user_id: context.userId,
         date_of_birth: data.date_of_birth,
         id_file_path: data.id_file_path,
+        selfie_file_path: data.selfie_file_path,
         status: "pending",
+        ...releaseFields,
       });
       if (error) throw error;
     }
     return { ok: true };
   });
+
+/** Update ONLY the adult-content release toggle for an already-approved guest. */
+export const updateAdultContentRelease = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { agreed: boolean; version?: string }) =>
+    z.object({ agreed: z.boolean(), version: z.string().max(100).optional() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const patch = data.agreed
+      ? {
+          adult_content_release: true,
+          adult_content_release_at: new Date().toISOString(),
+          adult_content_release_version: data.version ?? ADULT_CONTENT_RELEASE_VERSION,
+        }
+      : {
+          adult_content_release: false,
+          adult_content_release_at: null,
+          adult_content_release_version: null,
+        };
+    const { error } = await context.supabase
+      .from("age_verifications")
+      .update(patch)
+      .eq("user_id", context.userId);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 
 /** Admin: list all verifications. */
 export const adminListAgeVerifications = createServerFn({ method: "GET" })
