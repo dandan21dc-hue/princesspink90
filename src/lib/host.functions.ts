@@ -139,3 +139,41 @@ export const deleteAccessCode = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function randCode(prefix: string, len: number) {
+  let s = "";
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  for (let i = 0; i < len; i++) s += ALPHABET[bytes[i] % ALPHABET.length];
+  return `${prefix}-${s}`;
+}
+
+export const bulkAddAccessCodes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { event_id: string; quantity: number; prefix?: string; note?: string; length?: number }) =>
+    z.object({
+      event_id: z.string().uuid(),
+      quantity: z.number().int().min(1).max(200),
+      prefix: z.string().trim().min(1).max(16).regex(/^[A-Za-z0-9]+$/).default("PINK"),
+      note: z.string().trim().max(120).optional(),
+      length: z.number().int().min(4).max(12).default(6),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: owned } = await context.supabase
+      .from("events").select("id").eq("id", data.event_id).eq("host_id", context.userId).maybeSingle();
+    if (!owned) throw new Error("Forbidden");
+    const prefix = data.prefix.toUpperCase();
+    const seen = new Set<string>();
+    const rows = Array.from({ length: data.quantity }, () => {
+      let code = randCode(prefix, data.length);
+      while (seen.has(code)) code = randCode(prefix, data.length);
+      seen.add(code);
+      return { event_id: data.event_id, code, note: data.note ?? null };
+    });
+    const { data: inserted, error } = await context.supabase
+      .from("event_access_codes").insert(rows).select("id, code");
+    if (error) throw error;
+    return { ok: true, codes: inserted ?? [] };
+  });

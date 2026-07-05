@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { EventForm, toPayload, type EventFormValues } from "@/components/EventForm";
-import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode } from "@/lib/host.functions";
+import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes } from "@/lib/host.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$id/edit")({
@@ -49,6 +49,21 @@ function EditEvent() {
   const delC = useMutation({
     mutationFn: (codeId: string) => delCode({ data: { id: codeId } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-event", id] }),
+  });
+
+  const bulkFn = useServerFn(bulkAddAccessCodes);
+  const [bulkQty, setBulkQty] = useState(10);
+  const [bulkPrefix, setBulkPrefix] = useState("PINK");
+  const [bulkNote, setBulkNote] = useState("");
+  const [minted, setMinted] = useState<string[]>([]);
+  const bulk = useMutation({
+    mutationFn: () => bulkFn({ data: { event_id: id, quantity: bulkQty, prefix: bulkPrefix, note: bulkNote || undefined } }),
+    onSuccess: (r) => {
+      setMinted(r.codes.map((c) => c.code));
+      toast.success(`Minted ${r.codes.length} codes`);
+      qc.invalidateQueries({ queryKey: ["my-event", id] });
+    },
+    onError: (e) => toast.error(e.message),
   });
 
   if (q.isLoading) return <div className="mx-auto max-w-3xl px-5 py-10">Loading…</div>;
@@ -121,6 +136,36 @@ function EditEvent() {
             ))}
             {!codes.length && <li className="text-xs text-muted-foreground">No codes yet.</li>}
           </ul>
+
+          <div className="mt-6 border-t border-border/50 pt-6">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-primary mb-3">Bulk mint</div>
+            <div className="grid gap-2 sm:grid-cols-[100px_140px_1fr_auto]">
+              <input type="number" min={1} max={200} value={bulkQty}
+                onChange={(e) => setBulkQty(Math.max(1, Math.min(200, Number(e.target.value) || 1)))}
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <input value={bulkPrefix} onChange={(e) => setBulkPrefix(e.target.value.replace(/[^A-Za-z0-9]/g, "").slice(0, 16))}
+                placeholder="PREFIX"
+                className="rounded-md border border-input bg-background px-3 py-2 font-mono text-sm uppercase" />
+              <input value={bulkNote} onChange={(e) => setBulkNote(e.target.value)} placeholder="Note (optional)"
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <button onClick={() => bulk.mutate()} disabled={bulk.isPending || !bulkPrefix}
+                className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
+                {bulk.isPending ? "Minting…" : `Mint ${bulkQty}`}
+              </button>
+            </div>
+            {minted.length > 0 && (
+              <div className="mt-4 rounded-md border border-primary/40 bg-primary/5 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Just minted · {minted.length}</div>
+                  <button onClick={() => { navigator.clipboard.writeText(minted.join("\n")); toast.success("Copied"); }}
+                    className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+                    Copy all
+                  </button>
+                </div>
+                <pre className="max-h-40 overflow-auto font-mono text-xs text-neon whitespace-pre-wrap">{minted.join("\n")}</pre>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
