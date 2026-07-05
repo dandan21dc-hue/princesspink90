@@ -244,11 +244,35 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
                 status: result.ok ? 'sent' : 'failed',
                 error_message: result.ok ? null : result.error?.slice(0, 1000) ?? null,
               })
+              // Structured audit line — one per email attempt. The portal URL
+              // is safe to log (no PII, tracing params only); the recipient
+              // email is masked so log stores never hold raw addresses.
+              logEvent('reminder_email_send', {
+                reminder_id: logRow.id,
+                screening_id: row.id,
+                user_id: row.user_id,
+                resolved_origin: origin,
+                portal_url: portalUrl,
+                template: 'health_screening_expiry_7_day',
+                idempotency_key: idempotencyKey,
+                recipient_masked: maskEmail(email),
+                status: result.ok ? 'sent' : 'failed',
+                error: result.ok ? null : result.error?.slice(0, 200) ?? null,
+              })
               if (result.ok) emailed += 1
             }
           } catch (e) {
-            console.warn('[health-screening-reminders] email send failed', (e as Error).message)
+            const err = e as Error
+            logEvent('reminder_email_send', {
+              reminder_id: logRow.id,
+              screening_id: row.id,
+              user_id: row.user_id,
+              resolved_origin: origin,
+              status: 'exception',
+              error: err.message,
+            })
           }
+
 
           // Step 4: flip the screening flag so future scans skip this row fast.
           await supabase
