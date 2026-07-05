@@ -93,6 +93,7 @@ function AdminSafetyIncidentsPage() {
   const createFn = useServerFn(createSafetyIncident);
   const archiveFn = useServerFn(archiveSafetyIncident);
   const restoreFn = useServerFn(restoreSafetyIncident);
+  const logExportFn = useServerFn(logSafetyIncidentExport);
   const qc = useQueryClient();
 
   const query = useQuery({
