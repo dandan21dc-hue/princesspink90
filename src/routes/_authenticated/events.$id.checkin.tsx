@@ -513,7 +513,9 @@ function Roster({
               <div className="min-w-0">
                 <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                   <span className="truncate font-medium">{g.display_name ?? "Guest"}</span>
-                  <span className="font-display text-sm font-bold text-neon">“{g.entry_phrase}”</span>
+                  {g.entry_phrase ? (
+                    <span className="font-display text-sm font-bold text-neon">“{g.entry_phrase}”</span>
+                  ) : null}
                 </div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   <span className="opacity-70">{g.entry_code}</span>
