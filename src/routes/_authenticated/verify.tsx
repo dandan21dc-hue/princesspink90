@@ -250,6 +250,8 @@ function VerifyPage() {
           </button>
         </section>
       )}
+
+      <HealthScreeningSection />
     </main>
   );
 }
