@@ -69,7 +69,7 @@ export const getMyCohostApplication = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("cohost_applications")
       .select(
-        "id, user_id, display_name, age, city, instagram_handle, other_socials, bio, hosting_experience, relevant_experience, why_join, availability, event_types, agreement_file_path, agreement_uploaded_at, status, admin_notes, submitted_at, reviewed_at",
+        "id, user_id, display_name, age, city, instagram_handle, other_socials, bio, hosting_experience, relevant_experience, why_join, availability, event_types, agreement_file_path, agreement_uploaded_at, co_host_agreement_signed_at, handbook_signature_name, handbook_version, status, admin_notes, submitted_at, reviewed_at",
       )
       .eq("user_id", context.userId)
       .maybeSingle();
