@@ -21,6 +21,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -116,6 +117,11 @@ const StoreIdRoute = StoreIdRouteImport.update({
 const EventsIdRoute = EventsIdRouteImport.update({
   id: '/events/$id',
   path: '/events/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedVerifyRoute = AuthenticatedVerifyRouteImport.update({
@@ -349,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/verify': typeof AuthenticatedVerifyRoute
+  '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -399,6 +406,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/verify': typeof AuthenticatedVerifyRoute
+  '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -451,6 +459,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
+  '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -503,6 +512,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/library'
     | '/verify'
+    | '/api/chat'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
@@ -553,6 +563,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/library'
     | '/verify'
+    | '/api/chat'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
@@ -604,6 +615,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/library'
     | '/_authenticated/verify'
+    | '/api/chat'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
@@ -651,6 +663,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   StoreRoute: typeof StoreRouteWithChildren
   UnlockRoute: typeof UnlockRoute
+  ApiChatRoute: typeof ApiChatRoute
   EventsIdRoute: typeof EventsIdRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
@@ -747,6 +760,13 @@ declare module '@tanstack/react-router' {
       path: '/events/$id'
       fullPath: '/events/$id'
       preLoaderRoute: typeof EventsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/verify': {
@@ -1129,6 +1149,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   StoreRoute: StoreRouteWithChildren,
   UnlockRoute: UnlockRoute,
+  ApiChatRoute: ApiChatRoute,
   EventsIdRoute: EventsIdRoute,
   ApiPublicHooksCronHealthCheckRoute: ApiPublicHooksCronHealthCheckRoute,
   ApiPublicHooksHealthScreeningRemindersRoute:
