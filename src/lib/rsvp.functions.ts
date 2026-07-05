@@ -62,6 +62,14 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       throw new Error("The waiver was updated. Please review and sign again.");
     }
 
+    // Detect whether this is a first-time acceptance or a re-signing.
+    const { data: prior } = await context.supabase
+      .from("rsvps")
+      .select("id, waiver_accepted_at, waiver_text_hash")
+      .eq("event_id", data.event_id)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+
     const now = new Date().toISOString();
     const { data: row, error } = await context.supabase
       .from("rsvps")
@@ -80,9 +88,33 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
         },
         { onConflict: "event_id,user_id" },
       )
-      .select("ticket_code")
+      .select("id, ticket_code")
       .single();
     if (error) throw error;
+
+    // Record an audit entry for this waiver acceptance
+    try {
+      const { getRequestHeader } = await import("@tanstack/react-start/server");
+      const ua = getRequestHeader("user-agent") ?? null;
+      const ip =
+        (getRequestHeader("x-forwarded-for") ?? "").split(",")[0]?.trim() ||
+        getRequestHeader("cf-connecting-ip") ||
+        getRequestHeader("x-real-ip") ||
+        null;
+      const wasPriorAccepted = Boolean(prior?.waiver_accepted_at);
+      await context.supabase.from("waiver_audit_log").insert({
+        event_id: data.event_id,
+        rsvp_id: row.id,
+        user_id: context.userId,
+        action: wasPriorAccepted ? "re_accepted" : "accepted",
+        waiver_text_hash: currentHash,
+        waiver_signature: data.waiver_signature.trim(),
+        ip_address: ip,
+        user_agent: ua,
+      });
+    } catch {
+      // Auditing is best-effort — never block a valid RSVP if the log write fails.
+    }
 
     // Auto-redeem lifetime member's free event ticket on first RSVP
     const env = process.env.NODE_ENV === "production" ? "live" : "sandbox";
@@ -102,7 +134,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
         })
         .eq("id", mem.id);
     }
-    return row;
+    return { ticket_code: row.ticket_code };
   });
 
 
@@ -112,12 +144,45 @@ export const cancelRsvp = createServerFn({ method: "POST" })
     z.object({ event_id: z.string().uuid() }).parse(data),
   )
   .handler(async ({ data, context }) => {
+    // Capture what the guest had signed BEFORE deleting the RSVP,
+    // so the audit trail preserves the rescinded waiver hash.
+    const { data: prior } = await context.supabase
+      .from("rsvps")
+      .select("id, waiver_text_hash, waiver_signature, waiver_accepted_at")
+      .eq("event_id", data.event_id)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+
     const { error } = await context.supabase
       .from("rsvps")
       .delete()
       .eq("event_id", data.event_id)
       .eq("user_id", context.userId);
     if (error) throw error;
+
+    if (prior?.waiver_accepted_at) {
+      try {
+        const { getRequestHeader } = await import("@tanstack/react-start/server");
+        const ua = getRequestHeader("user-agent") ?? null;
+        const ip =
+          (getRequestHeader("x-forwarded-for") ?? "").split(",")[0]?.trim() ||
+          getRequestHeader("cf-connecting-ip") ||
+          getRequestHeader("x-real-ip") ||
+          null;
+        await context.supabase.from("waiver_audit_log").insert({
+          event_id: data.event_id,
+          rsvp_id: null,
+          user_id: context.userId,
+          action: "rescinded",
+          waiver_text_hash: prior.waiver_text_hash,
+          waiver_signature: prior.waiver_signature,
+          ip_address: ip,
+          user_agent: ua,
+        });
+      } catch {
+        // best-effort
+      }
+    }
     return { ok: true };
   });
 
