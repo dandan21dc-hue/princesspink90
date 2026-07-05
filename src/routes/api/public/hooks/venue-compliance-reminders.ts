@@ -146,9 +146,15 @@ export const Route = createFileRoute('/api/public/hooks/venue-compliance-reminde
               : { error: null as null | { message: string } }
 
           if (notifResult.error) {
+            const { computeNextRetryAt } = await import('@/lib/reminder-retry')
             await supabase
               .from('venue_compliance_reminder_log')
-              .update({ status: 'failed', error_message: notifResult.error.message })
+              .update({
+                status: 'failed',
+                error_message: notifResult.error.message,
+                last_attempt_at: new Date().toISOString(),
+                next_retry_at: computeNextRetryAt(1)?.toISOString() ?? null,
+              })
               .eq('id', logRow.id)
             failures.push({ id: row.id, error: notifResult.error.message })
             continue
