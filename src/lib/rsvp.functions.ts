@@ -49,6 +49,41 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       );
     }
 
+    // Require a currently-valid, admin-approved health screening on file.
+    // "Admin review" (status = 'pending') and expired/rejected screenings all block booking.
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: screenings } = await context.supabase
+      .from("health_screenings")
+      .select("status, valid_until")
+      .eq("user_id", context.userId)
+      .order("submitted_at", { ascending: false });
+    const list = screenings ?? [];
+    const hasCurrent = list.some(
+      (s) => s.status === "approved" && s.valid_until !== null && s.valid_until >= today,
+    );
+    if (!hasCurrent) {
+      const latest = list[0];
+      if (!latest) {
+        throw new Error(
+          "Please upload a current health screening — one is required before you can finalize an RSVP.",
+        );
+      }
+      if (latest.status === "pending") {
+        throw new Error(
+          "Your health screening is awaiting admin review. You'll be able to RSVP once it's approved.",
+        );
+      }
+      if (latest.status === "rejected") {
+        throw new Error(
+          "Your most recent health screening was not accepted. Please upload a current document.",
+        );
+      }
+      throw new Error(
+        "Your health screening has expired. Please upload a new document (test taken within the last 90 days).",
+      );
+    }
+
+
     // Verify the guest signed the CURRENT waiver text (not a stale cached copy).
     const { data: evRow, error: evErr } = await context.supabase
       .from("events")

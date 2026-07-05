@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getPublicEventById } from "@/lib/events.functions";
 import { rsvpToEvent, cancelRsvp, myRsvpForEvent } from "@/lib/rsvp.functions";
 import { getMyAgeVerification, type VideoConsent } from "@/lib/verification.functions";
+import { listMyHealthScreenings, isScreeningCurrent } from "@/lib/health.functions";
 import { useWaiverPdfDownload } from "@/lib/useWaiverPdfDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -174,6 +175,11 @@ function RsvpBox({ eventId }: { eventId: string }) {
     queryKey: ["my-age-verification"],
     queryFn: () => getAge(),
   });
+  const getScreenings = useServerFn(listMyHealthScreenings);
+  const { data: screenings, isLoading: screeningsLoading } = useQuery({
+    queryKey: ["my-health-screenings"],
+    queryFn: () => getScreenings(),
+  });
 
   const [ageOk, setAgeOk] = useState(false);
   const [waiverOk, setWaiverOk] = useState(false);
@@ -302,6 +308,12 @@ function RsvpBox({ eventId }: { eventId: string }) {
     );
   }
 
+  if (screeningsLoading) return <div className="h-24 animate-pulse rounded-lg bg-card" />;
+
+  const screeningList = screenings ?? [];
+  const screeningCurrent = isScreeningCurrent(screeningList);
+  const latestScreening = screeningList[0];
+
   const toggle = (key: keyof VideoConsent) => (v: boolean) => {
     setConsent((c) => {
       const next = { ...c, [key]: v };
@@ -317,7 +329,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
     });
   };
 
-  const canSubmit = ageOk && waiverOk && complianceOk && signature.trim().length >= 2 && !rsvp.isPending;
+  const canSubmit = ageOk && waiverOk && complianceOk && screeningCurrent && signature.trim().length >= 2 && !rsvp.isPending;
 
   const waiverRead = showWaiver || waiverOk;
   const waiverSigned = signature.trim().length >= 2;
@@ -325,6 +337,11 @@ function RsvpBox({ eventId }: { eventId: string }) {
 
   return (
     <div className="space-y-4 rounded-lg border border-border/60 bg-card/40 p-4">
+      <ScreeningGate
+        current={screeningCurrent}
+        latestStatus={latestScreening?.status ?? null}
+        validUntil={latestScreening?.valid_until ?? null}
+      />
       <div className="rounded-md border border-border/60 bg-background/40 p-3">
         <div className="mb-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
           Waiver status
@@ -440,7 +457,13 @@ function RsvpBox({ eventId }: { eventId: string }) {
       <button
         onClick={() => rsvp.mutate()}
         disabled={!canSubmit}
-        title={!canSubmit ? "Confirm age, accept the waiver and code of conduct, and sign your name to RSVP." : undefined}
+        title={
+          !canSubmit
+            ? !screeningCurrent
+              ? "Upload a current admin-approved health screening to finalize your RSVP."
+              : "Confirm age, accept the waiver and code of conduct, and sign your name to RSVP."
+            : undefined
+        }
         className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-50"
       >
         {rsvp.isPending ? "Confirming…" : "Sign & RSVP · Reserve entry"}
@@ -489,3 +512,78 @@ function StatusChip({ label, ok }: { label: string; ok: boolean }) {
 }
 
 
+
+function ScreeningGate({
+  current,
+  latestStatus,
+  validUntil,
+}: {
+  current: boolean;
+  latestStatus: "pending" | "approved" | "rejected" | null;
+  validUntil: string | null;
+}) {
+  if (current) {
+    return (
+      <div className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3">
+        <div className="flex items-center gap-2">
+          <StatusDot ok />
+          <div className="text-[10px] uppercase tracking-[0.25em] text-emerald-300">
+            Health screening cleared
+          </div>
+        </div>
+        {validUntil && (
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Admin-approved, valid until {validUntil}.
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const { headline, body, cta } =
+    latestStatus === "pending"
+      ? {
+          headline: "Health screening — awaiting admin review",
+          body:
+            "Your uploaded document is queued for manual admin approval. You'll be able to finalize your RSVP once it's approved.",
+          cta: "View screening",
+        }
+      : latestStatus === "rejected"
+      ? {
+          headline: "Health screening was not accepted",
+          body:
+            "Your most recent submission was rejected. Upload a current document (test taken within the last 90 days) so an admin can approve it.",
+          cta: "Upload a new screening",
+        }
+      : latestStatus === "approved"
+      ? {
+          headline: "Health screening expired",
+          body:
+            "Your approved screening is more than 90 days old. Upload a current document so an admin can review it.",
+          cta: "Upload a current screening",
+        }
+      : {
+          headline: "Health screening required",
+          body:
+            "You must upload a valid STD screening (test within the last 90 days) before you can finalize an RSVP. An admin manually reviews and approves each document.",
+          cta: "Upload screening",
+        };
+
+  return (
+    <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <StatusDot ok={false} />
+        <div className="text-[10px] uppercase tracking-[0.25em] text-destructive">
+          {headline}
+        </div>
+      </div>
+      <p className="text-[12px] leading-relaxed text-muted-foreground">{body}</p>
+      <Link
+        to="/verify"
+        className="mt-1 inline-flex w-full items-center justify-center rounded-md bg-primary py-2 text-[11px] font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+      >
+        {cta}
+      </Link>
+    </div>
+  );
+}

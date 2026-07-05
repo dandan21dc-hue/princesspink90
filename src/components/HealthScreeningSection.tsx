@@ -180,7 +180,7 @@ function StatusPill({ current, rows }: { current: boolean; rows: HealthScreening
   if (pending) {
     return (
       <div className="rounded-lg border border-primary/50 bg-primary/10 p-3 text-xs uppercase tracking-widest text-primary">
-        Screening under review
+        Awaiting admin review
       </div>
     );
   }
@@ -207,6 +207,11 @@ function ScreeningRow({
     pending: "border-primary/50 bg-primary/10 text-primary",
     rejected: "border-destructive/60 bg-destructive/10 text-destructive",
   };
+  const label: Record<HealthScreening["status"], string> = {
+    approved: "Approved",
+    pending: "Admin review",
+    rejected: "Rejected",
+  };
   return (
     <li className="flex items-start justify-between gap-3 py-3 text-sm">
       <div className="min-w-0">
@@ -214,7 +219,7 @@ function ScreeningRow({
           <span
             className={`rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-widest ${meta[row.status]}`}
           >
-            {row.status}
+            {label[row.status]}
           </span>
           <span className="text-xs text-muted-foreground">Test {row.test_date}</span>
         </div>
