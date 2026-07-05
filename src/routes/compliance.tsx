@@ -226,6 +226,11 @@ function PolicyVersionBanner() {
         </div>
       </div>
       <p className="mt-2 text-sm text-muted-foreground">{current.data.summary}</p>
+      {current.data.body && (
+        <div className="mt-4 whitespace-pre-wrap rounded-md border border-border/40 bg-background/40 p-3 text-sm leading-relaxed text-muted-foreground">
+          {current.data.body}
+        </div>
+      )}
       {list.data && list.data.length > 1 && (
         <details className="mt-3 text-xs text-muted-foreground">
           <summary className="cursor-pointer text-foreground/80 hover:text-foreground">
