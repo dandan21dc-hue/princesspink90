@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getCurrentPolicyVersion, listEventDocuments } from "@/lib/host.functions";
+
 
 export type EventFormValues = {
   title: string;
@@ -93,12 +97,13 @@ export function toPayload(v: EventFormValues) {
 
 
 export function EventForm({
-  initial, onSubmit, submitting, submitLabel,
+  initial, onSubmit, submitting, submitLabel, eventId,
 }: {
   initial?: Partial<EventFormValues>;
   onSubmit: (v: EventFormValues) => void | Promise<void>;
   submitting?: boolean;
   submitLabel: string;
+  eventId?: string;
 }) {
   const [v, setV] = useState<EventFormValues>({ ...emptyForm(), ...initial });
   const bind = <K extends keyof EventFormValues>(k: K) => ({
@@ -106,6 +111,40 @@ export function EventForm({
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setV({ ...v, [k]: e.target.value }),
   });
+
+  const policyFn = useServerFn(getCurrentPolicyVersion);
+  const listDocsFn = useServerFn(listEventDocuments);
+  const policy = useQuery({
+    queryKey: ["compliance-policy-current"],
+    queryFn: () => policyFn(),
+  });
+  const docs = useQuery({
+    queryKey: ["event-documents", eventId],
+    queryFn: () => listDocsFn({ data: { event_id: eventId! } }),
+    enabled: !!eventId,
+  });
+
+  const currentPolicyId = policy.data?.id ?? null;
+  const currentPolicyVersion = policy.data?.version ?? null;
+  const REQUIRED_DOCS: { type: "permit" | "insurance" | "capacity"; label: string }[] = [
+    { type: "permit", label: "Event permit" },
+    { type: "insurance", label: "Insurance certificate" },
+    { type: "capacity", label: "Capacity certificate" },
+  ];
+  const docList = docs.data ?? [];
+  const missingDocs = eventId
+    ? REQUIRED_DOCS.filter((r) => !docList.some((d) => d.doc_type === r.type))
+    : [];
+  const staleDocs = eventId && currentPolicyId
+    ? docList.filter(
+        (d) =>
+          (d.doc_type === "permit" || d.doc_type === "insurance" || d.doc_type === "capacity") &&
+          d.policy_version_id &&
+          d.policy_version_id !== currentPolicyId,
+      )
+    : [];
+
+
 
   return (
     <form
@@ -171,11 +210,41 @@ export function EventForm({
               Permits, insurance, and capacity must all be confirmed before this event can be published.
               Uncheck "Published" to save as a draft while you gather the required documents.
             </p>
+            {currentPolicyVersion && (
+              <p className="mt-2">
+                Current compliance policy:{" "}
+                <span className="font-semibold text-amber-100">v{currentPolicyVersion}</span>
+                {eventId ? " — documents must be uploaded under this version." : "."}
+              </p>
+            )}
+            {eventId && missingDocs.length > 0 && (
+              <div className="mt-2">
+                <div className="font-semibold text-amber-100">Missing documents</div>
+                <ul className="mt-1 list-disc pl-5">
+                  {missingDocs.map((d) => (
+                    <li key={d.type}>{d.label} — not uploaded yet</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {eventId && staleDocs.length > 0 && (
+              <div className="mt-2">
+                <div className="font-semibold text-amber-100">Stale documents</div>
+                <ul className="mt-1 list-disc pl-5">
+                  {staleDocs.map((d) => (
+                    <li key={d.id}>
+                      {d.doc_type} was uploaded under policy v{d.policy_version_label ?? "?"} — re-upload under v{currentPolicyVersion}.
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <Link to="/compliance" target="_blank" className="mt-2 inline-block font-semibold text-amber-100 underline underline-offset-2">
               See what documents are required →
             </Link>
           </div>
         )}
+
 
 
         <div className="rounded-lg border border-border/60 p-4 space-y-3">

@@ -151,8 +151,9 @@ function EditEvent() {
       </div>
 
       <div className="mt-8">
-        <EventForm initial={initial} submitLabel="Save changes" submitting={update.isPending}
+        <EventForm initial={initial} submitLabel="Save changes" submitting={update.isPending} eventId={id}
           onSubmit={(v) => update.mutate(toPayload(v))} />
+
       </div>
 
       <EventDocumentsSection eventId={id} />
