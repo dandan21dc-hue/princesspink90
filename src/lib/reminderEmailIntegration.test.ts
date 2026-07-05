@@ -125,11 +125,9 @@ describe('reminder email integration — end-to-end send + structured logs', () 
 
     // The email path actually ran.
     expect(sendResendEmail).toHaveBeenCalledTimes(1)
-    const emailArgs = sendResendEmail.mock.calls[0][0] as {
-      to: string
-      html?: string
-      text?: string
-    }
+    const emailArgs = (sendResendEmail.mock.calls[0] as unknown as [
+      { to: string; html?: string; text?: string },
+    ])[0]
     expect(emailArgs.to).toBe(RECIPIENT_EMAIL)
 
     const events = lines
