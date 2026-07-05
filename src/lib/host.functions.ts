@@ -690,8 +690,9 @@ export const listEventWaivers = createServerFn({ method: "GET" })
     if (error) throw error;
 
     const userIds = (rows ?? []).map((r) => r.user_id);
+    const { supabaseAdmin: sbAdmin2 } = await import("@/integrations/supabase/client.server");
     const { data: profs } = userIds.length
-      ? await context.supabase
+      ? await sbAdmin2
           .from("profiles")
           .select("user_id, display_name")
           .in("user_id", userIds)
