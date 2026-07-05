@@ -27,6 +27,7 @@ const applicationInput = z.object({
   city: z.string().trim().min(2).max(120),
   instagram_handle: z.string().trim().max(80).optional().or(z.literal("")),
   other_socials: z.string().trim().max(500).optional().or(z.literal("")),
+  bio: z.string().trim().max(600).optional().or(z.literal("")),
   hosting_experience: z.string().trim().min(10).max(2000),
   why_join: z.string().trim().min(10).max(2000),
   availability: z.string().trim().max(500).optional().or(z.literal("")),
