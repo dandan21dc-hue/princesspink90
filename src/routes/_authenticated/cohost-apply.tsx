@@ -539,6 +539,16 @@ function StatusPanel({
             <span className="text-neon">✓ Uploaded</span>
           </Info>
         )}
+        {app.co_host_agreement_signed_at && (
+          <Info label="Handbook acknowledgement">
+            <span className="text-neon">✓ Signed</span> by{" "}
+            <span className="text-foreground">{app.handbook_signature_name}</span>{" "}
+            on {new Date(app.co_host_agreement_signed_at).toLocaleString()}
+            {app.handbook_version && (
+              <span className="text-muted-foreground"> · handbook v{app.handbook_version}</span>
+            )}
+          </Info>
+        )}
         {app.admin_notes && <Info label="Reviewer notes">{app.admin_notes}</Info>}
       </div>
       {app.status === "pending" && (
