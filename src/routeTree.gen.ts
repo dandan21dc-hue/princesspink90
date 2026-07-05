@@ -34,6 +34,7 @@ import { Route as AuthenticatedAdminSystemLogsRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
+import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
@@ -178,6 +179,12 @@ const AuthenticatedAdminLifetimeRoute =
     path: '/admin/lifetime',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminHealthRemindersRoute =
+  AuthenticatedAdminHealthRemindersRouteImport.update({
+    id: '/admin/health-reminders',
+    path: '/admin/health-reminders',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminHealthPurgeRoute =
   AuthenticatedAdminHealthPurgeRouteImport.update({
     id: '/admin/health-purge',
@@ -273,6 +280,7 @@ export interface FileRoutesByFullPath {
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
+  '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -311,6 +319,7 @@ export interface FileRoutesByTo {
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
+  '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -351,6 +360,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/_authenticated/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
+  '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -391,6 +401,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-policy'
     | '/admin/events-compliance'
     | '/admin/health-purge'
+    | '/admin/health-reminders'
     | '/admin/lifetime'
     | '/admin/safety-incidents'
     | '/admin/settings'
@@ -429,6 +440,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-policy'
     | '/admin/events-compliance'
     | '/admin/health-purge'
+    | '/admin/health-reminders'
     | '/admin/lifetime'
     | '/admin/safety-incidents'
     | '/admin/settings'
@@ -468,6 +480,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/compliance-policy'
     | '/_authenticated/admin/events-compliance'
     | '/_authenticated/admin/health-purge'
+    | '/_authenticated/admin/health-reminders'
     | '/_authenticated/admin/lifetime'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/settings'
@@ -678,6 +691,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLifetimeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/health-reminders': {
+      id: '/_authenticated/admin/health-reminders'
+      path: '/admin/health-reminders'
+      fullPath: '/admin/health-reminders'
+      preLoaderRoute: typeof AuthenticatedAdminHealthRemindersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/health-purge': {
       id: '/_authenticated/admin/health-purge'
       path: '/admin/health-purge'
@@ -802,6 +822,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
   AuthenticatedAdminEventsComplianceRoute: typeof AuthenticatedAdminEventsComplianceRoute
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
+  AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -828,6 +849,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminEventsComplianceRoute:
     AuthenticatedAdminEventsComplianceRoute,
   AuthenticatedAdminHealthPurgeRoute: AuthenticatedAdminHealthPurgeRoute,
+  AuthenticatedAdminHealthRemindersRoute:
+    AuthenticatedAdminHealthRemindersRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
