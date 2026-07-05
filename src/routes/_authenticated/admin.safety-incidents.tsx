@@ -199,12 +199,30 @@ function AdminSafetyIncidentsPage() {
 
       <section className="mx-auto max-w-5xl px-5 pb-16">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="font-display text-lg font-semibold">
-            Audit trail{" "}
-            <span className="text-sm font-normal text-muted-foreground">
-              ({total})
-            </span>
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="font-display text-lg font-semibold">
+              Audit trail{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                ({total})
+              </span>
+            </h2>
+            <div className="inline-flex overflow-hidden rounded-md border border-border text-xs">
+              {(["active", "archived", "all"] as View[]).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={`px-3 py-1.5 capitalize ${
+                    view === v
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
           <input
             type="search"
             placeholder="Search venue, party, nature, resolution…"
@@ -227,44 +245,91 @@ function AdminSafetyIncidentsPage() {
             </div>
           ) : (
             <ul className="divide-y divide-border">
-              {rows.map((r: any) => (
-                <li key={r.id} className="p-5 space-y-2">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div className="text-sm font-medium">
-                      {r.incident_date} · {r.venue}
+              {rows.map((r: any) => {
+                const archived = !!r.archived_at;
+                return (
+                  <li
+                    key={r.id}
+                    className={`p-5 space-y-2 ${archived ? "bg-muted/30" : ""}`}
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <div className="flex flex-wrap items-baseline gap-2">
+                        <div className="text-sm font-medium">
+                          {r.incident_date} · {r.venue}
+                        </div>
+                        {archived && (
+                          <span className="rounded-full border border-border bg-background px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+                            Archived
+                          </span>
+                        )}
+                      </div>
+                      {archived ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Restore this record to active?"))
+                              restoreMut.mutate(r.id);
+                          }}
+                          className="text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          Restore
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reason = prompt(
+                              "Archive reason (recorded in audit trail):",
+                            );
+                            if (reason && reason.trim().length >= 3) {
+                              archiveMut.mutate({
+                                id: r.id,
+                                reason: reason.trim(),
+                              });
+                            } else if (reason !== null) {
+                              alert("Reason must be at least 3 characters.");
+                            }
+                          }}
+                          className="text-xs text-muted-foreground hover:text-destructive"
+                        >
+                          Archive
+                        </button>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm("Delete this incident record?"))
-                          deleteMut.mutate(r.id);
-                      }}
-                      className="text-xs text-muted-foreground hover:text-destructive"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                  <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Involved
-                  </div>
-                  <div className="text-sm">{r.involved_party}</div>
-                  <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Nature
-                  </div>
-                  <div className="text-sm whitespace-pre-wrap">
-                    {r.nature_of_incident}
-                  </div>
-                  <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Resolution
-                  </div>
-                  <div className="text-sm whitespace-pre-wrap">
-                    {r.resolution_taken}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Logged {new Date(r.created_at).toLocaleString()}
-                  </div>
-                </li>
-              ))}
+                    <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Involved
+                    </div>
+                    <div className="text-sm">{r.involved_party}</div>
+                    <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Nature
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap">
+                      {r.nature_of_incident}
+                    </div>
+                    <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Resolution
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap">
+                      {r.resolution_taken}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Logged {new Date(r.created_at).toLocaleString()}
+                    </div>
+                    {archived && (
+                      <div className="mt-2 rounded-md border border-border bg-background p-3 text-xs">
+                        <div className="uppercase tracking-widest text-muted-foreground">
+                          Archived {new Date(r.archived_at).toLocaleString()}
+                        </div>
+                        {r.archive_reason && (
+                          <div className="mt-1 whitespace-pre-wrap">
+                            {r.archive_reason}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
