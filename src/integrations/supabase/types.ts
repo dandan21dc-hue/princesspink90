@@ -979,7 +979,7 @@ export type Database = {
           created_at: string
           door_notes: string | null
           entry_code: string
-          entry_phrase: string
+          entry_phrase: string | null
           event_id: string
           guest_count: number
           id: string
@@ -1000,7 +1000,7 @@ export type Database = {
           created_at?: string
           door_notes?: string | null
           entry_code?: string
-          entry_phrase?: string
+          entry_phrase?: string | null
           event_id: string
           guest_count?: number
           id?: string
@@ -1021,7 +1021,7 @@ export type Database = {
           created_at?: string
           door_notes?: string | null
           entry_code?: string
-          entry_phrase?: string
+          entry_phrase?: string | null
           event_id?: string
           guest_count?: number
           id?: string
