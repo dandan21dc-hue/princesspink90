@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.safety_incident_reports_prevent_field_mutation() FROM PUBLIC, anon, authenticated;
