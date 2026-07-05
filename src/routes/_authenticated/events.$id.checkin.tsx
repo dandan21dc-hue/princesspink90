@@ -105,9 +105,44 @@ function CheckinPage() {
 
   const lookup = useMutation({
     mutationFn: (t: string) => lookupFn({ data: { event_id: eventId, ticket_code: t } }),
-    onSuccess: (r) => setResult(r),
-    onError: (e) => toast.error((e as Error).message),
+    onSuccess: (r) => {
+      setResult(r);
+      if (!r.found) {
+        flashFeedback({
+          tone: "err",
+          title: "Invalid ticket",
+          detail: "No RSVP matches that code for this event.",
+        });
+        toast.error("Invalid ticket — no match for this event.");
+        // Allow the same bad code to be re-scanned after resolution.
+        lastScanRef.current = { code: "", at: 0 };
+      } else if (r.rsvp.checked_in_at) {
+        const who = r.guest.display_name ?? r.guest.email ?? "Guest";
+        const when = new Date(r.rsvp.checked_in_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        flashFeedback({
+          tone: "warn",
+          title: "Already admitted",
+          detail: `${who} was checked in at ${when}.`,
+        });
+        toast.warning(`${who} already admitted at ${when}`);
+      } else {
+        flashFeedback(
+          { tone: "ok", title: "Match found", detail: "Confirm consent below to admit." },
+          2500,
+        );
+      }
+    },
+    onError: (e) => {
+      const msg = (e as Error).message;
+      flashFeedback({ tone: "err", title: "Lookup failed", detail: msg }, 5000);
+      toast.error(msg);
+      lastScanRef.current = { code: "", at: 0 };
+    },
   });
+
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-10">
