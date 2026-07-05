@@ -23,7 +23,10 @@ type PriceId =
   | "all_access_3mo_onetime_aud"
   | "all_access_6mo_onetime_aud"
   | "all_access_12mo_onetime_aud"
-  | "lifetime_onetime_aud";
+  | "lifetime_onetime_aud"
+  | "panty_24hr_aud"
+  | "panty_48hr_aud"
+  | "panty_72hr_aud";
 
 function SubscribePage() {
   const navigate = useNavigate();
