@@ -914,3 +914,163 @@ function ColumnPicker({
     </div>
   );
 }
+
+function ExportLogsPanel() {
+  const [format, setFormat] = useState<"" | "csv" | "xlsx">("");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  const dateRangeError =
+    fromDate && toDate && fromDate > toDate
+      ? "'From' date must be on or before 'To' date."
+      : null;
+
+  const listFn = useServerFn(listSafetyIncidentExportLog);
+  const q = useQuery({
+    queryKey: ["admin-safety-incident-export-log", format, fromDate, toDate],
+    queryFn: () =>
+      listFn({
+        data: {
+          format: format || null,
+          from_date: fromDate || null,
+          to_date: toDate || null,
+          limit: 200,
+        },
+      }),
+    enabled: !dateRangeError,
+  });
+
+  const rows = q.data?.rows ?? [];
+
+  return (
+    <section className="mx-auto max-w-5xl px-5 pb-16 pt-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="font-display text-lg font-semibold">
+            Export logs{" "}
+            <span className="text-sm font-normal text-muted-foreground">
+              ({rows.length})
+            </span>
+          </h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Audit trail of who exported safety incident data, when, and in which format.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            Format
+            <select
+              value={format}
+              onChange={(e) => setFormat(e.target.value as "" | "csv" | "xlsx")}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            >
+              <option value="">All</option>
+              <option value="csv">CSV</option>
+              <option value="xlsx">XLSX</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            From
+            <input
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            To
+            <input
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(e) => setToDate(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            />
+          </label>
+          {(format || fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFormat("");
+                setFromDate("");
+                setToDate("");
+              }}
+              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {dateRangeError && (
+        <p className="mb-3 text-xs text-destructive">{dateRangeError}</p>
+      )}
+
+      <div className="rounded-2xl border border-border bg-card overflow-hidden">
+        {q.isLoading ? (
+          <div className="p-6 text-sm text-muted-foreground">Loading…</div>
+        ) : q.error ? (
+          <div className="p-6 text-sm text-destructive">
+            {(q.error as Error).message}
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">
+            No exports recorded.
+          </div>
+        ) : (
+          <ul className="divide-y divide-border">
+            {rows.map((r: any) => (
+              <li key={r.id} className="p-5 space-y-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${
+                        r.format === "xlsx"
+                          ? "border-primary/40 bg-primary/10 text-primary"
+                          : "border-border bg-background text-muted-foreground"
+                      }`}
+                    >
+                      {r.format}
+                    </span>
+                    <span className="text-sm font-medium">
+                      {r.exported_by_name || r.exported_by}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      · view: {r.view} · {r.row_count} row{r.row_count === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(r.exported_at).toLocaleString()}
+                  </span>
+                </div>
+                {r.search && (
+                  <div className="text-xs">
+                    <span className="uppercase tracking-widest text-muted-foreground">
+                      Search:
+                    </span>{" "}
+                    <span className="font-mono">{r.search}</span>
+                  </div>
+                )}
+                {Array.isArray(r.columns) && r.columns.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {r.columns.map((c: string) => (
+                      <span
+                        key={c}
+                        className="rounded border border-border bg-background px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  );
+}
+
