@@ -317,17 +317,20 @@ type CodeRow = {
 };
 
 function AccessCodeRow({
-  c, onDelete, onToggle, pending, selected, onSelect,
+  c, onDelete, onToggle, onRename, pending, selected, onSelect,
 }: {
   c: CodeRow;
   onDelete: () => void;
   onToggle: (used: boolean, name?: string) => void;
+  onRename: (name: string) => void;
   pending: boolean;
   selected: boolean;
   onSelect: (checked: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(c.used_by_name ?? "");
+  const [nameDraft, setNameDraft] = useState(c.used_by_name ?? "");
   const used = !!c.used_at;
 
   return (
@@ -347,10 +350,17 @@ function AccessCodeRow({
         <div className="flex shrink-0 items-center gap-3">
           {c.note && !used && <span className="text-xs text-muted-foreground">{c.note}</span>}
           {used ? (
-            <button disabled={pending} onClick={() => onToggle(false)}
-              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
-              Unmark
-            </button>
+            <>
+              <button disabled={pending}
+                onClick={() => { setNameDraft(c.used_by_name ?? ""); setEditingName((v) => !v); }}
+                className="text-xs uppercase tracking-widest text-primary hover:brightness-125">
+                {editingName ? "Close" : "Edit name"}
+              </button>
+              <button disabled={pending} onClick={() => onToggle(false)}
+                className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+                Unmark
+              </button>
+            </>
           ) : (
             <button disabled={pending} onClick={() => setEditing((v) => !v)}
               className="text-xs uppercase tracking-widest text-primary hover:brightness-125">
@@ -381,6 +391,30 @@ function AccessCodeRow({
             Confirm
           </button>
           <button onClick={() => setEditing(false)}
+            className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest">
+            Cancel
+          </button>
+        </div>
+      )}
+      {editingName && used && (
+        <div className="mt-2 flex gap-2">
+          <input autoFocus value={nameDraft} onChange={(e) => setNameDraft(e.target.value)}
+            placeholder="Guest name (required)"
+            maxLength={120}
+            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm" />
+          <button
+            disabled={pending || !nameDraft.trim() || nameDraft.trim() === (c.used_by_name ?? "")}
+            title={!nameDraft.trim() ? "Guest name is required" : undefined}
+            onClick={() => {
+              const n = nameDraft.trim();
+              if (!n) { toast.error("Guest name is required"); return; }
+              onRename(n);
+              setEditingName(false);
+            }}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
+            Save
+          </button>
+          <button onClick={() => setEditingName(false)}
             className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest">
             Cancel
           </button>
