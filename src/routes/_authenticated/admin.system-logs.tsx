@@ -56,6 +56,13 @@ function parseRef(id: string): { kind: SystemLogEvent["kind"]; rowId: string } |
   return { kind, rowId };
 }
 
+const KIND_OPTIONS: { value: SystemLogEvent["kind"]; label: string }[] = [
+  { value: "rsvp", label: "RSVP" },
+  { value: "health_approved", label: "Health approved" },
+  { value: "cohost_applied", label: "Co-host applied" },
+  { value: "incident", label: "Incident" },
+];
+
 function AdminSystemLogs() {
   const meFn = useServerFn(amIAdmin);
   const logsFn = useServerFn(getSystemLogs);
@@ -69,6 +76,40 @@ function AdminSystemLogs() {
   });
 
   const [selected, setSelected] = useState<SystemLogEvent | null>(null);
+  const [kinds, setKinds] = useState<Set<SystemLogEvent["kind"]>>(new Set());
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+
+  const toggleKind = (k: SystemLogEvent["kind"]) => {
+    setKinds((prev) => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  };
+  const clearFilters = () => {
+    setKinds(new Set());
+    setFromDate("");
+    setToDate("");
+  };
+
+  const filtered = (logs.data ?? []).filter((ev) => {
+    if (kinds.size > 0 && !kinds.has(ev.kind)) return false;
+    const t = new Date(ev.at).getTime();
+    if (fromDate) {
+      const f = new Date(fromDate).getTime();
+      if (t < f) return false;
+    }
+    if (toDate) {
+      // inclusive end of day
+      const to = new Date(toDate).getTime() + 24 * 60 * 60 * 1000 - 1;
+      if (t > to) return false;
+    }
+    return true;
+  });
+
+  const hasFilters = kinds.size > 0 || fromDate || toDate;
 
   if (me.isLoading) {
     return <section className="mx-auto max-w-5xl px-5 py-12 text-muted-foreground">Loading…</section>;
@@ -102,40 +143,109 @@ function AdminSystemLogs() {
         </button>
       </div>
 
-      <div className="mt-8 rounded-xl border border-border/60 bg-card">
+      <div className="mt-6 rounded-xl border border-border/60 bg-card p-4">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[240px]">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Event type
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {KIND_OPTIONS.map((opt) => {
+                const active = kinds.has(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => toggleKind(opt.value)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-widest transition ${
+                      active
+                        ? KIND_STYLE[opt.value]
+                        : "border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              From
+            </label>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="mt-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              To
+            </label>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="mt-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground"
+            />
+          </div>
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-border/60 bg-card">
         {logs.isLoading ? (
           <p className="p-6 text-sm text-muted-foreground">Loading events…</p>
         ) : logs.isError ? (
           <p className="p-6 text-sm text-red-300">{(logs.error as Error).message}</p>
         ) : !logs.data || logs.data.length === 0 ? (
           <p className="p-6 text-sm text-muted-foreground">No activity yet.</p>
+        ) : filtered.length === 0 ? (
+          <p className="p-6 text-sm text-muted-foreground">
+            No events match the current filters.
+          </p>
         ) : (
-          <ul className="divide-y divide-border/60">
-            {logs.data.map((ev) => (
-              <li key={ev.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelected(ev)}
-                  className="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-primary/5 focus:bg-primary/5 focus:outline-none"
-                >
-                  <span
-                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${KIND_STYLE[ev.kind]}`}
+          <>
+            <div className="border-b border-border/60 px-5 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Showing {filtered.length} of {logs.data.length}
+            </div>
+            <ul className="divide-y divide-border/60">
+              {filtered.map((ev) => (
+                <li key={ev.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(ev)}
+                    className="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-primary/5 focus:bg-primary/5 focus:outline-none"
                   >
-                    {ev.label}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm text-foreground">{ev.detail}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {timeAgo(ev.at)} · {new Date(ev.at).toLocaleString()}
+                    <span
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${KIND_STYLE[ev.kind]}`}
+                    >
+                      {ev.label}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm text-foreground">{ev.detail}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {timeAgo(ev.at)} · {new Date(ev.at).toLocaleString()}
+                      </div>
                     </div>
-                  </div>
-                  <span className="shrink-0 self-center text-xs text-muted-foreground">
-                    View →
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+                    <span className="shrink-0 self-center text-xs text-muted-foreground">
+                      View →
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
