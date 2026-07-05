@@ -318,66 +318,6 @@ function AdminGoLivePage() {
   );
 }
 
-function StatusCard({
-  label,
-  ok,
-  detail,
-}: {
-  label: string;
-  ok: boolean;
-  detail: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
-      <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-          {label}
-        </div>
-        <Badge kind={ok ? "ok" : "warn"}>{ok ? "ready" : "not yet"}</Badge>
-      </div>
-      <div className="mt-3 text-sm text-foreground/80">{detail}</div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <dt className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="mt-1 break-all">{children}</dd>
-    </div>
-  );
-}
-
-function Badge({
-  kind,
-  children,
-}: {
-  kind: "ok" | "warn" | "bad";
-  children: React.ReactNode;
-}) {
-  const styles =
-    kind === "ok"
-      ? "bg-emerald-500/15 text-emerald-400"
-      : kind === "bad"
-        ? "bg-destructive/15 text-destructive"
-        : "bg-amber-500/15 text-amber-400";
-  return (
-    <span
-      className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${styles}`}
-    >
-      {children}
-    </span>
-  );
-}
 
 function AlertBanner({
   severity,
