@@ -101,22 +101,62 @@ function CheckinPage() {
         </div>
       </div>
 
+      <div className="mb-2 flex items-center justify-between">
+        <label className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={scanner}
+            onChange={(e) => {
+              setScanner(e.target.checked);
+              if (e.target.checked) setTimeout(() => inputRef.current?.focus(), 0);
+            }}
+          />
+          Scanner mode
+        </label>
+        {scanner && (
+          <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-neon">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-neon" />
+            Ready — scan a ticket
+          </span>
+        )}
+      </div>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!code.trim()) return;
+          const t = code.trim();
+          if (!t) return;
           setResult(null);
-          lookup.mutate(code.trim());
+          lookup.mutate(t);
         }}
         className="flex gap-2"
       >
         <input
+          ref={inputRef}
           autoFocus
           value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="Ticket code"
-          className="flex-1 rounded-md border border-border bg-background px-4 py-3 font-mono text-lg tracking-widest"
+          onChange={(e) => {
+            // Barcode/QR scanners often append CR/LF and may include whitespace;
+            // strip control chars and normalise to upper-case ticket format.
+            const cleaned = e.target.value.replace(/[\s\r\n\t]/g, "").toUpperCase();
+            setCode(cleaned);
+          }}
+          onKeyDown={(e) => {
+            // Some scanners send Tab as the terminator instead of Enter.
+            if (e.key === "Tab" && code.trim()) {
+              e.preventDefault();
+              setResult(null);
+              lookup.mutate(code.trim());
+            }
+          }}
+          placeholder={scanner ? "Scan ticket…" : "Ticket code"}
+          className={`flex-1 rounded-md border bg-background px-4 py-3 font-mono text-lg tracking-widest ${
+            scanner ? "border-neon/60 ring-1 ring-neon/40" : "border-border"
+          }`}
           maxLength={50}
+          inputMode={scanner ? "none" : "text"}
+          autoComplete="off"
+          spellCheck={false}
         />
         <button
           type="submit"
