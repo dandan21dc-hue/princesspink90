@@ -35,7 +35,10 @@ const PUB_KEY =
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
   process.env.SUPABASE_ANON_KEY ??
   process.env.VITE_SUPABASE_ANON_KEY
-const HAS_CREDS = Boolean(URL && SERVICE_KEY && PUB_KEY)
+// Opt-in: smoke tests hit a real database and enqueue real emails, so they
+// stay off by default. Set RUN_SMOKE_TESTS=1 in addition to the creds below.
+const HAS_CREDS =
+  Boolean(URL && SERVICE_KEY && PUB_KEY) && process.env.RUN_SMOKE_TESTS === '1'
 
 // Signup email is enqueued via the auth webhook and processed by the pg_cron
 // job on a ~5s tick, so this must comfortably exceed a couple of ticks.
