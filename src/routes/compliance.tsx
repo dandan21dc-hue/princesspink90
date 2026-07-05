@@ -383,17 +383,13 @@ function MyDocumentsSection() {
   } | null>(null);
 
   const signFn = useServerFn(signEventDocumentUrl);
-  const [openingId, setOpeningId] = useState<string | null>(null);
-  async function openDoc(id: string) {
-    setOpeningId(id);
-    try {
-      const { url } = await signFn({ data: { id } });
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not open document");
-    } finally {
-      setOpeningId(null);
-    }
+  const [previewTarget, setPreviewTarget] = useState<{ id: string; file_name: string } | null>(null);
+  async function openDoc(id: string, file_name: string) {
+    setPreviewTarget({ id, file_name });
+  }
+  async function signUrlFor(id: string): Promise<string> {
+    const { url } = await signFn({ data: { id } });
+    return url;
   }
 
 
