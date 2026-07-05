@@ -114,13 +114,13 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           const { error: notifErr } = await supabase.from('notifications').insert({
             user_id: row.user_id,
             kind: 'health_screening_expiring',
-            title: 'Your health screening expires in 7 days',
+            title: `Your health screening expires in ${windowDays} day${windowDays === 1 ? '' : 's'}`,
             body: `Your approved health screening is valid until ${row.valid_until}. Please upload a renewed certificate before it expires to keep your access active.`,
             link_url: '/health-screenings',
             metadata: {
               screening_id: row.id,
               valid_until: row.valid_until,
-              days_until_expiry: 7,
+              days_until_expiry: windowDays,
               idempotency_key: idempotencyKey,
             },
           })
