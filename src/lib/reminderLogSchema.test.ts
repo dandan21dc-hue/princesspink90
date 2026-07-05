@@ -154,6 +154,7 @@ const CronStartSchema = EnvelopeSchema.extend({
   resolved_origin: z.string().url(),
   public_app_url_set: z.boolean(),
   site_url_set: z.boolean(),
+  host: z.string().nullable().optional(),
   forwarded_host: z.string().nullable(),
   forwarded_proto: z.string().nullable(),
   target_date: date,
