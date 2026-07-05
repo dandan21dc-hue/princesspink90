@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mockSendResendEmail } from '@/lib/test-utils/sendResendEmailMock'
 
 // Integration test for the reminder cron activation contract.
 //
@@ -12,18 +13,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 //      health_screening_reminder_log makes the second attempt skip via a
 //      Postgres 23505 unique_violation.
 
-type SendResendEmailArgs = {
-  to: string
-  idempotencyKey: string
-  subject?: string
-  html?: string
-  from?: string
-  [key: string]: unknown
-}
-const sendResendEmail = vi.fn(
-  async (_args: SendResendEmailArgs) => ({ ok: true as const }),
-)
-vi.mock('@/lib/resend.server', () => ({ sendResendEmail }))
+const email = mockSendResendEmail()
+vi.mock('@/lib/resend.server', () => ({ sendResendEmail: email.sendResendEmail }))
+
 
 
 // Fixed target: today + 7 days in UTC (matches hook's window logic).
