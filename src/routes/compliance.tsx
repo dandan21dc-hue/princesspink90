@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { getCurrentPolicyVersion, listPolicyVersions, listMyComplianceDocuments } from "@/lib/host.functions";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  getCurrentPolicyVersion,
+  listPolicyVersions,
+  listMyComplianceDocuments,
+  recordPolicyAgreement,
+} from "@/lib/host.functions";
 import { supabase } from "@/integrations/supabase/client";
+
 
 
 export const Route = createFileRoute("/compliance")({
@@ -305,6 +312,23 @@ function MyDocumentsSection() {
     queryFn: () => versionsFn(),
   });
 
+  const qc = useQueryClient();
+  const reAckFn = useServerFn(recordPolicyAgreement);
+  const reAck = useMutation({
+    mutationFn: (vars: { policy_version_id: string; event_id: string | null }) =>
+      reAckFn({ data: vars }),
+    onSuccess: (_res, vars) => {
+      toast.success("Re-acknowledged current compliance policy for this event.");
+      qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
+      if (vars.event_id) {
+        qc.invalidateQueries({ queryKey: ["my-policy-agreements", vars.event_id] });
+      }
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Could not re-acknowledge policy"),
+  });
+
+
   const [versionFilter, setVersionFilter] = useState<string>("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
@@ -475,11 +499,26 @@ function MyDocumentsSection() {
                 ) : (
                   <span className="text-amber-300">No agreement record on file</span>
                 )}
-                {stale && currentVersion && (
-                  <span className="text-amber-300">
-                    Current policy is v{currentVersion} — consider re-uploading.
-                  </span>
+                {stale && currentVersion && currentId && (
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-amber-300">
+                      Current policy is v{currentVersion} — consider re-uploading.
+                    </span>
+                    <button
+                      type="button"
+                      disabled={reAck.isPending}
+                      onClick={() =>
+                        reAck.mutate({ policy_version_id: currentId, event_id: d.event_id })
+                      }
+                      className="rounded-md border border-primary/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10 disabled:opacity-50"
+                    >
+                      {reAck.isPending && reAck.variables?.event_id === d.event_id
+                        ? "Recording…"
+                        : `Re-acknowledge v${currentVersion}`}
+                    </button>
+                  </div>
                 )}
+
               </div>
 
             </li>
