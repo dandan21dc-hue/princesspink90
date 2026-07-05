@@ -53,10 +53,38 @@ async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
 
   const { data: existing } = await getSupabase()
     .from("subscriptions")
-    .select("id, status, cancel_at_period_end")
+    .select("id, status, cancel_at_period_end, current_period_end")
     .eq("stripe_subscription_id", subscription.id)
     .eq("environment", env)
     .maybeSingle();
+
+  // Guard against out-of-order `customer.subscription.updated` events.
+  //
+  // Stripe does not guarantee webhook delivery order: a stale `updated`
+  // event with status "active" can arrive after we've already processed
+  // the terminal `deleted` event (or an earlier `updated` that flipped
+  // the row to "canceled"). Without this guard, that stale event would
+  // upsert the row back to "active" and silently re-grant paid access
+  // for the remainder of the period.
+  //
+  // Once a subscription is canceled locally, the only legitimate way for
+  // that same `stripe_subscription_id` to come back is via Stripe itself
+  // resurrecting it — which Stripe doesn't do; a resubscribe always
+  // issues a new subscription id. So: if we have a canceled row, ignore
+  // any non-canceled update for that id.
+  if (
+    existing &&
+    existing.status === "canceled" &&
+    subscription.status !== "canceled"
+  ) {
+    console.log(
+      "handleSubscriptionUpsert: ignoring stale event for canceled subscription",
+      subscription.id,
+      "incoming status:",
+      subscription.status,
+    );
+    return;
+  }
 
   await getSupabase()
     .from("subscriptions")
