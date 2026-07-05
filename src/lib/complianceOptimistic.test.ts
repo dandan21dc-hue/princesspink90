@@ -177,10 +177,10 @@ describe("compliance re-acknowledge optimistic flow", () => {
       other,
     ];
 
-    // Simulate `reconcileAgreementCaches` -> `invalidateQueries` refetch.
+    // Simulate `reconcileAgreementCaches` -> invalidate + refetch. Use
+    // `type: "all"` because this test's QueryClient has no mounted observers.
     qc.setQueryDefaults(DOCS_KEY, { queryFn: async () => refetched });
-    await qc.invalidateQueries({ queryKey: DOCS_KEY });
-    await qc.refetchQueries({ queryKey: DOCS_KEY });
+    await qc.refetchQueries({ queryKey: DOCS_KEY, type: "all" });
 
     const reconciled = qc.getQueryData<DocRow[]>(DOCS_KEY)!;
     expect(reconciled[0].current_agreement_accepted_at).toBe(serverIso);
