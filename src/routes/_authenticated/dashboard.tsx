@@ -35,6 +35,12 @@ function Dashboard() {
           >
             Verify ID
           </Link>
+          <Link
+            to="/cohost-apply"
+            className="rounded-md border border-primary/40 bg-primary/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+          >
+            Co-host with me
+          </Link>
           {admin.data?.isAdmin && (
             <>
               <Link
