@@ -330,6 +330,22 @@ function MyDocumentsSection() {
       toast.error(e instanceof Error ? e.message : "Could not re-acknowledge policy"),
   });
 
+  const signFn = useServerFn(signEventDocumentUrl);
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  async function openDoc(id: string) {
+    setOpeningId(id);
+    try {
+      const { url } = await signFn({ data: { id } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not open document");
+    } finally {
+      setOpeningId(null);
+    }
+  }
+
+
+
 
   const [versionFilter, setVersionFilter] = useState<string>("");
   const [fromDate, setFromDate] = useState<string>("");
