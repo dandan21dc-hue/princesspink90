@@ -354,10 +354,19 @@ function AccessCodeRow({
       {editing && !used && (
         <div className="mt-2 flex gap-2">
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="Guest name (optional)"
+            placeholder="Guest name (required)"
+            maxLength={120}
             className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm" />
-          <button disabled={pending} onClick={() => { onToggle(true, name.trim() || undefined); setEditing(false); }}
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground">
+          <button
+            disabled={pending || !name.trim()}
+            title={!name.trim() ? "Guest name is required" : undefined}
+            onClick={() => {
+              const n = name.trim();
+              if (!n) { toast.error("Guest name is required to mark this code as used"); return; }
+              onToggle(true, n);
+              setEditing(false);
+            }}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
             Confirm
           </button>
           <button onClick={() => setEditing(false)}
