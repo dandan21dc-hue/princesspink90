@@ -140,18 +140,23 @@ export const deleteAccessCode = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const markUsedSchema = z.object({
+  used: z.boolean(),
+  used_by_name: z.string().trim().max(120).optional(),
+}).superRefine((v, ctx) => {
+  if (v.used && !v.used_by_name) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["used_by_name"], message: "Guest name is required when marking a code as used" });
+  }
+});
+
 export const setAccessCodeUsed = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string; used: boolean; used_by_name?: string }) =>
-    z.object({
-      id: z.string().uuid(),
-      used: z.boolean(),
-      used_by_name: z.string().trim().max(120).optional(),
-    }).parse(data),
+    z.object({ id: z.string().uuid() }).and(markUsedSchema).parse(data),
   )
   .handler(async ({ data, context }) => {
     const patch = data.used
-      ? { used_at: new Date().toISOString(), used_by_name: data.used_by_name ?? null }
+      ? { used_at: new Date().toISOString(), used_by_name: data.used_by_name!.trim() }
       : { used_at: null, used_by_name: null };
     const { error } = await context.supabase
       .from("event_access_codes").update(patch).eq("id", data.id);
@@ -162,15 +167,11 @@ export const setAccessCodeUsed = createServerFn({ method: "POST" })
 export const bulkSetAccessCodesUsed = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { ids: string[]; used: boolean; used_by_name?: string }) =>
-    z.object({
-      ids: z.array(z.string().uuid()).min(1).max(500),
-      used: z.boolean(),
-      used_by_name: z.string().trim().max(120).optional(),
-    }).parse(data),
+    z.object({ ids: z.array(z.string().uuid()).min(1).max(500) }).and(markUsedSchema).parse(data),
   )
   .handler(async ({ data, context }) => {
     const patch = data.used
-      ? { used_at: new Date().toISOString(), used_by_name: data.used_by_name ?? null }
+      ? { used_at: new Date().toISOString(), used_by_name: data.used_by_name!.trim() }
       : { used_at: null, used_by_name: null };
     const { error, count } = await context.supabase
       .from("event_access_codes").update(patch, { count: "exact" }).in("id", data.ids);
