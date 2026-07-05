@@ -214,6 +214,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
   });
 
   if (mine) {
+    const signed = Boolean(mine.waiver_signature && mine.waiver_accepted_at);
     return (
       <div className="rounded-lg border border-primary/50 bg-primary/10 p-4">
         <div className="text-[10px] uppercase tracking-[0.25em] text-primary">You're in</div>
@@ -221,12 +222,34 @@ function RsvpBox({ eventId }: { eventId: string }) {
           {mine.ticket_code}
         </div>
         <p className="mt-1 text-xs text-muted-foreground">Show this code at the door.</p>
-        {mine.waiver_signature && mine.waiver_accepted_at && (
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            Waiver signed as <span className="text-foreground">{mine.waiver_signature}</span> on{" "}
-            {new Date(mine.waiver_accepted_at).toLocaleDateString()}.
-          </p>
-        )}
+
+        <div
+          className={
+            "mt-3 rounded-md border p-3 " +
+            (signed
+              ? "border-emerald-500/40 bg-emerald-500/10"
+              : "border-amber-500/40 bg-amber-500/10")
+          }
+        >
+          <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em]">
+            <StatusDot ok={signed} />
+            <span className={signed ? "text-emerald-300" : "text-amber-300"}>
+              {signed ? "Waiver accepted & signed" : "Waiver not on file"}
+            </span>
+          </div>
+          {signed ? (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Signed as <span className="text-foreground">{mine.waiver_signature}</span> on{" "}
+              {new Date(mine.waiver_accepted_at!).toLocaleDateString()}. Your entry is
+              cleared.
+            </p>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              Cancel and re-RSVP to sign the current waiver — required at the door.
+            </p>
+          )}
+        </div>
+
         <button
           onClick={() => cancel.mutate()}
           disabled={cancel.isPending}
