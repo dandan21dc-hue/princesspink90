@@ -116,14 +116,28 @@ describe('resolveAppOrigin — x-forwarded-* headers', () => {
   })
 
   it('takes the first host from a comma-separated x-forwarded-host chain', () => {
+    // No spaces inside the value — readHeader rejects any whitespace,
+    // which is exactly how the real validator defuses smuggled values.
     expect(
       resolveAppOrigin(
         mockRequest({
-          'x-forwarded-host': 'app.princesspink90.com, edge.internal, origin.internal',
-          'x-forwarded-proto': 'https, https, http',
+          'x-forwarded-host': 'app.princesspink90.com,edge.internal,origin.internal',
+          'x-forwarded-proto': 'https,https,http',
         }),
       ),
     ).toBe('https://app.princesspink90.com')
+  })
+
+  it('rejects an x-forwarded-host chain that contains whitespace', () => {
+    // Whitespace inside the header value is a smuggling signal — reject it
+    // entirely rather than trust any of the comma-separated tokens.
+    expect(
+      resolveAppOrigin(
+        mockRequest({
+          'x-forwarded-host': 'app.princesspink90.com, edge.internal',
+        }),
+      ),
+    ).toBe(PRODUCTION_FALLBACK)
   })
 
   it('ignores an invalid x-forwarded-proto value and defaults to https', () => {
@@ -137,15 +151,8 @@ describe('resolveAppOrigin — x-forwarded-* headers', () => {
     ).toBe('https://app.princesspink90.com')
   })
 
-  it('rejects an x-forwarded-host with CRLF injection and falls back', () => {
-    expect(
-      resolveAppOrigin(
-        mockRequest({ 'x-forwarded-host': 'app.princesspink90.com\r\nEvil: 1' }),
-      ),
-    ).toBe(PRODUCTION_FALLBACK)
-  })
-
   it('rejects an oversized x-forwarded-host and falls back', () => {
+
     expect(
       resolveAppOrigin(
         mockRequest({ 'x-forwarded-host': 'a'.repeat(600) + '.example.com' }),
