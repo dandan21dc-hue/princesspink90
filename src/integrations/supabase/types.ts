@@ -166,6 +166,57 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_policy_agreements: {
+        Row: {
+          accepted_at: string
+          accepted_by_user_id: string
+          created_at: string
+          event_id: string | null
+          id: string
+          ip_address: string | null
+          policy_version_id: string
+          policy_version_label: string
+          user_agent: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          accepted_by_user_id: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          ip_address?: string | null
+          policy_version_id: string
+          policy_version_label: string
+          user_agent?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          accepted_by_user_id?: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          ip_address?: string | null
+          policy_version_id?: string
+          policy_version_label?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_policy_agreements_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_policy_agreements_policy_version_id_fkey"
+            columns: ["policy_version_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_policy_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_policy_versions: {
         Row: {
           body: string
