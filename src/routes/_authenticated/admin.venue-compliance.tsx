@@ -133,17 +133,41 @@ function AdminVenueCompliancePage() {
       setForm(emptyForm);
       setFile(null);
       toast.success("Compliance document uploaded");
-      qc.invalidateQueries({ queryKey: ["admin-venue-compliance"] });
+      invalidateAll();
     },
     onError: (e: any) =>
       toast.error(e?.message ?? "Failed to upload document"),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: () => {
+      if (!editingId) throw new Error("Nothing to update");
+      return updateFn({
+        data: {
+          id: editingId,
+          kind: editForm.kind,
+          title: editForm.title,
+          issuer: editForm.issuer || null,
+          reference_number: editForm.reference_number || null,
+          issued_on: editForm.issued_on || null,
+          expires_on: editForm.expires_on || null,
+          notes: editForm.notes || null,
+        },
+      });
+    },
+    onSuccess: () => {
+      setEditingId(null);
+      toast.success("Document updated");
+      invalidateAll();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Failed to update document"),
   });
 
   const deleteMut = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
     onSuccess: () => {
       toast.success("Document deleted");
-      qc.invalidateQueries({ queryKey: ["admin-venue-compliance"] });
+      invalidateAll();
     },
   });
 
