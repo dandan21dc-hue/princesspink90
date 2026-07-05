@@ -352,4 +352,82 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
       createClientSpy.mockRestore()
     }
   })
+
+  it('sends exactly one email per idempotency key when the hook is invoked concurrently', async () => {
+    // Concurrency guarantee: if pg_cron fires and an operator manually pokes
+    // the endpoint (or overlapping schedules land in the same tick), multiple
+    // hook invocations run in parallel against the same candidate set. Only
+    // the unique constraint on health_screening_reminder_log.idempotency_key
+    // stops duplicate emails. Verify that N concurrent invocations still
+    // produce exactly one sendResendEmail call per due reminder.
+    configuredRunTime = '00:00'
+
+    // Force every invocation to see the FULL candidate set — this removes
+    // the .is('expiry_reminder_sent_at', null) short-circuit so the
+    // exactly-once guarantee rests entirely on the idempotency key.
+    const alwaysReturnAllCandidates = () => {
+      const client = makeSupabaseMock()
+      const originalFrom = client.from
+      client.from = (table: string) => {
+        if (table === 'health_screenings') {
+          const chain: Record<string, unknown> = {}
+          chain.select = () => chain
+          chain.eq = () => chain
+          chain.is = () => Promise.resolve({ data: DUE, error: null })
+          chain.update = () => ({
+            eq: () => Promise.resolve({ data: null, error: null }),
+          })
+          return chain
+        }
+        return originalFrom(table)
+      }
+      return client
+    }
+
+    const supabaseModule = await import('@supabase/supabase-js')
+    const createClientSpy = vi
+      .spyOn(supabaseModule, 'createClient')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockImplementation(alwaysReturnAllCandidates as any)
+
+    try {
+      const CONCURRENCY = 8
+      const results = await Promise.all(
+        Array.from({ length: CONCURRENCY }, () => invokeHook()),
+      )
+
+      // Every invocation reports success — losers on the idempotency-key
+      // race skip the send rather than erroring.
+      for (const r of results) {
+        expect(r.success).toBe(true)
+      }
+
+      // Exactly one send per due reminder, no matter how many concurrent
+      // invocations raced.
+      expect(email.sendResendEmail).toHaveBeenCalledTimes(DUE.length)
+
+      // Every key observed on the wire is unique and matches a DUE row.
+      const keys = email.keys()
+      expect(keys).toHaveLength(DUE.length)
+      expect(new Set(keys).size).toBe(DUE.length)
+      for (const s of DUE) {
+        expect(keys).toContain(`expiry_7_day:${s.id}:${s.valid_until}`)
+      }
+
+      // Recipients are also unique — no user was emailed twice.
+      const recipients = email.recipients()
+      expect(new Set(recipients).size).toBe(DUE.length)
+
+      // Aggregate emailed count across all invocations equals DUE.length —
+      // the "extra" invocations must report 0 emails sent (they lost the
+      // race and hit 23505 on every candidate).
+      const totalEmailed = results.reduce(
+        (sum, r) => sum + (r.emailed ?? 0),
+        0,
+      )
+      expect(totalEmailed).toBe(DUE.length)
+    } finally {
+      createClientSpy.mockRestore()
+    }
+  })
 })
