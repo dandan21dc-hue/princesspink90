@@ -578,6 +578,62 @@ function MyDocumentsSection() {
         </div>
       </div>
 
+      {(() => {
+        const eligible = rows.filter(
+          (d) =>
+            currentId &&
+            d.policy_version_id &&
+            d.policy_version_id !== currentId &&
+            !d.current_agreement_accepted_at,
+        );
+        const eligibleIds = eligible.map((d) => d.id);
+        const visibleSelected = eligibleIds.filter((id) => selected.has(id));
+        const allSelected = eligibleIds.length > 0 && visibleSelected.length === eligibleIds.length;
+        if (eligible.length === 0) return null;
+        return (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs">
+            <label className="flex items-center gap-2 text-foreground">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(e) => {
+                  setSelected((prev) => {
+                    const next = new Set(prev);
+                    if (e.target.checked) eligibleIds.forEach((id) => next.add(id));
+                    else eligibleIds.forEach((id) => next.delete(id));
+                    return next;
+                  });
+                }}
+              />
+              <span>
+                Select all outdated ({eligible.length}) · {visibleSelected.length} selected
+              </span>
+            </label>
+            <div className="flex items-center gap-2">
+              {visibleSelected.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={visibleSelected.length === 0 || !currentId || bulkReAck.isPending}
+                onClick={() => setBulkConfirmOpen(true)}
+                className="rounded-md bg-primary px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {bulkReAck.isPending
+                  ? "Recording…"
+                  : `Re-acknowledge v${currentVersion ?? "?"} for selected`}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {rows.length === 0 ? (
         <p className="mt-4 rounded-lg border border-border/60 bg-card p-4 text-sm text-muted-foreground">
           No documents match the current filters.
@@ -587,11 +643,21 @@ function MyDocumentsSection() {
 
         {rows.map((d) => {
           const stale = currentId && d.policy_version_id && d.policy_version_id !== currentId;
+          const canBulkSelect = !!(stale && !d.current_agreement_accepted_at);
           return (
             <li
               key={d.id}
               className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-4"
             >
+              {canBulkSelect && (
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${d.file_name} for bulk re-acknowledgement`}
+                  checked={selected.has(d.id)}
+                  onChange={() => toggleSelected(d.id)}
+                  className="mt-1 self-start"
+                />
+              )}
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="rounded bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-foreground/80">
