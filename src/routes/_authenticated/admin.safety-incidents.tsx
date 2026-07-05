@@ -919,6 +919,9 @@ function ExportLogsPanel() {
   const [format, setFormat] = useState<"" | "csv" | "xlsx">("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const [exporterId, setExporterId] = useState<string>("");
+  const [viewFilter, setViewFilter] = useState<string>("");
+  const [search, setSearch] = useState<string>("");
   const dateRangeError =
     fromDate && toDate && fromDate > toDate
       ? "'From' date must be on or before 'To' date."
@@ -939,23 +942,102 @@ function ExportLogsPanel() {
     enabled: !dateRangeError,
   });
 
-  const rows = q.data?.rows ?? [];
+  const allRows = q.data?.rows ?? [];
+
+  // Build option lists from the server-filtered result set so admins only see
+  // exporters and views that actually appear in the current window.
+  const exporters = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of allRows as any[]) {
+      if (!r.exported_by) continue;
+      const label = r.exported_by_name || r.exported_by;
+      if (!map.has(r.exported_by)) map.set(r.exported_by, label);
+    }
+    return Array.from(map.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [allRows]);
+
+  const views = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of allRows as any[]) if (r.view) set.add(r.view);
+    return Array.from(set).sort();
+  }, [allRows]);
+
+  const searchLower = search.trim().toLowerCase();
+  const rows = (allRows as any[]).filter((r) => {
+    if (exporterId && r.exported_by !== exporterId) return false;
+    if (viewFilter && r.view !== viewFilter) return false;
+    if (searchLower) {
+      const hay = [
+        r.exported_by_name,
+        r.exported_by,
+        r.view,
+        r.search,
+        r.format,
+        Array.isArray(r.columns) ? r.columns.join(" ") : "",
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!hay.includes(searchLower)) return false;
+    }
+    return true;
+  });
+
+  const hasFilters =
+    !!format || !!fromDate || !!toDate || !!exporterId || !!viewFilter || !!search;
 
   return (
     <section className="mx-auto max-w-5xl px-5 pb-16 pt-6">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="font-display text-lg font-semibold">
-            Export logs{" "}
-            <span className="text-sm font-normal text-muted-foreground">
-              ({rows.length})
-            </span>
-          </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Audit trail of who exported safety incident data, when, and in which format.
-          </p>
+      <div className="mb-4 space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-semibold">
+              Export logs{" "}
+              <span className="text-sm font-normal text-muted-foreground">
+                ({rows.length}
+                {rows.length !== allRows.length ? ` of ${allRows.length}` : ""})
+              </span>
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Audit trail of who exported safety incident data, when, and in which format.
+            </p>
+          </div>
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setFormat("");
+                setFromDate("");
+                setToDate("");
+                setExporterId("");
+                setViewFilter("");
+                setSearch("");
+              }}
+              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted"
+            >
+              Clear all
+            </button>
+          )}
         </div>
+
         <div className="flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            Requesting admin
+            <select
+              value={exporterId}
+              onChange={(e) => setExporterId(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            >
+              <option value="">All admins</option>
+              {exporters.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
             Format
             <select
@@ -966,6 +1048,21 @@ function ExportLogsPanel() {
               <option value="">All</option>
               <option value="csv">CSV</option>
               <option value="xlsx">XLSX</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            Active view
+            <select
+              value={viewFilter}
+              onChange={(e) => setViewFilter(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            >
+              <option value="">All views</option>
+              {views.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
@@ -988,19 +1085,16 @@ function ExportLogsPanel() {
               className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
             />
           </label>
-          {(format || fromDate || toDate) && (
-            <button
-              type="button"
-              onClick={() => {
-                setFormat("");
-                setFromDate("");
-                setToDate("");
-              }}
-              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted"
-            >
-              Clear
-            </button>
-          )}
+          <label className="flex flex-1 min-w-[220px] flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            Search
+            <input
+              type="search"
+              placeholder="Admin, view, search text, column…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            />
+          </label>
         </div>
       </div>
 
@@ -1015,9 +1109,13 @@ function ExportLogsPanel() {
           <div className="p-6 text-sm text-destructive">
             {(q.error as Error).message}
           </div>
-        ) : rows.length === 0 ? (
+        ) : allRows.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">
             No exports recorded.
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="p-6 text-sm text-muted-foreground">
+            No exports match the current filters.
           </div>
         ) : (
           <ul className="divide-y divide-border">
@@ -1073,4 +1171,5 @@ function ExportLogsPanel() {
     </section>
   );
 }
+
 
