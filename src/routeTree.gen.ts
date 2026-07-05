@@ -38,6 +38,7 @@ import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
+import { Route as AuthenticatedAdminEmailSetupRouteImport } from './routes/_authenticated/admin.email-setup'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
@@ -207,6 +208,12 @@ const AuthenticatedAdminEventsComplianceRoute =
     path: '/admin/events-compliance',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminEmailSetupRoute =
+  AuthenticatedAdminEmailSetupRouteImport.update({
+    id: '/admin/email-setup',
+    path: '/admin/email-setup',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminCompliancePolicyRoute =
   AuthenticatedAdminCompliancePolicyRouteImport.update({
     id: '/admin/compliance-policy',
@@ -306,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
+  '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
@@ -349,6 +357,7 @@ export interface FileRoutesByTo {
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
+  '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
@@ -394,6 +403,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
+  '/_authenticated/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/_authenticated/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
@@ -439,6 +449,7 @@ export interface FileRouteTypes {
     | '/admin/cohosts'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
+    | '/admin/email-setup'
     | '/admin/events-compliance'
     | '/admin/health-purge'
     | '/admin/health-reminders'
@@ -482,6 +493,7 @@ export interface FileRouteTypes {
     | '/admin/cohosts'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
+    | '/admin/email-setup'
     | '/admin/events-compliance'
     | '/admin/health-purge'
     | '/admin/health-reminders'
@@ -526,6 +538,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/cohosts'
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
+    | '/_authenticated/admin/email-setup'
     | '/_authenticated/admin/events-compliance'
     | '/_authenticated/admin/health-purge'
     | '/_authenticated/admin/health-reminders'
@@ -774,6 +787,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEventsComplianceRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/email-setup': {
+      id: '/_authenticated/admin/email-setup'
+      path: '/admin/email-setup'
+      fullPath: '/admin/email-setup'
+      preLoaderRoute: typeof AuthenticatedAdminEmailSetupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/compliance-policy': {
       id: '/_authenticated/admin/compliance-policy'
       path: '/admin/compliance-policy'
@@ -903,6 +923,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
+  AuthenticatedAdminEmailSetupRoute: typeof AuthenticatedAdminEmailSetupRoute
   AuthenticatedAdminEventsComplianceRoute: typeof AuthenticatedAdminEventsComplianceRoute
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
@@ -930,6 +951,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminComplianceAuditRoute,
   AuthenticatedAdminCompliancePolicyRoute:
     AuthenticatedAdminCompliancePolicyRoute,
+  AuthenticatedAdminEmailSetupRoute: AuthenticatedAdminEmailSetupRoute,
   AuthenticatedAdminEventsComplianceRoute:
     AuthenticatedAdminEventsComplianceRoute,
   AuthenticatedAdminHealthPurgeRoute: AuthenticatedAdminHealthPurgeRoute,
@@ -990,3 +1012,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
