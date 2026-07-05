@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { getCurrentPolicyVersion, listPolicyVersions } from "@/lib/host.functions";
+import { getCurrentPolicyVersion, listPolicyVersions, listMyComplianceDocuments } from "@/lib/host.functions";
+import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/compliance")({
   head: () => ({
@@ -187,7 +190,10 @@ function CompliancePage() {
         </p>
       </Section>
 
+      <MyDocumentsSection />
+
       <Section eyebrow="Contact" title="Questions or appeals">
+
         <p>
           If an event has been flagged and you believe the decision is incorrect, reply
           to the review notification with supporting documents. For general questions
@@ -254,3 +260,123 @@ function PolicyVersionBanner() {
     </div>
   );
 }
+
+function useIsSignedIn() {
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (alive) setSignedIn(!!data.user);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      setSignedIn(!!session?.user);
+    });
+    return () => { alive = false; sub.subscription.unsubscribe(); };
+  }, []);
+  return signedIn;
+}
+
+function DocTypeLabel({ type }: { type: string }) {
+  const map: Record<string, string> = {
+    permit: "Permit",
+    insurance: "Insurance",
+    capacity: "Capacity",
+    other: "Other",
+  };
+  return <span>{map[type] ?? type}</span>;
+}
+
+function MyDocumentsSection() {
+  const signedIn = useIsSignedIn();
+  const listFn = useServerFn(listMyComplianceDocuments);
+  const currentFn = useServerFn(getCurrentPolicyVersion);
+  const docs = useQuery({
+    queryKey: ["my-compliance-documents"],
+    queryFn: () => listFn(),
+    enabled: signedIn === true,
+  });
+  const current = useQuery({
+    queryKey: ["compliance-policy-current"],
+    queryFn: () => currentFn(),
+  });
+
+  if (!signedIn) return null;
+  const rows = docs.data ?? [];
+  if (docs.isLoading) {
+    return (
+      <Section eyebrow="Your uploads" title="Documents you've submitted">
+        <p className="text-sm text-muted-foreground">Loading your documents…</p>
+      </Section>
+    );
+  }
+  if (rows.length === 0) {
+    return (
+      <Section eyebrow="Your uploads" title="Documents you've submitted">
+        <p className="text-sm text-muted-foreground">
+          You haven't uploaded any compliance documents yet. Documents are added from
+          the event editor.
+        </p>
+      </Section>
+    );
+  }
+
+  const currentId = current.data?.id ?? null;
+  const currentVersion = current.data?.version ?? null;
+
+  return (
+    <Section eyebrow="Your uploads" title="Documents you've submitted">
+      <p className="text-sm text-muted-foreground">
+        Each document is tagged with the compliance policy version that was in force
+        when it was uploaded — that is the version you agreed to at the time.
+      </p>
+      <ul className="mt-4 space-y-3">
+        {rows.map((d) => {
+          const stale = currentId && d.policy_version_id && d.policy_version_id !== currentId;
+          return (
+            <li
+              key={d.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-4"
+            >
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="rounded bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-foreground/80">
+                    <DocTypeLabel type={d.doc_type} />
+                  </span>
+                  <span className="font-medium text-foreground truncate">{d.file_name}</span>
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {d.event_title ? <span>{d.event_title} · </span> : null}
+                  Uploaded {new Date(d.uploaded_at).toLocaleDateString()}
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1 text-xs">
+                {d.policy_version_label ? (
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${
+                      stale
+                        ? "bg-amber-500/15 text-amber-300"
+                        : "bg-emerald-500/15 text-emerald-400"
+                    }`}
+                    title={stale && currentVersion ? `Current policy is v${currentVersion}` : "Agreed to current policy"}
+                  >
+                    Agreed to policy v{d.policy_version_label}
+                  </span>
+                ) : (
+                  <span className="rounded bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+                    No policy version recorded
+                  </span>
+                )}
+                {stale && currentVersion && (
+                  <span className="text-amber-300">
+                    Current policy is v{currentVersion} — consider re-uploading.
+                  </span>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Section>
+  );
+}
+
