@@ -90,7 +90,14 @@ export const Route = createFileRoute('/api/public/hooks/test-reminder-email')({
         })
 
         return json(
-          { ok: result.ok, id: result.id, status: result.status, error: result.error, portalUrl },
+          {
+            ok: result.ok,
+            id: result.id,
+            status: result.status,
+            error: result.error,
+            portalUrl,
+            portalSource,
+          },
           result.ok ? 200 : 502,
         )
       },
