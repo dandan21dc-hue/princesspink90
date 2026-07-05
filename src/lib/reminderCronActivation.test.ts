@@ -12,8 +12,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 //      health_screening_reminder_log makes the second attempt skip via a
 //      Postgres 23505 unique_violation.
 
-const sendResendEmail = vi.fn(async () => ({ ok: true as const }))
+type SendResendEmailArgs = {
+  to: string
+  idempotencyKey: string
+  subject?: string
+  html?: string
+  from?: string
+  [key: string]: unknown
+}
+const sendResendEmail = vi.fn(
+  async (_args: SendResendEmailArgs) => ({ ok: true as const }),
+)
 vi.mock('@/lib/resend.server', () => ({ sendResendEmail }))
+
 
 // Fixed target: today + 7 days in UTC (matches hook's window logic).
 const TODAY = new Date()
@@ -227,9 +238,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     // Exactly one send per due reminder — no duplicates, no missed rows.
     expect(sendResendEmail).toHaveBeenCalledTimes(DUE.length)
 
-    const recipients = sendResendEmail.mock.calls.map(
-      (c) => ((c as unknown as [{ to: string }])[0]).to,
-    )
+    const recipients = sendResendEmail.mock.calls.map((c) => c[0].to)
     const unique = new Set(recipients)
     expect(unique.size).toBe(DUE.length)
     for (const s of DUE) {
@@ -237,13 +246,13 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     }
 
     // Every send used the deterministic per-screening idempotency key.
-    const keys = sendResendEmail.mock.calls.map(
-      (c) => ((c as unknown as [{ idempotencyKey: string }])[0]).idempotencyKey,
-    )
+    const keys = sendResendEmail.mock.calls.map((c) => c[0].idempotencyKey)
     for (const s of DUE) {
       expect(keys).toContain(`expiry_7_day:${s.id}:${s.valid_until}`)
     }
   })
+
+
 
   it('does not double-send when cron re-invokes the hook (idempotency)', async () => {
     configuredRunTime = '00:00'
@@ -271,7 +280,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     // the log row but hadn't yet flipped expiry_reminder_sent_at. The row
     // still appears as a candidate; the insert must return 23505 and the
     // hook must NOT send an email for it.
-    const preClaimed = DUE[0]
+    const preClaimed = DUE[0]!
     claimedKeys.add(
       `expiry_7_day:${preClaimed.id}:${preClaimed.valid_until}`,
     )
@@ -283,9 +292,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     expect(body.candidates).toBe(DUE.length - 1)
     expect(body.emailed).toBe(DUE.length - 1)
     expect(sendResendEmail).toHaveBeenCalledTimes(DUE.length - 1)
-    const recipients = sendResendEmail.mock.calls.map(
-      (c) => ((c as unknown as [{ to: string }])[0]).to,
-    )
+    const recipients = sendResendEmail.mock.calls.map((c) => c[0].to)
     expect(recipients).not.toContain(
       `user-${preClaimed.user_id.slice(-2)}@example.com`,
     )
