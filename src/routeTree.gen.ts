@@ -44,6 +44,7 @@ import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authent
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksVenueComplianceRemindersRouteImport } from './routes/api/public/hooks/venue-compliance-reminders'
+import { Route as ApiPublicHooksTestReminderEmailRouteImport } from './routes/api/public/hooks/test-reminder-email'
 import { Route as ApiPublicHooksReminderRetriesRouteImport } from './routes/api/public/hooks/reminder-retries'
 import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './routes/api/public/hooks/health-screening-reminders'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
@@ -242,6 +243,12 @@ const ApiPublicHooksVenueComplianceRemindersRoute =
     path: '/api/public/hooks/venue-compliance-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksTestReminderEmailRoute =
+  ApiPublicHooksTestReminderEmailRouteImport.update({
+    id: '/api/public/hooks/test-reminder-email',
+    path: '/api/public/hooks/test-reminder-email',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksReminderRetriesRoute =
   ApiPublicHooksReminderRetriesRouteImport.update({
     id: '/api/public/hooks/reminder-retries',
@@ -316,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
+  '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -358,6 +366,7 @@ export interface FileRoutesByTo {
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
+  '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -402,6 +411,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
+  '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -446,6 +456,7 @@ export interface FileRouteTypes {
     | '/events/$id/waivers'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/reminder-retries'
+    | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
@@ -488,6 +499,7 @@ export interface FileRouteTypes {
     | '/events/$id/waivers'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/reminder-retries'
+    | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
@@ -531,6 +543,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/waivers'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/reminder-retries'
+    | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/payments/webhook'
     | '/lovable/email/queue/process'
@@ -550,6 +563,7 @@ export interface RootRouteChildren {
   EventsIdRoute: typeof EventsIdRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
   ApiPublicHooksReminderRetriesRoute: typeof ApiPublicHooksReminderRetriesRoute
+  ApiPublicHooksTestReminderEmailRoute: typeof ApiPublicHooksTestReminderEmailRoute
   ApiPublicHooksVenueComplianceRemindersRoute: typeof ApiPublicHooksVenueComplianceRemindersRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -802,6 +816,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksVenueComplianceRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/test-reminder-email': {
+      id: '/api/public/hooks/test-reminder-email'
+      path: '/api/public/hooks/test-reminder-email'
+      fullPath: '/api/public/hooks/test-reminder-email'
+      preLoaderRoute: typeof ApiPublicHooksTestReminderEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/reminder-retries': {
       id: '/api/public/hooks/reminder-retries'
       path: '/api/public/hooks/reminder-retries'
@@ -960,6 +981,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksHealthScreeningRemindersRoute:
     ApiPublicHooksHealthScreeningRemindersRoute,
   ApiPublicHooksReminderRetriesRoute: ApiPublicHooksReminderRetriesRoute,
+  ApiPublicHooksTestReminderEmailRoute: ApiPublicHooksTestReminderEmailRoute,
   ApiPublicHooksVenueComplianceRemindersRoute:
     ApiPublicHooksVenueComplianceRemindersRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
