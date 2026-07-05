@@ -19,7 +19,7 @@ async function notifyAllCreators(payload: {
   title: string;
   body?: string;
   link_url?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, any>;
 }) {
   const { data: creators } = await getSupabase()
     .from("content_items")
