@@ -119,11 +119,38 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
 }
 
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
-  // Only for one-time content-item purchases
-  const contentItemId = session.metadata?.content_item_id;
-  const userId = session.metadata?.userId;
-  if (!contentItemId || !userId) return;
   if (session.mode !== "payment") return;
+  const userId = session.metadata?.userId;
+  if (!userId) return;
+
+  // Lifetime membership purchase
+  if (session.metadata?.membership === "lifetime") {
+    await getSupabase()
+      .from("memberships")
+      .upsert(
+        {
+          user_id: userId,
+          kind: "lifetime",
+          stripe_session_id: session.id,
+          amount_cents: session.amount_total ?? 0,
+          environment: env,
+        },
+        { onConflict: "user_id,kind,environment" },
+      );
+    const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
+    await notifyAllCreators({
+      kind: "lifetime_purchase",
+      title: `New lifetime member — $${amount} 💎`,
+      body: "Includes 1 free event ticket + 1 private session perk.",
+      link_url: "/dashboard",
+      metadata: { session_id: session.id, env } as any,
+    });
+    return;
+  }
+
+  // One-time content-item purchase
+  const contentItemId = session.metadata?.content_item_id;
+  if (!contentItemId) return;
 
   await getSupabase()
     .from("content_purchases")
