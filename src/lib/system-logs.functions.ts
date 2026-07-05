@@ -97,3 +97,96 @@ export const getSystemLogs = createServerFn({ method: "GET" })
     events.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
     return events.slice(0, 200);
   });
+
+export type SystemLogDetail = {
+  id: string;
+  kind: SystemLogEvent["kind"];
+  label: string;
+  at: string;
+  summary: string;
+  payload: Record<string, unknown>;
+};
+
+const detailInput = z.object({
+  kind: z.enum(["rsvp", "health_approved", "cohost_applied", "incident"]),
+  id: z.string().uuid(),
+});
+
+export const getSystemLogDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: z.input<typeof detailInput>) => detailInput.parse(input))
+  .handler(async ({ data, context }): Promise<SystemLogDetail> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (data.kind === "rsvp") {
+      const { data: row, error } = await supabaseAdmin
+        .from("rsvps")
+        .select("*, events:event_id(id, title, venue_name, starts_at)")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!row) throw new Error("RSVP not found");
+      return {
+        id: `rsvp-${row.id}`,
+        kind: "rsvp",
+        label: "New Guest RSVP",
+        at: row.created_at as string,
+        summary: `Guest RSVP · ${row.guest_count ?? 1} guest(s)`,
+        payload: row as Record<string, unknown>,
+      };
+    }
+
+    if (data.kind === "health_approved") {
+      const { data: row, error } = await supabaseAdmin
+        .from("health_screenings")
+        .select("*")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!row) throw new Error("Health screening not found");
+      return {
+        id: `health-${row.id}`,
+        kind: "health_approved",
+        label: "Health Check Approved",
+        at: (row.reviewed_at ?? row.submitted_at) as string,
+        summary: row.valid_until ? `Valid until ${row.valid_until}` : "Screening approved",
+        payload: row as Record<string, unknown>,
+      };
+    }
+
+    if (data.kind === "cohost_applied") {
+      const { data: row, error } = await supabaseAdmin
+        .from("cohost_applications")
+        .select("*")
+        .eq("id", data.id)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!row) throw new Error("Co-host application not found");
+      return {
+        id: `cohost-${row.id}`,
+        kind: "cohost_applied",
+        label: "Co-Host Applied",
+        at: row.submitted_at as string,
+        summary: [row.display_name, row.city].filter(Boolean).join(" · ") || "Application submitted",
+        payload: row as Record<string, unknown>,
+      };
+    }
+
+    // incident
+    const { data: row, error } = await supabaseAdmin
+      .from("safety_incident_reports")
+      .select("*")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!row) throw new Error("Incident not found");
+    return {
+      id: `incident-${row.id}`,
+      kind: "incident",
+      label: "Incident Reported",
+      at: row.created_at as string,
+      summary: [row.venue, row.nature_of_incident].filter(Boolean).join(" · "),
+      payload: row as Record<string, unknown>,
+    };
+  });
