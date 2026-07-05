@@ -2,11 +2,16 @@
 // Kept as inline HTML (no React Email) so it works in the Cloudflare Worker
 // runtime used by public cron routes without extra bundling.
 
+export type HealthStatus = 'approved' | 'pending' | 'rejected' | 'expired' | string
+
 export interface HealthReminderTemplateArgs {
   recipientName?: string | null
   validUntil: string // ISO date (YYYY-MM-DD)
   daysUntilExpiry: number
   portalUrl: string
+  // Latest screening snapshot from the portal
+  status?: HealthStatus | null
+  testDate?: string | null // ISO date
 }
 
 export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs): {
@@ -14,17 +19,26 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
   html: string
   text: string
 } {
-  const { recipientName, validUntil, daysUntilExpiry, portalUrl } = args
-  const greeting = recipientName ? `Hi ${escapeHtml(recipientName)},` : 'Hi,'
+  const { recipientName, validUntil, daysUntilExpiry, portalUrl, status, testDate } = args
+  const firstName = pickFirstName(recipientName)
+  const greeting = firstName ? `Hi ${escapeHtml(firstName)},` : 'Hi there,'
   const dayLabel = daysUntilExpiry === 1 ? 'day' : 'days'
-  const prettyDate = formatDate(validUntil)
+  const prettyValidUntil = formatDate(validUntil)
+  const prettyTestDate = testDate ? formatDate(testDate) : null
+  const badge = statusBadge(status)
 
-  const subject = `Your health screening expires in ${daysUntilExpiry} ${dayLabel}`
+  const subject = firstName
+    ? `${firstName}, your health screening expires in ${daysUntilExpiry} ${dayLabel}`
+    : `Your health screening expires in ${daysUntilExpiry} ${dayLabel}`
 
   const text = [
     greeting,
     '',
-    `A friendly heads-up: your approved health screening is valid until ${prettyDate} — ${daysUntilExpiry} ${dayLabel} from today.`,
+    `A friendly heads-up: your screening on file is valid until ${prettyValidUntil} — ${daysUntilExpiry} ${dayLabel} from today.`,
+    '',
+    `Current status: ${badge.plain}`,
+    prettyTestDate ? `Test date on file: ${prettyTestDate}` : null,
+    `Expires: ${prettyValidUntil}`,
     '',
     'To keep your access active for upcoming events, please upload a renewed certificate before it expires.',
     '',
@@ -36,7 +50,9 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
     'Princess Pink',
     '',
     '— This is an automated reminder from Princess Pink. Reply to this email if you need help.',
-  ].join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   const html = `<!doctype html>
 <html lang="en">
@@ -60,17 +76,47 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
               <td style="padding:28px 32px 8px 32px;font-size:16px;line-height:1.55;">
                 <p style="margin:0 0 14px 0;">${greeting}</p>
                 <p style="margin:0 0 14px 0;">
-                  A friendly heads-up: your approved health screening is valid until
-                  <strong>${escapeHtml(prettyDate)}</strong> — that's
+                  A friendly heads-up: your screening on file is valid until
+                  <strong>${escapeHtml(prettyValidUntil)}</strong> — that's
                   <strong>${daysUntilExpiry} ${dayLabel}</strong> from today.
                 </p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 20px 32px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                       style="background:#fdf3f8;border:1px solid #f2d6e4;border-radius:12px;">
+                  <tr>
+                    <td style="padding:16px 20px;font-size:14px;color:#4a2b3a;line-height:1.6;">
+                      <div style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#8a5b74;margin-bottom:8px;">
+                        Your screening on file
+                      </div>
+                      <div style="margin-bottom:6px;">
+                        <span style="color:#8a5b74;">Status:</span>
+                        <span style="display:inline-block;margin-left:6px;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;background:${badge.bg};color:${badge.fg};">
+                          ${escapeHtml(badge.label)}
+                        </span>
+                      </div>
+                      ${
+                        prettyTestDate
+                          ? `<div style="margin-bottom:4px;"><span style="color:#8a5b74;">Test date:</span> <strong>${escapeHtml(prettyTestDate)}</strong></div>`
+                          : ''
+                      }
+                      <div><span style="color:#8a5b74;">Expires:</span> <strong>${escapeHtml(prettyValidUntil)}</strong></div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 32px 8px 32px;font-size:16px;line-height:1.55;">
                 <p style="margin:0 0 20px 0;">
                   To keep your access active for upcoming events, please upload a renewed certificate before it expires.
                 </p>
               </td>
             </tr>
             <tr>
-              <td align="center" style="padding:8px 32px 28px 32px;">
+              <td align="center" style="padding:8px 32px 20px 32px;">
                 <a href="${escapeAttr(portalUrl)}"
                    style="display:inline-block;background:#c94b8b;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:600;font-size:15px;">
                   Update your screening
@@ -102,6 +148,33 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
 </html>`
 
   return { subject, html, text }
+}
+
+function pickFirstName(name?: string | null): string | null {
+  if (!name) return null
+  const trimmed = name.trim()
+  if (!trimmed) return null
+  return trimmed.split(/\s+/)[0]
+}
+
+function statusBadge(status?: HealthStatus | null): {
+  label: string
+  plain: string
+  bg: string
+  fg: string
+} {
+  switch ((status ?? '').toLowerCase()) {
+    case 'approved':
+      return { label: 'Approved', plain: 'Approved', bg: '#e6f7ed', fg: '#0f7a3d' }
+    case 'pending':
+      return { label: 'Pending review', plain: 'Pending review', bg: '#fff4e0', fg: '#7a4b00' }
+    case 'rejected':
+      return { label: 'Rejected', plain: 'Rejected', bg: '#fde8e8', fg: '#9b1c1c' }
+    case 'expired':
+      return { label: 'Expired', plain: 'Expired', bg: '#eee', fg: '#555' }
+    default:
+      return { label: 'On file', plain: 'On file', bg: '#f2e6ed', fg: '#5a2b45' }
+  }
 }
 
 function escapeHtml(s: string): string {
