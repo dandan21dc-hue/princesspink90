@@ -60,13 +60,23 @@ function CheckinPage() {
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Door</div>
           <h1 className="mt-2 font-display text-3xl font-bold">Check-in</h1>
         </div>
-        <Link
-          to="/events/$id"
-          params={{ id: eventId }}
-          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-        >
-          ← Event
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/events/$id/checkin/print"
+            params={{ id: eventId }}
+            target="_blank"
+            className="rounded-md border border-border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground hover:bg-accent"
+          >
+            Print door sheet
+          </Link>
+          <Link
+            to="/events/$id"
+            params={{ id: eventId }}
+            className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          >
+            ← Event
+          </Link>
+        </div>
       </div>
 
       <form
