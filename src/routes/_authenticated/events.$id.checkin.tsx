@@ -1,0 +1,242 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { lookupCheckin, performCheckin } from "@/lib/checkin.functions";
+import type { VideoConsent } from "@/lib/verification.functions";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/_authenticated/events/$id/checkin")({
+  head: () => ({ meta: [{ title: "Door check-in · AFTERDARK" }] }),
+  component: CheckinPage,
+});
+
+type Lookup = Awaited<ReturnType<typeof lookupCheckin>>;
+type FoundLookup = Extract<Lookup, { found: true }>;
+
+function CheckinPage() {
+  const { id: eventId } = Route.useParams();
+  const lookupFn = useServerFn(lookupCheckin);
+  const checkinFn = useServerFn(performCheckin);
+
+  const [code, setCode] = useState("");
+  const [result, setResult] = useState<Lookup | null>(null);
+
+  const lookup = useMutation({
+    mutationFn: (t: string) => lookupFn({ data: { event_id: eventId, ticket_code: t } }),
+    onSuccess: (r) => setResult(r),
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  return (
+    <main className="mx-auto max-w-2xl px-5 py-10">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-[0.3em] text-primary">Door</div>
+          <h1 className="mt-2 font-display text-3xl font-bold">Check-in</h1>
+        </div>
+        <Link
+          to="/events/$id"
+          params={{ id: eventId }}
+          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
+          ← Event
+        </Link>
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!code.trim()) return;
+          setResult(null);
+          lookup.mutate(code.trim());
+        }}
+        className="flex gap-2"
+      >
+        <input
+          autoFocus
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase())}
+          placeholder="Ticket code"
+          className="flex-1 rounded-md border border-border bg-background px-4 py-3 font-mono text-lg tracking-widest"
+          maxLength={50}
+        />
+        <button
+          type="submit"
+          disabled={lookup.isPending}
+          className="rounded-md bg-primary px-6 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+        >
+          {lookup.isPending ? "…" : "Look up"}
+        </button>
+      </form>
+
+      {result?.found === false && (
+        <p className="mt-6 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          No RSVP matches that code for this event.
+        </p>
+      )}
+
+      {result?.found && (
+        <GuestPanel
+          data={result}
+          eventId={eventId}
+          onCheckedIn={() => {
+            setCode("");
+            setResult(null);
+            toast.success("Checked in — welcome them in.");
+          }}
+          checkinFn={checkinFn}
+        />
+      )}
+    </main>
+  );
+}
+
+function GuestPanel({
+  data,
+  eventId,
+  onCheckedIn,
+  checkinFn,
+}: {
+  data: FoundLookup;
+  eventId: string;
+  onCheckedIn: () => void;
+  checkinFn: ReturnType<typeof useServerFn<typeof performCheckin>>;
+}) {
+  const [consent, setConsent] = useState<VideoConsent>(
+    (data.rsvp.video_consent as VideoConsent) ?? {
+      private_archive: false,
+      public_promo: false,
+      face_blurred_only: false,
+      no_filming: true,
+    },
+  );
+  const [ageOk, setAgeOk] = useState(false);
+  const [notes, setNotes] = useState("");
+
+  const ageStatus = data.age?.status ?? "missing";
+  const ageOkOnFile = ageStatus === "approved";
+
+  const check = useMutation({
+    mutationFn: () =>
+      checkinFn({
+        data: {
+          rsvp_id: data.rsvp.id,
+          event_id: eventId,
+          consent,
+          door_notes: notes || undefined,
+        },
+      }),
+    onSuccess: onCheckedIn,
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const toggle = (key: keyof VideoConsent) => (v: boolean) => {
+    setConsent((c) => {
+      const next = { ...c, [key]: v };
+      if (key === "no_filming" && v) {
+        next.private_archive = false;
+        next.public_promo = false;
+        next.face_blurred_only = false;
+      } else if (v && key !== "no_filming") {
+        next.no_filming = false;
+      }
+      return next;
+    });
+  };
+
+  return (
+    <section className="mt-6 space-y-5 rounded-2xl border border-border/60 bg-card/40 p-6">
+      <header>
+        <div className="text-xs uppercase tracking-widest text-muted-foreground">Guest</div>
+        <div className="mt-1 font-display text-2xl font-bold">
+          {data.guest.display_name ?? data.guest.email ?? "Unknown"}
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          {data.guest.email} · Ticket{" "}
+          <span className="font-mono tracking-widest">{data.rsvp.ticket_code}</span> · Party of{" "}
+          {data.rsvp.guest_count}
+        </div>
+        {data.rsvp.checked_in_at && (
+          <div className="mt-3 rounded-md border border-neon/40 bg-neon/10 px-3 py-2 text-xs uppercase tracking-widest text-neon">
+            Already checked in {new Date(data.rsvp.checked_in_at).toLocaleTimeString()}
+          </div>
+        )}
+      </header>
+
+      <AgeBadge status={ageStatus} dob={data.age?.date_of_birth ?? null} />
+
+      <div>
+        <div className="mb-2 text-xs uppercase tracking-widest text-primary">
+          Confirm video consent (ask the guest)
+        </div>
+        <div className="space-y-1.5 text-sm">
+          <Check label="Private archive only" checked={consent.private_archive} onChange={toggle("private_archive")} />
+          <Check label="OK for public promo / social" checked={consent.public_promo} onChange={toggle("public_promo")} />
+          <Check label="Only if face is blurred" checked={consent.face_blurred_only} onChange={toggle("face_blurred_only")} />
+          <Check label="Do not film" checked={consent.no_filming} onChange={toggle("no_filming")} />
+        </div>
+      </div>
+
+      <label className="block">
+        <div className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">Door notes (optional)</div>
+        <input
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          maxLength={500}
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+        />
+      </label>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" checked={ageOk} onChange={(e) => setAgeOk(e.target.checked)} className="mt-1" />
+        <span>I visually matched the guest to their approved ID and confirmed they are 18+.</span>
+      </label>
+
+      <button
+        onClick={() => check.mutate()}
+        disabled={check.isPending || !ageOk || !ageOkOnFile}
+        className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] disabled:opacity-50"
+      >
+        {!ageOkOnFile
+          ? "Refuse entry — no approved ID"
+          : check.isPending
+          ? "Checking in…"
+          : "Admit guest & record consent"}
+      </button>
+    </section>
+  );
+}
+
+function AgeBadge({ status, dob }: { status: string; dob: string | null }) {
+  const map: Record<string, string> = {
+    approved: "border-neon/50 bg-neon/10 text-neon",
+    pending: "border-primary/50 bg-primary/10 text-primary",
+    rejected: "border-destructive/60 bg-destructive/10 text-destructive",
+    missing: "border-destructive/60 bg-destructive/10 text-destructive",
+  };
+  const label: Record<string, string> = {
+    approved: "ID approved",
+    pending: "ID pending review",
+    rejected: "ID rejected",
+    missing: "No ID on file",
+  };
+  const age = dob
+    ? Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000))
+    : null;
+  return (
+    <div className={`rounded-lg border p-3 text-xs uppercase tracking-widest ${map[status] ?? map.missing}`}>
+      {label[status] ?? label.missing}
+      {age !== null && ` · age ${age}`}
+    </div>
+  );
+}
+
+function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-start gap-2">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1" />
+      <span>{label}</span>
+    </label>
+  );
+}

@@ -347,8 +347,12 @@ export type Database = {
       rsvps: {
         Row: {
           age_confirmed_at: string | null
+          checked_in_at: string | null
+          checked_in_by: string | null
+          consent_at_checkin: Json | null
           consent_confirmed_at: string | null
           created_at: string
+          door_notes: string | null
           event_id: string
           guest_count: number
           id: string
@@ -359,8 +363,12 @@ export type Database = {
         }
         Insert: {
           age_confirmed_at?: string | null
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          consent_at_checkin?: Json | null
           consent_confirmed_at?: string | null
           created_at?: string
+          door_notes?: string | null
           event_id: string
           guest_count?: number
           id?: string
@@ -371,8 +379,12 @@ export type Database = {
         }
         Update: {
           age_confirmed_at?: string | null
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          consent_at_checkin?: Json | null
           consent_confirmed_at?: string | null
           created_at?: string
+          door_notes?: string | null
           event_id?: string
           guest_count?: number
           id?: string

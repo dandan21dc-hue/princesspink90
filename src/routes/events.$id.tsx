@@ -46,9 +46,16 @@ function EventPage() {
   const e = data ?? event;
 
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setAuthed(!!s));
+    supabase.auth.getSession().then(({ data }) => {
+      setAuthed(!!data.session);
+      setUserId(data.session?.user.id ?? null);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setAuthed(!!s);
+      setUserId(s?.user.id ?? null);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -105,6 +112,15 @@ function EventPage() {
               </Link>
             )}
           </div>
+          {userId && e.host_id === userId && (
+            <Link
+              to="/events/$id/checkin"
+              params={{ id: e.id }}
+              className="block w-full rounded-md border border-neon/40 bg-neon/10 py-3 text-center text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
+            >
+              Door check-in →
+            </Link>
+          )}
         </aside>
       </div>
     </article>
