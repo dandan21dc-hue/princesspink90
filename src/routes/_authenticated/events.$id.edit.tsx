@@ -259,12 +259,14 @@ type CodeRow = {
 };
 
 function AccessCodeRow({
-  c, onDelete, onToggle, pending,
+  c, onDelete, onToggle, pending, selected, onSelect,
 }: {
   c: CodeRow;
   onDelete: () => void;
   onToggle: (used: boolean, name?: string) => void;
   pending: boolean;
+  selected: boolean;
+  onSelect: (checked: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(c.used_by_name ?? "");
@@ -273,6 +275,8 @@ function AccessCodeRow({
   return (
     <li className={`rounded-md border px-3 py-2 text-sm ${used ? "border-primary/40 bg-primary/5" : "border-border/50"}`}>
       <div className="flex items-center justify-between gap-3">
+        <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)}
+          className="shrink-0" aria-label={`Select ${c.code}`} />
         <div className="min-w-0 flex-1">
           <div className={`font-mono ${used ? "text-muted-foreground line-through" : ""}`}>{c.code}</div>
           {used && (
