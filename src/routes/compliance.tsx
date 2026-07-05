@@ -469,6 +469,8 @@ function MyDocumentsSection() {
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [q, setQ] = useState<string>("");
+  const [sortKey, setSortKey] = useState<"uploaded_at" | "policy_version">("uploaded_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   if (!signedIn) return null;
   const allRows = docs.data ?? [];
@@ -496,17 +498,32 @@ function MyDocumentsSection() {
   const fromTs = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
   const toTs = toDate ? new Date(toDate + "T23:59:59.999").getTime() : null;
   const needle = q.trim().toLowerCase();
-  const rows = allRows.filter((d) => {
-    if (versionFilter && d.policy_version_id !== versionFilter) return false;
-    const t = new Date(d.uploaded_at).getTime();
-    if (fromTs != null && t < fromTs) return false;
-    if (toTs != null && t > toTs) return false;
-    if (needle) {
-      const hay = `${d.file_name} ${d.event_title ?? ""} ${d.doc_type} ${d.policy_version_label ?? ""}`.toLowerCase();
-      if (!hay.includes(needle)) return false;
-    }
-    return true;
-  });
+  const rows = allRows
+    .filter((d) => {
+      if (versionFilter && d.policy_version_id !== versionFilter) return false;
+      const t = new Date(d.uploaded_at).getTime();
+      if (fromTs != null && t < fromTs) return false;
+      if (toTs != null && t > toTs) return false;
+      if (needle) {
+        const hay = `${d.file_name} ${d.event_title ?? ""} ${d.doc_type} ${d.policy_version_label ?? ""}`.toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    })
+    .slice()
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (sortKey === "uploaded_at") {
+        return (new Date(a.uploaded_at).getTime() - new Date(b.uploaded_at).getTime()) * dir;
+      }
+      // policy_version — numeric compare when possible, fallback to string
+      const av = a.policy_version_label ?? "";
+      const bv = b.policy_version_label ?? "";
+      const an = Number(av);
+      const bn = Number(bv);
+      if (Number.isFinite(an) && Number.isFinite(bn)) return (an - bn) * dir;
+      return av.localeCompare(bv) * dir;
+    });
 
   const filtersActive = !!(versionFilter || fromDate || toDate || needle);
 
@@ -562,19 +579,42 @@ function MyDocumentsSection() {
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
         </label>
-        <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>
             Showing {rows.length} of {allRows.length}
           </span>
-          {filtersActive && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="uppercase tracking-widest">Sort</span>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as "uploaded_at" | "policy_version")}
+              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+              aria-label="Sort by"
+            >
+              <option value="uploaded_at">Upload date</option>
+              <option value="policy_version">Policy version</option>
+            </select>
             <button
               type="button"
-              onClick={() => { setVersionFilter(""); setFromDate(""); setToDate(""); setQ(""); }}
-              className="text-primary hover:underline"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              className="rounded-md border border-input px-2 py-1 text-xs text-foreground hover:bg-muted/40"
+              aria-label={`Toggle sort direction (currently ${sortDir === "asc" ? "ascending" : "descending"})`}
+              title={sortDir === "asc" ? "Ascending — click for descending" : "Descending — click for ascending"}
             >
-              Clear filters
+              {sortKey === "uploaded_at"
+                ? sortDir === "desc" ? "Newest first ↓" : "Oldest first ↑"
+                : sortDir === "desc" ? "Highest first ↓" : "Lowest first ↑"}
             </button>
-          )}
+            {filtersActive && (
+              <button
+                type="button"
+                onClick={() => { setVersionFilter(""); setFromDate(""); setToDate(""); setQ(""); }}
+                className="text-primary hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
