@@ -131,7 +131,13 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
   }
   const missing = REQUIRED.filter((r) => !byType.get(r.type)?.length);
   const staleDocs = policy.data
-    ? docs.filter((d) => d.policy_version_id && d.policy_version_id !== policy.data!.id)
+    ? docs.filter((d) =>
+        isDocumentStale({
+          docPolicyVersionId: d.policy_version_id,
+          currentPolicyVersionId: policy.data!.id,
+          reAcknowledged: hasAgreedToCurrent,
+        }),
+      )
     : [];
 
   return (
