@@ -72,9 +72,56 @@ function Home() {
         </Link>
       </section>
       <HostBlock />
+      <CohostBlock />
     </>
   );
 }
+
+function CohostBlock() {
+  const perks = [
+    "Co-produce nights with me",
+    "Vetted, consent-first guests",
+    "Split the door + tips",
+    "Full backend + check-in tools",
+  ];
+  return (
+    <section id="cohost" className="mx-auto max-w-6xl px-5 pb-24">
+      <div className="rounded-3xl border border-neon/30 bg-gradient-to-br from-neon/10 via-background to-background p-8 sm:p-12 shadow-[var(--shadow-glow-pink)]">
+        <div className="text-xs uppercase tracking-[0.3em] text-neon">Co-host program · Women only</div>
+        <h2 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
+          Host <span className="text-neon">with me</span>
+        </h2>
+        <p className="mt-5 max-w-2xl text-muted-foreground leading-relaxed">
+          I'm opening co-host slots to verified women who want to run events on this
+          platform — whether you already throw parties or you're ready to start.
+          Verified 18+ only; applications reviewed personally.
+        </p>
+        <ul className="mt-6 flex flex-wrap gap-2">
+          {perks.map((p) => (
+            <li
+              key={p}
+              className="rounded-full border border-neon/40 bg-neon/10 px-3 py-1 text-xs uppercase tracking-widest text-neon"
+            >
+              {p}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <Link
+            to="/cohost-apply"
+            className="rounded-md bg-neon px-6 py-3 text-sm font-semibold uppercase tracking-widest text-background shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
+          >
+            Apply to co-host →
+          </Link>
+          <Link
+            to="/verify"
+            className="rounded-md border border-neon/40 bg-neon/10 px-6 py-3 text-sm font-semibold uppercase tracking-widest text-neon hover:bg-neon/20 transition"
+          >
+            Verify 18+ first
+          </Link>
+        </div>
+      </div>
+    </section>
 
 function HostBlock() {
   const { data: settings } = useSuspenseQuery(settingsQuery);
