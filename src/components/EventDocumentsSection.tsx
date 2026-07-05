@@ -235,6 +235,11 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
           onDelete={(id) => del.mutate(id)}
         />
       </div>
+      <DocumentPreviewDialog
+        target={previewTarget}
+        onOpenChange={(open) => { if (!open) setPreviewTarget(null); }}
+        signUrl={signUrlFor}
+      />
     </div>
   );
 }
