@@ -3,6 +3,12 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { videoConsentSchema, type VideoConsent } from "@/lib/verification.functions";
 
+async function sha256Hex(input: string): Promise<string> {
+  const buf = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export const rsvpToEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: {
@@ -10,6 +16,9 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
     guest_count?: number;
     age_confirmed: boolean;
     video_consent: VideoConsent;
+    waiver_accepted: boolean;
+    waiver_signature: string;
+    waiver_text_hash: string;
   }) =>
     z.object({
       event_id: z.string().uuid(),
@@ -18,6 +27,11 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
         errorMap: () => ({ message: "You must confirm you are 18+." }),
       }),
       video_consent: videoConsentSchema,
+      waiver_accepted: z.literal(true, {
+        errorMap: () => ({ message: "You must accept the liability waiver to RSVP." }),
+      }),
+      waiver_signature: z.string().trim().min(2, "Type your full legal name to sign.").max(120),
+      waiver_text_hash: z.string().regex(/^[a-f0-9]{64}$/, "Waiver signature is invalid — please refresh."),
     }).parse(data),
   )
   .handler(async ({ data, context }) => {
@@ -35,6 +49,19 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       );
     }
 
+    // Verify the guest signed the CURRENT waiver text (not a stale cached copy).
+    const { data: evRow, error: evErr } = await context.supabase
+      .from("events")
+      .select("waiver_text")
+      .eq("id", data.event_id)
+      .maybeSingle();
+    if (evErr) throw evErr;
+    if (!evRow) throw new Error("Event not found.");
+    const currentHash = await sha256Hex((evRow.waiver_text ?? "").trim());
+    if (currentHash !== data.waiver_text_hash) {
+      throw new Error("The waiver was updated. Please review and sign again.");
+    }
+
     const now = new Date().toISOString();
     const { data: row, error } = await context.supabase
       .from("rsvps")
@@ -47,6 +74,9 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
           age_confirmed_at: now,
           consent_confirmed_at: now,
           video_consent: data.video_consent,
+          waiver_signature: data.waiver_signature.trim(),
+          waiver_accepted_at: now,
+          waiver_text_hash: currentHash,
         },
         { onConflict: "event_id,user_id" },
       )
@@ -75,6 +105,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
     return row;
   });
 
+
 export const cancelRsvp = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { event_id: string }) =>
@@ -98,7 +129,7 @@ export const myRsvpForEvent = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row } = await context.supabase
       .from("rsvps")
-      .select("ticket_code, guest_count, status, video_consent, age_confirmed_at, consent_confirmed_at")
+      .select("ticket_code, guest_count, status, video_consent, age_confirmed_at, consent_confirmed_at, waiver_signature, waiver_accepted_at")
       .eq("event_id", data.event_id)
       .eq("user_id", context.userId)
       .maybeSingle();

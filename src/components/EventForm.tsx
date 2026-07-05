@@ -27,6 +27,7 @@ export type EventFormValues = {
   legal_capacity: string;
   capacity_confirmed: boolean;
   compliance_notes: string;
+  waiver_text: string;
 };
 
 export function emptyForm(): EventFormValues {
@@ -43,6 +44,7 @@ export function emptyForm(): EventFormValues {
     insurance_policy_number: "", insurance_expires_on: "",
     legal_capacity: "", capacity_confirmed: false,
     compliance_notes: "",
+    waiver_text: "",
   };
 }
 
@@ -83,6 +85,7 @@ export function toPayload(v: EventFormValues) {
     legal_capacity: legalCap,
     capacity_confirmed: v.capacity_confirmed,
     compliance_notes: v.compliance_notes.trim() || null,
+    ...(v.waiver_text.trim() ? { waiver_text: v.waiver_text.trim() } : {}),
   };
 }
 
@@ -202,6 +205,16 @@ export function EventForm({
           <textarea rows={3} className={inputCls} {...bind("compliance_notes")} placeholder="Fire marshal walkthrough date, security staffing, medical on-site, etc." />
         </Field>
       </Section>
+
+      <Section title="Liability waiver">
+        <p className="text-xs text-muted-foreground">
+          Every guest must accept this waiver and sign their name before the RSVP is confirmed. Leave blank to use the platform default waiver.
+        </p>
+        <Field label="Waiver text (optional override)">
+          <textarea rows={8} className={inputCls} {...bind("waiver_text")} placeholder="Leave blank to use the platform default waiver…" />
+        </Field>
+      </Section>
+
 
 
 

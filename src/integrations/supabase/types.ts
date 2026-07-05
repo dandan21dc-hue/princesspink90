@@ -361,6 +361,7 @@ export type Database = {
           title: string
           updated_at: string
           venue_name: string
+          waiver_text: string
         }
         Insert: {
           address?: string | null
@@ -391,6 +392,7 @@ export type Database = {
           title: string
           updated_at?: string
           venue_name: string
+          waiver_text?: string
         }
         Update: {
           address?: string | null
@@ -421,6 +423,7 @@ export type Database = {
           title?: string
           updated_at?: string
           venue_name?: string
+          waiver_text?: string
         }
         Relationships: []
       }
@@ -592,6 +595,9 @@ export type Database = {
           ticket_code: string
           user_id: string
           video_consent: Json
+          waiver_accepted_at: string | null
+          waiver_signature: string | null
+          waiver_text_hash: string | null
         }
         Insert: {
           age_confirmed_at?: string | null
@@ -608,6 +614,9 @@ export type Database = {
           ticket_code?: string
           user_id: string
           video_consent?: Json
+          waiver_accepted_at?: string | null
+          waiver_signature?: string | null
+          waiver_text_hash?: string | null
         }
         Update: {
           age_confirmed_at?: string | null
@@ -624,6 +633,9 @@ export type Database = {
           ticket_code?: string
           user_id?: string
           video_consent?: Json
+          waiver_accepted_at?: string | null
+          waiver_signature?: string | null
+          waiver_text_hash?: string | null
         }
         Relationships: [
           {

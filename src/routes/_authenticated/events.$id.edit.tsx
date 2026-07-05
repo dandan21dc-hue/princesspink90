@@ -129,6 +129,7 @@ function EditEvent() {
     legal_capacity: (event as any).legal_capacity ? String((event as any).legal_capacity) : "",
     capacity_confirmed: (event as any).capacity_confirmed ?? false,
     compliance_notes: (event as any).compliance_notes ?? "",
+    waiver_text: (event as any).waiver_text ?? "",
   };
 
 
