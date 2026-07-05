@@ -815,6 +815,58 @@ function MyDocumentsSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog
+        open={bulkConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open && !bulkReAck.isPending) setBulkConfirmOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          {(() => {
+            const selectedRows = (docs.data ?? []).filter((d) => selected.has(d.id));
+            const uniqueEventIds = Array.from(new Set(selectedRows.map((d) => d.event_id)));
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Re-acknowledge policy v{currentVersion ?? "?"} for {selectedRows.length}{" "}
+                    document{selectedRows.length === 1 ? "" : "s"}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p>
+                        This records a new agreement dated now under your account for{" "}
+                        <span className="text-foreground">{uniqueEventIds.length}</span>{" "}
+                        event{uniqueEventIds.length === 1 ? "" : "s"}. Uploaded files stay as-is —
+                        re-upload them under the current policy when convenient.
+                      </p>
+                      <p className="text-xs">Agreements are auditable and cannot be deleted.</p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={bulkReAck.isPending}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={bulkReAck.isPending || !currentId || uniqueEventIds.length === 0}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!currentId) return;
+                      bulkReAck.mutate({
+                        policy_version_id: currentId,
+                        event_ids: uniqueEventIds,
+                      });
+                    }}
+                  >
+                    {bulkReAck.isPending
+                      ? "Recording…"
+                      : `Record ${uniqueEventIds.length} agreement${uniqueEventIds.length === 1 ? "" : "s"}`}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
       <DocumentPreviewDialog
         target={previewTarget}
         onOpenChange={(open) => { if (!open) setPreviewTarget(null); }}
