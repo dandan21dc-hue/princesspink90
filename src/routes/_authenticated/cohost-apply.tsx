@@ -31,43 +31,65 @@ function CohostApply() {
     city: "",
     instagram_handle: "",
     other_socials: "",
+    bio: "",
     hosting_experience: "",
     why_join: "",
-    availability: "",
-    event_types: "",
+    availability_days: [] as string[],
+    availability_notes: "",
+    event_types_presets: [] as string[],
+    event_types_other: "",
   });
 
   useEffect(() => {
     if (mine.data) {
+      const savedAvail = mine.data.availability ?? "";
+      const availDays = DAY_OPTIONS.filter((d) => savedAvail.split("|")[0]?.includes(d));
+      const availNotes = savedAvail.split("|")[1]?.trim() ?? "";
+      const savedTypes = (mine.data.event_types ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      const presets = savedTypes.filter((t) => EVENT_TYPE_OPTIONS.includes(t));
+      const other = savedTypes.filter((t) => !EVENT_TYPE_OPTIONS.includes(t)).join(", ");
       setForm({
         display_name: mine.data.display_name ?? "",
         age: String(mine.data.age ?? ""),
         city: mine.data.city ?? "",
         instagram_handle: mine.data.instagram_handle ?? "",
         other_socials: mine.data.other_socials ?? "",
+        bio: (mine.data as any).bio ?? "",
         hosting_experience: mine.data.hosting_experience ?? "",
         why_join: mine.data.why_join ?? "",
-        availability: mine.data.availability ?? "",
-        event_types: mine.data.event_types ?? "",
+        availability_days: availDays,
+        availability_notes: availNotes,
+        event_types_presets: presets,
+        event_types_other: other,
       });
     }
   }, [mine.data]);
 
   const submit = useMutation({
-    mutationFn: () =>
-      submitFn({
+    mutationFn: () => {
+      const availability = [
+        form.availability_days.join(", "),
+        form.availability_notes.trim(),
+      ].filter(Boolean).join(" | ");
+      const event_types = [
+        ...form.event_types_presets,
+        ...form.event_types_other.split(",").map((s) => s.trim()).filter(Boolean),
+      ].join(", ");
+      return submitFn({
         data: {
           display_name: form.display_name.trim(),
           age: Number(form.age),
           city: form.city.trim(),
           instagram_handle: form.instagram_handle.trim(),
           other_socials: form.other_socials.trim(),
+          bio: form.bio.trim(),
           hosting_experience: form.hosting_experience.trim(),
           why_join: form.why_join.trim(),
-          availability: form.availability.trim(),
-          event_types: form.event_types.trim(),
+          availability,
+          event_types,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("Application submitted");
       qc.invalidateQueries({ queryKey: ["my-cohost-application"] });
