@@ -4,6 +4,8 @@ import { readReminderJobConfig } from '@/lib/reminder-job-config.functions'
 import { sendResendEmail } from '@/lib/resend.server'
 import { renderHealthScreeningReminder } from '@/lib/email-templates-resend/health-screening-reminder'
 import { resolveAppOrigin } from '@/lib/app-origin.server'
+import { redactLogPayload } from '@/lib/log-redaction'
+
 
 // Daily job: finds admin-approved health screenings expiring in exactly 7 days
 // and records exactly one reminder per screening.
