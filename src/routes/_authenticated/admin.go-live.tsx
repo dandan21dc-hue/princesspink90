@@ -115,21 +115,62 @@ function AdminGoLivePage() {
             Live readiness signals pulled directly from the database. Refreshes
             automatically every 30 seconds.
           </p>
-          <button
-            type="button"
-            onClick={() => query.refetch()}
-            disabled={query.isFetching}
-            aria-busy={query.isFetching}
-            className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-1.5 text-xs font-medium uppercase tracking-widest text-foreground/90 hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <span
-              aria-hidden="true"
-              className={`inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent ${
-                query.isFetching ? "animate-spin" : "opacity-40"
-              }`}
-            />
-            {query.isFetching ? "Refreshing…" : "Refresh"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (!query.data) return;
+                const csv = buildGoLiveCsv(query.data, EXPECTED_JOBS);
+                const blob = new Blob([csv], {
+                  type: "text/csv;charset=utf-8",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = goLiveExportFilename("csv");
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+              }}
+              disabled={!query.data}
+              className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-1.5 text-xs font-medium uppercase tracking-widest text-foreground/90 hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Export CSV
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!query.data) return;
+                const html = buildGoLiveHtml(query.data, EXPECTED_JOBS);
+                const win = window.open("", "_blank", "noopener,noreferrer");
+                if (!win) return;
+                win.document.open();
+                win.document.write(html);
+                win.document.close();
+              }}
+              disabled={!query.data}
+              className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-1.5 text-xs font-medium uppercase tracking-widest text-foreground/90 hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Export PDF
+            </button>
+            <button
+              type="button"
+              onClick={() => query.refetch()}
+              disabled={query.isFetching}
+              aria-busy={query.isFetching}
+              className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-1.5 text-xs font-medium uppercase tracking-widest text-foreground/90 hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span
+                aria-hidden="true"
+                className={`inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent ${
+                  query.isFetching ? "animate-spin" : "opacity-40"
+                }`}
+              />
+              {query.isFetching ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+
         </div>
       </header>
 
