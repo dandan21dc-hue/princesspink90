@@ -1,16 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import QrScanner from "qr-scanner";
 
+export type ScanFeedback = {
+  tone: "ok" | "warn" | "err";
+  title: string;
+  detail?: string;
+} | null;
+
 /**
  * Live camera QR scanner. Calls `onScan` with the decoded text.
- * The parent controls the guard against duplicate scans of the same code.
+ * The parent controls the guard against duplicate scans of the same code
+ * and passes back a `feedback` banner so the operator sees clear
+ * per-scan messages without leaving camera mode.
  */
 export function QrCameraScanner({
   onScan,
   onClose,
+  feedback,
 }: {
   onScan: (text: string) => void;
   onClose: () => void;
+  feedback?: ScanFeedback;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scannerRef = useRef<QrScanner | null>(null);
@@ -56,6 +66,13 @@ export function QrCameraScanner({
     };
   }, [onScan]);
 
+  const toneCls =
+    feedback?.tone === "ok"
+      ? "border-neon/60 bg-neon/15 text-neon"
+      : feedback?.tone === "warn"
+      ? "border-primary/60 bg-primary/15 text-primary"
+      : "border-destructive/60 bg-destructive/20 text-destructive";
+
   return (
     <div className="mt-3 overflow-hidden rounded-xl border border-neon/40 bg-black">
       <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
@@ -63,7 +80,11 @@ export function QrCameraScanner({
           <span
             className={`h-2 w-2 rounded-full ${ready ? "animate-pulse bg-neon" : "bg-neon/40"}`}
           />
-          {ready ? "Camera live — point at QR" : "Starting camera…"}
+          {ready
+            ? feedback
+              ? "Camera live — ready for next scan"
+              : "Camera live — point at QR"
+            : "Starting camera…"}
         </div>
         <button
           onClick={onClose}
@@ -79,7 +100,22 @@ export function QrCameraScanner({
             {error}
           </div>
         )}
+        {feedback && !error && (
+          <div
+            className={`pointer-events-none absolute inset-x-3 bottom-3 rounded-lg border px-3 py-2 text-xs backdrop-blur ${toneCls}`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="font-semibold uppercase tracking-widest">{feedback.title}</div>
+            {feedback.detail && (
+              <div className="mt-0.5 text-[11px] normal-case tracking-normal opacity-90">
+                {feedback.detail}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

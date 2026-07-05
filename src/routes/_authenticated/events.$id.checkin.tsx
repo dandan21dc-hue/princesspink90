@@ -5,8 +5,26 @@ import { useEffect, useRef, useState } from "react";
 import { lookupCheckin, performCheckin, listCheckins } from "@/lib/checkin.functions";
 import type { VideoConsent } from "@/lib/verification.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { QrCameraScanner } from "@/components/QrCameraScanner";
+import { QrCameraScanner, type ScanFeedback } from "@/components/QrCameraScanner";
 import { toast } from "sonner";
+
+/** Extract a ticket code from a raw QR payload — supports plain codes and
+ *  URLs like `https://…/checkin?t=ABC123` or `.../tickets/ABC123`. */
+function extractTicketCode(raw: string): string {
+  const s = raw.trim();
+  if (!s) return "";
+  try {
+    const u = new URL(s);
+    const q = u.searchParams.get("t") ?? u.searchParams.get("ticket") ?? u.searchParams.get("code");
+    if (q) return q.trim().toUpperCase();
+    const tail = u.pathname.split("/").filter(Boolean).pop();
+    if (tail) return tail.trim().toUpperCase();
+  } catch {
+    // not a URL — fall through
+  }
+  return s.replace(/[\s\r\n\t]/g, "").toUpperCase();
+}
+
 
 export const Route = createFileRoute("/_authenticated/events/$id/checkin")({
   head: () => ({ meta: [{ title: "Door check-in · AFTERDARK" }] }),
@@ -29,6 +47,19 @@ function CheckinPage() {
   const [camera, setCamera] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastScanRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
+  const [scanFeedback, setScanFeedback] = useState<ScanFeedback>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flashFeedback = (fb: NonNullable<ScanFeedback>, ms = 4000) => {
+    setScanFeedback(fb);
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = setTimeout(() => setScanFeedback(null), ms);
+  };
+
+  useEffect(() => () => {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+  }, []);
+
 
   // Keep focus on the input while scanner mode is on so a keyboard-wedge
   // barcode/QR scanner always lands its keystrokes here.
@@ -74,9 +105,44 @@ function CheckinPage() {
 
   const lookup = useMutation({
     mutationFn: (t: string) => lookupFn({ data: { event_id: eventId, ticket_code: t } }),
-    onSuccess: (r) => setResult(r),
-    onError: (e) => toast.error((e as Error).message),
+    onSuccess: (r) => {
+      setResult(r);
+      if (!r.found) {
+        flashFeedback({
+          tone: "err",
+          title: "Invalid ticket",
+          detail: "No RSVP matches that code for this event.",
+        });
+        toast.error("Invalid ticket — no match for this event.");
+        // Allow the same bad code to be re-scanned after resolution.
+        lastScanRef.current = { code: "", at: 0 };
+      } else if (r.rsvp.checked_in_at) {
+        const who = r.guest.display_name ?? r.guest.email ?? "Guest";
+        const when = new Date(r.rsvp.checked_in_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        flashFeedback({
+          tone: "warn",
+          title: "Already admitted",
+          detail: `${who} was checked in at ${when}.`,
+        });
+        toast.warning(`${who} already admitted at ${when}`);
+      } else {
+        flashFeedback(
+          { tone: "ok", title: "Match found", detail: "Confirm consent below to admit." },
+          2500,
+        );
+      }
+    },
+    onError: (e) => {
+      const msg = (e as Error).message;
+      flashFeedback({ tone: "err", title: "Lookup failed", detail: msg }, 5000);
+      toast.error(msg);
+      lastScanRef.current = { code: "", at: 0 };
+    },
   });
+
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-10">
@@ -139,9 +205,17 @@ function CheckinPage() {
 
       {camera && (
         <QrCameraScanner
+          feedback={scanFeedback}
           onScan={(text) => {
-            const cleaned = text.trim().toUpperCase();
-            if (!cleaned) return;
+            const cleaned = extractTicketCode(text);
+            if (!cleaned) {
+              flashFeedback({
+                tone: "err",
+                title: "Unreadable QR",
+                detail: "That code didn't contain a ticket. Try again.",
+              });
+              return;
+            }
             // Debounce identical scans (QR stays in view for many frames).
             const now = Date.now();
             if (lastScanRef.current.code === cleaned && now - lastScanRef.current.at < 2500) return;
@@ -150,9 +224,13 @@ function CheckinPage() {
             setResult(null);
             lookup.mutate(cleaned);
           }}
-          onClose={() => setCamera(false)}
+          onClose={() => {
+            setCamera(false);
+            setScanFeedback(null);
+          }}
         />
       )}
+
 
       <form
         onSubmit={(e) => {
