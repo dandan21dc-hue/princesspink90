@@ -14,6 +14,30 @@ function getSupabase() {
   return _supabase;
 }
 
+async function notifyAllCreators(payload: {
+  kind: string;
+  title: string;
+  body?: string;
+  link_url?: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const { data: creators } = await getSupabase()
+    .from("content_items")
+    .select("creator_id");
+  const ids = Array.from(new Set((creators ?? []).map((c) => c.creator_id).filter(Boolean)));
+  if (ids.length === 0) return;
+  await getSupabase().from("notifications").insert(
+    ids.map((user_id) => ({
+      user_id: user_id as string,
+      kind: payload.kind,
+      title: payload.title,
+      body: payload.body ?? null,
+      link_url: payload.link_url ?? null,
+      metadata: payload.metadata ?? {},
+    })),
+  );
+}
+
 async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
   const userId = subscription.metadata?.userId;
   if (!userId) {
@@ -26,6 +50,13 @@ async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
   const productId = item?.price?.product;
   const periodStart = item?.current_period_start ?? subscription.current_period_start;
   const periodEnd = item?.current_period_end ?? subscription.current_period_end;
+
+  const { data: existing } = await getSupabase()
+    .from("subscriptions")
+    .select("id, status, cancel_at_period_end")
+    .eq("stripe_subscription_id", subscription.id)
+    .eq("environment", env)
+    .maybeSingle();
 
   await getSupabase()
     .from("subscriptions")
@@ -45,6 +76,31 @@ async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
       },
       { onConflict: "stripe_subscription_id" },
     );
+
+  // Notify creators on new subscription
+  if (!existing && (subscription.status === "active" || subscription.status === "trialing")) {
+    await notifyAllCreators({
+      kind: "subscription_started",
+      title: "New subscriber 🎉",
+      body: "Someone just started an all-access subscription.",
+      link_url: "/dashboard",
+      metadata: { subscription_id: subscription.id, env },
+    });
+  }
+  // Notify on cancel-at-period-end toggle
+  if (
+    existing &&
+    !existing.cancel_at_period_end &&
+    subscription.cancel_at_period_end === true
+  ) {
+    await notifyAllCreators({
+      kind: "subscription_canceling",
+      title: "Subscriber canceled",
+      body: "Their access continues until the end of the current period.",
+      link_url: "/dashboard",
+      metadata: { subscription_id: subscription.id, env },
+    });
+  }
 }
 
 async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
@@ -53,6 +109,13 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
     .update({ status: "canceled", updated_at: new Date().toISOString() })
     .eq("stripe_subscription_id", subscription.id)
     .eq("environment", env);
+  await notifyAllCreators({
+    kind: "subscription_canceled",
+    title: "Subscription ended",
+    body: "A subscriber's access has ended.",
+    link_url: "/dashboard",
+    metadata: { subscription_id: subscription.id, env },
+  });
 }
 
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
@@ -74,6 +137,24 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       },
       { onConflict: "user_id,content_item_id,environment" },
     );
+
+  // Notify the specific creator of the item that was sold
+  const { data: item } = await getSupabase()
+    .from("content_items")
+    .select("creator_id, title")
+    .eq("id", contentItemId)
+    .maybeSingle();
+  if (item?.creator_id) {
+    const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
+    await getSupabase().from("notifications").insert({
+      user_id: item.creator_id,
+      kind: "sale",
+      title: `New sale — $${amount}`,
+      body: `Someone unlocked "${item.title ?? "your content"}".`,
+      link_url: "/dashboard",
+      metadata: { content_item_id: contentItemId, session_id: session.id, env },
+    });
+  }
 }
 
 async function handleWebhook(req: Request, env: StripeEnv) {
