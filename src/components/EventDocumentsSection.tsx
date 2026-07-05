@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listEventDocuments, registerEventDocument, deleteEventDocument, signEventDocumentUrl,
-  getCurrentPolicyVersion,
+  getCurrentPolicyVersion, recordPolicyAgreement, listMyPolicyAgreements,
 } from "@/lib/host.functions";
 
 type DocType = "permit" | "insurance" | "capacity" | "other";
