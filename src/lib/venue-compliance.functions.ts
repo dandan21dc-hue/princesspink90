@@ -136,6 +136,21 @@ export const uploadVenueComplianceDoc = createServerFn({ method: "POST" })
       );
     }
 
+    const safeName = data.file_name.replace(/[^\w.\-]+/g, "_").slice(-120);
+    const path = `${data.kind}/${crypto.randomUUID()}-${safeName}`;
+
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, bytes, {
+        contentType: data.file_mime_type ?? detected,
+        upsert: false,
+      });
+    if (upErr) throw upErr;
+
+
     const { data: row, error } = await context.supabase
       .from("venue_compliance_documents")
       .insert({
