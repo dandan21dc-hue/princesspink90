@@ -62,6 +62,12 @@ function Dashboard() {
                 Co-hosts
               </Link>
               <Link
+                to="/admin/events-compliance"
+                className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
+              >
+                Compliance
+              </Link>
+              <Link
                 to="/admin/lifetime"
                 className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
               >

@@ -76,3 +76,116 @@ export const listLifetimeMembers = createServerFn({ method: "GET" })
 
     return { members };
   });
+
+const REQUIRED_EVENT_DOCS = ["permit", "insurance", "capacity"] as const;
+
+export const adminListEventsCompliance = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: events, error } = await supabaseAdmin
+      .from("events")
+      .select(
+        "id, title, starts_at, published, is_private, host_id, venue_name, city, capacity, legal_capacity, permits_confirmed, insurance_confirmed, capacity_confirmed, insurance_provider, insurance_expires_on, permit_details, compliance_notes",
+      )
+      .order("starts_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const eventIds = (events ?? []).map((e) => e.id);
+    const hostIds = Array.from(new Set((events ?? []).map((e) => e.host_id).filter(Boolean)));
+
+    const [{ data: docs }, { data: profiles }] = await Promise.all([
+      eventIds.length
+        ? supabaseAdmin
+            .from("event_documents")
+            .select("id, event_id, doc_type, file_name, uploaded_at")
+            .in("event_id", eventIds)
+        : Promise.resolve({ data: [] as any[] }),
+      hostIds.length
+        ? supabaseAdmin.from("profiles").select("user_id, display_name").in("user_id", hostIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const docsByEvent = new Map<string, any[]>();
+    for (const d of docs ?? []) {
+      const arr = docsByEvent.get(d.event_id) ?? [];
+      arr.push(d);
+      docsByEvent.set(d.event_id, arr);
+    }
+    const nameByHost = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name]));
+
+    const now = Date.now();
+    const soonMs = 30 * 24 * 60 * 60 * 1000;
+
+    const rows = (events ?? []).map((e) => {
+      const eventDocs = docsByEvent.get(e.id) ?? [];
+      const typesOnFile = new Set(eventDocs.map((d) => d.doc_type as string));
+      const missing = REQUIRED_EVENT_DOCS.filter((t) => !typesOnFile.has(t));
+      const confirmations = {
+        permits: !!e.permits_confirmed,
+        insurance: !!e.insurance_confirmed,
+        capacity: !!e.capacity_confirmed,
+      };
+      const missingConfirmations = Object.entries(confirmations)
+        .filter(([, v]) => !v)
+        .map(([k]) => k);
+      const insuranceExpiry = e.insurance_expires_on ? new Date(e.insurance_expires_on).getTime() : null;
+      const insuranceStatus: "ok" | "expiring" | "expired" | "unknown" =
+        insuranceExpiry == null
+          ? "unknown"
+          : insuranceExpiry < now
+            ? "expired"
+            : insuranceExpiry - now < soonMs
+              ? "expiring"
+              : "ok";
+      const capacityOverLimit =
+        e.capacity != null && e.legal_capacity != null && e.capacity > e.legal_capacity;
+
+      let status: "approved" | "pending" | "flagged";
+      const flagged =
+        missing.length > 0 ||
+        missingConfirmations.length > 0 ||
+        insuranceStatus === "expired" ||
+        capacityOverLimit;
+      if (e.published && !flagged) status = "approved";
+      else if (flagged) status = "flagged";
+      else status = "pending";
+
+      return {
+        id: e.id,
+        title: e.title,
+        starts_at: e.starts_at,
+        published: !!e.published,
+        is_private: !!e.is_private,
+        venue_name: e.venue_name,
+        city: e.city,
+        host_id: e.host_id,
+        host_name: nameByHost.get(e.host_id) ?? null,
+        capacity: e.capacity,
+        legal_capacity: e.legal_capacity,
+        confirmations,
+        missing_confirmations: missingConfirmations,
+        missing_docs: missing,
+        docs_on_file: eventDocs.map((d) => ({
+          id: d.id, doc_type: d.doc_type, file_name: d.file_name, uploaded_at: d.uploaded_at,
+        })),
+        insurance_provider: e.insurance_provider,
+        insurance_expires_on: e.insurance_expires_on,
+        insurance_status: insuranceStatus,
+        capacity_over_limit: capacityOverLimit,
+        status,
+      };
+    });
+
+    const summary = {
+      total: rows.length,
+      approved: rows.filter((r) => r.status === "approved").length,
+      pending: rows.filter((r) => r.status === "pending").length,
+      flagged: rows.filter((r) => r.status === "flagged").length,
+      published: rows.filter((r) => r.published).length,
+    };
+
+    return { rows, summary };
+  });
