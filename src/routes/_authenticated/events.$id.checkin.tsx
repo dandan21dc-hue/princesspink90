@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { lookupCheckin, performCheckin, listCheckins } from "@/lib/checkin.functions";
 import type { VideoConsent } from "@/lib/verification.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { QrCameraScanner } from "@/components/QrCameraScanner";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$id/checkin")({
