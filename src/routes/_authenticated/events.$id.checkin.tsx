@@ -121,7 +121,7 @@ function CheckinPage() {
 
   const lookup = useMutation({
     mutationFn: (t: string) => lookupFn({ data: { event_id: eventId, ticket_code: t } }),
-    onSuccess: (r) => {
+    onSuccess: (r, t) => {
       setResult(r);
       if (!r.found) {
         flashFeedback({
@@ -130,7 +130,7 @@ function CheckinPage() {
           detail: "No RSVP matches that code for this event.",
         });
         toast.error("Invalid ticket — no match for this event.");
-        // Allow the same bad code to be re-scanned after resolution.
+        pushHistory({ code: t, guest: null, outcome: "invalid", detail: "No match" });
         lastScanRef.current = { code: "", at: 0 };
       } else if (r.rsvp.checked_in_at) {
         const who = r.guest.display_name ?? r.guest.email ?? "Guest";
@@ -144,20 +144,34 @@ function CheckinPage() {
           detail: `${who} was checked in at ${when}.`,
         });
         toast.warning(`${who} already admitted at ${when}`);
+        pushHistory({
+          code: r.rsvp.ticket_code,
+          guest: who,
+          outcome: "already",
+          detail: `Checked in at ${when}`,
+        });
       } else {
         flashFeedback(
           { tone: "ok", title: "Match found", detail: "Confirm consent below to admit." },
           2500,
         );
+        pushHistory({
+          code: r.rsvp.ticket_code,
+          guest: r.guest.display_name ?? r.guest.email ?? "Guest",
+          outcome: "matched",
+          detail: "Awaiting consent",
+        });
       }
     },
-    onError: (e) => {
+    onError: (e, t) => {
       const msg = (e as Error).message;
       flashFeedback({ tone: "err", title: "Lookup failed", detail: msg }, 5000);
       toast.error(msg);
+      pushHistory({ code: t, guest: null, outcome: "error", detail: msg });
       lastScanRef.current = { code: "", at: 0 };
     },
   });
+
 
 
   return (
