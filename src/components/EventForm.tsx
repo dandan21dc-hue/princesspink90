@@ -1,0 +1,160 @@
+import { useState } from "react";
+import { toast } from "sonner";
+
+export type EventFormValues = {
+  title: string;
+  tagline: string;
+  description: string;
+  venue_name: string;
+  address: string;
+  city: string;
+  starts_at: string;
+  ends_at: string;
+  dress_code: string;
+  theme: string;
+  capacity: string;
+  ticket_price_cents: string;
+  cover_image_url: string;
+  is_private: boolean;
+  published: boolean;
+};
+
+export function emptyForm(): EventFormValues {
+  return {
+    title: "", tagline: "", description: "",
+    venue_name: "", address: "", city: "",
+    starts_at: "", ends_at: "",
+    dress_code: "", theme: "",
+    capacity: "", ticket_price_cents: "0",
+    cover_image_url: "",
+    is_private: false, published: true,
+  };
+}
+
+export function toPayload(v: EventFormValues) {
+  if (!v.title || !v.venue_name || !v.starts_at) {
+    throw new Error("Title, venue and start time are required.");
+  }
+  return {
+    title: v.title.trim(),
+    tagline: v.tagline.trim() || null,
+    description: v.description.trim() || null,
+    venue_name: v.venue_name.trim(),
+    address: v.address.trim() || null,
+    city: v.city.trim() || null,
+    starts_at: new Date(v.starts_at).toISOString(),
+    ends_at: v.ends_at ? new Date(v.ends_at).toISOString() : null,
+    dress_code: v.dress_code.trim() || null,
+    theme: v.theme.trim() || null,
+    capacity: v.capacity ? parseInt(v.capacity, 10) : null,
+    ticket_price_cents: v.ticket_price_cents ? parseInt(v.ticket_price_cents, 10) : 0,
+    cover_image_url: v.cover_image_url.trim() || null,
+    is_private: v.is_private,
+    published: v.published,
+  };
+}
+
+export function EventForm({
+  initial, onSubmit, submitting, submitLabel,
+}: {
+  initial?: Partial<EventFormValues>;
+  onSubmit: (v: EventFormValues) => void | Promise<void>;
+  submitting?: boolean;
+  submitLabel: string;
+}) {
+  const [v, setV] = useState<EventFormValues>({ ...emptyForm(), ...initial });
+  const bind = <K extends keyof EventFormValues>(k: K) => ({
+    value: v[k] as string,
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setV({ ...v, [k]: e.target.value }),
+  });
+
+  return (
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+        try { await onSubmit(v); } catch (err) { toast.error(err instanceof Error ? err.message : "Error"); }
+      }}
+      className="space-y-6"
+    >
+      <Section title="The night">
+        <Field label="Title *"><input className={inputCls} required {...bind("title")} placeholder="Velvet Hours" /></Field>
+        <Field label="Tagline"><input className={inputCls} {...bind("tagline")} placeholder="One line that sells it" /></Field>
+        <Field label="Description">
+          <textarea rows={6} className={inputCls} {...bind("description")} placeholder="What guests should expect. Consent, safety, house rules." />
+        </Field>
+      </Section>
+
+      <Section title="Where & when">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Venue name *"><input className={inputCls} required {...bind("venue_name")} /></Field>
+          <Field label="City"><input className={inputCls} {...bind("city")} /></Field>
+        </div>
+        <Field label="Address"><input className={inputCls} {...bind("address")} placeholder="Shared with confirmed guests only" /></Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Starts *"><input type="datetime-local" required className={inputCls} {...bind("starts_at")} /></Field>
+          <Field label="Ends"><input type="datetime-local" className={inputCls} {...bind("ends_at")} /></Field>
+        </div>
+      </Section>
+
+      <Section title="Style">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Dress code"><input className={inputCls} {...bind("dress_code")} placeholder="Black tie / fetish chic" /></Field>
+          <Field label="Theme"><input className={inputCls} {...bind("theme")} placeholder="Neon confessional" /></Field>
+        </div>
+        <Field label="Cover image URL">
+          <input className={inputCls} {...bind("cover_image_url")} placeholder="https://…" />
+        </Field>
+      </Section>
+
+      <Section title="Access & entry">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Capacity"><input type="number" min={1} className={inputCls} {...bind("capacity")} /></Field>
+          <Field label="Entry price (cents, 0 = free)"><input type="number" min={0} className={inputCls} {...bind("ticket_price_cents")} /></Field>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <Toggle checked={v.is_private} onChange={(c) => setV({ ...v, is_private: c })} label="Private — hidden from public marquee, unlock by code only" />
+          <Toggle checked={v.published} onChange={(c) => setV({ ...v, published: c })} label="Published (uncheck to save as draft)" />
+        </div>
+      </Section>
+
+      <button
+        type="submit" disabled={submitting}
+        className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-60"
+      >
+        {submitting ? "Saving…" : submitLabel}
+      </button>
+    </form>
+  );
+}
+
+const inputCls =
+  "w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm focus:border-primary focus:outline-none";
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card/60 p-6">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-primary mb-4">{title}</div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  );
+}
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <div className="mb-1.5 text-xs text-muted-foreground">{label}</div>
+      {children}
+    </label>
+  );
+}
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (c: boolean) => void; label: string }) {
+  return (
+    <label className="flex items-center gap-3 text-sm cursor-pointer">
+      <span className={`inline-flex h-5 w-9 items-center rounded-full transition ${checked ? "bg-primary" : "bg-secondary"}`}>
+        <span className={`h-4 w-4 rounded-full bg-background shadow transition ${checked ? "translate-x-4" : "translate-x-0.5"}`} />
+      </span>
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
+      <span>{label}</span>
+    </label>
+  );
+}
