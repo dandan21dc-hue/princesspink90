@@ -8,11 +8,22 @@ export const Route = createFileRoute("/store/subscribe")({
   head: () => ({
     meta: [
       { title: "All-Access Pass — Princess Pink" },
-      { name: "description", content: "$10/month for streaming access to every photo set and video." },
+      {
+        name: "description",
+        content:
+          "Monthly, 3-, 6-, or 12-month all-access passes, plus a lifetime membership. Stream every photo set and video.",
+      },
     ],
   }),
   component: SubscribePage,
 });
+
+type PriceId =
+  | "all_access_monthly"
+  | "all_access_3mo_onetime"
+  | "all_access_6mo_onetime"
+  | "all_access_12mo_onetime"
+  | "lifetime_onetime";
 
 function SubscribePage() {
   const navigate = useNavigate();
@@ -25,7 +36,7 @@ function SubscribePage() {
     });
   }, []);
 
-  function buy(priceId: "all_access_monthly" | "lifetime_onetime") {
+  function buy(priceId: PriceId) {
     if (!user) {
       navigate({ to: "/auth" });
       return;
@@ -41,8 +52,11 @@ function SubscribePage() {
   return (
     <>
       <PaymentTestModeBanner />
-      <section className="mx-auto max-w-5xl px-5 pt-10 pb-16">
-        <Link to="/store" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+      <section className="mx-auto max-w-6xl px-5 pt-10 pb-16">
+        <Link
+          to="/store"
+          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
           ← Store
         </Link>
 
@@ -50,56 +64,145 @@ function SubscribePage() {
           <div className="mt-6 rounded-2xl border border-border/60 bg-card p-4">
             <div className="mb-3 flex items-center justify-between">
               <div className="font-display text-lg">Checkout</div>
-              <button onClick={closeCheckout} className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+              <button
+                onClick={closeCheckout}
+                className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+              >
                 Cancel
               </button>
             </div>
             {checkoutElement}
           </div>
         ) : (
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <div className="rounded-3xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-8 shadow-[var(--shadow-glow-pink)]">
-              <div className="text-xs uppercase tracking-[0.3em] text-primary">All-Access Pass</div>
-              <h1 className="mt-2 font-display text-5xl font-extrabold">
-                $10<span className="text-lg text-muted-foreground">/month</span>
-              </h1>
-              <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
-                <li>· Every photo set &amp; video, streaming in-app</li>
-                <li>· New drops unlocked automatically</li>
-                <li>· Cancel anytime from your library</li>
-              </ul>
-              <button
+          <>
+            <h1 className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
+              Choose your all-access pass
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Every plan streams the full members-only photo &amp; video library.
+            </p>
+
+            {/* Monthly & term passes */}
+            <div className="mt-8 grid gap-4 md:grid-cols-4">
+              <PassCard
+                label="Monthly"
+                price="$10"
+                cadence="/month"
+                perks={["Full library streaming", "Cancel anytime"]}
+                cta="Subscribe"
                 onClick={() => buy("all_access_monthly")}
-                className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-              >
-                Subscribe
-              </button>
+              />
+              <PassCard
+                label="3-Month Pass"
+                price="$27"
+                cadence="one-time"
+                perks={["Full library for 3 months", "No auto-renew"]}
+                cta="Buy 3-month"
+                onClick={() => buy("all_access_3mo_onetime")}
+              />
+              <PassCard
+                label="6-Month Pass"
+                price="$48"
+                cadence="one-time"
+                perks={["Full library for 6 months", "No auto-renew"]}
+                cta="Buy 6-month"
+                onClick={() => buy("all_access_6mo_onetime")}
+              />
+              <PassCard
+                label="12-Month Pass"
+                price="$84"
+                cadence="one-time"
+                highlight="Includes free entry"
+                perks={[
+                  "Full library for 12 months",
+                  "1 free event entry during the term",
+                  "No auto-renew",
+                ]}
+                cta="Buy 12-month"
+                onClick={() => buy("all_access_12mo_onetime")}
+              />
             </div>
 
-            <div className="relative overflow-hidden rounded-3xl border-2 border-primary bg-gradient-to-br from-primary/25 via-background to-background p-8 shadow-[var(--shadow-glow-pink)]">
+            {/* Lifetime */}
+            <div className="mt-8 relative overflow-hidden rounded-3xl border-2 border-primary bg-gradient-to-br from-primary/25 via-background to-background p-8 shadow-[var(--shadow-glow-pink)]">
               <div className="absolute right-4 top-4 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
                 Best value
               </div>
-              <div className="text-xs uppercase tracking-[0.3em] text-primary">Lifetime Membership</div>
+              <div className="text-xs uppercase tracking-[0.3em] text-primary">
+                Lifetime Membership
+              </div>
               <h2 className="mt-2 font-display text-5xl font-extrabold">
-                $499<span className="text-lg text-muted-foreground"> one-time</span>
+                $500<span className="text-lg text-muted-foreground"> one-time</span>
               </h2>
               <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
-                <li>· <span className="text-foreground">Forever access</span> to all photos &amp; videos</li>
-                <li>· <span className="text-foreground">1 free ticket</span> to any event I host (no expiry)</li>
-                <li>· <span className="text-foreground">1 private session</span> with me (no anal)</li>
+                <li>
+                  · <span className="text-foreground">Forever access</span> to all photos
+                  &amp; videos
+                </li>
+                <li>
+                  · <span className="text-foreground">1 free ticket</span> to any event I
+                  host (no expiry)
+                </li>
+                <li>
+                  · <span className="text-foreground">1 private session</span> with me (no
+                  anal)
+                </li>
                 <li>· No recurring charges, ever</li>
               </ul>
               <button
                 onClick={() => buy("lifetime_onetime")}
-                className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+                className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto"
               >
                 Buy lifetime
               </button>
             </div>
-          </div>
+          </>
         )}
       </section>
     </>
+  );
+}
+
+function PassCard({
+  label,
+  price,
+  cadence,
+  perks,
+  cta,
+  onClick,
+  highlight,
+}: {
+  label: string;
+  price: string;
+  cadence: string;
+  perks: string[];
+  cta: string;
+  onClick: () => void;
+  highlight?: string;
+}) {
+  return (
+    <div className="relative flex flex-col rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)]">
+      {highlight ? (
+        <div className="absolute right-3 top-3 rounded-full bg-primary/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-primary-foreground">
+          {highlight}
+        </div>
+      ) : null}
+      <div className="text-[10px] uppercase tracking-[0.3em] text-primary">{label}</div>
+      <div className="mt-2 font-display text-3xl font-extrabold">
+        {price}
+        <span className="ml-1 text-xs font-normal text-muted-foreground">{cadence}</span>
+      </div>
+      <ul className="mt-4 flex-1 space-y-1.5 text-xs text-muted-foreground">
+        {perks.map((p) => (
+          <li key={p}>· {p}</li>
+        ))}
+      </ul>
+      <button
+        onClick={onClick}
+        className="mt-5 w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+      >
+        {cta}
+      </button>
+    </div>
   );
 }
