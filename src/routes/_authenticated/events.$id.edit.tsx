@@ -251,7 +251,8 @@ function EditEvent() {
           Delete event
         </button>
       </div>
-      </div>
+
+
 
       <AlertDialog open={!!confirmBulk} onOpenChange={(o) => !o && setConfirmBulk(null)}>
         <AlertDialogContent>
