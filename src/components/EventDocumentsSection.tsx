@@ -356,7 +356,7 @@ function DocSlot({
             return (
               <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-xs">
                 <button
-                  type="button" onClick={() => onOpen(d.id)}
+                  type="button" onClick={() => onOpen(d)}
                   className="min-w-0 text-left text-foreground hover:text-primary truncate"
                   title={d.file_name}
                 >
