@@ -99,6 +99,13 @@ function Dashboard() {
               >
                 Venue compliance
               </Link>
+              <Link
+                to="/admin/system-logs"
+                className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
+              >
+                System logs
+              </Link>
+
 
               <Link
                 to="/admin/lifetime"
