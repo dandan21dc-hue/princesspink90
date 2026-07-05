@@ -8,6 +8,7 @@ import {
   listEventDocuments, registerEventDocument, deleteEventDocument, signEventDocumentUrl,
   getCurrentPolicyVersion, recordPolicyAgreement, listMyPolicyAgreements,
 } from "@/lib/host.functions";
+import { uploadEventDocument } from "@/lib/eventDocumentUpload";
 
 type DocType = "permit" | "insurance" | "capacity" | "other";
 
