@@ -58,6 +58,7 @@ const DEFAULT_EXPORT_COLS = ALL_COLUMNS.map((c) => c.key);
 const EXPORT_COLS_STORAGE_KEY = "admin-safety-incidents-export-cols-v1";
 
 function AdminSafetyIncidentsPage() {
+  const [tab, setTab] = useState<Tab>("incidents");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<View>("active");
   const [form, setForm] = useState(emptyForm);
