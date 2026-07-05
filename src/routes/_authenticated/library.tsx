@@ -152,21 +152,31 @@ function LifetimePerks({ membership }: { membership: any }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-membership"] }),
   });
 
+  const kind: string = membership.kind ?? "lifetime";
+  const isLifetime = kind === "lifetime";
+  const isTerm12 = kind === "term_pass_12";
   const ticketUsed = !!membership.event_ticket_used_at;
   const sessionRequested = !!membership.private_session_requested_at;
   const sessionFulfilled = !!membership.private_session_fulfilled_at;
 
+  const headerLabel = isLifetime
+    ? "Lifetime perks"
+    : isTerm12
+      ? "12-month pass perks"
+      : "Membership perks";
+  const ticketHelper = ticketUsed
+    ? "Redeemed. Thanks for coming!"
+    : isTerm12
+      ? "Redeemed automatically when you RSVP to any event during your 12-month pass."
+      : "Redeemed automatically when you RSVP to any event.";
+
   return (
     <div className="mt-6 rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-5">
-      <div className="text-xs uppercase tracking-[0.3em] text-primary">Lifetime perks</div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="text-xs uppercase tracking-[0.3em] text-primary">{headerLabel}</div>
+      <div className={`mt-4 grid gap-4 ${isLifetime ? "sm:grid-cols-2" : ""}`}>
         <div className="rounded-xl border border-border/60 bg-card/60 p-4">
           <div className="font-medium">🎟️ Free event ticket</div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {ticketUsed
-              ? "Redeemed. Thanks for coming!"
-              : "Redeemed automatically when you RSVP to any event."}
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">{ticketHelper}</p>
           {!ticketUsed && (
             <Link
               to="/"
@@ -176,6 +186,7 @@ function LifetimePerks({ membership }: { membership: any }) {
             </Link>
           )}
         </div>
+        {isLifetime && (
         <div className="rounded-xl border border-border/60 bg-card/60 p-4">
           <div className="font-medium">🔥 Private session <span className="text-xs text-muted-foreground">(no anal)</span></div>
           <p className="mt-1 text-xs text-muted-foreground">
