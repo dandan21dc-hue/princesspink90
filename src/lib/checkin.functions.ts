@@ -165,6 +165,7 @@ export const listCheckins = createServerFn({ method: "GET" })
     const guests = (rows ?? []).map((r) => ({
       id: r.id,
       ticket_code: r.ticket_code,
+      entry_code: r.entry_code,
       guest_count: r.guest_count,
       checked_in_at: r.checked_in_at as string,
       display_name: nameByUser.get(r.user_id) ?? null,
