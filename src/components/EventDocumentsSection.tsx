@@ -9,6 +9,7 @@ import {
   getCurrentPolicyVersion, recordPolicyAgreement, listMyPolicyAgreements,
 } from "@/lib/host.functions";
 import { uploadEventDocument } from "@/lib/eventDocumentUpload";
+import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 
 type DocType = "permit" | "insurance" | "capacity" | "other";
 
