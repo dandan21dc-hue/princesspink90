@@ -68,7 +68,14 @@ function EditEvent() {
   const [confirmBulk, setConfirmBulk] = useState<null | { used: boolean }>(null);
   const bulkMark = useMutation({
     mutationFn: (v: { used: boolean }) =>
-      bulkMarkFn({ data: { ids: Array.from(selected), used: v.used, used_by_name: bulkGuestName.trim() || undefined } }),
+      bulkMarkFn({
+        data: {
+          ids: Array.from(selected),
+          used: v.used,
+          // Guest name is only sent when marking used; ignored on unmark.
+          used_by_name: v.used ? bulkGuestName.trim() : undefined,
+        },
+      }),
     onSuccess: (r, v) => {
       toast.success(`${v.used ? "Marked" : "Unmarked"} ${r.count} code${r.count === 1 ? "" : "s"}`);
       setSelected(new Set()); setBulkGuestName("");
@@ -161,9 +168,16 @@ function EditEvent() {
               {selected.size > 0 && (
                 <div className="flex flex-wrap items-center gap-2 ml-auto">
                   <input value={bulkGuestName} onChange={(e) => setBulkGuestName(e.target.value)}
-                    placeholder="Guest name (optional)"
-                    className="rounded-md border border-input bg-background px-2 py-1 text-xs w-44" />
-                  <button disabled={bulkMark.isPending} onClick={() => setConfirmBulk({ used: true })}
+                    placeholder="Guest name (required to mark used)"
+                    maxLength={120}
+                    className="rounded-md border border-input bg-background px-2 py-1 text-xs w-56" />
+                  <button
+                    disabled={bulkMark.isPending || !bulkGuestName.trim()}
+                    title={!bulkGuestName.trim() ? "Enter a guest name to mark codes as used" : undefined}
+                    onClick={() => {
+                      if (!bulkGuestName.trim()) { toast.error("Guest name is required to mark codes as used"); return; }
+                      setConfirmBulk({ used: true });
+                    }}
                     className="rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
                     Mark used
                   </button>
@@ -262,8 +276,8 @@ function EditEvent() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {confirmBulk?.used
-                ? `This will mark ${selected.size} access code${selected.size === 1 ? "" : "s"} as used${bulkGuestName.trim() ? ` and record the guest name "${bulkGuestName.trim()}"` : ""}.`
-                : `This will clear the used status on ${selected.size} access code${selected.size === 1 ? "" : "s"}, allowing them to unlock the invitation again.`}
+                ? `This will mark ${selected.size} access code${selected.size === 1 ? "" : "s"} as used and record the guest name "${bulkGuestName.trim()}".`
+                : `This will clear the used status on ${selected.size} access code${selected.size === 1 ? "" : "s"}, allowing them to unlock the invitation again. Any guest name entered above will be ignored.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -340,10 +354,19 @@ function AccessCodeRow({
       {editing && !used && (
         <div className="mt-2 flex gap-2">
           <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="Guest name (optional)"
+            placeholder="Guest name (required)"
+            maxLength={120}
             className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm" />
-          <button disabled={pending} onClick={() => { onToggle(true, name.trim() || undefined); setEditing(false); }}
-            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground">
+          <button
+            disabled={pending || !name.trim()}
+            title={!name.trim() ? "Guest name is required" : undefined}
+            onClick={() => {
+              const n = name.trim();
+              if (!n) { toast.error("Guest name is required to mark this code as used"); return; }
+              onToggle(true, n);
+              setEditing(false);
+            }}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
             Confirm
           </button>
           <button onClick={() => setEditing(false)}
