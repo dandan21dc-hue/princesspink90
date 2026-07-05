@@ -27,6 +27,8 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
   const deleteFn = useServerFn(deleteEventDocument);
   const signFn = useServerFn(signEventDocumentUrl);
   const policyFn = useServerFn(getCurrentPolicyVersion);
+  const recordAgreementFn = useServerFn(recordPolicyAgreement);
+  const listAgreementsFn = useServerFn(listMyPolicyAgreements);
 
   const q = useQuery({
     queryKey: ["event-documents", eventId],
@@ -38,9 +40,28 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
     queryFn: () => policyFn(),
   });
 
-  const [agreedVersion, setAgreedVersion] = useState<string | null>(null);
+  const agreements = useQuery({
+    queryKey: ["my-policy-agreements", eventId],
+    queryFn: () => listAgreementsFn({ data: { event_id: eventId } }),
+  });
+
   const currentVersionId = policy.data?.id ?? null;
-  const hasAgreedToCurrent = !!currentVersionId && agreedVersion === currentVersionId;
+  const existingAgreement =
+    currentVersionId && agreements.data
+      ? agreements.data.find((a) => a.policy_version_id === currentVersionId) ?? null
+      : null;
+  const hasAgreedToCurrent = !!existingAgreement;
+
+  const recordAgreement = useMutation({
+    mutationFn: () =>
+      recordAgreementFn({
+        data: { policy_version_id: currentVersionId!, event_id: eventId },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["my-policy-agreements", eventId] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not record agreement"),
+  });
 
   const del = useMutation({
     mutationFn: (id: string) => deleteFn({ data: { id } }),
