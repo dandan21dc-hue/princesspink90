@@ -210,11 +210,41 @@ export function EventForm({
               Permits, insurance, and capacity must all be confirmed before this event can be published.
               Uncheck "Published" to save as a draft while you gather the required documents.
             </p>
+            {currentPolicyVersion && (
+              <p className="mt-2">
+                Current compliance policy:{" "}
+                <span className="font-semibold text-amber-100">v{currentPolicyVersion}</span>
+                {eventId ? " — documents must be uploaded under this version." : "."}
+              </p>
+            )}
+            {eventId && missingDocs.length > 0 && (
+              <div className="mt-2">
+                <div className="font-semibold text-amber-100">Missing documents</div>
+                <ul className="mt-1 list-disc pl-5">
+                  {missingDocs.map((d) => (
+                    <li key={d.type}>{d.label} — not uploaded yet</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {eventId && staleDocs.length > 0 && (
+              <div className="mt-2">
+                <div className="font-semibold text-amber-100">Stale documents</div>
+                <ul className="mt-1 list-disc pl-5">
+                  {staleDocs.map((d) => (
+                    <li key={d.id}>
+                      {d.doc_type} was uploaded under policy v{d.policy_version_label ?? "?"} — re-upload under v{currentPolicyVersion}.
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <Link to="/compliance" target="_blank" className="mt-2 inline-block font-semibold text-amber-100 underline underline-offset-2">
               See what documents are required →
             </Link>
           </div>
         )}
+
 
 
         <div className="rounded-lg border border-border/60 p-4 space-y-3">
