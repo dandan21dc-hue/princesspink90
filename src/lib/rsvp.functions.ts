@@ -123,7 +123,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
         },
         { onConflict: "event_id,user_id" },
       )
-      .select("id, ticket_code")
+      .select("id, ticket_code, entry_code")
       .single();
     if (error) throw error;
 
