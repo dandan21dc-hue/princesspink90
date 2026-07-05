@@ -53,7 +53,7 @@ export type UploadResult =
   | { ok: true; key: string }
   | { ok: false; key: string; error: Error; cleanedUp: boolean };
 
-const AGREEMENT_ERROR_RE = /agree to compliance policy/i;
+const AGREEMENT_ERROR_RE = /agree to (?:compliance policy|v\d)|compliance policy has been updated|last agreement was to compliance policy/i;
 
 export function isMissingAgreementError(message: string): boolean {
   return AGREEMENT_ERROR_RE.test(message);
