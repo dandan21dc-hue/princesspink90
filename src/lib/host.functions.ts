@@ -214,7 +214,7 @@ export const updateAccessCodeGuestName = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-
+export const bulkAddAccessCodes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { event_id: string; quantity: number; prefix?: string; note?: string; length?: number }) =>
     z.object({
