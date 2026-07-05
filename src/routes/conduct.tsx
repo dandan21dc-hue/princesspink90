@@ -16,8 +16,10 @@ export const Route = createFileRoute("/conduct")({
           "How we define consent, why we have zero tolerance for harassment, and how vetting protects the community.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://princesspink90.lovable.app/conduct" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/conduct" }],
   }),
   component: ConductPage,
 });

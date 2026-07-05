@@ -14,17 +14,52 @@ const itemQuery = (id: string) =>
 
 export const Route = createFileRoute("/store/$id")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(itemQuery(params.id)),
-  head: ({ loaderData }) => ({
-    meta: loaderData
-      ? [
-          { title: `${loaderData.title} — Princess Pink store` },
-          { name: "description", content: loaderData.description ?? "Buy on Princess Pink's store." },
-          { property: "og:title", content: loaderData.title },
-          { property: "og:description", content: loaderData.description ?? "" },
-          ...(loaderData.cover_url ? [{ property: "og:image", content: loaderData.cover_url }] : []),
-        ]
-      : [{ title: "Store item" }],
-  }),
+  head: ({ params, loaderData }) => {
+    const url = `https://princesspink90.lovable.app/store/${params.id}`;
+    if (!loaderData) {
+      return {
+        meta: [
+          { title: "Store item" },
+          { property: "og:url", content: url },
+        ],
+        links: [{ rel: "canonical", href: url }],
+      };
+    }
+    return {
+      meta: [
+        { title: `${loaderData.title} — Princess Pink store` },
+        { name: "description", content: loaderData.description ?? "Buy on Princess Pink's store." },
+        { property: "og:title", content: loaderData.title },
+        { property: "og:description", content: loaderData.description ?? "" },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: url },
+        ...(loaderData.cover_url ? [{ property: "og:image", content: loaderData.cover_url }] : []),
+      ],
+      links: [{ rel: "canonical", href: url }],
+      scripts: [
+        {
+          type: "application/ld+json",
+          children: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: loaderData.title,
+            description: loaderData.description ?? undefined,
+            image: loaderData.cover_url ?? undefined,
+            url,
+            offers: loaderData.price_cents
+              ? {
+                  "@type": "Offer",
+                  price: (loaderData.price_cents / 100).toFixed(2),
+                  priceCurrency: "USD",
+                  availability: "https://schema.org/InStock",
+                  url,
+                }
+              : undefined,
+          }),
+        },
+      ],
+    };
+  },
   component: ItemPage,
   errorComponent: ({ error }) => (
     <div className="p-10 text-center text-sm text-muted-foreground">{error.message}</div>

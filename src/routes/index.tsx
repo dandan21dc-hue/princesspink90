@@ -24,8 +24,10 @@ export const Route = createFileRoute("/")({
     ]),
   head: () => ({
     meta: [
+      { property: "og:url", content: "https://princesspink90.lovable.app/" },
       { property: "og:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
     ],
+    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/" }],
   }),
   component: Home,
 });

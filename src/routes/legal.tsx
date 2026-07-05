@@ -16,7 +16,9 @@ export const Route = createFileRoute("/legal")({
           "The consent-first rules of the room and how we handle your personal information.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://princesspink90.lovable.app/legal" },
     ],
+    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/legal" }],
   }),
   component: LegalPage,
 });
