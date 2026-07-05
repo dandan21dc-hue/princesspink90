@@ -340,6 +340,14 @@ function MyDocumentsSection() {
       toast.error(e instanceof Error ? e.message : "Could not re-acknowledge policy"),
   });
 
+  const [confirmTarget, setConfirmTarget] = useState<{
+    doc_id: string;
+    event_id: string | null;
+    event_title: string | null;
+    file_name: string;
+    old_version: string | null;
+  } | null>(null);
+
   const signFn = useServerFn(signEventDocumentUrl);
   const [openingId, setOpeningId] = useState<string | null>(null);
   async function openDoc(id: string) {
