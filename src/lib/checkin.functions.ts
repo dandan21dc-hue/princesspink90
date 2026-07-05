@@ -33,16 +33,21 @@ export const lookupCheckin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertEventHostOrAdmin(context.supabase, context.userId, data.event_id);
-    const code = data.ticket_code.trim().toUpperCase();
+    const raw = data.ticket_code.trim();
+    const upper = raw.toUpperCase();
 
-    // Match either the scan-code (ticket_code) or the human-readable entry_code.
+    // Accept the scan-code (ticket_code), the entry_code, OR the secret entry
+    // phrase (case-insensitive) so the door monitor can look a guest up by
+    // whichever value the guest offers.
     const { data: rsvp, error } = await context.supabase
       .from("rsvps")
       .select(
         "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at, door_notes",
       )
       .eq("event_id", data.event_id)
-      .or(`ticket_code.eq.${code},entry_code.eq.${code}`)
+      .or(
+        `ticket_code.eq.${upper},entry_code.eq.${upper},entry_phrase.ilike.${raw}`,
+      )
       .maybeSingle();
     if (error) throw error;
     if (!rsvp) return { found: false as const };
