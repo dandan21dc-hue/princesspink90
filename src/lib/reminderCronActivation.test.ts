@@ -280,7 +280,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     // the log row but hadn't yet flipped expiry_reminder_sent_at. The row
     // still appears as a candidate; the insert must return 23505 and the
     // hook must NOT send an email for it.
-    const preClaimed = DUE[0]
+    const preClaimed = DUE[0]!
     claimedKeys.add(
       `expiry_7_day:${preClaimed.id}:${preClaimed.valid_until}`,
     )
@@ -292,9 +292,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     expect(body.candidates).toBe(DUE.length - 1)
     expect(body.emailed).toBe(DUE.length - 1)
     expect(sendResendEmail).toHaveBeenCalledTimes(DUE.length - 1)
-    const recipients = sendResendEmail.mock.calls.map(
-      (c) => ((c as unknown as [{ to: string }])[0]).to,
-    )
+    const recipients = sendResendEmail.mock.calls.map((c) => c[0].to)
     expect(recipients).not.toContain(
       `user-${preClaimed.user_id.slice(-2)}@example.com`,
     )
