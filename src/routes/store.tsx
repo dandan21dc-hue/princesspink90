@@ -61,16 +61,29 @@ function StorePage() {
 
 function AllAccessCard() {
   return (
-    <Link
-      to="/store/subscribe"
-      className="group rounded-2xl border border-primary/50 bg-primary/10 p-5 shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-    >
-      <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Pass</div>
-      <div className="mt-1 font-display text-2xl font-bold">$10<span className="text-sm text-muted-foreground">/mo</span></div>
-      <div className="mt-1 text-xs text-muted-foreground">Everything in the library, streaming in-app.</div>
-    </Link>
+    <div className="flex flex-col gap-3">
+      <Link
+        to="/store/subscribe"
+        className="group rounded-2xl border border-primary/50 bg-primary/10 p-5 shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+      >
+        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Pass</div>
+        <div className="mt-1 font-display text-2xl font-bold">$10<span className="text-sm text-muted-foreground">/mo</span></div>
+        <div className="mt-1 text-xs text-muted-foreground">Everything in the library, streaming in-app.</div>
+      </Link>
+      <Link
+        to="/store/private-room"
+        className="group rounded-2xl border border-primary/50 bg-background/40 p-5 hover:border-primary hover:bg-primary/5"
+      >
+        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Private Room</div>
+        <div className="mt-1 font-display text-2xl font-bold">
+          From A$150<span className="text-sm text-muted-foreground"> / 30 min</span>
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">Book a 30-minute or 1-hour private session.</div>
+      </Link>
+    </div>
   );
 }
+
 
 function ItemGrid() {
   const { data } = useSuspenseQuery(storeQuery);
