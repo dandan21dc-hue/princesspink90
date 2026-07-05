@@ -14,7 +14,10 @@ const REMINDER_LOG_ID = '11111111-1111-1111-1111-111111111111'
 
 // sendResendEmail is reassigned per-scenario. Tests that need to inject
 // specific behavior overwrite this reference before invoking the handler.
-const sendResendEmail = vi.fn(async () => ({ ok: true as const }))
+type ResendResult = { ok: true } | { ok: false; error?: string }
+const sendResendEmail = vi.fn<(...args: unknown[]) => Promise<ResendResult>>(
+  async () => ({ ok: true }),
+)
 vi.mock('@/lib/resend.server', () => ({ sendResendEmail }))
 
 vi.mock('@/lib/reminder-job-config.functions', () => ({
