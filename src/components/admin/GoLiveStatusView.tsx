@@ -1,4 +1,8 @@
-import type { GoLiveStatus } from "@/lib/go-live-status.functions";
+import type {
+  GoLiveDiagnostic,
+  GoLiveStatus,
+} from "@/lib/go-live-status.functions";
+
 
 /**
  * Pure presentational view for the go-live status RPC payload.
