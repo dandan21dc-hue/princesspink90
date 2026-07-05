@@ -5,7 +5,8 @@
  * SUPABASE_SERVICE_ROLE_KEY are not present, so it stays green in CI /
  * local runs without secrets.
  *
- * Run against a live environment:
+ * Run against a live environment (opt-in):
+ *   RUN_SMOKE_TESTS=1 \
  *   SUPABASE_URL=... \
  *   SUPABASE_SERVICE_ROLE_KEY=... \
  *   SUPABASE_PUBLISHABLE_KEY=... \
