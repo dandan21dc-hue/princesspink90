@@ -383,6 +383,67 @@ function MyDocumentsSection() {
     old_version: string | null;
   } | null>(null);
 
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+
+  const bulkReAck = useMutation({
+    mutationFn: async (vars: { policy_version_id: string; event_ids: (string | null)[] }) => {
+      const results = await Promise.allSettled(
+        vars.event_ids.map((event_id) =>
+          reAckFn({ data: { policy_version_id: vars.policy_version_id, event_id } }),
+        ),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { total: vars.event_ids.length, failed };
+    },
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["my-compliance-documents"] });
+      const key = ["my-compliance-documents"] as const;
+      const previous = qc.getQueryData<any[]>(key);
+      const nowIso = new Date().toISOString();
+      const currentLabel = current.data?.version ?? null;
+      const eventSet = new Set(vars.event_ids);
+      if (previous) {
+        qc.setQueryData<any[]>(
+          key,
+          previous.map((row) =>
+            eventSet.has(row.event_id)
+              ? {
+                  ...row,
+                  current_policy_version_id: vars.policy_version_id,
+                  current_policy_version_label:
+                    row.current_policy_version_label ?? currentLabel,
+                  current_agreement_accepted_at: nowIso,
+                  current_agreement_accepted_by_display_name:
+                    row.current_agreement_accepted_by_display_name ??
+                    row.uploaded_by_display_name ??
+                    null,
+                }
+              : row,
+          ),
+        );
+      }
+      return { previous };
+    },
+    onError: (e, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["my-compliance-documents"], ctx.previous);
+      toast.error(e instanceof Error ? e.message : "Bulk re-acknowledge failed");
+    },
+    onSuccess: (res) => {
+      const ok = res.total - res.failed;
+      if (res.failed === 0) {
+        toast.success(`Re-acknowledged current policy for ${ok} event${ok === 1 ? "" : "s"}.`);
+      } else {
+        toast.warning(`Re-acknowledged ${ok} of ${res.total}. ${res.failed} failed — please retry.`);
+      }
+      setSelected(new Set());
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
+      setBulkConfirmOpen(false);
+    },
+  });
+
   const signFn = useServerFn(signEventDocumentUrl);
   const [previewTarget, setPreviewTarget] = useState<{ id: string; file_name: string } | null>(null);
   async function openDoc(id: string, file_name: string) {
@@ -391,6 +452,14 @@ function MyDocumentsSection() {
   async function signUrlFor(id: string): Promise<string> {
     const { url } = await signFn({ data: { id } });
     return url;
+  }
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
 
@@ -509,6 +578,62 @@ function MyDocumentsSection() {
         </div>
       </div>
 
+      {(() => {
+        const eligible = rows.filter(
+          (d) =>
+            currentId &&
+            d.policy_version_id &&
+            d.policy_version_id !== currentId &&
+            !d.current_agreement_accepted_at,
+        );
+        const eligibleIds = eligible.map((d) => d.id);
+        const visibleSelected = eligibleIds.filter((id) => selected.has(id));
+        const allSelected = eligibleIds.length > 0 && visibleSelected.length === eligibleIds.length;
+        if (eligible.length === 0) return null;
+        return (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs">
+            <label className="flex items-center gap-2 text-foreground">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(e) => {
+                  setSelected((prev) => {
+                    const next = new Set(prev);
+                    if (e.target.checked) eligibleIds.forEach((id) => next.add(id));
+                    else eligibleIds.forEach((id) => next.delete(id));
+                    return next;
+                  });
+                }}
+              />
+              <span>
+                Select all outdated ({eligible.length}) · {visibleSelected.length} selected
+              </span>
+            </label>
+            <div className="flex items-center gap-2">
+              {visibleSelected.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={visibleSelected.length === 0 || !currentId || bulkReAck.isPending}
+                onClick={() => setBulkConfirmOpen(true)}
+                className="rounded-md bg-primary px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {bulkReAck.isPending
+                  ? "Recording…"
+                  : `Re-acknowledge v${currentVersion ?? "?"} for selected`}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {rows.length === 0 ? (
         <p className="mt-4 rounded-lg border border-border/60 bg-card p-4 text-sm text-muted-foreground">
           No documents match the current filters.
@@ -518,11 +643,21 @@ function MyDocumentsSection() {
 
         {rows.map((d) => {
           const stale = currentId && d.policy_version_id && d.policy_version_id !== currentId;
+          const canBulkSelect = !!(stale && !d.current_agreement_accepted_at);
           return (
             <li
               key={d.id}
               className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-4"
             >
+              {canBulkSelect && (
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${d.file_name} for bulk re-acknowledgement`}
+                  checked={selected.has(d.id)}
+                  onChange={() => toggleSelected(d.id)}
+                  className="mt-1 self-start"
+                />
+              )}
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="rounded bg-muted/40 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-foreground/80">
@@ -678,6 +813,58 @@ function MyDocumentsSection() {
               {reAck.isPending ? "Recording…" : `Record agreement to v${currentVersion ?? "?"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={bulkConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open && !bulkReAck.isPending) setBulkConfirmOpen(false);
+        }}
+      >
+        <AlertDialogContent>
+          {(() => {
+            const selectedRows = (docs.data ?? []).filter((d) => selected.has(d.id));
+            const uniqueEventIds = Array.from(new Set(selectedRows.map((d) => d.event_id)));
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>
+                    Re-acknowledge policy v{currentVersion ?? "?"} for {selectedRows.length}{" "}
+                    document{selectedRows.length === 1 ? "" : "s"}?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                      <p>
+                        This records a new agreement dated now under your account for{" "}
+                        <span className="text-foreground">{uniqueEventIds.length}</span>{" "}
+                        event{uniqueEventIds.length === 1 ? "" : "s"}. Uploaded files stay as-is —
+                        re-upload them under the current policy when convenient.
+                      </p>
+                      <p className="text-xs">Agreements are auditable and cannot be deleted.</p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={bulkReAck.isPending}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={bulkReAck.isPending || !currentId || uniqueEventIds.length === 0}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (!currentId) return;
+                      bulkReAck.mutate({
+                        policy_version_id: currentId,
+                        event_ids: uniqueEventIds,
+                      });
+                    }}
+                  >
+                    {bulkReAck.isPending
+                      ? "Recording…"
+                      : `Record ${uniqueEventIds.length} agreement${uniqueEventIds.length === 1 ? "" : "s"}`}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
         </AlertDialogContent>
       </AlertDialog>
       <DocumentPreviewDialog
