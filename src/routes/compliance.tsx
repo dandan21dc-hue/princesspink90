@@ -688,9 +688,14 @@ function MyDocumentsSection() {
               <button
                 type="button"
                 disabled={visibleSelected.length === 0 || !currentId || bulkReAck.isPending}
-                onClick={() => setBulkConfirmOpen(true)}
-                className="rounded-md bg-primary px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                aria-busy={bulkReAck.isPending}
+                onClick={() => {
+                  if (bulkReAck.isPending) return;
+                  setBulkConfirmOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
+                {bulkReAck.isPending && <Loader2 className="h-3 w-3 animate-spin" aria-hidden />}
                 {bulkReAck.isPending
                   ? "Recording…"
                   : `Re-acknowledge v${currentVersion ?? "?"} for selected`}
