@@ -1049,6 +1049,7 @@ export type Database = {
         Row: {
           created_at: string
           expires_on: string | null
+          expiry_reminder_sent_at: string | null
           file_mime_type: string | null
           file_name: string
           file_path: string
@@ -1066,6 +1067,7 @@ export type Database = {
         Insert: {
           created_at?: string
           expires_on?: string | null
+          expiry_reminder_sent_at?: string | null
           file_mime_type?: string | null
           file_name: string
           file_path: string
@@ -1083,6 +1085,7 @@ export type Database = {
         Update: {
           created_at?: string
           expires_on?: string | null
+          expiry_reminder_sent_at?: string | null
           file_mime_type?: string | null
           file_name?: string
           file_path?: string
@@ -1098,6 +1101,56 @@ export type Database = {
           uploaded_by?: string
         }
         Relationships: []
+      }
+      venue_compliance_reminder_log: {
+        Row: {
+          channels: Json
+          created_at: string
+          document_id: string
+          error_message: string | null
+          expires_on: string
+          id: string
+          idempotency_key: string
+          kind: Database["public"]["Enums"]["venue_compliance_kind"]
+          recipients: Json
+          reminder_type: string
+          status: string
+        }
+        Insert: {
+          channels?: Json
+          created_at?: string
+          document_id: string
+          error_message?: string | null
+          expires_on: string
+          id?: string
+          idempotency_key: string
+          kind: Database["public"]["Enums"]["venue_compliance_kind"]
+          recipients?: Json
+          reminder_type?: string
+          status?: string
+        }
+        Update: {
+          channels?: Json
+          created_at?: string
+          document_id?: string
+          error_message?: string | null
+          expires_on?: string
+          id?: string
+          idempotency_key?: string
+          kind?: Database["public"]["Enums"]["venue_compliance_kind"]
+          recipients?: Json
+          reminder_type?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_compliance_reminder_log_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "venue_compliance_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       waiver_audit_log: {
         Row: {
