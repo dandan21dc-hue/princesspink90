@@ -206,6 +206,16 @@ export function EventForm({
         </Field>
       </Section>
 
+      <Section title="Liability waiver">
+        <p className="text-xs text-muted-foreground">
+          Every guest must accept this waiver and sign their name before the RSVP is confirmed. Leave blank to use the platform default waiver.
+        </p>
+        <Field label="Waiver text (optional override)">
+          <textarea rows={8} className={inputCls} {...bind("waiver_text")} placeholder="Leave blank to use the platform default waiver…" />
+        </Field>
+      </Section>
+
+
 
 
       <button
