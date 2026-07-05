@@ -839,11 +839,13 @@ export type Database = {
           environment: string
           event_ticket_event_id: string | null
           event_ticket_used_at: string | null
+          expires_at: string | null
           id: string
           kind: string
           private_session_fulfilled_at: string | null
           private_session_requested_at: string | null
           stripe_session_id: string | null
+          term_months: number | null
           updated_at: string
           user_id: string
         }
@@ -853,11 +855,13 @@ export type Database = {
           environment?: string
           event_ticket_event_id?: string | null
           event_ticket_used_at?: string | null
+          expires_at?: string | null
           id?: string
           kind?: string
           private_session_fulfilled_at?: string | null
           private_session_requested_at?: string | null
           stripe_session_id?: string | null
+          term_months?: number | null
           updated_at?: string
           user_id: string
         }
@@ -867,11 +871,13 @@ export type Database = {
           environment?: string
           event_ticket_event_id?: string | null
           event_ticket_used_at?: string | null
+          expires_at?: string | null
           id?: string
           kind?: string
           private_session_fulfilled_at?: string | null
           private_session_requested_at?: string | null
           stripe_session_id?: string | null
+          term_months?: number | null
           updated_at?: string
           user_id?: string
         }
