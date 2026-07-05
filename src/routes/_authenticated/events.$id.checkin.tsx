@@ -512,7 +512,8 @@ function Roster({
               <div className="min-w-0">
                 <div className="truncate font-medium">{g.display_name ?? "Guest"}</div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  <span className="font-mono tracking-widest text-neon">{g.ticket_code}</span>
+                  <span className="font-mono tracking-widest text-neon">{g.entry_code}</span>
+                  <span className="opacity-60"> · scan {g.ticket_code}</span>
                   {" · "}Party of {g.guest_count}
                   {" · "}
                   {new Date(g.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
