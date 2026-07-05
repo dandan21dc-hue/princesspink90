@@ -241,7 +241,7 @@ export const listMyRsvps = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("rsvps")
-      .select("id, ticket_code, guest_count, status, created_at, events(id, title, starts_at, venue_name, city, cover_image_url)")
+      .select("id, ticket_code, entry_code, guest_count, status, created_at, events(id, title, starts_at, venue_name, city, cover_image_url)")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
