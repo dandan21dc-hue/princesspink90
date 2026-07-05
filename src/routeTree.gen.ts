@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UnlockRouteImport } from './routes/unlock'
 import { Route as StoreRouteImport } from './routes/store'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
@@ -46,6 +47,11 @@ const UnlockRoute = UnlockRouteImport.update({
 const StoreRoute = StoreRouteImport.update({
   id: '/store',
   path: '/store',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ComplianceRoute = ComplianceRouteImport.update({
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
+  '/privacy': typeof PrivacyRoute
   '/store': typeof StoreRouteWithChildren
   '/unlock': typeof UnlockRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
+  '/privacy': typeof PrivacyRoute
   '/store': typeof StoreRouteWithChildren
   '/unlock': typeof UnlockRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
@@ -255,6 +263,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
+  '/privacy': typeof PrivacyRoute
   '/store': typeof StoreRouteWithChildren
   '/unlock': typeof UnlockRoute
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
@@ -286,6 +295,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/compliance'
+    | '/privacy'
     | '/store'
     | '/unlock'
     | '/cohost-apply'
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/compliance'
+    | '/privacy'
     | '/store'
     | '/unlock'
     | '/cohost-apply'
@@ -345,6 +356,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/compliance'
+    | '/privacy'
     | '/store'
     | '/unlock'
     | '/_authenticated/cohost-apply'
@@ -376,6 +388,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
+  PrivacyRoute: typeof PrivacyRoute
   StoreRoute: typeof StoreRouteWithChildren
   UnlockRoute: typeof UnlockRoute
   EventsIdRoute: typeof EventsIdRoute
@@ -396,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/store'
       fullPath: '/store'
       preLoaderRoute: typeof StoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/compliance': {
@@ -671,6 +691,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
+  PrivacyRoute: PrivacyRoute,
   StoreRoute: StoreRouteWithChildren,
   UnlockRoute: UnlockRoute,
   EventsIdRoute: EventsIdRoute,
