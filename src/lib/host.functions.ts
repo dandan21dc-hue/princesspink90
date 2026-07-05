@@ -383,3 +383,72 @@ export const signEventDocumentUrl = createServerFn({ method: "POST" })
     if (sErr) throw sErr;
     return { url: signed.signedUrl };
   });
+
+export const listEventWaivers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { eventId: string }) =>
+    z.object({ eventId: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertOwnsEvent(context.supabase, context.userId, data.eventId);
+
+    const { data: event, error: eErr } = await context.supabase
+      .from("events")
+      .select("id, title, waiver_text")
+      .eq("id", data.eventId)
+      .maybeSingle();
+    if (eErr) throw eErr;
+    if (!event) throw new Error("Not found");
+
+    const { data: rows, error } = await context.supabase
+      .from("rsvps")
+      .select(
+        "id, user_id, ticket_code, status, guest_count, created_at, waiver_signature, waiver_accepted_at, waiver_text_hash",
+      )
+      .eq("event_id", data.eventId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    const userIds = (rows ?? []).map((r) => r.user_id);
+    const { data: profs } = userIds.length
+      ? await context.supabase
+          .from("profiles")
+          .select("user_id, display_name")
+          .in("user_id", userIds)
+      : { data: [] as { user_id: string; display_name: string | null }[] };
+    const nameByUser = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
+
+    // Compute the current waiver text hash so we can flag out-of-date signatures.
+    const waiverText = (event.waiver_text ?? "").trim();
+    const enc = new TextEncoder().encode(waiverText);
+    const digest = await crypto.subtle.digest("SHA-256", enc);
+    const currentHash = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const rsvps = (rows ?? []).map((r) => {
+      const accepted = Boolean(r.waiver_signature && r.waiver_accepted_at);
+      const hashCurrent =
+        accepted && r.waiver_text_hash ? r.waiver_text_hash === currentHash : false;
+      return {
+        ...r,
+        display_name: nameByUser.get(r.user_id) ?? null,
+        waiver_accepted: accepted,
+        waiver_hash_current: hashCurrent,
+      };
+    });
+
+    const total = rsvps.length;
+    const acceptedCount = rsvps.filter((r) => r.waiver_accepted).length;
+    const staleCount = rsvps.filter(
+      (r) => r.waiver_accepted && !r.waiver_hash_current,
+    ).length;
+
+    return {
+      event: { id: event.id, title: event.title },
+      currentHash,
+      rsvps,
+      summary: { total, accepted: acceptedCount, missing: total - acceptedCount, stale: staleCount },
+    };
+  });
+
