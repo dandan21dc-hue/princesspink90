@@ -42,9 +42,22 @@ describe("isMissingAgreementError", () => {
     ).toBe(true);
   });
 
+  it("matches the version-bump and older-agreement rejection messages (also cleaned up)", () => {
+    expect(
+      isMissingAgreementError(
+        "Compliance policy has been updated to v4 (you submitted v3). Reload the page, review the current policy, and agree to v4 before uploading.",
+      ),
+    ).toBe(true);
+    expect(
+      isMissingAgreementError(
+        "Your last agreement was to compliance policy v2, but v3 is now in effect. Review and agree to v3 before uploading documents.",
+      ),
+    ).toBe(true);
+  });
+
   it("does not match unrelated errors", () => {
     expect(isMissingAgreementError("Invalid file path")).toBe(false);
-    expect(isMissingAgreementError("Compliance policy has been updated.")).toBe(false);
+    expect(isMissingAgreementError("Network error")).toBe(false);
   });
 });
 
