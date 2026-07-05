@@ -1463,6 +1463,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      go_live_status: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
