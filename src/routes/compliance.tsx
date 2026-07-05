@@ -190,7 +190,10 @@ function CompliancePage() {
         </p>
       </Section>
 
+      <MyDocumentsSection />
+
       <Section eyebrow="Contact" title="Questions or appeals">
+
         <p>
           If an event has been flagged and you believe the decision is incorrect, reply
           to the review notification with supporting documents. For general questions
