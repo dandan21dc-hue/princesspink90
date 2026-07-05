@@ -492,6 +492,27 @@ export const listMyPolicyAgreements = createServerFn({ method: "GET" })
     return rows ?? [];
   });
 
+export const listMyComplianceDocuments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: docs, error } = await context.supabase
+      .from("event_documents")
+      .select("id, doc_type, file_name, uploaded_at, policy_version_id, policy_version_label, event_id, events!inner(id, title, host_id)")
+      .eq("uploaded_by", context.userId)
+      .order("uploaded_at", { ascending: false });
+    if (error) throw error;
+    return (docs ?? []).map((d: any) => ({
+      id: d.id as string,
+      doc_type: d.doc_type as string,
+      file_name: d.file_name as string,
+      uploaded_at: d.uploaded_at as string,
+      policy_version_id: (d.policy_version_id as string | null) ?? null,
+      policy_version_label: (d.policy_version_label as string | null) ?? null,
+      event_id: d.event_id as string,
+      event_title: (d.events?.title as string | null) ?? null,
+    }));
+  });
+
 
 
 export const deleteEventDocument = createServerFn({ method: "POST" })
