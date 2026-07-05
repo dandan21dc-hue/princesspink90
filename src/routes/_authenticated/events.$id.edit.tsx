@@ -207,7 +207,11 @@ function EditEvent() {
                 })}
                 onDelete={() => delC.mutate(c.id)}
                 onToggle={(used, name) => markUsed.mutate({ id: c.id, used, used_by_name: name })}
-                pending={markUsed.isPending && markUsed.variables?.id === c.id} />
+                onRename={(name) => renameGuest.mutate({ id: c.id, used_by_name: name })}
+                pending={
+                  (markUsed.isPending && markUsed.variables?.id === c.id) ||
+                  (renameGuest.isPending && renameGuest.variables?.id === c.id)
+                } />
             ))}
             {!codes.length && <li className="text-xs text-muted-foreground">No codes yet.</li>}
           </ul>
