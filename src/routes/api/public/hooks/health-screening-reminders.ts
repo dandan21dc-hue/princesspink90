@@ -83,8 +83,28 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
         const failures: Array<{ id: string; error: string }> = []
 
         // Resolve app origin for portal links inside the reminder email.
+        // Each recipient gets a per-row link with tracing params:
+        //   rid = reminder log row id (unique per send attempt)
+        //   sid = screening id
+        //   uid = user/patient id
+        // These let inbound portal traffic be attributed back to the exact
+        // reminder that triggered the click.
         const origin = resolveAppOrigin(request)
-        const portalUrl = `${origin}/health-screenings`
+        const buildPortalUrl = (params: {
+          rid: string
+          sid: string
+          uid: string
+        }) => {
+          const qs = new URLSearchParams({
+            rid: params.rid,
+            sid: params.sid,
+            uid: params.uid,
+            utm_source: 'email',
+            utm_medium: 'reminder',
+            utm_campaign: 'health_screening_expiry_7_day',
+          })
+          return `${origin}/health-screenings?${qs.toString()}`
+        }
 
         let emailed = 0
         for (const row of candidates ?? []) {
@@ -165,6 +185,11 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
             const displayName = profile?.display_name ?? authName
 
             if (email) {
+              const portalUrl = buildPortalUrl({
+                rid: logRow.id,
+                sid: row.id,
+                uid: row.user_id,
+              })
               const tmpl = renderHealthScreeningReminder({
                 recipientName: displayName,
                 validUntil: row.valid_until,
