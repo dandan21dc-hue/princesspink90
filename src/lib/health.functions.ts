@@ -175,7 +175,13 @@ export const adminReviewHealthScreening = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Forbidden");
 
-    const patch: Record<string, unknown> = {
+    const patch: {
+      status: "approved" | "rejected";
+      notes: string | null;
+      reviewed_at: string;
+      reviewed_by: string;
+      valid_until?: string;
+    } = {
       status: data.status,
       notes: data.notes ?? null,
       reviewed_at: new Date().toISOString(),
@@ -190,6 +196,7 @@ export const adminReviewHealthScreening = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
 
 /** True if the user has any currently-valid approved screening. */
 export function isScreeningCurrent(rows: HealthScreening[]): boolean {
