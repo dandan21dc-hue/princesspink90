@@ -20,6 +20,25 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       .select("ticket_code")
       .single();
     if (error) throw error;
+
+    // Auto-redeem lifetime member's free event ticket on first RSVP
+    const env = process.env.NODE_ENV === "production" ? "live" : "sandbox";
+    const { data: mem } = await context.supabase
+      .from("memberships")
+      .select("id, event_ticket_used_at")
+      .eq("user_id", context.userId)
+      .eq("environment", env)
+      .eq("kind", "lifetime")
+      .maybeSingle();
+    if (mem && !mem.event_ticket_used_at) {
+      await context.supabase
+        .from("memberships")
+        .update({
+          event_ticket_used_at: new Date().toISOString(),
+          event_ticket_event_id: data.event_id,
+        })
+        .eq("id", mem.id);
+    }
     return row;
   });
 
