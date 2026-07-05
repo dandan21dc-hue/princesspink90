@@ -468,3 +468,47 @@ export const signMediaUrl = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { url: signed.signedUrl };
   });
+
+/**
+ * Verify a completed checkout session on return. Called by the
+ * `/checkout/return` route with the `session_id` Stripe substitutes into
+ * `return_url`. Returns a compact, safe subset of the Stripe session so
+ * the client can route the user based on what they bought without exposing
+ * unrelated PII.
+ */
+export const getCheckoutSession = createServerFn({ method: "GET" })
+  .inputValidator((data: { sessionId: string; environment: StripeEnv }) => {
+    if (!/^cs_(test_|live_)?[a-zA-Z0-9]+$/.test(data.sessionId)) {
+      throw new Error("Invalid sessionId");
+    }
+    if (data.environment !== "sandbox" && data.environment !== "live") {
+      throw new Error("Invalid environment");
+    }
+    return data;
+  })
+  .handler(async ({ data }) => {
+    try {
+      const stripe = createStripeClient(data.environment);
+      const session = await stripe.checkout.sessions.retrieve(data.sessionId);
+      const meta = session.metadata ?? {};
+      return {
+        id: session.id,
+        status: session.status, // 'open' | 'complete' | 'expired'
+        paymentStatus: session.payment_status, // 'paid' | 'unpaid' | 'no_payment_required'
+        mode: session.mode,
+        amountTotal: session.amount_total,
+        currency: session.currency,
+        customerEmail: session.customer_details?.email ?? null,
+        metadata: {
+          userId: meta.userId ?? null,
+          membership: meta.membership ?? null,
+          term_months: meta.term_months ?? null,
+          content_item_id: meta.content_item_id ?? null,
+          booking: meta.booking ?? null,
+          private_room_booking_id: meta.private_room_booking_id ?? null,
+        },
+      };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
