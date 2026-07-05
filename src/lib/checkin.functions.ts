@@ -131,3 +131,47 @@ export const performCheckin = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+/** Live roster of checked-in guests for an event (host/admin only). */
+export const listCheckins = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { event_id: string }) =>
+    z.object({ event_id: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertEventHostOrAdmin(context.supabase, context.userId, data.event_id);
+
+    const { data: rows, error } = await context.supabase
+      .from("rsvps")
+      .select(
+        "id, user_id, ticket_code, guest_count, checked_in_at, consent_at_checkin, video_consent, door_notes",
+      )
+      .eq("event_id", data.event_id)
+      .not("checked_in_at", "is", null)
+      .order("checked_in_at", { ascending: false });
+    if (error) throw error;
+
+    const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+    let nameByUser = new Map<string, string | null>();
+    if (userIds.length) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: profs } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", userIds);
+      nameByUser = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
+    }
+
+    const guests = (rows ?? []).map((r) => ({
+      id: r.id,
+      ticket_code: r.ticket_code,
+      guest_count: r.guest_count,
+      checked_in_at: r.checked_in_at as string,
+      display_name: nameByUser.get(r.user_id) ?? null,
+      consent: (r.consent_at_checkin ?? r.video_consent) as VideoConsent | null,
+      door_notes: r.door_notes as string | null,
+    }));
+
+    const total_heads = guests.reduce((sum, g) => sum + (g.guest_count ?? 1), 0);
+    return { guests, total_heads };
+  });
