@@ -101,6 +101,33 @@ async function resolveOrCreateCustomer(
   return created.id;
 }
 
+/**
+ * Ensure the checkout `return_url` carries Stripe's `{CHECKOUT_SESSION_ID}`
+ * template so the user is bounced back with a resolvable session id.
+ *
+ * Rules enforced:
+ *  - Must be an absolute URL (Stripe rejects relative return_urls).
+ *  - `session_id={CHECKOUT_SESSION_ID}` is appended when missing.
+ *  - The literal `{` and `}` are preserved (the URL API percent-encodes
+ *    them, so we append via string concatenation rather than
+ *    `URLSearchParams`, otherwise Stripe would receive `%7B...%7D` and
+ *    skip substitution — leaving `session_id` literally equal to the
+ *    template string).
+ *  - Idempotent: calling twice does not double-append.
+ */
+export function ensureSessionIdInReturnUrl(rawUrl: string): string {
+  const parsed = new URL(rawUrl); // throws on relative / invalid
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error("returnUrl must be http(s)");
+  }
+  if (rawUrl.includes("{CHECKOUT_SESSION_ID}")) return rawUrl;
+  // Preserve any existing query/hash; append the template literally.
+  const [beforeHash, hash = ""] = rawUrl.split("#");
+  const sep = beforeHash.includes("?") ? "&" : "?";
+  const withTemplate = `${beforeHash}${sep}session_id={CHECKOUT_SESSION_ID}`;
+  return hash ? `${withTemplate}#${hash}` : withTemplate;
+}
+
 export const createStoreCheckoutSession = createServerFn({ method: "POST" })
   .inputValidator(
     (data: {
