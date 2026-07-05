@@ -140,7 +140,7 @@ function PrintPage() {
             ))}
             {data.guests.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ textAlign: "center", padding: 20 }}>
+                <td colSpan={7} style={{ textAlign: "center", padding: 20 }}>
                   No confirmed RSVPs yet.
                 </td>
               </tr>
