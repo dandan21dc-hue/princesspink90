@@ -7,7 +7,7 @@ export type SupportMessageRow = {
   role: "user" | "assistant" | "admin" | "system";
   content: string;
   created_at: string;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, string | number | boolean | null>;
 };
 
 export type SupportConversationSummary = {
