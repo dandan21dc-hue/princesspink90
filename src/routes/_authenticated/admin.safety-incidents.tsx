@@ -253,7 +253,31 @@ function AdminSafetyIncidentsPage() {
         </p>
       </header>
 
-      <section className="mx-auto max-w-5xl px-5 pb-10">
+      <nav className="mx-auto max-w-5xl px-5">
+        <div className="inline-flex overflow-hidden rounded-md border border-border text-xs">
+          {(["incidents", "exports"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTab(t)}
+              className={`px-4 py-2 capitalize ${
+                tab === t
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t === "incidents" ? "Incidents" : "Export logs"}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      {tab === "exports" ? (
+        <ExportLogsPanel />
+      ) : (
+      <>
+      <section className="mx-auto max-w-5xl px-5 pb-10 pt-6">
+
         <form
           onSubmit={submit}
           className="rounded-2xl border border-border bg-card p-6 space-y-4"
