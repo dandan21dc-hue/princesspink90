@@ -44,6 +44,7 @@ export function emptyForm(): EventFormValues {
     insurance_policy_number: "", insurance_expires_on: "",
     legal_capacity: "", capacity_confirmed: false,
     compliance_notes: "",
+    waiver_text: "",
   };
 }
 
