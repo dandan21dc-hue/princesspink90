@@ -209,6 +209,7 @@ function AdminSafetyIncidentsPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Safety incidents");
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     XLSX.writeFile(wb, `safety-incidents-${view}-${stamp}.xlsx`);
+    void logExport("xlsx", headers, rows.length);
   }
 
   return (
