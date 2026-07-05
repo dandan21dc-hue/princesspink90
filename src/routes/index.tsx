@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { listPublicEvents } from "@/lib/events.functions";
+import { getSiteSettings } from "@/lib/settings.functions";
 import { EventCard } from "@/components/EventCard";
 import heroImg from "@/assets/hero.jpg";
 
@@ -10,8 +11,17 @@ const eventsQuery = queryOptions({
   queryFn: () => listPublicEvents(),
 });
 
+const settingsQuery = queryOptions({
+  queryKey: ["site-settings"],
+  queryFn: () => getSiteSettings(),
+});
+
 export const Route = createFileRoute("/")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(eventsQuery),
+      context.queryClient.ensureQueryData(settingsQuery),
+    ]),
   head: () => ({
     meta: [
       { property: "og:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
@@ -19,6 +29,7 @@ export const Route = createFileRoute("/")({
   }),
   component: Home,
 });
+
 
 function Home() {
   return (
