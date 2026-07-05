@@ -19,11 +19,11 @@ export const Route = createFileRoute("/store/subscribe")({
 });
 
 type PriceId =
-  | "all_access_monthly"
-  | "all_access_3mo_onetime"
-  | "all_access_6mo_onetime"
-  | "all_access_12mo_onetime"
-  | "lifetime_onetime";
+  | "all_access_monthly_aud"
+  | "all_access_3mo_onetime_aud"
+  | "all_access_6mo_onetime_aud"
+  | "all_access_12mo_onetime_aud"
+  | "lifetime_onetime_aud";
 
 function SubscribePage() {
   const navigate = useNavigate();
