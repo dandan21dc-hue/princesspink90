@@ -645,12 +645,12 @@ function MyDocumentsSection() {
       </div>
 
       {(() => {
-        const eligible = rows.filter(
-          (d) =>
-            currentId &&
-            d.policy_version_id &&
-            d.policy_version_id !== currentId &&
-            !d.current_agreement_accepted_at,
+        const eligible = rows.filter((d) =>
+          isDocumentStale({
+            docPolicyVersionId: d.policy_version_id,
+            currentPolicyVersionId: currentId,
+            reAcknowledged: d.current_agreement_accepted_at,
+          }),
         );
         const eligibleIds = eligible.map((d) => d.id);
         const visibleSelected = eligibleIds.filter((id) => selected.has(id));
