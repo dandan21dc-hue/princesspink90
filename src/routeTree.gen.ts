@@ -30,6 +30,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
+import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
@@ -147,6 +148,12 @@ const AuthenticatedAdminCompliancePolicyRoute =
     path: '/admin/compliance-policy',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminComplianceAuditRoute =
+  AuthenticatedAdminComplianceAuditRouteImport.update({
+    id: '/admin/compliance-audit',
+    path: '/admin/compliance-audit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminCohostsRoute =
   AuthenticatedAdminCohostsRouteImport.update({
     id: '/admin/cohosts',
@@ -199,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
@@ -227,6 +235,7 @@ export interface FileRoutesByTo {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
@@ -257,6 +266,7 @@ export interface FileRoutesById {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/_authenticated/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/admin/cohosts'
+    | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/events-compliance'
     | '/admin/lifetime'
@@ -315,6 +326,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/admin/cohosts'
+    | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/events-compliance'
     | '/admin/lifetime'
@@ -344,6 +356,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/_authenticated/admin/cohosts'
+    | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
     | '/_authenticated/admin/events-compliance'
     | '/_authenticated/admin/lifetime'
@@ -518,6 +531,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCompliancePolicyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/compliance-audit': {
+      id: '/_authenticated/admin/compliance-audit'
+      path: '/admin/compliance-audit'
+      fullPath: '/admin/compliance-audit'
+      preLoaderRoute: typeof AuthenticatedAdminComplianceAuditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/cohosts': {
       id: '/_authenticated/admin/cohosts'
       path: '/admin/cohosts'
@@ -596,6 +616,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
+  AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
   AuthenticatedAdminEventsComplianceRoute: typeof AuthenticatedAdminEventsComplianceRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
@@ -614,6 +635,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedAdminCohostsRoute: AuthenticatedAdminCohostsRoute,
+  AuthenticatedAdminComplianceAuditRoute:
+    AuthenticatedAdminComplianceAuditRoute,
   AuthenticatedAdminCompliancePolicyRoute:
     AuthenticatedAdminCompliancePolicyRoute,
   AuthenticatedAdminEventsComplianceRoute:
