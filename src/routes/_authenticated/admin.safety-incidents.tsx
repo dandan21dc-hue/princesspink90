@@ -629,3 +629,151 @@ function IncidentAttachments({
   );
 }
 
+
+function ColumnPicker({
+  selected,
+  onChange,
+  onReset,
+  onClose,
+}: {
+  selected: string[];
+  onChange: (next: string[]) => void;
+  onReset: () => void;
+  onClose: () => void;
+}) {
+  const unselected = ALL_COLUMNS.filter((c) => !selected.includes(c.key));
+
+  function toggle(key: string, on: boolean) {
+    if (on) onChange([...selected, key]);
+    else onChange(selected.filter((k) => k !== key));
+  }
+  function move(idx: number, dir: -1 | 1) {
+    const target = idx + dir;
+    if (target < 0 || target >= selected.length) return;
+    const next = selected.slice();
+    [next[idx], next[target]] = [next[target], next[idx]];
+    onChange(next);
+  }
+
+  return (
+    <div className="mt-3 rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h3 className="font-medium">CSV export columns</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Choose which fields to include and drag the arrows to reorder — the
+            top row exports first.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted"
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Included ({selected.length}) — order matters
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {selected.length === 0 && (
+              <li className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+                No columns selected. Add some from the right.
+              </li>
+            )}
+            {selected.map((key, idx) => {
+              const col = ALL_COLUMNS.find((c) => c.key === key);
+              return (
+                <li
+                  key={key}
+                  className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm">{col?.label ?? key}</div>
+                    <div className="truncate text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {key}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => move(idx, -1)}
+                      disabled={idx === 0}
+                      aria-label="Move up"
+                      className="rounded border border-border bg-background px-2 py-1 text-xs hover:bg-muted disabled:opacity-30"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => move(idx, 1)}
+                      disabled={idx === selected.length - 1}
+                      aria-label="Move down"
+                      className="rounded border border-border bg-background px-2 py-1 text-xs hover:bg-muted disabled:opacity-30"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggle(key, false)}
+                      aria-label="Remove"
+                      className="rounded border border-border bg-background px-2 py-1 text-xs hover:bg-muted"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Available ({unselected.length})
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {unselected.length === 0 && (
+              <li className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+                All columns are included.
+              </li>
+            )}
+            {unselected.map((col) => (
+              <li
+                key={col.key}
+                className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm">{col.label}</div>
+                  <div className="truncate text-[10px] uppercase tracking-widest text-muted-foreground">
+                    {col.key}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggle(col.key, true)}
+                  className="shrink-0 rounded border border-border bg-background px-2 py-1 text-xs hover:bg-muted"
+                >
+                  + Add
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
