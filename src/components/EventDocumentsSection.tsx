@@ -143,12 +143,16 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
       </p>
 
       <PolicyAgreementCard
-        loading={policy.isLoading}
+        loading={policy.isLoading || agreements.isLoading}
         version={policy.data?.version ?? null}
         effectiveAt={policy.data?.effective_at ?? null}
         summary={policy.data?.summary ?? null}
         agreed={hasAgreedToCurrent}
-        onAgreeChange={(checked) => setAgreedVersion(checked ? currentVersionId : null)}
+        acceptedAt={existingAgreement?.accepted_at ?? null}
+        recording={recordAgreement.isPending}
+        onAgreeChange={(checked) => {
+          if (checked && !hasAgreedToCurrent && currentVersionId) recordAgreement.mutate();
+        }}
       />
 
       {staleDocs.length > 0 && (
