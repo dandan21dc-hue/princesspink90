@@ -38,6 +38,7 @@ import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './routes/api/public/hooks/health-screening-reminders'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
@@ -199,6 +200,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksHealthScreeningRemindersRoute =
+  ApiPublicHooksHealthScreeningRemindersRouteImport.update({
+    id: '/api/public/hooks/health-screening-reminders',
+    path: '/api/public/hooks/health-screening-reminders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedEventsIdWaiversRoute =
   AuthenticatedEventsIdWaiversRouteImport.update({
     id: '/events/$id/waivers',
@@ -255,6 +262,7 @@ export interface FileRoutesByFullPath {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
@@ -289,6 +297,7 @@ export interface FileRoutesByTo {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
@@ -325,6 +334,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/_authenticated/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
+    | '/api/public/hooks/health-screening-reminders'
     | '/api/public/payments/webhook'
     | '/events/$id/checkin/print'
   fileRoutesByTo: FileRoutesByTo
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
+    | '/api/public/hooks/health-screening-reminders'
     | '/api/public/payments/webhook'
     | '/events/$id/checkin/print'
   id:
@@ -430,6 +442,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
     | '/_authenticated/events/$id/waivers'
+    | '/api/public/hooks/health-screening-reminders'
     | '/api/public/payments/webhook'
     | '/_authenticated/events/$id/checkin/print'
   fileRoutesById: FileRoutesById
@@ -444,6 +457,7 @@ export interface RootRouteChildren {
   StoreRoute: typeof StoreRouteWithChildren
   UnlockRoute: typeof UnlockRoute
   EventsIdRoute: typeof EventsIdRoute
+  ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
@@ -652,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/health-screening-reminders': {
+      id: '/api/public/hooks/health-screening-reminders'
+      path: '/api/public/hooks/health-screening-reminders'
+      fullPath: '/api/public/hooks/health-screening-reminders'
+      preLoaderRoute: typeof ApiPublicHooksHealthScreeningRemindersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/events/$id/waivers': {
       id: '/_authenticated/events/$id/waivers'
       path: '/events/$id/waivers'
@@ -784,6 +805,8 @@ const rootRouteChildren: RootRouteChildren = {
   StoreRoute: StoreRouteWithChildren,
   UnlockRoute: UnlockRoute,
   EventsIdRoute: EventsIdRoute,
+  ApiPublicHooksHealthScreeningRemindersRoute:
+    ApiPublicHooksHealthScreeningRemindersRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
