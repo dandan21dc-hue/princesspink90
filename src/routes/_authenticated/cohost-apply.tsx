@@ -55,7 +55,7 @@ function CohostApply() {
   useEffect(() => {
     if (mine.data) {
       const savedAvail = mine.data.availability ?? "";
-      const availDays = DAY_OPTIONS.filter((d) => savedAvail.split("|")[0]?.includes(d));
+      const availDays = DAY_OPTIONS.filter((d: string) => savedAvail.split("|")[0]?.includes(d));
       const availNotes = savedAvail.split("|")[1]?.trim() ?? "";
       const savedTypes = (mine.data.event_types ?? "").split(",").map((s) => s.trim()).filter(Boolean);
       const presets = savedTypes.filter((t) => EVENT_TYPE_OPTIONS.includes(t));
