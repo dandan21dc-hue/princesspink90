@@ -97,12 +97,13 @@ export function toPayload(v: EventFormValues) {
 
 
 export function EventForm({
-  initial, onSubmit, submitting, submitLabel,
+  initial, onSubmit, submitting, submitLabel, eventId,
 }: {
   initial?: Partial<EventFormValues>;
   onSubmit: (v: EventFormValues) => void | Promise<void>;
   submitting?: boolean;
   submitLabel: string;
+  eventId?: string;
 }) {
   const [v, setV] = useState<EventFormValues>({ ...emptyForm(), ...initial });
   const bind = <K extends keyof EventFormValues>(k: K) => ({
@@ -110,6 +111,40 @@ export function EventForm({
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setV({ ...v, [k]: e.target.value }),
   });
+
+  const policyFn = useServerFn(getCurrentPolicyVersion);
+  const listDocsFn = useServerFn(listEventDocuments);
+  const policy = useQuery({
+    queryKey: ["compliance-policy-current"],
+    queryFn: () => policyFn(),
+  });
+  const docs = useQuery({
+    queryKey: ["event-documents", eventId],
+    queryFn: () => listDocsFn({ data: { event_id: eventId! } }),
+    enabled: !!eventId,
+  });
+
+  const currentPolicyId = policy.data?.id ?? null;
+  const currentPolicyVersion = policy.data?.version ?? null;
+  const REQUIRED_DOCS: { type: "permit" | "insurance" | "capacity"; label: string }[] = [
+    { type: "permit", label: "Event permit" },
+    { type: "insurance", label: "Insurance certificate" },
+    { type: "capacity", label: "Capacity certificate" },
+  ];
+  const docList = docs.data ?? [];
+  const missingDocs = eventId
+    ? REQUIRED_DOCS.filter((r) => !docList.some((d) => d.doc_type === r.type))
+    : [];
+  const staleDocs = eventId && currentPolicyId
+    ? docList.filter(
+        (d) =>
+          (d.doc_type === "permit" || d.doc_type === "insurance" || d.doc_type === "capacity") &&
+          d.policy_version_id &&
+          d.policy_version_id !== currentPolicyId,
+      )
+    : [];
+
+
 
   return (
     <form
