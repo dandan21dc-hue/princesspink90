@@ -30,6 +30,8 @@ function makeStatus(overrides: Partial<GoLiveStatus> = {}): GoLiveStatus {
 }
 
 describe("<GoLiveStatusView />", () => {
+  afterEach(() => cleanup());
+
   it("renders loading placeholders when data is undefined", () => {
     render(<GoLiveStatusView data={undefined} expectedJobs={EXPECTED_JOBS} />);
     // Both cards that depend on `data` show Loading…; the email card shows
