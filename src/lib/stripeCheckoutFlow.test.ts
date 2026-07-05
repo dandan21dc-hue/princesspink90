@@ -198,19 +198,38 @@ afterEach(() => {
   process.env = { ...ORIGINAL_ENV }
 })
 
+async function withStartContext<T>(fn: () => Promise<T>): Promise<T> {
+  const { runWithStartContext } = await import('@tanstack/start-storage-context')
+  return runWithStartContext(
+    {
+      // Minimal shape required by the server-fn client-side executor.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      getRouter: (async () => ({}) as any) as any,
+      request: new Request('http://localhost/test'),
+      startOptions: {},
+      contextAfterGlobalMiddlewares: {},
+      executedRequestMiddlewares: new Set(),
+      handlerType: 'serverFn',
+    },
+    fn,
+  )
+}
+
 async function checkout(priceId: string) {
   const mod = await import('@/lib/store.functions')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fn = mod.createStoreCheckoutSession as unknown as any
-  return fn({
-    data: {
-      priceId,
-      userId: USER_ID,
-      customerEmail: 'buyer@example.com',
-      returnUrl: RETURN_URL,
-      environment: 'sandbox',
-    },
-  })
+  return withStartContext(() =>
+    fn({
+      data: {
+        priceId,
+        userId: USER_ID,
+        customerEmail: 'buyer@example.com',
+        returnUrl: RETURN_URL,
+        environment: 'sandbox',
+      },
+    }),
+  )
 }
 
 async function fireWebhook(event: { type: string; data: { object: unknown } }) {
