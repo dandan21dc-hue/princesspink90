@@ -8,6 +8,7 @@ import {
   listEventDocuments, registerEventDocument, deleteEventDocument, signEventDocumentUrl,
   getCurrentPolicyVersion, recordPolicyAgreement, listMyPolicyAgreements,
 } from "@/lib/host.functions";
+import { uploadEventDocument } from "@/lib/eventDocumentUpload";
 
 type DocType = "permit" | "insurance" | "capacity" | "other";
 
@@ -84,36 +85,24 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
     }
     if (file.size > MAX_BYTES) { toast.error("File must be under 20 MB"); return; }
     setUploadingType(type);
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
-    const key = `${eventId}/${type}-${crypto.randomUUID()}-${safeName}`;
-    let uploaded = false;
     try {
-      const { error: upErr } = await supabase.storage
-        .from("event-documents").upload(key, file, { contentType: file.type || undefined, upsert: false });
-      if (upErr) throw upErr;
-      uploaded = true;
-      await registerFn({
-        data: {
-          event_id: eventId,
-          doc_type: type,
-          file_path: key,
-          file_name: file.name.slice(0, 200),
-          content_type: file.type || undefined,
-          size_bytes: file.size,
-          policy_version_id: currentVersionId,
-        },
+      const result = await uploadEventDocument({
+        supabase,
+        register: registerFn,
+        eventId,
+        type,
+        file,
+        currentVersionId,
       });
-      toast.success(`Uploaded (against policy v${policy.data?.version})`);
-      qc.invalidateQueries({ queryKey: ["event-documents", eventId] });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Upload failed";
-      // Server rejected because no policy agreement is on file — clean up the
-      // orphaned storage object and refresh the agreement state.
-      if (uploaded && /agree to compliance policy/i.test(msg)) {
-        await supabase.storage.from("event-documents").remove([key]).catch(() => {});
-        qc.invalidateQueries({ queryKey: ["my-policy-agreements", eventId] });
+      if (result.ok) {
+        toast.success(`Uploaded (against policy v${policy.data?.version})`);
+        qc.invalidateQueries({ queryKey: ["event-documents", eventId] });
+      } else {
+        if (result.cleanedUp) {
+          qc.invalidateQueries({ queryKey: ["my-policy-agreements", eventId] });
+        }
+        toast.error(result.error.message);
       }
-      toast.error(msg);
     } finally {
       setUploadingType(null);
     }
