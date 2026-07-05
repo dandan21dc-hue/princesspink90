@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.5",
