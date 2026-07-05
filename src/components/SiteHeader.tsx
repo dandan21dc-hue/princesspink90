@@ -46,6 +46,12 @@ export function SiteHeader() {
           >
             Private code
           </Link>
+          <Link
+            to="/privacy"
+            className="hidden sm:inline-block px-3 py-2 text-muted-foreground hover:text-foreground transition"
+          >
+            Privacy
+          </Link>
           {authed ? (
             <>
               <Link
