@@ -47,8 +47,10 @@ export const generateWaiverPdf = createServerFn({ method: "POST" })
       throw new Error("This RSVP does not have an accepted waiver yet.");
     }
 
-    // Look up guest display name (best effort).
-    const { data: prof } = await context.supabase
+    // Look up guest display name (best effort). RSVP access is already
+    // authorized by RLS above (guest or host), so admin read for the name is safe.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: prof } = await supabaseAdmin
       .from("profiles")
       .select("display_name")
       .eq("user_id", rsvp.user_id)
