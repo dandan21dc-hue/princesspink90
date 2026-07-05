@@ -9,6 +9,14 @@ import {
   adminListCohostApplicationReviews,
   adminReviewCohostApplication,
 } from "@/lib/cohost.functions";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+
 
 type StatusFilter = "all" | "pending" | "approved" | "rejected" | "withdrawn";
 
@@ -124,16 +132,73 @@ function AdminCohosts() {
 
 
 function Row({ row }: { row: any }) {
+  const [open, setOpen] = useState(false);
+  const pill =
+    row.status === "approved"
+      ? "border-neon/50 bg-neon/10 text-neon"
+      : row.status === "rejected"
+      ? "border-red-500/40 bg-red-500/10 text-red-300"
+      : row.status === "withdrawn"
+      ? "border-border bg-muted text-muted-foreground"
+      : "border-primary/40 bg-primary/10 text-primary";
+
+  return (
+    <>
+      <li className="rounded-xl border border-border/60 bg-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="font-display text-lg">
+              {row.display_name} <span className="text-muted-foreground">· age {row.age}</span>
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {row.email ?? row.user_id} · {row.city} · submitted{" "}
+              {new Date(row.submitted_at).toLocaleDateString()}
+            </div>
+          </div>
+          <span
+            className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-widest ${pill}`}
+          >
+            {row.status}
+          </span>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+          >
+            View details
+          </button>
+          {row.admin_notes && (
+            <span className="text-[11px] text-muted-foreground">Has admin notes</span>
+          )}
+        </div>
+      </li>
+
+      <ApplicationDetailSheet row={row} open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
+
+function ApplicationDetailSheet({
+  row,
+  open,
+  onOpenChange,
+}: {
+  row: any;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
   const qc = useQueryClient();
   const reviewFn = useServerFn(adminReviewCohostApplication);
   const listReviewsFn = useServerFn(adminListCohostApplicationReviews);
   const [notes, setNotes] = useState<string>(row.admin_notes ?? "");
-  const [showLog, setShowLog] = useState(false);
 
   const reviews = useQuery({
     queryKey: ["cohost-application-reviews", row.id],
     queryFn: () => listReviewsFn({ data: { applicationId: row.id } }),
-    enabled: showLog,
+    enabled: open,
   });
 
   const decide = useMutation({
@@ -147,6 +212,7 @@ function Row({ row }: { row: any }) {
       toast.success(decision === "approved" ? "Application approved" : "Application rejected");
       qc.invalidateQueries({ queryKey: ["admin-cohost-applications"] });
       qc.invalidateQueries({ queryKey: ["cohost-application-reviews", row.id] });
+      onOpenChange(false);
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -156,118 +222,129 @@ function Row({ row }: { row: any }) {
       ? "border-neon/50 bg-neon/10 text-neon"
       : row.status === "rejected"
       ? "border-red-500/40 bg-red-500/10 text-red-300"
+      : row.status === "withdrawn"
+      ? "border-border bg-muted text-muted-foreground"
       : "border-primary/40 bg-primary/10 text-primary";
 
   return (
-    <li className="rounded-xl border border-border/60 bg-card p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="font-display text-lg">{row.display_name} <span className="text-muted-foreground">· age {row.age}</span></div>
-          <div className="text-xs text-muted-foreground">
-            {row.email ?? row.user_id} · {row.city} · submitted {new Date(row.submitted_at).toLocaleString()}
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <div className="flex items-center gap-3">
+            <SheetTitle className="font-display text-2xl">
+              {row.display_name}{" "}
+              <span className="text-base font-normal text-muted-foreground">· age {row.age}</span>
+            </SheetTitle>
+            <span
+              className={`ml-auto shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-widest ${pill}`}
+            >
+              {row.status}
+            </span>
           </div>
-        </div>
-        <span className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-widest ${pill}`}>
-          {row.status}
-        </span>
-      </div>
+          <SheetDescription>
+            {row.email ?? row.user_id} · {row.city} · submitted{" "}
+            {new Date(row.submitted_at).toLocaleString()}
+          </SheetDescription>
+        </SheetHeader>
 
-      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-        {row.instagram_handle && <Info label="Instagram">{row.instagram_handle}</Info>}
-        {row.other_socials && <Info label="Other socials">{row.other_socials}</Info>}
-        {row.availability && <Info label="Availability">{row.availability}</Info>}
-        {row.event_types && <Info label="Event types">{row.event_types}</Info>}
-      </div>
-      <div className="mt-3 space-y-3 text-sm">
-        {row.bio && <Info label="Bio">{row.bio}</Info>}
-        <Info label="Experience">{row.hosting_experience}</Info>
-        <Info label="Why join">{row.why_join}</Info>
-      </div>
-
-      <div className="mt-4">
-        <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Admin notes <span className="normal-case tracking-normal text-muted-foreground/70">(required for rejection, visible in audit log)</span>
-        </label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          maxLength={2000}
-          placeholder="Reason for decision, follow-ups, context…"
-          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-        />
-        <div className="mt-1 text-right text-[10px] text-muted-foreground">{notes.length}/2000</div>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => decide.mutate("approved")}
-          disabled={decide.isPending}
-          className="rounded-md border border-neon/40 bg-neon/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20 disabled:opacity-50"
-        >
-          Approve
-        </button>
-        <button
-          onClick={() => decide.mutate("rejected")}
-          disabled={decide.isPending}
-          className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-red-300 hover:bg-red-500/20 disabled:opacity-50"
-        >
-          Reject
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowLog((v) => !v)}
-          className="ml-auto rounded-md border border-border px-3 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground"
-        >
-          {showLog ? "Hide" : "Show"} audit log
-        </button>
-      </div>
-
-      {showLog && (
-        <div className="mt-4 rounded-lg border border-border/60 bg-background/60 p-4">
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Decision history
+        <div className="mt-6 space-y-6">
+          <div className="grid gap-3 text-sm sm:grid-cols-2">
+            {row.instagram_handle && <Info label="Instagram">{row.instagram_handle}</Info>}
+            {row.other_socials && <Info label="Other socials">{row.other_socials}</Info>}
+            {row.availability && <Info label="Availability">{row.availability}</Info>}
+            {row.event_types && <Info label="Event types">{row.event_types}</Info>}
           </div>
-          {reviews.isLoading ? (
-            <p className="mt-2 text-xs text-muted-foreground">Loading…</p>
-          ) : !reviews.data?.length ? (
-            <p className="mt-2 text-xs text-muted-foreground">No decisions recorded yet.</p>
-          ) : (
-            <ol className="mt-3 space-y-3">
-              {reviews.data.map((r: any) => (
-                <li key={r.id} className="border-l-2 border-border pl-3 text-sm">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${
-                        r.decision === "approved"
-                          ? "border-neon/50 bg-neon/10 text-neon"
-                          : "border-red-500/40 bg-red-500/10 text-red-300"
-                      }`}
-                    >
-                      {r.decision}
-                    </span>
-                    {r.previous_status && (
-                      <span className="text-muted-foreground">from {r.previous_status}</span>
+
+          <div className="space-y-3 text-sm">
+            {row.bio && <Info label="Bio">{row.bio}</Info>}
+            <Info label="Experience">{row.hosting_experience}</Info>
+            <Info label="Why join">{row.why_join}</Info>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Admin notes{" "}
+              <span className="normal-case tracking-normal text-muted-foreground/70">
+                (required for rejection, visible in audit log)
+              </span>
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+              maxLength={2000}
+              placeholder="Reason for decision, follow-ups, context…"
+              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+            <div className="mt-1 text-right text-[10px] text-muted-foreground">
+              {notes.length}/2000
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => decide.mutate("approved")}
+              disabled={decide.isPending}
+              className="rounded-md border border-neon/40 bg-neon/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20 disabled:opacity-50"
+            >
+              Approve
+            </button>
+            <button
+              onClick={() => decide.mutate("rejected")}
+              disabled={decide.isPending}
+              className="rounded-md border border-red-500/40 bg-red-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+            >
+              Reject
+            </button>
+          </div>
+
+          <div className="rounded-lg border border-border/60 bg-background/60 p-4">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Decision history
+            </div>
+            {reviews.isLoading ? (
+              <p className="mt-2 text-xs text-muted-foreground">Loading…</p>
+            ) : !reviews.data?.length ? (
+              <p className="mt-2 text-xs text-muted-foreground">No decisions recorded yet.</p>
+            ) : (
+              <ol className="mt-3 space-y-3">
+                {reviews.data.map((r: any) => (
+                  <li key={r.id} className="border-l-2 border-border pl-3 text-sm">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${
+                          r.decision === "approved"
+                            ? "border-neon/50 bg-neon/10 text-neon"
+                            : "border-red-500/40 bg-red-500/10 text-red-300"
+                        }`}
+                      >
+                        {r.decision}
+                      </span>
+                      {r.previous_status && (
+                        <span className="text-muted-foreground">from {r.previous_status}</span>
+                      )}
+                      <span className="text-muted-foreground">
+                        · {new Date(r.created_at).toLocaleString()}
+                      </span>
+                      <span className="text-muted-foreground">
+                        · by {r.reviewer_email ?? r.reviewer_id}
+                      </span>
+                    </div>
+                    {r.notes && (
+                      <p className="mt-1 whitespace-pre-wrap text-foreground">{r.notes}</p>
                     )}
-                    <span className="text-muted-foreground">
-                      · {new Date(r.created_at).toLocaleString()}
-                    </span>
-                    <span className="text-muted-foreground">
-                      · by {r.reviewer_email ?? r.reviewer_id}
-                    </span>
-                  </div>
-                  {r.notes && (
-                    <p className="mt-1 whitespace-pre-wrap text-foreground">{r.notes}</p>
-                  )}
-                </li>
-              ))}
-            </ol>
-          )}
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </div>
-      )}
-    </li>
+      </SheetContent>
+    </Sheet>
   );
 }
+
+
 
 
 function Shell({ children }: { children: React.ReactNode }) {
