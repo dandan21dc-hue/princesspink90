@@ -230,7 +230,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     // Exactly one send per due reminder — no duplicates, no missed rows.
     expect(email.sendResendEmail).toHaveBeenCalledTimes(DUE.length)
 
-    const recipients = sendResendEmail.mock.calls.map((c) => c[0].to)
+    const recipients = email.recipients()
     const unique = new Set(recipients)
     expect(unique.size).toBe(DUE.length)
     for (const s of DUE) {
@@ -238,7 +238,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     }
 
     // Every send used the deterministic per-screening idempotency key.
-    const keys = sendResendEmail.mock.calls.map((c) => c[0].idempotencyKey)
+    const keys = email.keys()
     for (const s of DUE) {
       expect(keys).toContain(`expiry_7_day:${s.id}:${s.valid_until}`)
     }
@@ -284,7 +284,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     expect(body.candidates).toBe(DUE.length - 1)
     expect(body.emailed).toBe(DUE.length - 1)
     expect(email.sendResendEmail).toHaveBeenCalledTimes(DUE.length - 1)
-    const recipients = sendResendEmail.mock.calls.map((c) => c[0].to)
+    const recipients = email.recipients()
     expect(recipients).not.toContain(
       `user-${preClaimed.user_id.slice(-2)}@example.com`,
     )
