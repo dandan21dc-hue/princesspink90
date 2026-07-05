@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useRef, useState } from "react";
 import { EventForm, toPayload, type EventFormValues } from "@/components/EventForm";
+import { EventDocumentsSection } from "@/components/EventDocumentsSection";
 import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes, setAccessCodeUsed, bulkSetAccessCodesUsed, updateAccessCodeGuestName } from "@/lib/host.functions";
 import { toast } from "sonner";
 import {
@@ -147,6 +148,9 @@ function EditEvent() {
         <EventForm initial={initial} submitLabel="Save changes" submitting={update.isPending}
           onSubmit={(v) => update.mutate(toPayload(v))} />
       </div>
+
+      <EventDocumentsSection eventId={id} />
+
 
       {event.is_private && (
         <div className="mt-10 rounded-2xl border border-border/60 bg-card/60 p-6">

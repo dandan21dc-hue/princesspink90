@@ -45,6 +45,9 @@ const eventInput = z.object({
   }
 });
 
+const REQUIRED_DOC_TYPES = ["permit", "insurance", "capacity"] as const;
+
+
 
 export const listMyEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -93,14 +96,17 @@ export const createEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof eventInput>) => eventInput.parse(data))
   .handler(async ({ data, context }) => {
+    // New events always start as drafts — required compliance docs are uploaded
+    // on the edit page before publishing.
     const { data: row, error } = await context.supabase
       .from("events")
-      .insert({ ...data, host_id: context.userId })
+      .insert({ ...data, published: false, host_id: context.userId })
       .select("id")
       .single();
     if (error) throw error;
     return row;
   });
+
 
 export const updateEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -109,6 +115,20 @@ export const updateEvent = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { id, ...update } = data;
+    if (update.published) {
+      const { data: docs, error: docErr } = await context.supabase
+        .from("event_documents")
+        .select("doc_type")
+        .eq("event_id", id);
+      if (docErr) throw docErr;
+      const have = new Set((docs ?? []).map((d) => d.doc_type));
+      const missing = REQUIRED_DOC_TYPES.filter((t) => !have.has(t));
+      if (missing.length) {
+        throw new Error(
+          `Upload required documents before publishing: ${missing.join(", ")}. Save as draft otherwise.`,
+        );
+      }
+    }
     const { error } = await context.supabase
       .from("events")
       .update(update)
@@ -117,6 +137,7 @@ export const updateEvent = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
 
 export const deleteEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -267,4 +288,97 @@ export const bulkAddAccessCodes = createServerFn({ method: "POST" })
       .from("event_access_codes").insert(rows).select("id, code");
     if (error) throw error;
     return { ok: true, codes: inserted ?? [] };
+  });
+
+// -------- Event compliance documents --------
+
+const docTypeSchema = z.enum(["permit", "insurance", "capacity", "other"]);
+
+async function assertOwnsEvent(supabase: any, userId: string, eventId: string) {
+  const { data, error } = await supabase
+    .from("events").select("id").eq("id", eventId).eq("host_id", userId).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Forbidden");
+}
+
+export const listEventDocuments = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { event_id: string }) =>
+    z.object({ event_id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertOwnsEvent(context.supabase, context.userId, data.event_id);
+    const { data: docs, error } = await context.supabase
+      .from("event_documents")
+      .select("id, doc_type, file_path, file_name, content_type, size_bytes, uploaded_at")
+      .eq("event_id", data.event_id)
+      .order("uploaded_at", { ascending: false });
+    if (error) throw error;
+    return docs ?? [];
+  });
+
+export const registerEventDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: {
+    event_id: string; doc_type: z.infer<typeof docTypeSchema>;
+    file_path: string; file_name: string; content_type?: string; size_bytes?: number;
+  }) => z.object({
+    event_id: z.string().uuid(),
+    doc_type: docTypeSchema,
+    file_path: z.string().min(1).max(500),
+    file_name: z.string().trim().min(1).max(200),
+    content_type: z.string().max(120).optional(),
+    size_bytes: z.number().int().min(0).max(50 * 1024 * 1024).optional(),
+  }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertOwnsEvent(context.supabase, context.userId, data.event_id);
+    if (!data.file_path.startsWith(`${data.event_id}/`)) {
+      throw new Error("Invalid file path");
+    }
+    const { data: row, error } = await context.supabase
+      .from("event_documents")
+      .insert({
+        event_id: data.event_id,
+        doc_type: data.doc_type,
+        file_path: data.file_path,
+        file_name: data.file_name,
+        content_type: data.content_type ?? null,
+        size_bytes: data.size_bytes ?? null,
+        uploaded_by: context.userId,
+      })
+      .select("id, doc_type, file_path, file_name, content_type, size_bytes, uploaded_at")
+      .single();
+    if (error) throw error;
+    return row;
+  });
+
+export const deleteEventDocument = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: doc, error: readErr } = await context.supabase
+      .from("event_documents").select("id, event_id, file_path").eq("id", data.id).maybeSingle();
+    if (readErr) throw readErr;
+    if (!doc) throw new Error("Not found");
+    await assertOwnsEvent(context.supabase, context.userId, doc.event_id);
+    const { error: rmErr } = await context.supabase.storage
+      .from("event-documents").remove([doc.file_path]);
+    if (rmErr) throw rmErr;
+    const { error } = await context.supabase.from("event_documents").delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+export const signEventDocumentUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: doc, error } = await context.supabase
+      .from("event_documents").select("event_id, file_path, file_name").eq("id", data.id).maybeSingle();
+    if (error) throw error;
+    if (!doc) throw new Error("Not found");
+    await assertOwnsEvent(context.supabase, context.userId, doc.event_id);
+    const { data: signed, error: sErr } = await context.supabase.storage
+      .from("event-documents").createSignedUrl(doc.file_path, 300, { download: doc.file_name });
+    if (sErr) throw sErr;
+    return { url: signed.signedUrl };
   });

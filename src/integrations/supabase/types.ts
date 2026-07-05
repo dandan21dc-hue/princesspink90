@@ -287,6 +287,50 @@ export type Database = {
           },
         ]
       }
+      event_documents: {
+        Row: {
+          content_type: string | null
+          doc_type: Database["public"]["Enums"]["event_doc_type"]
+          event_id: string
+          file_name: string
+          file_path: string
+          id: string
+          size_bytes: number | null
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          content_type?: string | null
+          doc_type: Database["public"]["Enums"]["event_doc_type"]
+          event_id: string
+          file_name: string
+          file_path: string
+          id?: string
+          size_bytes?: number | null
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          content_type?: string | null
+          doc_type?: Database["public"]["Enums"]["event_doc_type"]
+          event_id?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          size_bytes?: number | null
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
@@ -703,6 +747,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "cohost"
+      event_doc_type: "permit" | "insurance" | "capacity" | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -831,6 +876,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "cohost"],
+      event_doc_type: ["permit", "insurance", "capacity", "other"],
     },
   },
 } as const
