@@ -148,6 +148,55 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     return;
   }
 
+  // Term-pass (3/6/12-month all-access) purchase
+  const termMonths = Number(session.metadata?.term_months);
+  if (session.metadata?.membership === "term_pass" && [3, 6, 12].includes(termMonths)) {
+    const kind = `term_pass_${termMonths}`;
+    // If an existing pass is still active, extend from its expiry; otherwise from now.
+    const { data: existing } = await getSupabase()
+      .from("memberships")
+      .select("id, expires_at")
+      .eq("user_id", userId)
+      .eq("kind", kind)
+      .eq("environment", env)
+      .maybeSingle();
+    const now = new Date();
+    const base =
+      existing?.expires_at && new Date(existing.expires_at) > now
+        ? new Date(existing.expires_at)
+        : now;
+    const expiresAt = new Date(base);
+    expiresAt.setMonth(expiresAt.getMonth() + termMonths);
+
+    await getSupabase()
+      .from("memberships")
+      .upsert(
+        {
+          user_id: userId,
+          kind,
+          stripe_session_id: session.id,
+          amount_cents: session.amount_total ?? 0,
+          environment: env,
+          term_months: termMonths,
+          expires_at: expiresAt.toISOString(),
+        },
+        { onConflict: "user_id,kind,environment" },
+      );
+    const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
+    await notifyAllCreators({
+      kind: "term_pass_purchase",
+      title: `New ${termMonths}-month all-access member — $${amount} ✨`,
+      body:
+        termMonths === 12
+          ? "12-month pass includes 1 free event ticket perk."
+          : `${termMonths}-month all-access pass started.`,
+      link_url: "/dashboard",
+      metadata: { session_id: session.id, env, term_months: termMonths } as any,
+    });
+    return;
+  }
+
+
   // One-time content-item purchase
   const contentItemId = session.metadata?.content_item_id;
   if (!contentItemId) return;

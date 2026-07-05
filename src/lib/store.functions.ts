@@ -122,6 +122,8 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         }
 
         const isLifetime = data.priceId === "lifetime_onetime";
+        const termPassMatch = /^all_access_(3|6|12)mo_onetime$/.exec(data.priceId);
+        const termMonths = termPassMatch ? Number(termPassMatch[1]) : null;
         const session = await stripe.checkout.sessions.create({
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
@@ -133,11 +135,13 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             metadata: {
               userId: data.userId,
               ...(isLifetime && { membership: "lifetime" }),
+              ...(termMonths && { membership: "term_pass", term_months: String(termMonths) }),
             },
             ...(isRecurring && { subscription_data: { metadata: { userId: data.userId } } }),
           }),
         });
         return { clientSecret: session.client_secret ?? "" };
+
       }
 
       // One-time item checkout via contentItemId + dynamic price_data
@@ -205,10 +209,27 @@ export const getMyLibrary = createServerFn({ method: "GET" })
       .maybeSingle();
     const now = Date.now();
     const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end).getTime() : null;
-    const hasSubscription = !!sub && (
+    const hasRecurring = !!sub && (
       (["active", "trialing", "past_due"].includes(sub.status) && (!periodEnd || periodEnd > now))
       || (sub.status === "canceled" && !!periodEnd && periodEnd > now)
     );
+
+    // Lifetime or active term-pass memberships also unlock the library
+    const { data: memberships } = await supabase
+      .from("memberships")
+      .select("kind,expires_at")
+      .eq("user_id", userId)
+      .eq("environment", env);
+    const hasMembershipAccess = (memberships ?? []).some((m) => {
+      if (m.kind === "lifetime") return true;
+      if (m.kind?.startsWith("term_pass_") && m.expires_at) {
+        return new Date(m.expires_at).getTime() > now;
+      }
+      return false;
+    });
+
+    const hasSubscription = hasRecurring || hasMembershipAccess;
+
 
     const { data: purchases } = await supabase
       .from("content_purchases")
