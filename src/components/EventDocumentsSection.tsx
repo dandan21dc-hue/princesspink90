@@ -71,6 +71,7 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
   });
 
   const [uploadingType, setUploadingType] = useState<DocType | null>(null);
+  const [lastRejection, setLastRejection] = useState<string | null>(null);
 
   async function upload(type: DocType, file: File) {
     if (!currentVersionId) {
@@ -78,9 +79,9 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
       return;
     }
     if (!hasAgreedToCurrent) {
-      toast.error(
-        `You must agree to compliance policy v${policy.data?.version ?? "?"} before uploading. Check the agreement box above.`,
-      );
+      const msg = `You must agree to compliance policy v${policy.data?.version ?? "?"} before uploading. Check the agreement box above.`;
+      setLastRejection(msg);
+      toast.error(msg);
       return;
     }
     if (file.size > MAX_BYTES) { toast.error("File must be under 20 MB"); return; }
@@ -95,13 +96,15 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
         currentVersionId,
       });
       if (result.ok) {
+        setLastRejection(null);
         toast.success(`Uploaded (against policy v${policy.data?.version})`);
         qc.invalidateQueries({ queryKey: ["event-documents", eventId] });
       } else {
         if (result.cleanedUp) {
           qc.invalidateQueries({ queryKey: ["my-policy-agreements", eventId] });
         }
-        toast.error(result.error.message);
+        setLastRejection(result.error.message);
+        toast.error(result.error.message, { description: "Reported by the compliance service" });
       }
     } finally {
       setUploadingType(null);
