@@ -154,7 +154,8 @@ export const listEscalatedConversations = createServerFn({ method: "GET" })
     }>;
     type OutRow = (typeof rows)[number] & { display_name: string | null };
     if (rows.length === 0) return { rows: [] as OutRow[] };
-    const { data: profiles } = await sb
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: profiles } = await supabaseAdmin
       .from("profiles")
       .select("user_id, display_name")
       .in(

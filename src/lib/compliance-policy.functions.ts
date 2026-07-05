@@ -160,9 +160,10 @@ export const listComplianceAuditLog = createServerFn({ method: "GET" })
       ...(documents ?? []).map((r: any) => r.event_id),
     ].filter(Boolean)));
 
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [profilesRes, eventsRes] = await Promise.all([
       userIds.length
-        ? context.supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+        ? supabaseAdmin.from("profiles").select("user_id, display_name").in("user_id", userIds)
         : Promise.resolve({ data: [], error: null }),
       eventIds.length
         ? context.supabase.from("events").select("id, title").in("id", eventIds)

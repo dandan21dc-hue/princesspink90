@@ -85,8 +85,9 @@ export const getMyEvent = createServerFn({ method: "GET" })
       .eq("event_id", data.id)
       .order("created_at", { ascending: false });
     const userIds = (rsvpsRaw ?? []).map((r) => r.user_id);
+    const { supabaseAdmin: sbAdmin1 } = await import("@/integrations/supabase/client.server");
     const { data: profs } = userIds.length
-      ? await context.supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+      ? await sbAdmin1.from("profiles").select("user_id, display_name").in("user_id", userIds)
       : { data: [] as { user_id: string; display_name: string | null }[] };
     const nameByUser = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
     const rsvps = (rsvpsRaw ?? []).map((r) => ({ ...r, display_name: nameByUser.get(r.user_id) ?? null }));
@@ -567,7 +568,10 @@ export const listMyComplianceDocuments = createServerFn({ method: "GET" })
             .order("accepted_at", { ascending: true })
         : Promise.resolve({ data: [], error: null }),
       uploaderIds.length
-        ? context.supabase.from("profiles").select("user_id, display_name").in("user_id", uploaderIds)
+        ? (async () => {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            return supabaseAdmin.from("profiles").select("user_id, display_name").in("user_id", uploaderIds);
+          })()
         : Promise.resolve({ data: [], error: null }),
     ]);
     if (agreementsRes.error) throw agreementsRes.error;
@@ -686,8 +690,9 @@ export const listEventWaivers = createServerFn({ method: "GET" })
     if (error) throw error;
 
     const userIds = (rows ?? []).map((r) => r.user_id);
+    const { supabaseAdmin: sbAdmin2 } = await import("@/integrations/supabase/client.server");
     const { data: profs } = userIds.length
-      ? await context.supabase
+      ? await sbAdmin2
           .from("profiles")
           .select("user_id, display_name")
           .in("user_id", userIds)
@@ -745,8 +750,9 @@ export const listWaiverAudit = createServerFn({ method: "GET" })
     if (error) throw error;
 
     const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+    const { supabaseAdmin: sbAdmin3 } = await import("@/integrations/supabase/client.server");
     const { data: profs } = userIds.length
-      ? await context.supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+      ? await sbAdmin3.from("profiles").select("user_id, display_name").in("user_id", userIds)
       : { data: [] as { user_id: string; display_name: string | null }[] };
     const nameByUser = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
 

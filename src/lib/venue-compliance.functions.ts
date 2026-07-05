@@ -352,7 +352,8 @@ export const listVenueComplianceAudit = createServerFn({ method: "GET" })
     const actorMap: Record<string, { name: string | null; email: string | null }> = {};
 
     if (actorIds.length > 0) {
-      const { data: profs } = await context.supabase
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: profs } = await supabaseAdmin
         .from("profiles")
         .select("user_id, display_name")
         .in("user_id", actorIds);
@@ -363,7 +364,7 @@ export const listVenueComplianceAudit = createServerFn({ method: "GET" })
         };
       }
 
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
       for (const id of actorIds) {
         try {
           const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);

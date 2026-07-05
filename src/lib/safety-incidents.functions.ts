@@ -331,10 +331,11 @@ export const listSafetyIncidentExportLog = createServerFn({ method: "GET" })
     const ids = Array.from(new Set((rows ?? []).map((r: any) => r.exported_by).filter(Boolean)));
     let profileMap: Record<string, string> = {};
     if (ids.length > 0) {
-      const { data: profs } = await sb
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: profs } = await supabaseAdmin
         .from("profiles")
         .select("user_id, display_name")
-        .in("user_id", ids);
+        .in("user_id", ids as string[]);
       profileMap = Object.fromEntries(
         (profs ?? []).map((p: any) => [p.user_id, p.display_name ?? ""]),
       );
