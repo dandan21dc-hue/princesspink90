@@ -51,6 +51,21 @@ function EditEvent() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-event", id] }),
   });
 
+  const bulkFn = useServerFn(bulkAddAccessCodes);
+  const [bulkQty, setBulkQty] = useState(10);
+  const [bulkPrefix, setBulkPrefix] = useState("PINK");
+  const [bulkNote, setBulkNote] = useState("");
+  const [minted, setMinted] = useState<string[]>([]);
+  const bulk = useMutation({
+    mutationFn: () => bulkFn({ data: { event_id: id, quantity: bulkQty, prefix: bulkPrefix, note: bulkNote || undefined } }),
+    onSuccess: (r) => {
+      setMinted(r.codes.map((c) => c.code));
+      toast.success(`Minted ${r.codes.length} codes`);
+      qc.invalidateQueries({ queryKey: ["my-event", id] });
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   if (q.isLoading) return <div className="mx-auto max-w-3xl px-5 py-10">Loading…</div>;
   if (q.isError || !q.data) return <div className="mx-auto max-w-3xl px-5 py-10">Not found.</div>;
 
