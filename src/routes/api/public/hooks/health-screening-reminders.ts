@@ -1,6 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@supabase/supabase-js'
 import { readReminderJobConfig } from '@/lib/reminder-job-config.functions'
+import { sendResendEmail } from '@/lib/resend.server'
+import { renderHealthScreeningReminder } from '@/lib/email-templates-resend/health-screening-reminder'
 
 // Daily job: finds admin-approved health screenings expiring in exactly 7 days
 // and records exactly one reminder per screening.
@@ -79,9 +81,18 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
         let skipped = 0
         const failures: Array<{ id: string; error: string }> = []
 
+        // Resolve app origin for portal links inside the reminder email.
+        const origin =
+          process.env.PUBLIC_APP_URL ??
+          process.env.SITE_URL ??
+          request.headers.get('origin') ??
+          `https://${request.headers.get('host') ?? 'princesspink90.com'}`
+        const portalUrl = `${origin.replace(/\/$/, '')}/health-screenings`
+
+        let emailed = 0
         for (const row of candidates ?? []) {
           const idempotencyKey = `expiry_7_day:${row.id}:${row.valid_until}`
-          const channelsAttempted: string[] = ['in_app']
+          const channelsAttempted: string[] = ['in_app', 'email']
 
           // Step 1: claim via unique log insert. Duplicate = already reminded.
           const { data: logRow, error: logErr } = await supabase
@@ -99,7 +110,6 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
             .single()
 
           if (logErr) {
-            // 23505 = unique_violation → already reminded, safe to skip.
             const code = (logErr as { code?: string }).code
             if (code === '23505') {
               skipped += 1
@@ -109,8 +119,7 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
             continue
           }
 
-          // Step 2: create in-app notification. If it fails, mark the log row
-          // as failed so an admin can see it (do NOT delete — audit trail).
+          // Step 2: create in-app notification.
           const { error: notifErr } = await supabase.from('notifications').insert({
             user_id: row.user_id,
             kind: 'health_screening_expiring',
@@ -140,7 +149,45 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
             continue
           }
 
-          // Step 3: flip the screening flag so future scans skip this row fast.
+          // Step 3: send branded email via Resend. Failure here does NOT block
+          // the in-app notification; log the error and continue.
+          try {
+            const { data: userRow } = await supabase.auth.admin.getUserById(row.user_id)
+            const email = userRow?.user?.email
+            const displayName =
+              (userRow?.user?.user_metadata?.full_name as string | undefined) ??
+              (userRow?.user?.user_metadata?.name as string | undefined) ??
+              null
+
+            if (email) {
+              const tmpl = renderHealthScreeningReminder({
+                recipientName: displayName,
+                validUntil: row.valid_until,
+                daysUntilExpiry: windowDays,
+                portalUrl,
+              })
+              const result = await sendResendEmail({
+                to: email,
+                subject: tmpl.subject,
+                html: tmpl.html,
+                text: tmpl.text,
+                idempotencyKey,
+                tags: [{ name: 'template', value: 'health_screening_expiry_7_day' }],
+              })
+              await supabase.from('email_send_log').insert({
+                message_id: idempotencyKey,
+                template_name: 'health_screening_expiry_7_day',
+                recipient_email: email,
+                status: result.ok ? 'sent' : 'failed',
+                error_message: result.ok ? null : result.error?.slice(0, 1000) ?? null,
+              })
+              if (result.ok) emailed += 1
+            }
+          } catch (e) {
+            console.warn('[health-screening-reminders] email send failed', (e as Error).message)
+          }
+
+          // Step 4: flip the screening flag so future scans skip this row fast.
           await supabase
             .from('health_screenings')
             .update({ expiry_reminder_sent_at: new Date().toISOString() })
@@ -155,6 +202,7 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
             target_date: targetDate,
             candidates: candidates?.length ?? 0,
             sent,
+            emailed,
             skipped,
             failures,
           }),
