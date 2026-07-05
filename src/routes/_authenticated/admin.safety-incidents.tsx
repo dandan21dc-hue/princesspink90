@@ -11,6 +11,7 @@ import {
   createIncidentAttachmentUploadUrl,
   recordIncidentAttachment,
   deleteIncidentAttachment,
+  logSafetyIncidentExport,
 } from "@/lib/safety-incidents.functions";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -92,6 +93,7 @@ function AdminSafetyIncidentsPage() {
   const createFn = useServerFn(createSafetyIncident);
   const archiveFn = useServerFn(archiveSafetyIncident);
   const restoreFn = useServerFn(restoreSafetyIncident);
+  const logExportFn = useServerFn(logSafetyIncidentExport);
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -138,7 +140,17 @@ function AdminSafetyIncidentsPage() {
     createMut.mutate(form);
   }
 
-  function exportCsv() {
+  async function logExport(format: "csv" | "xlsx", headers: string[], rowCount: number) {
+    try {
+      await logExportFn({
+        data: { format, view, search, columns: headers, row_count: rowCount },
+      });
+    } catch (e) {
+      console.warn("Failed to log export", e);
+    }
+  }
+
+  async function exportCsv() {
     const headers = exportCols.length > 0 ? exportCols : DEFAULT_EXPORT_COLS;
     const escape = (v: unknown) => {
       if (v === null || v === undefined) return "";
@@ -166,6 +178,7 @@ function AdminSafetyIncidentsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    void logExport("csv", headers, rows.length);
   }
 
   async function exportXlsx() {
@@ -196,6 +209,7 @@ function AdminSafetyIncidentsPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Safety incidents");
     const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     XLSX.writeFile(wb, `safety-incidents-${view}-${stamp}.xlsx`);
+    void logExport("xlsx", headers, rows.length);
   }
 
   return (

@@ -269,3 +269,29 @@ export const deleteIncidentAttachment = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+const logExportSchema = z.object({
+  format: z.enum(["csv", "xlsx"]),
+  view: z.string().trim().max(50),
+  search: z.string().trim().max(200).default(""),
+  columns: z.array(z.string().max(100)).max(100).default([]),
+  row_count: z.number().int().min(0).max(100000),
+});
+
+export const logSafetyIncidentExport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => logExportSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const sb = context.supabase as any;
+    const { error } = await sb.from("safety_incident_export_log").insert({
+      exported_by: context.userId,
+      format: data.format,
+      view: data.view,
+      search: data.search,
+      columns: data.columns,
+      row_count: data.row_count,
+    });
+    if (error) throw error;
+    return { ok: true };
+  });
