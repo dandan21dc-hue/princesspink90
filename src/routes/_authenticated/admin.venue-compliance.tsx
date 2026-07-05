@@ -117,8 +117,15 @@ function AdminVenueCompliancePage() {
 
   const uploadMut = useMutation({
     mutationFn: async () => {
-      if (!file) throw new Error("Choose a file first");
-      if (file.size > 20 * 1024 * 1024) throw new Error("File exceeds 20MB");
+      if (!file) throw new Error("Choose a file first.");
+      const fileCheck = validateComplianceFile({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      if (!fileCheck.ok) throw new Error(fileCheck.error);
+      const expiryCheck = validateExpiryDate(form.expires_on || null);
+      if (!expiryCheck.ok) throw new Error(expiryCheck.error);
       const file_base64 = await fileToBase64(file);
       return uploadFn({
         data: {
