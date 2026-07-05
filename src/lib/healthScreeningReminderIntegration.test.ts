@@ -49,9 +49,11 @@ afterEach(() => {
 
 function extractHref(html: string): string | null {
   // The template renders a single CTA anchor pointing at the portal URL.
+  // HTML-encodes `&` as `&amp;` in the attribute — decode before comparing.
   const m = html.match(/href="([^"]+)"/)
-  return m ? m[1] : null
+  return m ? m[1].replace(/&amp;/g, '&') : null
 }
+
 
 function assertNoLocalhost(url: string) {
   const bad = /(localhost|127\.0\.0\.1|0\.0\.0\.0|\.local(?::|\/|$)|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/i
