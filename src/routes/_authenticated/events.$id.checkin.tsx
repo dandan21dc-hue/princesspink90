@@ -50,6 +50,21 @@ function CheckinPage() {
   const [scanFeedback, setScanFeedback] = useState<ScanFeedback>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  type ScanOutcome = "admitted" | "already" | "matched" | "invalid" | "error";
+  type ScanEntry = {
+    id: string;
+    code: string;
+    guest: string | null;
+    outcome: ScanOutcome;
+    detail?: string;
+    at: number;
+  };
+  const [history, setHistory] = useState<ScanEntry[]>([]);
+  const pushHistory = (e: Omit<ScanEntry, "id" | "at">) =>
+    setHistory((h) =>
+      [{ ...e, id: crypto.randomUUID(), at: Date.now() }, ...h].slice(0, 20),
+    );
+
   const flashFeedback = (fb: NonNullable<ScanFeedback>, ms = 4000) => {
     setScanFeedback(fb);
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
@@ -59,6 +74,7 @@ function CheckinPage() {
   useEffect(() => () => {
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
   }, []);
+
 
 
   // Keep focus on the input while scanner mode is on so a keyboard-wedge
@@ -105,7 +121,7 @@ function CheckinPage() {
 
   const lookup = useMutation({
     mutationFn: (t: string) => lookupFn({ data: { event_id: eventId, ticket_code: t } }),
-    onSuccess: (r) => {
+    onSuccess: (r, t) => {
       setResult(r);
       if (!r.found) {
         flashFeedback({
@@ -114,7 +130,7 @@ function CheckinPage() {
           detail: "No RSVP matches that code for this event.",
         });
         toast.error("Invalid ticket — no match for this event.");
-        // Allow the same bad code to be re-scanned after resolution.
+        pushHistory({ code: t, guest: null, outcome: "invalid", detail: "No match" });
         lastScanRef.current = { code: "", at: 0 };
       } else if (r.rsvp.checked_in_at) {
         const who = r.guest.display_name ?? r.guest.email ?? "Guest";
@@ -128,20 +144,34 @@ function CheckinPage() {
           detail: `${who} was checked in at ${when}.`,
         });
         toast.warning(`${who} already admitted at ${when}`);
+        pushHistory({
+          code: r.rsvp.ticket_code,
+          guest: who,
+          outcome: "already",
+          detail: `Checked in at ${when}`,
+        });
       } else {
         flashFeedback(
           { tone: "ok", title: "Match found", detail: "Confirm consent below to admit." },
           2500,
         );
+        pushHistory({
+          code: r.rsvp.ticket_code,
+          guest: r.guest.display_name ?? r.guest.email ?? "Guest",
+          outcome: "matched",
+          detail: "Awaiting consent",
+        });
       }
     },
-    onError: (e) => {
+    onError: (e, t) => {
       const msg = (e as Error).message;
       flashFeedback({ tone: "err", title: "Lookup failed", detail: msg }, 5000);
       toast.error(msg);
+      pushHistory({ code: t, guest: null, outcome: "error", detail: msg });
       lastScanRef.current = { code: "", at: 0 };
     },
   });
+
 
 
   return (
@@ -289,6 +319,32 @@ function CheckinPage() {
           data={result}
           eventId={eventId}
           onCheckedIn={() => {
+            if (result.found) {
+              const who = result.guest.display_name ?? result.guest.email ?? "Guest";
+              setHistory((h) => {
+                // Upgrade the most recent "matched" entry for this ticket → "admitted"
+                const idx = h.findIndex(
+                  (e) => e.code === result.rsvp.ticket_code && e.outcome === "matched",
+                );
+                if (idx >= 0) {
+                  const next = h.slice();
+                  next[idx] = { ...next[idx], outcome: "admitted", detail: "Admitted at door" };
+                  return next;
+                }
+                return [
+                  {
+                    id: crypto.randomUUID(),
+                    code: result.rsvp.ticket_code,
+                    guest: who,
+                    outcome: "admitted" as const,
+                    detail: "Admitted at door",
+                    at: Date.now(),
+                  },
+
+                  ...h,
+                ].slice(0, 20);
+              });
+            }
             setCode("");
             setResult(null);
             qc.invalidateQueries({ queryKey: ["checkin-roster", eventId] });
@@ -299,6 +355,10 @@ function CheckinPage() {
         />
       )}
 
+      <ScanHistory entries={history} onClear={() => setHistory([])} />
+
+
+
       <Roster
         guests={roster.data?.guests ?? []}
         totalHeads={roster.data?.total_heads ?? 0}
@@ -308,6 +368,84 @@ function CheckinPage() {
     </main>
   );
 }
+
+type ScanOutcome = "admitted" | "already" | "matched" | "invalid" | "error";
+type ScanEntry = {
+  id: string;
+  code: string;
+  guest: string | null;
+  outcome: ScanOutcome;
+  detail?: string;
+  at: number;
+};
+
+const OUTCOME_META: Record<ScanOutcome, { label: string; cls: string }> = {
+  admitted: { label: "Admitted", cls: "border-neon/50 bg-neon/10 text-neon" },
+  matched: { label: "Matched", cls: "border-primary/50 bg-primary/10 text-primary" },
+  already: { label: "Already in", cls: "border-primary/50 bg-primary/10 text-primary" },
+  invalid: { label: "Rejected", cls: "border-destructive/60 bg-destructive/15 text-destructive" },
+  error: { label: "Error", cls: "border-destructive/60 bg-destructive/15 text-destructive" },
+};
+
+function ScanHistory({ entries, onClear }: { entries: ScanEntry[]; onClear: () => void }) {
+  return (
+    <section className="mt-8 rounded-2xl border border-border/60 bg-card/40 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Scan history</div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Last {entries.length} scan{entries.length === 1 ? "" : "s"} (max 20)
+          </div>
+        </div>
+        {entries.length > 0 && (
+          <button
+            onClick={onClear}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {entries.length === 0 ? (
+        <p className="mt-4 text-xs text-muted-foreground">
+          Scans will appear here as you look up tickets.
+        </p>
+      ) : (
+        <ul className="mt-4 divide-y divide-border/50">
+          {entries.map((e) => {
+            const meta = OUTCOME_META[e.outcome];
+            return (
+              <li key={e.id} className="flex items-start justify-between gap-3 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs tracking-widest text-neon">{e.code}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(e.at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {e.guest ?? "—"}
+                    {e.detail ? ` · ${e.detail}` : ""}
+                  </div>
+                </div>
+                <span
+                  className={`shrink-0 rounded-md border px-2 py-1 text-[10px] uppercase tracking-widest ${meta.cls}`}
+                >
+                  {meta.label}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 
 function Roster({
   guests,
