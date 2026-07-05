@@ -129,6 +129,7 @@ export function ensureSessionIdInReturnUrl(rawUrl: string): string {
 }
 
 export const createStoreCheckoutSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     (data: {
       priceId?: string;
@@ -147,8 +148,12 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
     },
   )
 
-  .handler(async ({ data }): Promise<CheckoutResult> => {
+  .handler(async ({ data, context }): Promise<CheckoutResult> => {
     try {
+      // SECURITY: never trust client-supplied userId. Bind checkout to the
+      // authenticated caller so an attacker cannot create sessions or
+      // bookings on behalf of another user.
+      data = { ...data, userId: context.userId };
       const stripe = createStripeClient(data.environment);
       const customerId =
         data.customerEmail || data.userId
@@ -157,6 +162,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
               userId: data.userId,
             })
           : undefined;
+
 
       // Subscription checkout via priceId
       if (data.priceId) {
