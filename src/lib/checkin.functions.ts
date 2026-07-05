@@ -144,7 +144,7 @@ export const listCheckins = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, guest_count, checked_in_at, consent_at_checkin, video_consent, door_notes",
+        "id, user_id, ticket_code, entry_code, guest_count, checked_in_at, consent_at_checkin, video_consent, door_notes",
       )
       .eq("event_id", data.event_id)
       .not("checked_in_at", "is", null)
