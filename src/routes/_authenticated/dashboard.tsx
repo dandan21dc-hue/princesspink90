@@ -153,7 +153,152 @@ function Dashboard() {
           )}
         </div>
       </div>
+
+      <ComplianceChecklist
+        isLoading={compliance.isLoading}
+        data={compliance.data ?? []}
+      />
     </section>
+  );
+}
+
+type ComplianceItemStatus = "ok" | "missing" | "expired" | "expiring" | "unconfirmed";
+type ComplianceEvent = {
+  id: string;
+  title: string;
+  starts_at: string;
+  venue_name: string | null;
+  published: boolean;
+  ready: boolean;
+  items: {
+    permit: { status: ComplianceItemStatus; file_name: string | null; uploaded_at: string | null };
+    insurance: {
+      status: ComplianceItemStatus;
+      file_name: string | null;
+      uploaded_at: string | null;
+      expires_on: string | null;
+    };
+    capacity: {
+      status: ComplianceItemStatus;
+      file_name: string | null;
+      uploaded_at: string | null;
+      confirmed: boolean;
+    };
+  };
+};
+
+function ComplianceChecklist({ isLoading, data }: { isLoading: boolean; data: ComplianceEvent[] }) {
+  return (
+    <div className="mt-12">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.3em] text-primary">Venue compliance</div>
+          <h2 className="mt-2 font-display text-2xl font-semibold">Readiness checklist</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Permit, insurance, and capacity documents required to publish each event.
+          </p>
+        </div>
+        <Link
+          to="/compliance"
+          className="text-xs uppercase tracking-widest text-primary hover:underline"
+        >
+          Policy →
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <div className="mt-6"><Skeleton /></div>
+      ) : data.length === 0 ? (
+        <div className="mt-6"><Empty>Create an event to start the compliance checklist.</Empty></div>
+      ) : (
+        <ul className="mt-6 space-y-4">
+          {data.map((e) => (
+            <li key={e.id} className="rounded-xl border border-border/60 bg-card p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Link
+                    to="/events/$id/edit" params={{ id: e.id }}
+                    className="font-medium hover:text-primary"
+                  >
+                    {e.title}
+                  </Link>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(e.starts_at).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {e.venue_name ? ` · ${e.venue_name}` : ""}
+                  </div>
+                </div>
+                <ReadinessBadge ready={e.ready} published={e.published} />
+              </div>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <CheckRow
+                  label="Permit"
+                  status={e.items.permit.status}
+                  detail={e.items.permit.file_name ?? "No document uploaded"}
+                />
+                <CheckRow
+                  label="Insurance"
+                  status={e.items.insurance.status}
+                  detail={
+                    e.items.insurance.file_name
+                      ? e.items.insurance.expires_on
+                        ? `Expires ${new Date(e.items.insurance.expires_on).toLocaleDateString()}`
+                        : "No expiry on file"
+                      : "No document uploaded"
+                  }
+                />
+                <CheckRow
+                  label="Capacity"
+                  status={e.items.capacity.status}
+                  detail={
+                    e.items.capacity.file_name
+                      ? e.items.capacity.confirmed
+                        ? "Confirmed"
+                        : "Awaiting confirmation"
+                      : "No document uploaded"
+                  }
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ReadinessBadge({ ready, published }: { ready: boolean; published: boolean }) {
+  if (ready) {
+    return (
+      <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-emerald-300">
+        {published ? "Compliant · Live" : "Ready to publish"}
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-amber-300">
+      Action required
+    </span>
+  );
+}
+
+function CheckRow({ label, status, detail }: { label: string; status: ComplianceItemStatus; detail: string }) {
+  const meta: Record<ComplianceItemStatus, { icon: string; tone: string; text: string }> = {
+    ok: { icon: "✓", tone: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300", text: "Up to date" },
+    missing: { icon: "✕", tone: "border-red-500/40 bg-red-500/10 text-red-300", text: "Missing" },
+    expired: { icon: "!", tone: "border-red-500/40 bg-red-500/10 text-red-300", text: "Expired" },
+    expiring: { icon: "!", tone: "border-amber-500/40 bg-amber-500/10 text-amber-300", text: "Expiring soon" },
+    unconfirmed: { icon: "…", tone: "border-amber-500/40 bg-amber-500/10 text-amber-300", text: "Not confirmed" },
+  };
+  const m = meta[status];
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${m.tone}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-widest">{label}</span>
+        <span className="font-mono text-xs">{m.icon} {m.text}</span>
+      </div>
+      <div className="mt-1 truncate text-[11px] opacity-80">{detail}</div>
+    </div>
   );
 }
 
