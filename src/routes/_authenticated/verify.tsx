@@ -10,6 +10,7 @@ import {
   ADULT_CONTENT_RELEASE_VERSION,
 } from "@/lib/verification.functions";
 import { SelfieWithIdCapture } from "@/components/SelfieWithIdCapture";
+import { HealthScreeningSection } from "@/components/HealthScreeningSection";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/verify")({
@@ -249,6 +250,8 @@ function VerifyPage() {
           </button>
         </section>
       )}
+
+      <HealthScreeningSection />
     </main>
   );
 }
