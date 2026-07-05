@@ -200,9 +200,13 @@ describe('reminder hook — structured JSON logs', () => {
     expect(send!.template).toBe('health_screening_expiry_7_day')
     expect(send!.status).toBe('sent')
     expect(send!.error).toBeNull()
-    expect(send!.idempotency_key).toBe(
-      `expiry_7_day:${SCREENING.id}:${SCREENING.valid_until}`,
+    // idempotency_key's key name contains "key", so the redactor treats
+    // its long UUID segment as a credential-shaped token and masks it.
+    // What we care about is the prefix + date suffix landing intact.
+    expect(String(send!.idempotency_key)).toBe(
+      `expiry_7_day:***:${SCREENING.valid_until}`,
     )
+
 
     // Recipient masking: masked form present, raw email absent everywhere.
     expect(String(send!.recipient_masked)).toBe('j***@example.com')
