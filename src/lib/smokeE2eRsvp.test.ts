@@ -140,26 +140,70 @@ describe.skipIf(!HAS_CREDS)(
         expect(error, error?.message).toBeNull()
         expect(data.user?.id).toBeTruthy()
         userId = data.user!.id
+        console.log(`[smoke] signUp ok user=${userId} email=${email}`)
 
-        const rows = await poll(
+        // Poll until a template_name=signup row lands for this recipient.
+        // Keep the most recent snapshot around so we can surface it in the
+        // failure message if the poll times out.
+        let lastRows: Array<{
+          id: string
+          template_name: string | null
+          status: string | null
+          recipient_email: string | null
+          error_message?: string | null
+          created_at: string
+        }> = []
+        const signup = await poll(
           async () => {
-            const { data } = await admin
+            const { data, error: qErr } = await admin
               .from('email_send_log')
-              .select('id, template_name, status, recipient_email, created_at')
+              .select('id, template_name, status, recipient_email, error_message, created_at')
               .eq('recipient_email', email)
               .order('created_at', { ascending: false })
-              .limit(10)
-            return data && data.length > 0 ? data : null
+              .limit(20)
+            if (qErr) {
+              console.warn(`[smoke] email_send_log query error: ${qErr.message}`)
+              return null
+            }
+            lastRows = data ?? []
+            return lastRows.find((r) => r.template_name === 'signup') ?? null
           },
-          { timeoutMs: EMAIL_POLL_TIMEOUT_MS },
+          {
+            timeoutMs: EMAIL_POLL_TIMEOUT_MS,
+            onTick: (attempt, elapsedMs) => {
+              if (attempt % 5 === 0) {
+                console.log(
+                  `[smoke] waiting for signup email (${Math.round(elapsedMs / 1000)}s) — rows so far for ${email}: ${
+                    lastRows.length
+                  } [${lastRows.map((r) => `${r.template_name}:${r.status}`).join(', ') || 'none'}]`,
+                )
+              }
+            },
+          },
         )
 
+        if (!signup) {
+          // Broader context to help diagnose: recent log rows across all
+          // recipients + a hint at queue health.
+          const { data: recent } = await admin
+            .from('email_send_log')
+            .select('template_name, status, recipient_email, error_message, created_at')
+            .order('created_at', { ascending: false })
+            .limit(10)
+          console.error(
+            `[smoke] no signup email for ${email} in ${EMAIL_POLL_TIMEOUT_MS}ms.\n` +
+              `  rows for this recipient: ${fmt(lastRows)}\n` +
+              `  10 most recent email_send_log rows (any recipient): ${fmt(recent)}`,
+          )
+        }
+
         expect(
-          rows,
-          `no email_send_log row for ${email} within ${EMAIL_POLL_TIMEOUT_MS}ms — is the auth webhook / email queue running?`,
-        ).not.toBeNull()
-        const signup = rows!.find((r) => r.template_name === 'signup')
-        expect(signup, 'no template_name=signup row for the new user').toBeTruthy()
+          signup,
+          `no template_name='signup' row for ${email} within ${EMAIL_POLL_TIMEOUT_MS}ms — ` +
+            `check the auth webhook (/lovable/email/auth/webhook) and the process-email-queue cron. ` +
+            `see console output above for the most recent log rows.`,
+        ).toBeTruthy()
+
       },
       TEST_TIMEOUT_MS,
     )
