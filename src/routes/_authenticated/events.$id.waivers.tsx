@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { listEventWaivers } from "@/lib/host.functions";
+import { listEventWaivers, listWaiverAudit } from "@/lib/host.functions";
 
 export const Route = createFileRoute("/_authenticated/events/$id/waivers")({
   head: () => ({
@@ -17,9 +17,14 @@ export const Route = createFileRoute("/_authenticated/events/$id/waivers")({
 function WaiversPage() {
   const { id: eventId } = Route.useParams();
   const fetchWaivers = useServerFn(listEventWaivers);
+  const fetchAudit = useServerFn(listWaiverAudit);
   const q = useQuery({
     queryKey: ["event-waivers", eventId],
     queryFn: () => fetchWaivers({ data: { eventId } }),
+  });
+  const auditQ = useQuery({
+    queryKey: ["event-waiver-audit", eventId],
+    queryFn: () => fetchAudit({ data: { eventId } }),
   });
 
   return (
