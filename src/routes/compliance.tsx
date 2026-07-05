@@ -290,6 +290,7 @@ function MyDocumentsSection() {
   const signedIn = useIsSignedIn();
   const listFn = useServerFn(listMyComplianceDocuments);
   const currentFn = useServerFn(getCurrentPolicyVersion);
+  const versionsFn = useServerFn(listPolicyVersions);
   const docs = useQuery({
     queryKey: ["my-compliance-documents"],
     queryFn: () => listFn(),
@@ -299,9 +300,18 @@ function MyDocumentsSection() {
     queryKey: ["compliance-policy-current"],
     queryFn: () => currentFn(),
   });
+  const versions = useQuery({
+    queryKey: ["compliance-policy-list"],
+    queryFn: () => versionsFn(),
+  });
+
+  const [versionFilter, setVersionFilter] = useState<string>("");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  const [q, setQ] = useState<string>("");
 
   if (!signedIn) return null;
-  const rows = docs.data ?? [];
+  const allRows = docs.data ?? [];
   if (docs.isLoading) {
     return (
       <Section eyebrow="Your uploads" title="Documents you've submitted">
@@ -309,7 +319,7 @@ function MyDocumentsSection() {
       </Section>
     );
   }
-  if (rows.length === 0) {
+  if (allRows.length === 0) {
     return (
       <Section eyebrow="Your uploads" title="Documents you've submitted">
         <p className="text-sm text-muted-foreground">
@@ -323,13 +333,98 @@ function MyDocumentsSection() {
   const currentId = current.data?.id ?? null;
   const currentVersion = current.data?.version ?? null;
 
+  const fromTs = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
+  const toTs = toDate ? new Date(toDate + "T23:59:59.999").getTime() : null;
+  const needle = q.trim().toLowerCase();
+  const rows = allRows.filter((d) => {
+    if (versionFilter && d.policy_version_id !== versionFilter) return false;
+    const t = new Date(d.uploaded_at).getTime();
+    if (fromTs != null && t < fromTs) return false;
+    if (toTs != null && t > toTs) return false;
+    if (needle) {
+      const hay = `${d.file_name} ${d.event_title ?? ""} ${d.doc_type} ${d.policy_version_label ?? ""}`.toLowerCase();
+      if (!hay.includes(needle)) return false;
+    }
+    return true;
+  });
+
+  const filtersActive = !!(versionFilter || fromDate || toDate || needle);
+
   return (
     <Section eyebrow="Your uploads" title="Documents you've submitted">
       <p className="text-sm text-muted-foreground">
         Each document is tagged with the compliance policy version that was in force
         when it was uploaded — that is the version you agreed to at the time.
       </p>
-      <ul className="mt-4 space-y-3">
+
+      <div className="mt-4 grid gap-3 rounded-xl border border-border/60 bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="block text-xs">
+          <div className="mb-1 uppercase tracking-widest text-muted-foreground">Search</div>
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="File, event, or type…"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block text-xs">
+          <div className="mb-1 uppercase tracking-widest text-muted-foreground">Policy version</div>
+          <select
+            value={versionFilter}
+            onChange={(e) => setVersionFilter(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          >
+            <option value="">All versions</option>
+            {(versions.data ?? []).map((v) => (
+              <option key={v.id} value={v.id}>
+                v{v.version}
+                {v.is_current ? " (current)" : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block text-xs">
+          <div className="mb-1 uppercase tracking-widest text-muted-foreground">Uploaded from</div>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block text-xs">
+          <div className="mb-1 uppercase tracking-widest text-muted-foreground">Uploaded to</div>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+        </label>
+        <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            Showing {rows.length} of {allRows.length}
+          </span>
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={() => { setVersionFilter(""); setFromDate(""); setToDate(""); setQ(""); }}
+              className="text-primary hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="mt-4 rounded-lg border border-border/60 bg-card p-4 text-sm text-muted-foreground">
+          No documents match the current filters.
+        </p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+
         {rows.map((d) => {
           const stale = currentId && d.policy_version_id && d.policy_version_id !== currentId;
           return (
@@ -390,8 +485,10 @@ function MyDocumentsSection() {
             </li>
           );
         })}
-      </ul>
+        </ul>
+      )}
     </Section>
+
   );
 }
 
