@@ -770,11 +770,15 @@ function MyDocumentsSection() {
                 {d.policy_version_label ? (
                   <span
                     className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${
-                      stale
+                      needsReAck
                         ? "bg-amber-500/15 text-amber-300"
                         : "bg-emerald-500/15 text-emerald-400"
                     }`}
-                    title={stale && currentVersion ? `Current policy is v${currentVersion}` : "Agreed to current policy"}
+                    title={
+                      needsReAck && currentVersion
+                        ? `Current policy is v${currentVersion}`
+                        : "Agreed to current policy"
+                    }
                   >
                     Agreed to policy v{d.policy_version_label}
                   </span>
@@ -783,7 +787,7 @@ function MyDocumentsSection() {
                     No policy version recorded
                   </span>
                 )}
-                {stale && d.current_agreement_accepted_at && d.current_policy_version_label && (
+                {versionMismatch && d.current_agreement_accepted_at && d.current_policy_version_label && (
                   <span
                     className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-emerald-400"
                     title={new Date(d.current_agreement_accepted_at).toISOString()}
@@ -804,7 +808,7 @@ function MyDocumentsSection() {
                 ) : (
                   <span className="text-amber-300">No agreement record on file</span>
                 )}
-                {stale && d.current_agreement_accepted_at && (
+                {versionMismatch && d.current_agreement_accepted_at && (
                   <span className="text-emerald-400">
                     Re-acknowledged {new Date(d.current_agreement_accepted_at).toLocaleString()}
                     {d.current_agreement_accepted_by_display_name
@@ -812,7 +816,7 @@ function MyDocumentsSection() {
                       : ""}
                   </span>
                 )}
-                {stale && currentVersion && currentId && !d.current_agreement_accepted_at && (
+                {needsReAck && currentVersion && currentId && (
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-amber-300">
                       Current policy is v{currentVersion} — consider re-uploading.
