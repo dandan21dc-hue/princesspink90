@@ -123,7 +123,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
         },
         { onConflict: "event_id,user_id" },
       )
-      .select("id, ticket_code, entry_code")
+      .select("id, ticket_code, entry_code, entry_phrase")
       .single();
     if (error) throw error;
 
@@ -169,7 +169,11 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
         })
         .eq("id", mem.id);
     }
-    return { ticket_code: row.ticket_code, entry_code: row.entry_code };
+    return {
+      ticket_code: row.ticket_code,
+      entry_code: row.entry_code,
+      entry_phrase: row.entry_phrase,
+    };
   });
 
 
@@ -229,7 +233,7 @@ export const myRsvpForEvent = createServerFn({ method: "GET" })
   .handler(async ({ data, context }) => {
     const { data: row } = await context.supabase
       .from("rsvps")
-      .select("id, ticket_code, entry_code, guest_count, status, video_consent, age_confirmed_at, consent_confirmed_at, waiver_signature, waiver_accepted_at")
+      .select("id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, age_confirmed_at, consent_confirmed_at, waiver_signature, waiver_accepted_at")
       .eq("event_id", data.event_id)
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -241,7 +245,7 @@ export const listMyRsvps = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("rsvps")
-      .select("id, ticket_code, entry_code, guest_count, status, created_at, events(id, title, starts_at, venue_name, city, cover_image_url)")
+      .select("id, ticket_code, entry_code, entry_phrase, guest_count, status, created_at, events(id, title, starts_at, venue_name, city, cover_image_url)")
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw error;

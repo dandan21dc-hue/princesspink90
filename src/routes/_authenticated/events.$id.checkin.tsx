@@ -473,6 +473,7 @@ function Roster({
     id: string;
     ticket_code: string;
     entry_code: string;
+    entry_phrase: string;
     guest_count: number;
     checked_in_at: string;
     display_name: string | null;
@@ -510,9 +511,12 @@ function Roster({
           {guests.map((g) => (
             <li key={g.id} className="flex items-start justify-between gap-3 py-3 text-sm">
               <div className="min-w-0">
-                <div className="truncate font-medium">{g.display_name ?? "Guest"}</div>
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span className="truncate font-medium">{g.display_name ?? "Guest"}</span>
+                  <span className="font-display text-sm font-bold text-neon">“{g.entry_phrase}”</span>
+                </div>
                 <div className="mt-0.5 text-xs text-muted-foreground">
-                  <span className="font-mono tracking-widest text-neon">{g.entry_code}</span>
+                  <span className="opacity-70">{g.entry_code}</span>
                   <span className="opacity-60"> · scan {g.ticket_code}</span>
                   {" · "}Party of {g.guest_count}
                   {" · "}

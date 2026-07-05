@@ -33,16 +33,21 @@ export const lookupCheckin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertEventHostOrAdmin(context.supabase, context.userId, data.event_id);
-    const code = data.ticket_code.trim().toUpperCase();
+    const raw = data.ticket_code.trim();
+    const upper = raw.toUpperCase();
 
-    // Match either the scan-code (ticket_code) or the human-readable entry_code.
+    // Accept the scan-code (ticket_code), the entry_code, OR the secret entry
+    // phrase (case-insensitive) so the door monitor can look a guest up by
+    // whichever value the guest offers.
     const { data: rsvp, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, entry_code, guest_count, status, video_consent, checked_in_at, door_notes",
+        "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at, door_notes",
       )
       .eq("event_id", data.event_id)
-      .or(`ticket_code.eq.${code},entry_code.eq.${code}`)
+      .or(
+        `ticket_code.eq.${upper},entry_code.eq.${upper},entry_phrase.ilike.${raw}`,
+      )
       .maybeSingle();
     if (error) throw error;
     if (!rsvp) return { found: false as const };
@@ -145,7 +150,7 @@ export const listCheckins = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, entry_code, guest_count, checked_in_at, consent_at_checkin, video_consent, door_notes",
+        "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, checked_in_at, consent_at_checkin, video_consent, door_notes",
       )
       .eq("event_id", data.event_id)
       .not("checked_in_at", "is", null)
@@ -167,6 +172,7 @@ export const listCheckins = createServerFn({ method: "GET" })
       id: r.id,
       ticket_code: r.ticket_code,
       entry_code: r.entry_code,
+      entry_phrase: r.entry_phrase,
       guest_count: r.guest_count,
       checked_in_at: r.checked_in_at as string,
       display_name: nameByUser.get(r.user_id) ?? null,
@@ -198,7 +204,7 @@ export const getDoorSheet = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, entry_code, guest_count, status, video_consent, checked_in_at",
+        "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at",
       )
       .eq("event_id", data.event_id)
       .eq("status", "confirmed")
@@ -222,6 +228,7 @@ export const getDoorSheet = createServerFn({ method: "GET" })
       id: r.id,
       ticket_code: r.ticket_code,
       entry_code: r.entry_code,
+      entry_phrase: r.entry_phrase,
       guest_count: r.guest_count,
       display_name: nameByUser.get(r.user_id) ?? null,
       age_status: ageByUser.get(r.user_id) ?? "missing",
