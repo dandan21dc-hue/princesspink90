@@ -574,3 +574,273 @@ describe('webhook event → database mapping', () => {
     expect(db.content_purchases).toHaveLength(0)
   })
 })
+
+// ---- 3. userId + plan metadata parsing ------------------------------------
+//
+// Focused regression tests: every code path that reads `userId` or plan
+// metadata off a Stripe checkout / subscription payload must associate the
+// right user with the right plan. If the webhook ever reads from the wrong
+// field (e.g. `session.client_reference_id` instead of `metadata.userId`,
+// or `metadata.plan` instead of `metadata.membership`), these break.
+
+describe('userId + plan metadata parsing', () => {
+  describe('subscription checkout sessions (customer.subscription.*)', () => {
+    it('reads userId from subscription.metadata.userId', async () => {
+      await postWebhook({
+        body: {
+          type: 'customer.subscription.created',
+          data: {
+            object: {
+              id: 'sub_meta_user',
+              customer: 'cus_meta',
+              status: 'active',
+              // userId lives on subscription.metadata (subscription_data.metadata
+              // at checkout creation time), NOT on session.metadata.
+              metadata: { userId: 'user_from_sub_metadata' },
+              items: {
+                data: [{ price: { lookup_key: 'all_access_monthly_aud' } }],
+              },
+            },
+          },
+        },
+      })
+      const row = db.subscriptions.find((r) => r.stripe_subscription_id === 'sub_meta_user')
+      expect(row?.user_id).toBe('user_from_sub_metadata')
+    })
+
+    it('records the plan via price.lookup_key (canonical human-readable id)', async () => {
+      await postWebhook({
+        body: {
+          type: 'customer.subscription.created',
+          data: {
+            object: {
+              id: 'sub_plan_lookup',
+              customer: 'cus_x',
+              status: 'active',
+              metadata: { userId: USER_ID },
+              items: {
+                data: [
+                  {
+                    price: {
+                      id: 'price_stripe_internal_xxx', // must be ignored
+                      lookup_key: 'all_access_monthly_aud',
+                      product: 'prod_all_access',
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      })
+      const row = db.subscriptions.find((r) => r.stripe_subscription_id === 'sub_plan_lookup')
+      expect(row?.price_id).toBe('all_access_monthly_aud')
+      expect(row?.price_id).not.toBe('price_stripe_internal_xxx')
+    })
+
+    it('does NOT read userId from session-level fields on a subscription payload', async () => {
+      // If handler mistakenly used e.g. customer or client_reference_id,
+      // this test still writes a row — but user_id must come from metadata.
+      await postWebhook({
+        body: {
+          type: 'customer.subscription.created',
+          data: {
+            object: {
+              id: 'sub_no_meta',
+              customer: 'cus_should_not_be_user_id',
+              client_reference_id: 'client_ref_should_not_be_user_id',
+              status: 'active',
+              metadata: {}, // no userId
+              items: { data: [{ price: { lookup_key: 'all_access_monthly_aud' } }] },
+            },
+          },
+        },
+      })
+      expect(db.subscriptions).toHaveLength(0)
+    })
+  })
+
+  describe('payment checkout sessions (checkout.session.completed)', () => {
+    it('reads userId from session.metadata.userId for lifetime purchases', async () => {
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_life_meta',
+              mode: 'payment',
+              amount_total: 50000,
+              // Note: session.metadata (not subscription_data.metadata) for one-off payments.
+              metadata: { userId: 'user_from_session_metadata', membership: 'lifetime' },
+            },
+          },
+        },
+      })
+      const row = db.memberships.find((r) => r.stripe_session_id === 'cs_life_meta')
+      expect(row?.user_id).toBe('user_from_session_metadata')
+      expect(row?.kind).toBe('lifetime')
+    })
+
+    it.each([3, 6, 12] as const)(
+      'reads plan=term_pass + term_months=%i and stores kind=term_pass_%i',
+      async (months) => {
+        await postWebhook({
+          body: {
+            type: 'checkout.session.completed',
+            data: {
+              object: {
+                id: `cs_plan_term_${months}`,
+                mode: 'payment',
+                amount_total: 1000,
+                metadata: {
+                  userId: USER_ID,
+                  membership: 'term_pass',
+                  term_months: String(months), // Stripe metadata is always string
+                },
+              },
+            },
+          },
+        })
+        const row = db.memberships.find((r) => r.stripe_session_id === `cs_plan_term_${months}`)
+        expect(row?.user_id).toBe(USER_ID)
+        expect(row?.kind).toBe(`term_pass_${months}`)
+        expect(row?.term_months).toBe(months)
+      },
+    )
+
+    it('rejects term_pass with an unsupported term_months value', async () => {
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_bad_term',
+              mode: 'payment',
+              amount_total: 1000,
+              metadata: { userId: USER_ID, membership: 'term_pass', term_months: '9' },
+            },
+          },
+        },
+      })
+      expect(db.memberships.find((r) => r.stripe_session_id === 'cs_bad_term')).toBeUndefined()
+    })
+
+    it('reads content_item_id from session.metadata and links purchase to userId', async () => {
+      db.content_items.push({ id: 'content_meta_1', creator_id: 'creator_x', title: 'X' })
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_content_meta',
+              mode: 'payment',
+              amount_total: 999,
+              metadata: {
+                userId: 'buyer_user_id',
+                content_item_id: 'content_meta_1',
+              },
+            },
+          },
+        },
+      })
+      const row = db.content_purchases.find((r) => r.stripe_session_id === 'cs_content_meta')
+      expect(row?.user_id).toBe('buyer_user_id')
+      expect(row?.content_item_id).toBe('content_meta_1')
+    })
+
+    it('reads booking=private_room + private_room_booking_id from metadata', async () => {
+      db.private_room_bookings.push({
+        id: 'booking_meta_1',
+        user_id: USER_ID,
+        status: 'pending',
+        environment: 'sandbox',
+      })
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_booking_meta',
+              mode: 'payment',
+              amount_total: 27500,
+              customer_details: { email: 'b@e.com' },
+              metadata: {
+                userId: USER_ID,
+                booking: 'private_room',
+                private_room_booking_id: 'booking_meta_1',
+              },
+            },
+          },
+        },
+      })
+      const row = db.private_room_bookings.find((r) => r.id === 'booking_meta_1')
+      expect(row?.status).toBe('confirmed')
+      expect(row?.stripe_session_id).toBe('cs_booking_meta')
+    })
+
+    it('ignores payment sessions when metadata.userId is missing (all plan shapes)', async () => {
+      const shapes = [
+        { membership: 'lifetime' },
+        { membership: 'term_pass', term_months: '3' },
+        { content_item_id: 'content_meta_1' },
+        { booking: 'private_room', private_room_booking_id: 'booking_meta_1' },
+      ]
+      for (const [i, meta] of shapes.entries()) {
+        await postWebhook({
+          body: {
+            type: 'checkout.session.completed',
+            data: {
+              object: {
+                id: `cs_no_user_${i}`,
+                mode: 'payment',
+                amount_total: 1000,
+                metadata: meta, // no userId
+              },
+            },
+          },
+        })
+      }
+      expect(db.memberships).toHaveLength(0)
+      expect(db.content_purchases).toHaveLength(0)
+      // no pre-seeded booking either → nothing was updated
+      expect(db.private_room_bookings.filter((r) => r.status === 'confirmed')).toHaveLength(0)
+    })
+
+    it('routes to the correct table based on which plan metadata key is present', async () => {
+      // lifetime → memberships (not content_purchases, not private_room_bookings)
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_route_life',
+              mode: 'payment',
+              amount_total: 50000,
+              metadata: { userId: USER_ID, membership: 'lifetime' },
+            },
+          },
+        },
+      })
+      expect(db.memberships.some((r) => r.stripe_session_id === 'cs_route_life')).toBe(true)
+      expect(db.content_purchases.some((r) => r.stripe_session_id === 'cs_route_life')).toBe(false)
+
+      // content_item_id → content_purchases (not memberships)
+      db.content_items.push({ id: 'ci_route', creator_id: 'c', title: 't' })
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_route_content',
+              mode: 'payment',
+              amount_total: 500,
+              metadata: { userId: USER_ID, content_item_id: 'ci_route' },
+            },
+          },
+        },
+      })
+      expect(db.content_purchases.some((r) => r.stripe_session_id === 'cs_route_content')).toBe(true)
+      expect(db.memberships.some((r) => r.stripe_session_id === 'cs_route_content')).toBe(false)
+    })
+  })
+})
