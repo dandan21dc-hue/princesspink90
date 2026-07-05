@@ -329,15 +329,49 @@ function MyDocumentsSection() {
   const reAck = useMutation({
     mutationFn: (vars: { policy_version_id: string; event_id: string | null }) =>
       reAckFn({ data: vars }),
+    onMutate: async (vars) => {
+      // Optimistically flip the affected docs so the stale-row UI updates
+      // immediately without waiting for the server round-trip.
+      await qc.cancelQueries({ queryKey: ["my-compliance-documents"] });
+      const key = ["my-compliance-documents"] as const;
+      const previous = qc.getQueryData<any[]>(key);
+      const nowIso = new Date().toISOString();
+      const currentLabel = current.data?.version ?? null;
+      if (previous) {
+        qc.setQueryData<any[]>(
+          key,
+          previous.map((row) =>
+            row.event_id === vars.event_id
+              ? {
+                  ...row,
+                  current_policy_version_id: vars.policy_version_id,
+                  current_policy_version_label:
+                    row.current_policy_version_label ?? currentLabel,
+                  current_agreement_accepted_at: nowIso,
+                  current_agreement_accepted_by_display_name:
+                    row.current_agreement_accepted_by_display_name ??
+                    row.uploaded_by_display_name ??
+                    null,
+                }
+              : row,
+          ),
+        );
+      }
+      return { previous };
+    },
+    onError: (e, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["my-compliance-documents"], ctx.previous);
+      toast.error(e instanceof Error ? e.message : "Could not re-acknowledge policy");
+    },
     onSuccess: (_res, vars) => {
       toast.success("Re-acknowledged current compliance policy for this event.");
-      qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
       if (vars.event_id) {
         qc.invalidateQueries({ queryKey: ["my-policy-agreements", vars.event_id] });
       }
     },
-    onError: (e) =>
-      toast.error(e instanceof Error ? e.message : "Could not re-acknowledge policy"),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
+    },
   });
 
   const [confirmTarget, setConfirmTarget] = useState<{
@@ -540,6 +574,14 @@ function MyDocumentsSection() {
                     No policy version recorded
                   </span>
                 )}
+                {stale && d.current_agreement_accepted_at && d.current_policy_version_label && (
+                  <span
+                    className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-emerald-400"
+                    title={new Date(d.current_agreement_accepted_at).toISOString()}
+                  >
+                    Re-acknowledged v{d.current_policy_version_label}
+                  </span>
+                )}
                 {d.agreement_accepted_at ? (
                   <span
                     className="text-muted-foreground"
@@ -553,7 +595,15 @@ function MyDocumentsSection() {
                 ) : (
                   <span className="text-amber-300">No agreement record on file</span>
                 )}
-                {stale && currentVersion && currentId && (
+                {stale && d.current_agreement_accepted_at && (
+                  <span className="text-emerald-400">
+                    Re-acknowledged {new Date(d.current_agreement_accepted_at).toLocaleString()}
+                    {d.current_agreement_accepted_by_display_name
+                      ? ` by ${d.current_agreement_accepted_by_display_name}`
+                      : ""}
+                  </span>
+                )}
+                {stale && currentVersion && currentId && !d.current_agreement_accepted_at && (
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-amber-300">
                       Current policy is v{currentVersion} — consider re-uploading.
