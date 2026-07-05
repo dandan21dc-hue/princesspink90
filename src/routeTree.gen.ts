@@ -49,6 +49,7 @@ import { Route as ApiPublicHooksVenueComplianceRemindersRouteImport } from './ro
 import { Route as ApiPublicHooksTestReminderEmailRouteImport } from './routes/api/public/hooks/test-reminder-email'
 import { Route as ApiPublicHooksReminderRetriesRouteImport } from './routes/api/public/hooks/reminder-retries'
 import { Route as ApiPublicHooksPreviewReminderEmailRouteImport } from './routes/api/public/hooks/preview-reminder-email'
+import { Route as ApiPublicHooksPreviewPortalLinkRouteImport } from './routes/api/public/hooks/preview-portal-link'
 import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './routes/api/public/hooks/health-screening-reminders'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
@@ -276,6 +277,12 @@ const ApiPublicHooksPreviewReminderEmailRoute =
     path: '/api/public/hooks/preview-reminder-email',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPreviewPortalLinkRoute =
+  ApiPublicHooksPreviewPortalLinkRouteImport.update({
+    id: '/api/public/hooks/preview-portal-link',
+    path: '/api/public/hooks/preview-portal-link',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksHealthScreeningRemindersRoute =
   ApiPublicHooksHealthScreeningRemindersRouteImport.update({
     id: '/api/public/hooks/health-screening-reminders',
@@ -345,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
+  '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
@@ -391,6 +399,7 @@ export interface FileRoutesByTo {
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
+  '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
@@ -439,6 +448,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
+  '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
@@ -487,6 +497,7 @@ export interface FileRouteTypes {
     | '/events/$id/edit'
     | '/events/$id/waivers'
     | '/api/public/hooks/health-screening-reminders'
+    | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/test-reminder-email'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/events/$id/edit'
     | '/events/$id/waivers'
     | '/api/public/hooks/health-screening-reminders'
+    | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/test-reminder-email'
@@ -580,6 +592,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/edit'
     | '/_authenticated/events/$id/waivers'
     | '/api/public/hooks/health-screening-reminders'
+    | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/test-reminder-email'
@@ -601,6 +614,7 @@ export interface RootRouteChildren {
   UnlockRoute: typeof UnlockRoute
   EventsIdRoute: typeof EventsIdRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
+  ApiPublicHooksPreviewPortalLinkRoute: typeof ApiPublicHooksPreviewPortalLinkRoute
   ApiPublicHooksPreviewReminderEmailRoute: typeof ApiPublicHooksPreviewReminderEmailRoute
   ApiPublicHooksReminderRetriesRoute: typeof ApiPublicHooksReminderRetriesRoute
   ApiPublicHooksTestReminderEmailRoute: typeof ApiPublicHooksTestReminderEmailRoute
@@ -891,6 +905,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPreviewReminderEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/preview-portal-link': {
+      id: '/api/public/hooks/preview-portal-link'
+      path: '/api/public/hooks/preview-portal-link'
+      fullPath: '/api/public/hooks/preview-portal-link'
+      preLoaderRoute: typeof ApiPublicHooksPreviewPortalLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/health-screening-reminders': {
       id: '/api/public/hooks/health-screening-reminders'
       path: '/api/public/hooks/health-screening-reminders'
@@ -1045,6 +1066,7 @@ const rootRouteChildren: RootRouteChildren = {
   EventsIdRoute: EventsIdRoute,
   ApiPublicHooksHealthScreeningRemindersRoute:
     ApiPublicHooksHealthScreeningRemindersRoute,
+  ApiPublicHooksPreviewPortalLinkRoute: ApiPublicHooksPreviewPortalLinkRoute,
   ApiPublicHooksPreviewReminderEmailRoute:
     ApiPublicHooksPreviewReminderEmailRoute,
   ApiPublicHooksReminderRetriesRoute: ApiPublicHooksReminderRetriesRoute,
