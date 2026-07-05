@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      age_verifications: {
+        Row: {
+          date_of_birth: string
+          id: string
+          id_file_path: string
+          notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          date_of_birth: string
+          id?: string
+          id_file_path: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          date_of_birth?: string
+          id?: string
+          id_file_path?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_items: {
         Row: {
           cover_url: string | null
@@ -310,6 +346,8 @@ export type Database = {
       }
       rsvps: {
         Row: {
+          age_confirmed_at: string | null
+          consent_confirmed_at: string | null
           created_at: string
           event_id: string
           guest_count: number
@@ -317,8 +355,11 @@ export type Database = {
           status: string
           ticket_code: string
           user_id: string
+          video_consent: Json
         }
         Insert: {
+          age_confirmed_at?: string | null
+          consent_confirmed_at?: string | null
           created_at?: string
           event_id: string
           guest_count?: number
@@ -326,8 +367,11 @@ export type Database = {
           status?: string
           ticket_code?: string
           user_id: string
+          video_consent?: Json
         }
         Update: {
+          age_confirmed_at?: string | null
+          consent_confirmed_at?: string | null
           created_at?: string
           event_id?: string
           guest_count?: number
@@ -335,6 +379,7 @@ export type Database = {
           status?: string
           ticket_code?: string
           user_id?: string
+          video_consent?: Json
         }
         Relationships: [
           {
