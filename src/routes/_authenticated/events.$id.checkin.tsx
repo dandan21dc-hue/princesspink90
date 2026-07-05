@@ -369,6 +369,84 @@ function CheckinPage() {
   );
 }
 
+type ScanOutcome = "admitted" | "already" | "matched" | "invalid" | "error";
+type ScanEntry = {
+  id: string;
+  code: string;
+  guest: string | null;
+  outcome: ScanOutcome;
+  detail?: string;
+  at: number;
+};
+
+const OUTCOME_META: Record<ScanOutcome, { label: string; cls: string }> = {
+  admitted: { label: "Admitted", cls: "border-neon/50 bg-neon/10 text-neon" },
+  matched: { label: "Matched", cls: "border-primary/50 bg-primary/10 text-primary" },
+  already: { label: "Already in", cls: "border-primary/50 bg-primary/10 text-primary" },
+  invalid: { label: "Rejected", cls: "border-destructive/60 bg-destructive/15 text-destructive" },
+  error: { label: "Error", cls: "border-destructive/60 bg-destructive/15 text-destructive" },
+};
+
+function ScanHistory({ entries, onClear }: { entries: ScanEntry[]; onClear: () => void }) {
+  return (
+    <section className="mt-8 rounded-2xl border border-border/60 bg-card/40 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Scan history</div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Last {entries.length} scan{entries.length === 1 ? "" : "s"} (max 20)
+          </div>
+        </div>
+        {entries.length > 0 && (
+          <button
+            onClick={onClear}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      {entries.length === 0 ? (
+        <p className="mt-4 text-xs text-muted-foreground">
+          Scans will appear here as you look up tickets.
+        </p>
+      ) : (
+        <ul className="mt-4 divide-y divide-border/50">
+          {entries.map((e) => {
+            const meta = OUTCOME_META[e.outcome];
+            return (
+              <li key={e.id} className="flex items-start justify-between gap-3 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs tracking-widest text-neon">{e.code}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(e.at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {e.guest ?? "—"}
+                    {e.detail ? ` · ${e.detail}` : ""}
+                  </div>
+                </div>
+                <span
+                  className={`shrink-0 rounded-md border px-2 py-1 text-[10px] uppercase tracking-widest ${meta.cls}`}
+                >
+                  {meta.label}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+
 function Roster({
   guests,
   totalHeads,
