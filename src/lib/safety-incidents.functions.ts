@@ -302,3 +302,47 @@ export const logSafetyIncidentExport = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+const listExportLogSchema = z.object({
+  format: z.enum(["csv", "xlsx"]).optional().nullable(),
+  from_date: dateStr.optional().nullable(),
+  to_date: dateStr.optional().nullable(),
+  limit: z.number().int().min(1).max(500).default(200),
+});
+
+export const listSafetyIncidentExportLog = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => listExportLogSchema.parse(data ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const sb = context.supabase as any;
+    let q = sb
+      .from("safety_incident_export_log")
+      .select("id, exported_by, exported_at, format, view, search, columns, row_count")
+      .order("exported_at", { ascending: false })
+      .limit(data.limit);
+    if (data.format) q = q.eq("format", data.format);
+    if (data.from_date) q = q.gte("exported_at", `${data.from_date}T00:00:00Z`);
+    if (data.to_date) q = q.lte("exported_at", `${data.to_date}T23:59:59Z`);
+    const { data: rows, error } = await q;
+    if (error) throw error;
+
+    // Enrich with exporter display names
+    const ids = Array.from(new Set((rows ?? []).map((r: any) => r.exported_by).filter(Boolean)));
+    let profileMap: Record<string, string> = {};
+    if (ids.length > 0) {
+      const { data: profs } = await sb
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", ids);
+      profileMap = Object.fromEntries(
+        (profs ?? []).map((p: any) => [p.user_id, p.display_name ?? ""]),
+      );
+    }
+    const enriched = (rows ?? []).map((r: any) => ({
+      ...r,
+      exported_by_name: profileMap[r.exported_by] ?? null,
+    }));
+    return { rows: enriched };
+  });
+
