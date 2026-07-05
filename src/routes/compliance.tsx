@@ -498,17 +498,32 @@ function MyDocumentsSection() {
   const fromTs = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
   const toTs = toDate ? new Date(toDate + "T23:59:59.999").getTime() : null;
   const needle = q.trim().toLowerCase();
-  const rows = allRows.filter((d) => {
-    if (versionFilter && d.policy_version_id !== versionFilter) return false;
-    const t = new Date(d.uploaded_at).getTime();
-    if (fromTs != null && t < fromTs) return false;
-    if (toTs != null && t > toTs) return false;
-    if (needle) {
-      const hay = `${d.file_name} ${d.event_title ?? ""} ${d.doc_type} ${d.policy_version_label ?? ""}`.toLowerCase();
-      if (!hay.includes(needle)) return false;
-    }
-    return true;
-  });
+  const rows = allRows
+    .filter((d) => {
+      if (versionFilter && d.policy_version_id !== versionFilter) return false;
+      const t = new Date(d.uploaded_at).getTime();
+      if (fromTs != null && t < fromTs) return false;
+      if (toTs != null && t > toTs) return false;
+      if (needle) {
+        const hay = `${d.file_name} ${d.event_title ?? ""} ${d.doc_type} ${d.policy_version_label ?? ""}`.toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    })
+    .slice()
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      if (sortKey === "uploaded_at") {
+        return (new Date(a.uploaded_at).getTime() - new Date(b.uploaded_at).getTime()) * dir;
+      }
+      // policy_version — numeric compare when possible, fallback to string
+      const av = a.policy_version_label ?? "";
+      const bv = b.policy_version_label ?? "";
+      const an = Number(av);
+      const bn = Number(bv);
+      if (Number.isFinite(an) && Number.isFinite(bn)) return (an - bn) * dir;
+      return av.localeCompare(bv) * dir;
+    });
 
   const filtersActive = !!(versionFilter || fromDate || toDate || needle);
 
