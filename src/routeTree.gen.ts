@@ -21,7 +21,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
@@ -32,6 +34,7 @@ import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminVenueComplianceRemindersRouteImport } from './routes/_authenticated/admin.venue-compliance-reminders'
 import { Route as AuthenticatedAdminVenueComplianceRouteImport } from './routes/_authenticated/admin.venue-compliance'
 import { Route as AuthenticatedAdminSystemLogsRouteImport } from './routes/_authenticated/admin.system-logs'
+import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
@@ -118,9 +121,19 @@ const EventsIdRoute = EventsIdRouteImport.update({
   path: '/events/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiChatRoute = ApiChatRouteImport.update({
+  id: '/api/chat',
+  path: '/api/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedVerifyRoute = AuthenticatedVerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
@@ -176,6 +189,12 @@ const AuthenticatedAdminSystemLogsRoute =
   AuthenticatedAdminSystemLogsRouteImport.update({
     id: '/admin/system-logs',
     path: '/admin/system-logs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminSupportRoute =
+  AuthenticatedAdminSupportRouteImport.update({
+    id: '/admin/support',
+    path: '/admin/support',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminSettingsRoute =
@@ -348,7 +367,9 @@ export interface FileRoutesByFullPath {
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
+  '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -365,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -398,7 +420,9 @@ export interface FileRoutesByTo {
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
+  '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -415,6 +439,7 @@ export interface FileRoutesByTo {
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -450,7 +475,9 @@ export interface FileRoutesById {
   '/_authenticated/content': typeof AuthenticatedContentRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
+  '/api/chat': typeof ApiChatRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -467,6 +494,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
   '/_authenticated/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/_authenticated/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -502,7 +530,9 @@ export interface FileRouteTypes {
     | '/content'
     | '/dashboard'
     | '/library'
+    | '/support'
     | '/verify'
+    | '/api/chat'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
@@ -519,6 +549,7 @@ export interface FileRouteTypes {
     | '/admin/lifetime'
     | '/admin/safety-incidents'
     | '/admin/settings'
+    | '/admin/support'
     | '/admin/system-logs'
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
@@ -552,7 +583,9 @@ export interface FileRouteTypes {
     | '/content'
     | '/dashboard'
     | '/library'
+    | '/support'
     | '/verify'
+    | '/api/chat'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
@@ -569,6 +602,7 @@ export interface FileRouteTypes {
     | '/admin/lifetime'
     | '/admin/safety-incidents'
     | '/admin/settings'
+    | '/admin/support'
     | '/admin/system-logs'
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
@@ -603,7 +637,9 @@ export interface FileRouteTypes {
     | '/_authenticated/content'
     | '/_authenticated/dashboard'
     | '/_authenticated/library'
+    | '/_authenticated/support'
     | '/_authenticated/verify'
+    | '/api/chat'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
@@ -620,6 +656,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/lifetime'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/support'
     | '/_authenticated/admin/system-logs'
     | '/_authenticated/admin/venue-compliance'
     | '/_authenticated/admin/venue-compliance-reminders'
@@ -651,6 +688,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   StoreRoute: typeof StoreRouteWithChildren
   UnlockRoute: typeof UnlockRoute
+  ApiChatRoute: typeof ApiChatRoute
   EventsIdRoute: typeof EventsIdRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
@@ -749,11 +787,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/chat': {
+      id: '/api/chat'
+      path: '/api/chat'
+      fullPath: '/api/chat'
+      preLoaderRoute: typeof ApiChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/verify': {
       id: '/_authenticated/verify'
       path: '/verify'
       fullPath: '/verify'
       preLoaderRoute: typeof AuthenticatedVerifyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/library': {
@@ -824,6 +876,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/system-logs'
       fullPath: '/admin/system-logs'
       preLoaderRoute: typeof AuthenticatedAdminSystemLogsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/support': {
+      id: '/_authenticated/admin/support'
+      path: '/admin/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/settings': {
@@ -1042,6 +1101,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContentRoute: typeof AuthenticatedContentRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
@@ -1056,6 +1116,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminSystemLogsRoute: typeof AuthenticatedAdminSystemLogsRoute
   AuthenticatedAdminVenueComplianceRoute: typeof AuthenticatedAdminVenueComplianceRoute
   AuthenticatedAdminVenueComplianceRemindersRoute: typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -1071,6 +1132,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContentRoute: AuthenticatedContentRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedAdminCohostsRoute: AuthenticatedAdminCohostsRoute,
   AuthenticatedAdminComplianceAuditRoute:
@@ -1091,6 +1153,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
   AuthenticatedAdminSystemLogsRoute: AuthenticatedAdminSystemLogsRoute,
   AuthenticatedAdminVenueComplianceRoute:
     AuthenticatedAdminVenueComplianceRoute,
@@ -1129,6 +1192,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   StoreRoute: StoreRouteWithChildren,
   UnlockRoute: UnlockRoute,
+  ApiChatRoute: ApiChatRoute,
   EventsIdRoute: EventsIdRoute,
   ApiPublicHooksCronHealthCheckRoute: ApiPublicHooksCronHealthCheckRoute,
   ApiPublicHooksHealthScreeningRemindersRoute:
