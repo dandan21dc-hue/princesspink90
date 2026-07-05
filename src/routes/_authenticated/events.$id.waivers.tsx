@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { listEventWaivers } from "@/lib/host.functions";
+import { listEventWaivers, listWaiverAudit } from "@/lib/host.functions";
 
 export const Route = createFileRoute("/_authenticated/events/$id/waivers")({
   head: () => ({
@@ -17,9 +17,14 @@ export const Route = createFileRoute("/_authenticated/events/$id/waivers")({
 function WaiversPage() {
   const { id: eventId } = Route.useParams();
   const fetchWaivers = useServerFn(listEventWaivers);
+  const fetchAudit = useServerFn(listWaiverAudit);
   const q = useQuery({
     queryKey: ["event-waivers", eventId],
     queryFn: () => fetchWaivers({ data: { eventId } }),
+  });
+  const auditQ = useQuery({
+    queryKey: ["event-waiver-audit", eventId],
+    queryFn: () => fetchAudit({ data: { eventId } }),
   });
 
   return (
@@ -39,10 +44,13 @@ function WaiversPage() {
           )}
         </div>
         <button
-          onClick={() => q.refetch()}
+          onClick={() => {
+            q.refetch();
+            auditQ.refetch();
+          }}
           className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest hover:bg-card"
         >
-          {q.isFetching ? "…" : "Refresh"}
+          {q.isFetching || auditQ.isFetching ? "…" : "Refresh"}
         </button>
       </div>
 
@@ -92,9 +100,116 @@ function WaiversPage() {
               </tbody>
             </table>
           </div>
+          <AuditSection
+            entries={auditQ.data ?? []}
+            currentHash={q.data.currentHash}
+            loading={auditQ.isLoading}
+            error={auditQ.error ? (auditQ.error as Error).message : null}
+          />
         </>
       )}
     </main>
+  );
+}
+
+type AuditRow = Awaited<ReturnType<typeof listWaiverAudit>>[number];
+
+function AuditSection({
+  entries,
+  currentHash,
+  loading,
+  error,
+}: {
+  entries: AuditRow[];
+  currentHash: string;
+  loading: boolean;
+  error: string | null;
+}) {
+  return (
+    <section className="mt-10">
+      <div className="mb-3 flex items-baseline justify-between gap-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.3em] text-primary">Audit trail</div>
+          <h2 className="mt-1 font-display text-xl font-semibold">Waiver acceptance events</h2>
+        </div>
+        <span className="text-[11px] text-muted-foreground">{entries.length} entries</span>
+      </div>
+      {loading && <p className="text-sm text-muted-foreground">Loading audit trail…</p>}
+      {error && <p className="text-sm text-red-400">{error}</p>}
+      {!loading && !error && entries.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No waiver events recorded yet. Entries appear here when guests accept, re-sign, or
+          cancel a waiver.
+        </p>
+      )}
+      {entries.length > 0 && (
+        <ul className="divide-y divide-border/50 rounded-lg border border-border/60">
+          {entries.map((e) => {
+            const stale =
+              e.action !== "rescinded" &&
+              e.waiver_text_hash != null &&
+              e.waiver_text_hash !== currentHash;
+            const badge =
+              e.action === "accepted"
+                ? { text: "Accepted", cls: "bg-emerald-500/15 text-emerald-300" }
+                : e.action === "re_accepted"
+                ? { text: "Re-signed", cls: "bg-sky-500/15 text-sky-300" }
+                : { text: "Rescinded", cls: "bg-red-500/15 text-red-300" };
+            const shortHash = e.waiver_text_hash
+              ? `${e.waiver_text_hash.slice(0, 10)}…${e.waiver_text_hash.slice(-6)}`
+              : "—";
+            return (
+              <li key={e.id} className="p-3 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest ${badge.cls}`}>
+                    {badge.text}
+                  </span>
+                  <span className="text-foreground">{e.display_name ?? "Guest"}</span>
+                  {stale && (
+                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] uppercase tracking-widest text-amber-300">
+                      Old waiver
+                    </span>
+                  )}
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    {new Date(e.created_at).toLocaleString()}
+                  </span>
+                </div>
+                <div className="mt-1.5 grid gap-x-4 gap-y-1 text-[11px] text-muted-foreground sm:grid-cols-2">
+                  <div>
+                    <span className="uppercase tracking-widest text-foreground/60">Signature:</span>{" "}
+                    {e.waiver_signature ? (
+                      <span className="font-serif italic text-foreground">
+                        {e.waiver_signature}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </div>
+                  <div className="break-all">
+                    <span className="uppercase tracking-widest text-foreground/60">Hash:</span>{" "}
+                    <code className="font-mono" title={e.waiver_text_hash ?? undefined}>
+                      {shortHash}
+                    </code>
+                  </div>
+                  {e.ip_address && (
+                    <div>
+                      <span className="uppercase tracking-widest text-foreground/60">IP:</span>{" "}
+                      <code className="font-mono">{e.ip_address}</code>
+                    </div>
+                  )}
+                  {e.user_agent && (
+                    <div className="truncate" title={e.user_agent}>
+                      <span className="uppercase tracking-widest text-foreground/60">UA:</span>{" "}
+                      {e.user_agent}
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 

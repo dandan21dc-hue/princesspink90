@@ -452,3 +452,30 @@ export const listEventWaivers = createServerFn({ method: "GET" })
     };
   });
 
+export const listWaiverAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { eventId: string }) =>
+    z.object({ eventId: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertOwnsEvent(context.supabase, context.userId, data.eventId);
+
+    const { data: rows, error } = await context.supabase
+      .from("waiver_audit_log")
+      .select("id, user_id, rsvp_id, action, waiver_text_hash, waiver_signature, ip_address, user_agent, created_at")
+      .eq("event_id", data.eventId)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw error;
+
+    const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
+    const { data: profs } = userIds.length
+      ? await context.supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+      : { data: [] as { user_id: string; display_name: string | null }[] };
+    const nameByUser = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
+
+    return (rows ?? []).map((r) => ({
+      ...r,
+      display_name: nameByUser.get(r.user_id) ?? null,
+    }));
+  });
