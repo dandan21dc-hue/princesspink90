@@ -943,6 +943,75 @@ export type Database = {
         }
         Relationships: []
       }
+      panty_orders: {
+        Row: {
+          admin_notes: string | null
+          amount_cents: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          environment: string
+          hours: number
+          id: string
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_line1: string | null
+          shipping_line2: string | null
+          shipping_name: string | null
+          shipping_postal_code: string | null
+          shipping_state: string | null
+          status: string
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string
+          variant: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          environment?: string
+          hours: number
+          id?: string
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_line1?: string | null
+          shipping_line2?: string | null
+          shipping_name?: string | null
+          shipping_postal_code?: string | null
+          shipping_state?: string | null
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id: string
+          variant: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          environment?: string
+          hours?: number
+          id?: string
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_line1?: string | null
+          shipping_line2?: string | null
+          shipping_name?: string | null
+          shipping_postal_code?: string | null
+          shipping_state?: string | null
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string
+          variant?: string
+        }
+        Relationships: []
+      }
       private_room_bookings: {
         Row: {
           amount_cents: number | null
