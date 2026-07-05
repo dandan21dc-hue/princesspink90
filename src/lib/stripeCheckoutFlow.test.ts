@@ -193,6 +193,10 @@ beforeEach(() => {
   db.content_items.length = 0
   db.content_purchases.length = 0
   db.notifications.length = 0
+  stripeMock.checkout.sessions.create.mockClear()
+  stripeMock.prices.list.mockClear()
+  stripeMock.customers.search.mockClear()
+  stripeMock.customers.create.mockClear()
 })
 afterEach(() => {
   process.env = { ...ORIGINAL_ENV }
