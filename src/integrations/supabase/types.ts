@@ -530,6 +530,7 @@ export type Database = {
       health_screenings: {
         Row: {
           created_at: string
+          expiry_reminder_sent_at: string | null
           file_path: string
           id: string
           notes: string | null
@@ -544,6 +545,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          expiry_reminder_sent_at?: string | null
           file_path: string
           id?: string
           notes?: string | null
@@ -558,6 +560,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          expiry_reminder_sent_at?: string | null
           file_path?: string
           id?: string
           notes?: string | null
