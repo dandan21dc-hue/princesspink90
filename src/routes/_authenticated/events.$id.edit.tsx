@@ -249,18 +249,46 @@ function EditEvent() {
       )}
 
       <div className="mt-10 rounded-2xl border border-border/60 bg-card/60 p-6">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-primary mb-4">Guest list · {rsvps.length}</div>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Guest list · {rsvps.length}</div>
+          {rsvps.length > 0 && (
+            <button
+              onClick={() => {
+                const text = rsvps
+                  .map((r) => `${r.ticket_code}\t${r.display_name ?? "Guest"}\t${r.guest_count}`)
+                  .join("\n");
+                navigator.clipboard.writeText(text);
+                toast.success("Guest list copied");
+              }}
+              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Copy all
+            </button>
+          )}
+        </div>
         {rsvps.length ? (
           <ul className="divide-y divide-border/50">
             {rsvps.map((r) => (
-              <li key={r.id} className="flex items-center justify-between py-2 text-sm">
-                <div>
-                  <div>{r.display_name ?? "Guest"}</div>
+              <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <div className="truncate">{r.display_name ?? "Guest"}</div>
                   <div className="text-xs text-muted-foreground">
                     {r.guest_count} guest{r.guest_count > 1 ? "s" : ""} · {new Date(r.created_at).toLocaleDateString()}
                   </div>
                 </div>
-                <div className="font-mono text-xs text-neon">{r.ticket_code}</div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <code className="font-mono text-xs text-neon">{r.ticket_code}</code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(r.ticket_code);
+                      toast.success(`Copied ${r.ticket_code}`);
+                    }}
+                    className="rounded-md border border-border px-2 py-1 text-[10px] uppercase tracking-widest hover:bg-secondary/50"
+                  >
+                    Copy
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
