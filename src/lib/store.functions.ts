@@ -223,7 +223,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
           ui_mode: "embedded_page",
-          return_url: data.returnUrl,
+          return_url: ensureSessionIdInReturnUrl(data.returnUrl),
           ...(customerId && { customer: customerId }),
           ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
           ...(isPanty && {
@@ -301,7 +301,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         ],
         mode: "payment",
         ui_mode: "embedded_page",
-        return_url: data.returnUrl,
+        return_url: ensureSessionIdInReturnUrl(data.returnUrl),
         ...(customerId && { customer: customerId }),
         payment_intent_data: { description: item.title },
         metadata: {
