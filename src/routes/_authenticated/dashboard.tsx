@@ -29,6 +29,12 @@ function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <NotificationsBell />
+          <Link
+            to="/verify"
+            className="rounded-md border border-primary/40 bg-primary/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+          >
+            Verify ID
+          </Link>
           {admin.data?.isAdmin && (
             <>
               <Link
@@ -36,6 +42,12 @@ function Dashboard() {
                 className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
               >
                 Settings
+              </Link>
+              <Link
+                to="/admin/verifications"
+                className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
+              >
+                Verifications
               </Link>
               <Link
                 to="/admin/lifetime"

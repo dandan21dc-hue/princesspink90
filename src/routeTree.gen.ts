@@ -17,11 +17,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
+import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
@@ -66,6 +68,11 @@ const EventsIdRoute = EventsIdRouteImport.update({
   path: '/events/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedVerifyRoute = AuthenticatedVerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
   id: '/library',
   path: '/library',
@@ -91,6 +98,12 @@ const AuthenticatedContentNewRoute = AuthenticatedContentNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedContentRoute,
 } as any)
+const AuthenticatedAdminVerificationsRoute =
+  AuthenticatedAdminVerificationsRouteImport.update({
+    id: '/admin/verifications',
+    path: '/admin/verifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/admin/settings',
@@ -124,11 +137,13 @@ export interface FileRoutesByFullPath {
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/verify': typeof AuthenticatedVerifyRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -142,11 +157,13 @@ export interface FileRoutesByTo {
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/verify': typeof AuthenticatedVerifyRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -162,11 +179,13 @@ export interface FileRoutesById {
   '/_authenticated/content': typeof AuthenticatedContentRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
+  '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
+  '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -182,11 +201,13 @@ export interface FileRouteTypes {
     | '/content'
     | '/dashboard'
     | '/library'
+    | '/verify'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
     | '/admin/lifetime'
     | '/admin/settings'
+    | '/admin/verifications'
     | '/content/new'
     | '/events/new'
     | '/events/$id/edit'
@@ -200,11 +221,13 @@ export interface FileRouteTypes {
     | '/content'
     | '/dashboard'
     | '/library'
+    | '/verify'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
     | '/admin/lifetime'
     | '/admin/settings'
+    | '/admin/verifications'
     | '/content/new'
     | '/events/new'
     | '/events/$id/edit'
@@ -219,11 +242,13 @@ export interface FileRouteTypes {
     | '/_authenticated/content'
     | '/_authenticated/dashboard'
     | '/_authenticated/library'
+    | '/_authenticated/verify'
     | '/events/$id'
     | '/store/$id'
     | '/store/subscribe'
     | '/_authenticated/admin/lifetime'
     | '/_authenticated/admin/settings'
+    | '/_authenticated/admin/verifications'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
     | '/_authenticated/events/$id/edit'
@@ -298,6 +323,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/verify': {
+      id: '/_authenticated/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof AuthenticatedVerifyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/library': {
       id: '/_authenticated/library'
       path: '/library'
@@ -332,6 +364,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/content/new'
       preLoaderRoute: typeof AuthenticatedContentNewRouteImport
       parentRoute: typeof AuthenticatedContentRoute
+    }
+    '/_authenticated/admin/verifications': {
+      id: '/_authenticated/admin/verifications'
+      path: '/admin/verifications'
+      fullPath: '/admin/verifications'
+      preLoaderRoute: typeof AuthenticatedAdminVerificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/settings': {
       id: '/_authenticated/admin/settings'
@@ -379,8 +418,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedContentRoute: typeof AuthenticatedContentRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
+  AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
+  AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
   AuthenticatedEventsIdEditRoute: typeof AuthenticatedEventsIdEditRoute
 }
@@ -389,8 +430,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedContentRoute: AuthenticatedContentRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
+  AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
+  AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
   AuthenticatedEventsNewRoute: AuthenticatedEventsNewRoute,
   AuthenticatedEventsIdEditRoute: AuthenticatedEventsIdEditRoute,
 }

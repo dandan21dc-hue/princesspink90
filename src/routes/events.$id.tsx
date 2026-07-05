@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { getPublicEventById } from "@/lib/events.functions";
 import { rsvpToEvent, cancelRsvp, myRsvpForEvent } from "@/lib/rsvp.functions";
+import { getMyAgeVerification, type VideoConsent } from "@/lib/verification.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -122,15 +123,38 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function RsvpBox({ eventId }: { eventId: string }) {
   const qc = useQueryClient();
   const getMy = useServerFn(myRsvpForEvent);
+  const getAge = useServerFn(getMyAgeVerification);
   const rsvpFn = useServerFn(rsvpToEvent);
   const cancelFn = useServerFn(cancelRsvp);
   const router = useRouter();
+
   const { data: mine } = useQuery({
     queryKey: ["my-rsvp", eventId],
     queryFn: () => getMy({ data: { event_id: eventId } }),
   });
+  const { data: age, isLoading: ageLoading } = useQuery({
+    queryKey: ["my-age-verification"],
+    queryFn: () => getAge(),
+  });
+
+  const [ageOk, setAgeOk] = useState(false);
+  const [consent, setConsent] = useState<VideoConsent>({
+    private_archive: false,
+    public_promo: false,
+    face_blurred_only: false,
+    no_filming: true,
+  });
+
   const rsvp = useMutation({
-    mutationFn: () => rsvpFn({ data: { event_id: eventId, guest_count: 1 } }),
+    mutationFn: () =>
+      rsvpFn({
+        data: {
+          event_id: eventId,
+          guest_count: 1,
+          age_confirmed: true,
+          video_consent: consent,
+        },
+      }),
     onSuccess: (r) => {
       toast.success(`Confirmed! Ticket ${r.ticket_code}`);
       qc.invalidateQueries({ queryKey: ["my-rsvp", eventId] });
@@ -165,13 +189,89 @@ function RsvpBox({ eventId }: { eventId: string }) {
     );
   }
 
+  if (ageLoading) return <div className="h-24 animate-pulse rounded-lg bg-card" />;
+
+  if (!age || age.status !== "approved") {
+    const label =
+      !age ? "Verify your age" :
+      age.status === "pending" ? "ID under review" :
+      "Resubmit ID";
+    return (
+      <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-3">
+        <div className="text-[10px] uppercase tracking-[0.25em] text-primary">18+ only</div>
+        <p className="text-sm text-muted-foreground">
+          {!age
+            ? "Every event requires ID on file. It only takes a minute."
+            : age.status === "pending"
+            ? "Your ID is being reviewed — you'll be able to RSVP once it's approved."
+            : `Your last submission wasn't accepted${age.notes ? `: ${age.notes}` : "."}`}
+        </p>
+        <Link
+          to="/verify"
+          className="block w-full rounded-md bg-primary py-3 text-center text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)]"
+        >
+          {label}
+        </Link>
+      </div>
+    );
+  }
+
+  const toggle = (key: keyof VideoConsent) => (v: boolean) => {
+    setConsent((c) => {
+      const next = { ...c, [key]: v };
+      // "No filming" is exclusive
+      if (key === "no_filming" && v) {
+        next.private_archive = false;
+        next.public_promo = false;
+        next.face_blurred_only = false;
+      } else if (v && key !== "no_filming") {
+        next.no_filming = false;
+      }
+      return next;
+    });
+  };
+
   return (
-    <button
-      onClick={() => rsvp.mutate()}
-      disabled={rsvp.isPending}
-      className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-60"
-    >
-      {rsvp.isPending ? "Confirming…" : "RSVP · Reserve entry"}
-    </button>
+    <div className="space-y-4 rounded-lg border border-border/60 bg-card/40 p-4">
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={ageOk}
+          onChange={(e) => setAgeOk(e.target.checked)}
+          className="mt-1"
+        />
+        <span>I confirm I am 18+ and my ID on file is current.</span>
+      </label>
+
+      <div>
+        <div className="mb-2 text-[10px] uppercase tracking-[0.25em] text-primary">Video consent</div>
+        <div className="space-y-1.5 text-sm">
+          <Check label="Private archive only (Princess Pink's records)" checked={consent.private_archive} onChange={toggle("private_archive")} />
+          <Check label="OK to use in public promo / social" checked={consent.public_promo} onChange={toggle("public_promo")} />
+          <Check label="Only if my face is blurred" checked={consent.face_blurred_only} onChange={toggle("face_blurred_only")} />
+          <Check label="Do not film me at all" checked={consent.no_filming} onChange={toggle("no_filming")} />
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Door team is briefed on your choices. You can change them by re-RSVPing before the event.
+        </p>
+      </div>
+
+      <button
+        onClick={() => rsvp.mutate()}
+        disabled={rsvp.isPending || !ageOk}
+        className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-50"
+      >
+        {rsvp.isPending ? "Confirming…" : "RSVP · Reserve entry"}
+      </button>
+    </div>
+  );
+}
+
+function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-start gap-2">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-1" />
+      <span>{label}</span>
+    </label>
   );
 }
