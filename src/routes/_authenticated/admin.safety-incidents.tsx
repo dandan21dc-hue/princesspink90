@@ -89,6 +89,44 @@ function AdminSafetyIncidentsPage() {
     createMut.mutate(form);
   }
 
+  function exportCsv() {
+    const headers = [
+      "id",
+      "incident_date",
+      "venue",
+      "involved_party",
+      "nature_of_incident",
+      "resolution_taken",
+      "created_at",
+      "created_by",
+      "archived_at",
+      "archived_by",
+      "archive_reason",
+    ];
+    const escape = (v: unknown) => {
+      if (v === null || v === undefined) return "";
+      const s = String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [headers.join(",")];
+    for (const r of rows as any[]) {
+      lines.push(headers.map((h) => escape(r[h])).join(","));
+    }
+    // Prepend BOM for Excel compatibility
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.href = url;
+    a.download = `safety-incidents-${view}-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-5xl px-5 pt-16 pb-8">
@@ -223,13 +261,23 @@ function AdminSafetyIncidentsPage() {
               ))}
             </div>
           </div>
-          <input
-            type="search"
-            placeholder="Search venue, party, nature, resolution…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm sm:w-80"
-          />
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <input
+              type="search"
+              placeholder="Search venue, party, nature, resolution…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm sm:w-80"
+            />
+            <button
+              type="button"
+              onClick={exportCsv}
+              disabled={rows.length === 0}
+              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              Export CSV
+            </button>
+          </div>
         </div>
 
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
