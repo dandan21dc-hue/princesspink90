@@ -35,16 +35,28 @@ export function SiteHeader() {
             Events
           </Link>
           <Link
-            to="/unlock"
+            to="/store"
             className="px-3 py-2 text-muted-foreground hover:text-foreground transition"
+          >
+            Store
+          </Link>
+          <Link
+            to="/unlock"
+            className="hidden sm:inline-block px-3 py-2 text-muted-foreground hover:text-foreground transition"
           >
             Private code
           </Link>
           {authed ? (
             <>
               <Link
-                to="/dashboard"
+                to="/library"
                 className="px-3 py-2 text-muted-foreground hover:text-foreground transition"
+              >
+                Library
+              </Link>
+              <Link
+                to="/dashboard"
+                className="hidden sm:inline-block px-3 py-2 text-muted-foreground hover:text-foreground transition"
               >
                 Dashboard
               </Link>
