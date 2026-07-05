@@ -225,98 +225,12 @@ function AdminGoLivePage() {
         </section>
       )}
 
-      <section className="mx-auto max-w-4xl px-5 pb-6 grid gap-4 sm:grid-cols-3">
-
-        <StatusCard
-          label="Cron jobs"
-          ok={cronOk}
-          detail={
-            data
-              ? `${expectedRows.filter((r) => r.job?.active).length}/${
-                  expectedRows.length
-                } expected active`
-              : "Loading…"
-          }
-        />
-        <StatusCard
-          label="Email sending"
-          ok={emailOk}
-          detail={
-            data?.last_email_sent_at
-              ? `Last: ${new Date(data.last_email_sent_at).toLocaleString()}`
-              : "No successful sends yet"
-          }
-        />
-        <StatusCard
-          label="RSVP entry phrase"
-          ok={phraseOk}
-          detail={
-            data
-              ? `${data.rsvp_with_entry_phrase}/${data.rsvp_total} RSVPs`
-              : "Loading…"
-          }
-        />
-      </section>
-
-      <section id="scheduled-jobs" className="mx-auto max-w-4xl px-5 pb-8 scroll-mt-16">
-        <h2 className="mb-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          Scheduled jobs
-        </h2>
-
-        <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card/60">
-          <table className="w-full min-w-[560px] text-sm">
-            <thead className="bg-muted/30 text-left text-[11px] uppercase tracking-widest text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Job</th>
-                <th className="px-4 py-3">Schedule</th>
-                <th className="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expectedRows.map(({ name, job }) => (
-                <tr key={name} className="border-t border-border/40">
-                  <td className="px-4 py-3 font-mono text-xs">{name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {job?.schedule ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {!job ? (
-                      <Badge kind="warn">missing</Badge>
-                    ) : job.active ? (
-                      <Badge kind="ok">active</Badge>
-                    ) : (
-                      <Badge kind="bad">inactive</Badge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {extraJobs.map((job) => (
-                <tr
-                  key={job.jobname}
-                  className="border-t border-border/40 opacity-70"
-                >
-                  <td className="px-4 py-3 font-mono text-xs">{job.jobname}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {job.schedule}
-                  </td>
-                  <td className="px-4 py-3">
-                    {job.active ? (
-                      <Badge kind="ok">active</Badge>
-                    ) : (
-                      <Badge kind="bad">inactive</Badge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <GoLiveStatusView data={data ?? undefined} expectedJobs={EXPECTED_JOBS} />
 
       <section className="mx-auto max-w-4xl px-5 pb-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xs uppercase tracking-[0.3em] text-muted-foreground">
-            Last successful email
+            Send a test reminder
           </h2>
           <button
             type="button"
@@ -333,24 +247,6 @@ function AdminGoLivePage() {
             />
             {testMutation.isPending ? "Sending test…" : "Send test reminder to me"}
           </button>
-        </div>
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4 text-sm">
-          {data?.last_email_sent_at ? (
-            <dl className="grid gap-2 sm:grid-cols-3">
-              <Field label="Sent at">
-                {new Date(data.last_email_sent_at).toLocaleString()}
-              </Field>
-              <Field label="Template">{data.last_email_template ?? "—"}</Field>
-              <Field label="Recipient">
-                {data.last_email_recipient ?? "—"}
-              </Field>
-            </dl>
-          ) : (
-            <div className="text-muted-foreground">
-              No emails have been successfully sent yet. Trigger a signup or
-              RSVP to exercise the path — or use “Send test reminder to me” above.
-            </div>
-          )}
         </div>
 
         {testMutation.isError && (
@@ -418,35 +314,6 @@ function AdminGoLivePage() {
         )}
       </section>
 
-
-      <section className="mx-auto max-w-4xl px-5 pb-16">
-        <h2 className="mb-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
-          RSVP entry phrase assignment
-        </h2>
-        <div className="rounded-2xl border border-border/60 bg-card/60 p-4 text-sm">
-          {data ? (
-            <dl className="grid gap-2 sm:grid-cols-3">
-              <Field label="Total RSVPs">{data.rsvp_total}</Field>
-              <Field label="With entry phrase">
-                {data.rsvp_with_entry_phrase}
-              </Field>
-              <Field label="Most recent assignment">
-                {data.last_entry_phrase_at
-                  ? new Date(data.last_entry_phrase_at).toLocaleString()
-                  : "—"}
-              </Field>
-            </dl>
-          ) : (
-            <div className="text-muted-foreground">Loading…</div>
-          )}
-          {data && data.rsvp_total > 0 && data.rsvp_with_entry_phrase === 0 && (
-            <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs text-destructive">
-              RSVPs exist but none have an entry phrase — the assignment
-              trigger may not be firing.
-            </div>
-          )}
-        </div>
-      </section>
     </main>
   );
 }
