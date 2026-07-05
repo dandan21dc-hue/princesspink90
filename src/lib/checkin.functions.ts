@@ -38,7 +38,7 @@ export const lookupCheckin = createServerFn({ method: "POST" })
     const { data: rsvp, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, guest_count, status, video_consent, checked_in_at, door_notes",
+        "id, user_id, ticket_code, entry_code, guest_count, status, video_consent, checked_in_at, door_notes",
       )
       .eq("event_id", data.event_id)
       .eq("ticket_code", code)
