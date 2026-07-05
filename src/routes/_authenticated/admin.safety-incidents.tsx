@@ -312,14 +312,31 @@ function AdminSafetyIncidentsPage() {
             />
             <button
               type="button"
+              onClick={() => setShowColumnPicker((s) => !s)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted"
+            >
+              Columns ({exportCols.length})
+            </button>
+            <button
+              type="button"
               onClick={exportCsv}
-              disabled={rows.length === 0}
+              disabled={rows.length === 0 || exportCols.length === 0}
               className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted disabled:opacity-50"
             >
               Export CSV
             </button>
           </div>
         </div>
+
+        {showColumnPicker && (
+          <ColumnPicker
+            selected={exportCols}
+            onChange={setExportCols}
+            onReset={() => setExportCols(DEFAULT_EXPORT_COLS)}
+            onClose={() => setShowColumnPicker(false)}
+          />
+        )}
+
 
         <div className="rounded-2xl border border-border bg-card overflow-hidden">
           {query.isLoading ? (
