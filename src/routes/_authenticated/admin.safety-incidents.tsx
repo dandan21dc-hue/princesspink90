@@ -140,7 +140,17 @@ function AdminSafetyIncidentsPage() {
     createMut.mutate(form);
   }
 
-  function exportCsv() {
+  async function logExport(format: "csv" | "xlsx", headers: string[], rowCount: number) {
+    try {
+      await logExportFn({
+        data: { format, view, search, columns: headers, row_count: rowCount },
+      });
+    } catch (e) {
+      console.warn("Failed to log export", e);
+    }
+  }
+
+  async function exportCsv() {
     const headers = exportCols.length > 0 ? exportCols : DEFAULT_EXPORT_COLS;
     const escape = (v: unknown) => {
       if (v === null || v === undefined) return "";
