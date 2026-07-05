@@ -201,3 +201,72 @@ function EditEvent() {
     </section>
   );
 }
+
+type CodeRow = {
+  id: string;
+  code: string;
+  note: string | null;
+  used_at: string | null;
+  used_by_name: string | null;
+};
+
+function AccessCodeRow({
+  c, onDelete, onToggle, pending,
+}: {
+  c: CodeRow;
+  onDelete: () => void;
+  onToggle: (used: boolean, name?: string) => void;
+  pending: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(c.used_by_name ?? "");
+  const used = !!c.used_at;
+
+  return (
+    <li className={`rounded-md border px-3 py-2 text-sm ${used ? "border-primary/40 bg-primary/5" : "border-border/50"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className={`font-mono ${used ? "text-muted-foreground line-through" : ""}`}>{c.code}</div>
+          {used && (
+            <div className="mt-0.5 text-[11px] text-muted-foreground">
+              Used {new Date(c.used_at!).toLocaleDateString()}
+              {c.used_by_name ? ` · ${c.used_by_name}` : ""}
+            </div>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          {c.note && !used && <span className="text-xs text-muted-foreground">{c.note}</span>}
+          {used ? (
+            <button disabled={pending} onClick={() => onToggle(false)}
+              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+              Unmark
+            </button>
+          ) : (
+            <button disabled={pending} onClick={() => setEditing((v) => !v)}
+              className="text-xs uppercase tracking-widest text-primary hover:brightness-125">
+              Mark used
+            </button>
+          )}
+          <button onClick={onDelete} className="text-xs text-muted-foreground hover:text-destructive">
+            Delete
+          </button>
+        </div>
+      </div>
+      {editing && !used && (
+        <div className="mt-2 flex gap-2">
+          <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
+            placeholder="Guest name (optional)"
+            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm" />
+          <button disabled={pending} onClick={() => { onToggle(true, name.trim() || undefined); setEditing(false); }}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground">
+            Confirm
+          </button>
+          <button onClick={() => setEditing(false)}
+            className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest">
+            Cancel
+          </button>
+        </div>
+      )}
+    </li>
+  );
+}
