@@ -5,6 +5,7 @@ import { listMyEvents, getMyEventsCompliance } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
 import { amIAdmin } from "@/lib/admin.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { QuickAccessButton } from "@/components/QuickAccessScripts";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
