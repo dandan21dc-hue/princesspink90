@@ -10,6 +10,8 @@ import {
   submitCohostApplication,
   withdrawMyCohostApplication,
 } from "@/lib/cohost.functions";
+import handbookAsset from "@/assets/princess-pink-cohost-handbook.pdf.asset.json";
+import { HANDBOOK_VERSION } from "@/lib/cohost-handbook.functions";
 
 export const Route = createFileRoute("/_authenticated/cohost-apply")({
   head: () => ({ meta: [{ title: "Co-host application · AFTERDARK" }] }),
