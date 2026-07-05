@@ -48,6 +48,24 @@ function AdminGoLivePage() {
   const phraseOk = (data?.rsvp_with_entry_phrase ?? 0) > 0;
   const cronOk = expectedRows.every((r) => r.job?.active);
 
+  // Missing = row absent from cron.job entirely. Inactive = present but disabled.
+  const missingJobs = expectedRows.filter((r) => !r.job).map((r) => r.name);
+  const inactiveJobs = expectedRows
+    .filter((r) => r.job && !r.job.active)
+    .map((r) => r.name);
+
+  // "No recent email" = never sent, or last successful send >24h ago. The
+  // reminder/auth/transactional queues should produce at least one send/day
+  // in normal operation, so a longer gap warrants an alert on the go-live page.
+  const RECENT_EMAIL_WINDOW_MS = 24 * 60 * 60 * 1000;
+  const lastEmailAgeMs = data?.last_email_sent_at
+    ? Date.now() - new Date(data.last_email_sent_at).getTime()
+    : null;
+  const emailStale =
+    Boolean(data) &&
+    (lastEmailAgeMs === null || lastEmailAgeMs > RECENT_EMAIL_WINDOW_MS);
+
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-4xl px-5 pt-16 pb-8">
@@ -97,7 +115,94 @@ function AdminGoLivePage() {
         </section>
       )}
 
+      {data && (missingJobs.length > 0 || inactiveJobs.length > 0 || emailStale) && (
+        <section
+          className="mx-auto max-w-4xl px-5 pb-6 space-y-3"
+          aria-label="Go-live alerts"
+        >
+          {(missingJobs.length > 0 || inactiveJobs.length > 0) && (
+            <AlertBanner
+              severity="critical"
+              title={
+                missingJobs.length > 0
+                  ? `${missingJobs.length} scheduled job${missingJobs.length === 1 ? "" : "s"} missing from cron`
+                  : `${inactiveJobs.length} scheduled job${inactiveJobs.length === 1 ? "" : "s"} inactive`
+              }
+              body={
+                <>
+                  {missingJobs.length > 0 && (
+                    <p>
+                      <span className="font-semibold">Missing:</span>{" "}
+                      <span className="font-mono text-[11px]">
+                        {missingJobs.join(", ")}
+                      </span>
+                    </p>
+                  )}
+                  {inactiveJobs.length > 0 && (
+                    <p className="mt-1">
+                      <span className="font-semibold">Inactive:</span>{" "}
+                      <span className="font-mono text-[11px]">
+                        {inactiveJobs.join(", ")}
+                      </span>
+                    </p>
+                  )}
+                  <p className="mt-2 text-[11px] opacity-80">
+                    Reminders, retries, and purges will not run until each
+                    expected job is present and active.
+                  </p>
+                </>
+              }
+              actions={
+                <>
+                  <a
+                    href="#scheduled-jobs"
+                    className="rounded-md border border-current/40 px-2.5 py-1 text-[11px] font-medium uppercase tracking-widest hover:bg-current/10"
+                  >
+                    Jump to jobs table
+                  </a>
+                  <Link
+                    to="/admin/system-logs"
+                    className="rounded-md border border-current/40 px-2.5 py-1 text-[11px] font-medium uppercase tracking-widest hover:bg-current/10"
+                  >
+                    View system logs →
+                  </Link>
+                </>
+              }
+            />
+          )}
+
+          {emailStale && (
+            <AlertBanner
+              severity={data?.last_email_sent_at ? "warning" : "critical"}
+              title={
+                data?.last_email_sent_at
+                  ? "No email sends in the last 24 hours"
+                  : "No successful email sends recorded yet"
+              }
+              body={
+                <p>
+                  {data?.last_email_sent_at
+                    ? `Last successful send: ${new Date(
+                        data.last_email_sent_at,
+                      ).toLocaleString()} — reminder and transactional queues should produce at least one send per day in normal operation.`
+                    : "The email_send_log table has no rows with status 'sent'. Trigger a signup, RSVP, or reminder cron to exercise the send path."}
+                </p>
+              }
+              actions={
+                <Link
+                  to="/admin/email-delivery"
+                  className="rounded-md border border-current/40 px-2.5 py-1 text-[11px] font-medium uppercase tracking-widest hover:bg-current/10"
+                >
+                  Open email delivery log →
+                </Link>
+              }
+            />
+          )}
+        </section>
+      )}
+
       <section className="mx-auto max-w-4xl px-5 pb-6 grid gap-4 sm:grid-cols-3">
+
         <StatusCard
           label="Cron jobs"
           ok={cronOk}
@@ -129,10 +234,11 @@ function AdminGoLivePage() {
         />
       </section>
 
-      <section className="mx-auto max-w-4xl px-5 pb-8">
+      <section id="scheduled-jobs" className="mx-auto max-w-4xl px-5 pb-8 scroll-mt-16">
         <h2 className="mb-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
           Scheduled jobs
         </h2>
+
         <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card/60">
           <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-muted/30 text-left text-[11px] uppercase tracking-widest text-muted-foreground">
@@ -299,3 +405,41 @@ function Badge({
     </span>
   );
 }
+
+function AlertBanner({
+  severity,
+  title,
+  body,
+  actions,
+}: {
+  severity: "critical" | "warning";
+  title: string;
+  body: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  const tone =
+    severity === "critical"
+      ? "border-destructive/60 bg-destructive/10 text-destructive"
+      : "border-amber-500/60 bg-amber-500/10 text-amber-400";
+  const label = severity === "critical" ? "Critical" : "Warning";
+  return (
+    <div
+      role="alert"
+      className={`rounded-2xl border ${tone} p-4 shadow-sm`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest ring-1 ring-current/40">
+          {label}
+        </span>
+        <div className="flex-1 text-xs leading-relaxed">
+          <div className="text-sm font-semibold">{title}</div>
+          <div className="mt-1 opacity-90">{body}</div>
+          {actions && (
+            <div className="mt-3 flex flex-wrap gap-2">{actions}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
