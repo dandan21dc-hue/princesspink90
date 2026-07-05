@@ -1,0 +1,341 @@
+import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { z } from "zod";
+
+const BUCKET = "venue-compliance";
+
+async function assertAdmin(supabase: any, userId: string) {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
+  if (error) throw error;
+  if (!data) throw new Error("Admin access required");
+}
+
+const kindEnum = z.enum(["public_liability_insurance", "event_permit", "other"]);
+
+export const listVenueComplianceDocs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("venue_compliance_documents")
+      .select(
+        "id, kind, title, issuer, reference_number, issued_on, expires_on, notes, file_path, file_name, file_size, file_mime_type, created_at",
+      )
+      .order("kind", { ascending: true })
+      .order("expires_on", { ascending: true, nullsFirst: false });
+    if (error) throw error;
+    return { rows: data ?? [] };
+  });
+
+const createSchema = z.object({
+  kind: kindEnum,
+  title: z.string().trim().min(1).max(200),
+  issuer: z.string().trim().max(200).optional().nullable(),
+  reference_number: z.string().trim().max(200).optional().nullable(),
+  issued_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  expires_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  notes: z.string().trim().max(4000).optional().nullable(),
+  file_name: z.string().trim().min(1).max(255),
+  file_mime_type: z.string().trim().max(200).optional().nullable(),
+  file_size: z.number().int().min(0).max(20 * 1024 * 1024).optional().nullable(),
+  // base64 payload of the file bytes (<=20MB)
+  file_base64: z.string().min(1),
+});
+
+export const uploadVenueComplianceDoc = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => createSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    // decode base64 -> bytes
+    const bin = atob(data.file_base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (bytes.byteLength > 20 * 1024 * 1024) {
+      throw new Error("File exceeds 20MB limit");
+    }
+
+    const safeName = data.file_name.replace(/[^\w.\-]+/g, "_").slice(-120);
+    const path = `${data.kind}/${crypto.randomUUID()}-${safeName}`;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .upload(path, bytes, {
+        contentType: data.file_mime_type ?? "application/octet-stream",
+        upsert: false,
+      });
+    if (upErr) throw upErr;
+
+    const { data: row, error } = await context.supabase
+      .from("venue_compliance_documents")
+      .insert({
+        kind: data.kind,
+        title: data.title,
+        issuer: data.issuer ?? null,
+        reference_number: data.reference_number ?? null,
+        issued_on: data.issued_on ?? null,
+        expires_on: data.expires_on ?? null,
+        notes: data.notes ?? null,
+        file_path: path,
+        file_name: safeName,
+        file_size: bytes.byteLength,
+        file_mime_type: data.file_mime_type ?? null,
+        uploaded_by: context.userId,
+      })
+      .select()
+      .single();
+    if (error) {
+      // best-effort cleanup of the uploaded file
+      await supabaseAdmin.storage.from(BUCKET).remove([path]);
+      throw error;
+    }
+    return { row };
+  });
+
+export const getVenueComplianceDownloadUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: row, error } = await context.supabase
+      .from("venue_compliance_documents")
+      .select("file_path, file_name")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!row) throw new Error("Document not found");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error: sErr } = await supabaseAdmin.storage
+      .from(BUCKET)
+      .createSignedUrl(row.file_path, 60 * 10, { download: row.file_name });
+    if (sErr) throw sErr;
+    return { url: signed.signedUrl };
+  });
+
+export const deleteVenueComplianceDoc = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ id: z.string().uuid() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data: row, error } = await context.supabase
+      .from("venue_compliance_documents")
+      .select("file_path")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!row) return { ok: true };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.storage.from(BUCKET).remove([row.file_path]);
+    const { error: dErr } = await context.supabase
+      .from("venue_compliance_documents")
+      .delete()
+      .eq("id", data.id);
+    if (dErr) throw dErr;
+    return { ok: true };
+  });
+
+// -------- Compliance summary PDF --------
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode.apply(
+      null,
+      Array.from(bytes.subarray(i, i + chunk)),
+    );
+  }
+  return btoa(bin);
+}
+
+const KIND_LABEL: Record<string, string> = {
+  public_liability_insurance: "Public liability insurance",
+  event_permit: "Event permit",
+  other: "Other compliance document",
+};
+
+export const generateComplianceSummaryPdf = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z
+      .object({
+        venue_name: z.string().trim().max(200).optional().default(""),
+        event_date: z.string().trim().max(200).optional().default(""),
+        recipient: z.string().trim().max(200).optional().default(""),
+      })
+      .parse(data ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const { data: rows, error } = await context.supabase
+      .from("venue_compliance_documents")
+      .select(
+        "kind, title, issuer, reference_number, issued_on, expires_on, notes",
+      )
+      .order("kind", { ascending: true })
+      .order("expires_on", { ascending: true, nullsFirst: false });
+    if (error) throw error;
+
+    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+    const pdf = await PDFDocument.create();
+    const body = await pdf.embedFont(StandardFonts.Helvetica);
+    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const italic = await pdf.embedFont(StandardFonts.HelveticaOblique);
+
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
+    const margin = 56;
+    let page = pdf.addPage([pageWidth, pageHeight]);
+    let cursor = pageHeight - margin;
+
+    const ink = rgb(0.08, 0.08, 0.12);
+    const dim = rgb(0.42, 0.42, 0.48);
+    const accent = rgb(0.85, 0.15, 0.45);
+
+    const wrap = (text: string, font: any, size: number, maxWidth: number) => {
+      const out: string[] = [];
+      for (const raw of text.split(/\n/)) {
+        const words = raw.split(/\s+/);
+        let line = "";
+        for (const w of words) {
+          const trial = line ? line + " " + w : w;
+          if (font.widthOfTextAtSize(trial, size) > maxWidth && line) {
+            out.push(line);
+            line = w;
+          } else {
+            line = trial;
+          }
+        }
+        out.push(line);
+      }
+      return out;
+    };
+
+    const draw = (
+      text: string,
+      opts: { font?: any; size?: number; color?: any; lineHeight?: number } = {},
+    ) => {
+      const f = opts.font ?? body;
+      const s = opts.size ?? 11;
+      const c = opts.color ?? ink;
+      const lh = s * (opts.lineHeight ?? 1.35);
+      for (const line of wrap(text, f, s, pageWidth - margin * 2)) {
+        if (cursor < margin + lh) {
+          page = pdf.addPage([pageWidth, pageHeight]);
+          cursor = pageHeight - margin;
+        }
+        page.drawText(line, { x: margin, y: cursor - s, size: s, font: f, color: c });
+        cursor -= lh;
+      }
+    };
+
+    const hr = () => {
+      cursor -= 6;
+      page.drawLine({
+        start: { x: margin, y: cursor },
+        end: { x: pageWidth - margin, y: cursor },
+        thickness: 0.5,
+        color: rgb(0.85, 0.85, 0.9),
+      });
+      cursor -= 10;
+    };
+
+    // Header
+    draw("AFTERDARK", { font: bold, size: 10, color: accent });
+    cursor -= 2;
+    draw("Venue compliance summary", { font: bold, size: 18 });
+    draw(
+      "Prepared for venue booking review",
+      { font: italic, size: 10, color: dim },
+    );
+    hr();
+
+    const today = new Date().toLocaleDateString(undefined, {
+      dateStyle: "long",
+    });
+    const field = (label: string, value: string) => {
+      draw(label, { font: bold, size: 9, color: dim });
+      cursor += 4;
+      draw(value || "—", { font: body, size: 11 });
+      cursor -= 2;
+    };
+    field("Prepared on", today);
+    if (data.recipient) field("Recipient", data.recipient);
+    if (data.venue_name) field("Venue", data.venue_name);
+    if (data.event_date) field("Proposed date", data.event_date);
+    hr();
+
+    if (!rows || rows.length === 0) {
+      draw("No compliance documents on file.", {
+        font: italic,
+        size: 11,
+        color: dim,
+      });
+    } else {
+      // Group by kind
+      const grouped: Record<string, typeof rows> = {};
+      for (const r of rows) {
+        (grouped[r.kind] ||= [] as any).push(r);
+      }
+      for (const kind of Object.keys(grouped)) {
+        draw(KIND_LABEL[kind] ?? kind, {
+          font: bold,
+          size: 13,
+          color: accent,
+        });
+        cursor -= 2;
+        for (const r of grouped[kind]) {
+          draw(r.title, { font: bold, size: 11 });
+          const parts: string[] = [];
+          if (r.issuer) parts.push(`Issuer: ${r.issuer}`);
+          if (r.reference_number) parts.push(`Ref: ${r.reference_number}`);
+          if (r.issued_on) parts.push(`Issued: ${r.issued_on}`);
+          if (r.expires_on) {
+            const exp = new Date(r.expires_on);
+            const expired = exp.getTime() < Date.now();
+            parts.push(
+              `${expired ? "Expired" : "Expires"}: ${r.expires_on}`,
+            );
+          }
+          if (parts.length) {
+            draw(parts.join("  ·  "), { font: body, size: 10, color: dim });
+          }
+          if (r.notes) {
+            draw(r.notes, { font: italic, size: 10, color: ink });
+          }
+          cursor -= 6;
+        }
+        hr();
+      }
+    }
+
+    draw(
+      "This summary is a snapshot of current compliance records. Original certificates are available on request from the operator.",
+      { font: italic, size: 9, color: dim },
+    );
+
+    const bytes = await pdf.save();
+    const stamp = new Date().toISOString().slice(0, 10);
+    const slug =
+      (data.venue_name || "venue")
+        .toLowerCase()
+        .replace(/[^\w\-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 40) || "venue";
+    return {
+      base64: bytesToBase64(bytes),
+      filename: `compliance-summary-${slug}-${stamp}.pdf`,
+      contentType: "application/pdf",
+    };
+  });

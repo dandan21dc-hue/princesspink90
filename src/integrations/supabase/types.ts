@@ -909,6 +909,60 @@ export type Database = {
         }
         Relationships: []
       }
+      venue_compliance_documents: {
+        Row: {
+          created_at: string
+          expires_on: string | null
+          file_mime_type: string | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          issued_on: string | null
+          issuer: string | null
+          kind: Database["public"]["Enums"]["venue_compliance_kind"]
+          notes: string | null
+          reference_number: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          expires_on?: string | null
+          file_mime_type?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          kind: Database["public"]["Enums"]["venue_compliance_kind"]
+          notes?: string | null
+          reference_number?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          expires_on?: string | null
+          file_mime_type?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          issued_on?: string | null
+          issuer?: string | null
+          kind?: Database["public"]["Enums"]["venue_compliance_kind"]
+          notes?: string | null
+          reference_number?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       waiver_audit_log: {
         Row: {
           action: string
@@ -984,6 +1038,10 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user" | "cohost"
       event_doc_type: "permit" | "insurance" | "capacity" | "other"
+      venue_compliance_kind:
+        | "public_liability_insurance"
+        | "event_permit"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1113,6 +1171,11 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user", "cohost"],
       event_doc_type: ["permit", "insurance", "capacity", "other"],
+      venue_compliance_kind: [
+        "public_liability_insurance",
+        "event_permit",
+        "other",
+      ],
     },
   },
 } as const
