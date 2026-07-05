@@ -356,16 +356,29 @@ function MyDocumentsSection() {
       reAckFn({ data: vars }),
     onMutate: async (vars) => {
       // Optimistically flip the affected docs so the stale-row UI updates
-      // immediately without waiting for the server round-trip.
-      await qc.cancelQueries({ queryKey: ["my-compliance-documents"] });
-      const key = ["my-compliance-documents"] as const;
-      const previous = qc.getQueryData<any[]>(key);
+      // immediately without waiting for the server round-trip. We also
+      // snapshot the per-event agreements cache so a failure rolls back
+      // every surface that read the optimistic value.
+      await Promise.all([
+        qc.cancelQueries({ queryKey: ["my-compliance-documents"] }),
+        vars.event_id
+          ? qc.cancelQueries({ queryKey: ["my-policy-agreements", vars.event_id] })
+          : Promise.resolve(),
+      ]);
+      const docsKey = ["my-compliance-documents"] as const;
+      const agreementsKey = vars.event_id
+        ? (["my-policy-agreements", vars.event_id] as const)
+        : null;
+      const previousDocs = qc.getQueryData<any[]>(docsKey);
+      const previousAgreements = agreementsKey
+        ? qc.getQueryData<any>(agreementsKey)
+        : undefined;
       const nowIso = new Date().toISOString();
       const currentLabel = current.data?.version ?? null;
-      if (previous) {
+      if (previousDocs) {
         qc.setQueryData<any[]>(
-          key,
-          previous.map((row) =>
+          docsKey,
+          previousDocs.map((row) =>
             row.event_id === vars.event_id
               ? {
                   ...row,
@@ -382,14 +395,24 @@ function MyDocumentsSection() {
           ),
         );
       }
-      return { previous };
+      return { previousDocs, previousAgreements, agreementsKey };
     },
-    onError: (e, _vars, ctx) => {
-      // Roll back the optimistic patch to the last known server truth,
-      // then still trigger a refetch in onSettled so we don't drift if the
-      // failure happened after the server already persisted.
-      if (ctx?.previous) qc.setQueryData(["my-compliance-documents"], ctx.previous);
-      toast.error(e instanceof Error ? e.message : "Could not re-acknowledge policy");
+    onError: (e, vars, ctx) => {
+      // Roll back every optimistic patch to last known server truth.
+      // onSettled still refetches in case the server did persist before the
+      // network error, so we never drift from reality.
+      if (ctx?.previousDocs) qc.setQueryData(["my-compliance-documents"], ctx.previousDocs);
+      if (ctx?.agreementsKey && ctx.previousAgreements !== undefined) {
+        qc.setQueryData(ctx.agreementsKey, ctx.previousAgreements);
+      }
+      const detail = e instanceof Error ? e.message : "Unknown error";
+      toast.error("Could not re-acknowledge policy", {
+        description: `${detail} — your previous state was restored. Please try again.`,
+        action: {
+          label: "Retry",
+          onClick: () => reAck.mutate(vars),
+        },
+      });
     },
     onSuccess: () => {
       toast.success("Re-acknowledged current compliance policy for this event.");
@@ -417,20 +440,41 @@ function MyDocumentsSection() {
           reAckFn({ data: { policy_version_id: vars.policy_version_id, event_id } }),
         ),
       );
-      const failed = results.filter((r) => r.status === "rejected").length;
-      return { total: vars.event_ids.length, failed };
+      const failures = results
+        .map((r, i) => ({ r, event_id: vars.event_ids[i] }))
+        .filter((x): x is { r: PromiseRejectedResult; event_id: string | null } =>
+          x.r.status === "rejected",
+        )
+        .map((x) => ({
+          event_id: x.event_id,
+          reason: x.r.reason instanceof Error ? x.r.reason.message : String(x.r.reason),
+        }));
+      return { total: vars.event_ids.length, failed: failures.length, failures };
     },
     onMutate: async (vars) => {
-      await qc.cancelQueries({ queryKey: ["my-compliance-documents"] });
-      const key = ["my-compliance-documents"] as const;
-      const previous = qc.getQueryData<any[]>(key);
+      const eventSet = new Set(vars.event_ids);
+      await Promise.all([
+        qc.cancelQueries({ queryKey: ["my-compliance-documents"] }),
+        ...vars.event_ids.map((eid) =>
+          eid
+            ? qc.cancelQueries({ queryKey: ["my-policy-agreements", eid] })
+            : Promise.resolve(),
+        ),
+      ]);
+      const docsKey = ["my-compliance-documents"] as const;
+      const previousDocs = qc.getQueryData<any[]>(docsKey);
+      const previousAgreements = vars.event_ids
+        .filter((eid): eid is string => !!eid)
+        .map((eid) => ({
+          key: ["my-policy-agreements", eid] as const,
+          data: qc.getQueryData<any>(["my-policy-agreements", eid]),
+        }));
       const nowIso = new Date().toISOString();
       const currentLabel = current.data?.version ?? null;
-      const eventSet = new Set(vars.event_ids);
-      if (previous) {
+      if (previousDocs) {
         qc.setQueryData<any[]>(
-          key,
-          previous.map((row) =>
+          docsKey,
+          previousDocs.map((row) =>
             eventSet.has(row.event_id)
               ? {
                   ...row,
@@ -447,20 +491,51 @@ function MyDocumentsSection() {
           ),
         );
       }
-      return { previous };
+      return { previousDocs, previousAgreements };
     },
-    onError: (e, _vars, ctx) => {
-      if (ctx?.previous) qc.setQueryData(["my-compliance-documents"], ctx.previous);
-      toast.error(e instanceof Error ? e.message : "Bulk re-acknowledge failed");
+    onError: (e, vars, ctx) => {
+      // Full failure — nothing persisted. Roll every optimistic surface back.
+      if (ctx?.previousDocs) qc.setQueryData(["my-compliance-documents"], ctx.previousDocs);
+      if (ctx?.previousAgreements) {
+        for (const snap of ctx.previousAgreements) {
+          if (snap.data !== undefined) qc.setQueryData(snap.key, snap.data);
+        }
+      }
+      const detail = e instanceof Error ? e.message : "Unknown error";
+      toast.error("Bulk re-acknowledge failed", {
+        description: `${detail} — no events were updated. Please try again.`,
+        action: {
+          label: "Retry",
+          onClick: () => bulkReAck.mutate(vars),
+        },
+      });
     },
-    onSuccess: (res) => {
+    onSuccess: (res, vars) => {
       const ok = res.total - res.failed;
       if (res.failed === 0) {
         toast.success(`Re-acknowledged current policy for ${ok} event${ok === 1 ? "" : "s"}.`);
+        setSelected(new Set());
       } else {
-        toast.warning(`Re-acknowledged ${ok} of ${res.total}. ${res.failed} failed — please retry.`);
+        // Partial failure — mutationFn resolved, so onError didn't run.
+        // Surface the first rejection reason so the user knows what broke,
+        // and offer a retry scoped to just the failed events.
+        const firstReason = res.failures[0]?.reason ?? "Unknown error";
+        const failedIds = res.failures.map((f) => f.event_id);
+        toast.warning(
+          `Re-acknowledged ${ok} of ${res.total}. ${res.failed} failed.`,
+          {
+            description: firstReason,
+            action: {
+              label: `Retry ${res.failed}`,
+              onClick: () =>
+                bulkReAck.mutate({
+                  policy_version_id: vars.policy_version_id,
+                  event_ids: failedIds,
+                }),
+            },
+          },
+        );
       }
-      setSelected(new Set());
     },
     onSettled: async (res, _err, vars) => {
       // Await reconciliation so the modal only closes after the UI reflects
