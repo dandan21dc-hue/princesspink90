@@ -617,6 +617,12 @@ function AdminVenueCompliancePage() {
                               }
                               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                             />
+                            {editForm.expires_on &&
+                              !validateExpiryDate(editForm.expires_on).ok && (
+                                <p className="text-xs text-destructive">
+                                  {(validateExpiryDate(editForm.expires_on) as { error: string }).error}
+                                </p>
+                              )}
                           </label>
                           <label className="space-y-1 text-xs md:col-span-2">
                             <span className="text-muted-foreground">Notes</span>
