@@ -302,6 +302,35 @@ async function assertOwnsEvent(supabase: any, userId: string, eventId: string) {
   if (!data) throw new Error("Forbidden");
 }
 
+export const getCurrentPolicyVersion = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await sb
+      .from("compliance_policy_versions")
+      .select("id, version, effective_at, summary, body")
+      .eq("is_current", true)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  });
+
+export const listPolicyVersions = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+    const { data, error } = await sb
+      .from("compliance_policy_versions")
+      .select("id, version, effective_at, summary, is_current")
+      .order("effective_at", { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  });
+
 export const listEventDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { event_id: string }) =>
@@ -310,7 +339,7 @@ export const listEventDocuments = createServerFn({ method: "GET" })
     await assertOwnsEvent(context.supabase, context.userId, data.event_id);
     const { data: docs, error } = await context.supabase
       .from("event_documents")
-      .select("id, doc_type, file_path, file_name, content_type, size_bytes, uploaded_at")
+      .select("id, doc_type, file_path, file_name, content_type, size_bytes, uploaded_at, policy_version_id, policy_version_label")
       .eq("event_id", data.event_id)
       .order("uploaded_at", { ascending: false });
     if (error) throw error;
@@ -322,6 +351,7 @@ export const registerEventDocument = createServerFn({ method: "POST" })
   .inputValidator((data: {
     event_id: string; doc_type: z.infer<typeof docTypeSchema>;
     file_path: string; file_name: string; content_type?: string; size_bytes?: number;
+    policy_version_id: string;
   }) => z.object({
     event_id: z.string().uuid(),
     doc_type: docTypeSchema,
@@ -329,11 +359,23 @@ export const registerEventDocument = createServerFn({ method: "POST" })
     file_name: z.string().trim().min(1).max(200),
     content_type: z.string().max(120).optional(),
     size_bytes: z.number().int().min(0).max(50 * 1024 * 1024).optional(),
+    policy_version_id: z.string().uuid(),
   }).parse(data))
   .handler(async ({ data, context }) => {
     await assertOwnsEvent(context.supabase, context.userId, data.event_id);
     if (!data.file_path.startsWith(`${data.event_id}/`)) {
       throw new Error("Invalid file path");
+    }
+    // Verify the policy version is the currently-active one; otherwise reject.
+    const { data: pv, error: pvErr } = await context.supabase
+      .from("compliance_policy_versions")
+      .select("id, version, is_current")
+      .eq("id", data.policy_version_id)
+      .maybeSingle();
+    if (pvErr) throw pvErr;
+    if (!pv) throw new Error("Unknown policy version");
+    if (!pv.is_current) {
+      throw new Error("Policy has been updated. Please review the current version before uploading.");
     }
     const { data: row, error } = await context.supabase
       .from("event_documents")
@@ -345,12 +387,15 @@ export const registerEventDocument = createServerFn({ method: "POST" })
         content_type: data.content_type ?? null,
         size_bytes: data.size_bytes ?? null,
         uploaded_by: context.userId,
+        policy_version_id: pv.id,
+        policy_version_label: pv.version,
       })
-      .select("id, doc_type, file_path, file_name, content_type, size_bytes, uploaded_at")
+      .select("id, doc_type, file_path, file_name, content_type, size_bytes, uploaded_at, policy_version_id, policy_version_label")
       .single();
     if (error) throw error;
     return row;
   });
+
 
 export const deleteEventDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
