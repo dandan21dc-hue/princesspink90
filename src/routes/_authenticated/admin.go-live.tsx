@@ -38,6 +38,23 @@ function AdminGoLivePage() {
     refetchInterval: 30_000,
   });
 
+  const queryClient = useQueryClient();
+  const sendTest = useServerFn(sendTestReminderEmail);
+  const [testResult, setTestResult] = useState<TestReminderResult | null>(null);
+  const testMutation = useMutation({
+    mutationFn: () => sendTest(),
+    onSuccess: async (result) => {
+      setTestResult(result);
+      // Re-check the "last email send" surface + logs.
+      await queryClient.invalidateQueries({ queryKey: ["admin-go-live-status"] });
+      await query.refetch();
+    },
+    onError: () => {
+      setTestResult(null);
+    },
+  });
+
+
   const data = query.data;
   const cronByName = new Map(
     (data?.cron_jobs ?? []).map((j) => [j.jobname, j] as const),
