@@ -18,7 +18,33 @@ const eventInput = z.object({
   cover_image_url: z.string().url().max(500).optional().nullable(),
   is_private: z.boolean().default(false),
   published: z.boolean().default(true),
+  // Venue compliance
+  permits_confirmed: z.boolean().default(false),
+  permit_details: z.string().trim().max(1000).optional().nullable(),
+  insurance_confirmed: z.boolean().default(false),
+  insurance_provider: z.string().trim().max(200).optional().nullable(),
+  insurance_policy_number: z.string().trim().max(120).optional().nullable(),
+  insurance_expires_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  legal_capacity: z.number().int().positive().max(100000).optional().nullable(),
+  capacity_confirmed: z.boolean().default(false),
+  compliance_notes: z.string().trim().max(2000).optional().nullable(),
+}).superRefine((v, ctx) => {
+  if (v.capacity && v.legal_capacity && v.capacity > v.legal_capacity) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["capacity"],
+      message: "Event capacity cannot exceed the venue's legal capacity.",
+    });
+  }
+  if (v.published && !(v.permits_confirmed && v.insurance_confirmed && v.capacity_confirmed)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["published"],
+      message: "Confirm permits, insurance, and capacity before publishing. Save as draft otherwise.",
+    });
+  }
 });
+
 
 export const listMyEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
