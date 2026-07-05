@@ -20,9 +20,16 @@ export const Route = createFileRoute('/api/public/hooks/test-reminder-email')({
           return json({ error: 'unauthorized' }, 401)
         }
 
-        let body: { to?: string; name?: string } = {}
+        let body: {
+          to?: string
+          name?: string
+          status?: string
+          testDate?: string
+          validUntil?: string
+          days?: number
+        } = {}
         try {
-          body = (await request.json()) as { to?: string; name?: string }
+          body = (await request.json()) as typeof body
         } catch {
           /* allow empty body */
         }
@@ -36,12 +43,16 @@ export const Route = createFileRoute('/api/public/hooks/test-reminder-email')({
           `https://${request.headers.get('host') ?? 'princesspink90.com'}`
         const portalUrl = `${origin.replace(/\/$/, '')}/health-screenings`
 
-        const validUntil = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10)
+        const days = body.days ?? 7
+        const validUntil =
+          body.validUntil ?? new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
         const tmpl = renderHealthScreeningReminder({
           recipientName: body.name ?? null,
           validUntil,
-          daysUntilExpiry: 7,
+          daysUntilExpiry: days,
           portalUrl,
+          status: body.status ?? 'approved',
+          testDate: body.testDate ?? null,
         })
 
         const result = await sendResendEmail({
