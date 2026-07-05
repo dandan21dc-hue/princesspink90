@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { getMyLibrary, signMediaUrl } from "@/lib/store.functions";
+import { getMyMembership, requestPrivateSession } from "@/lib/memberships.functions";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 export const Route = createFileRoute("/_authenticated/library")({
