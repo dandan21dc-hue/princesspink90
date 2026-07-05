@@ -291,7 +291,9 @@ export type Database = {
         Row: {
           address: string | null
           capacity: number | null
+          capacity_confirmed: boolean
           city: string | null
+          compliance_notes: string | null
           cover_image_url: string | null
           created_at: string
           description: string | null
@@ -299,7 +301,14 @@ export type Database = {
           ends_at: string | null
           host_id: string
           id: string
+          insurance_confirmed: boolean
+          insurance_expires_on: string | null
+          insurance_policy_number: string | null
+          insurance_provider: string | null
           is_private: boolean
+          legal_capacity: number | null
+          permit_details: string | null
+          permits_confirmed: boolean
           published: boolean
           starts_at: string
           tagline: string | null
@@ -312,7 +321,9 @@ export type Database = {
         Insert: {
           address?: string | null
           capacity?: number | null
+          capacity_confirmed?: boolean
           city?: string | null
+          compliance_notes?: string | null
           cover_image_url?: string | null
           created_at?: string
           description?: string | null
@@ -320,7 +331,14 @@ export type Database = {
           ends_at?: string | null
           host_id: string
           id?: string
+          insurance_confirmed?: boolean
+          insurance_expires_on?: string | null
+          insurance_policy_number?: string | null
+          insurance_provider?: string | null
           is_private?: boolean
+          legal_capacity?: number | null
+          permit_details?: string | null
+          permits_confirmed?: boolean
           published?: boolean
           starts_at: string
           tagline?: string | null
@@ -333,7 +351,9 @@ export type Database = {
         Update: {
           address?: string | null
           capacity?: number | null
+          capacity_confirmed?: boolean
           city?: string | null
+          compliance_notes?: string | null
           cover_image_url?: string | null
           created_at?: string
           description?: string | null
@@ -341,7 +361,14 @@ export type Database = {
           ends_at?: string | null
           host_id?: string
           id?: string
+          insurance_confirmed?: boolean
+          insurance_expires_on?: string | null
+          insurance_policy_number?: string | null
+          insurance_provider?: string | null
           is_private?: boolean
+          legal_capacity?: number | null
+          permit_details?: string | null
+          permits_confirmed?: boolean
           published?: boolean
           starts_at?: string
           tagline?: string | null
