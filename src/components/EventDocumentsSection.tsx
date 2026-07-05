@@ -177,7 +177,22 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
         </div>
       )}
 
+      {!hasAgreedToCurrent && !policy.isLoading && currentVersionId && (
+        <div
+          role="alert"
+          className="mt-3 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive-foreground"
+        >
+          <div className="font-semibold uppercase tracking-widest text-destructive">Uploads blocked</div>
+          <p className="mt-1 text-destructive/90">
+            You must agree to compliance policy v{policy.data?.version} before you can upload
+            permits, insurance, or capacity documents. Check the agreement box above — uploads
+            will unlock as soon as your agreement is recorded.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-4 mt-5">
+
         {REQUIRED.map((r) => (
           <DocSlot
             key={r.type} type={r.type} label={r.label} hint={r.hint} required
