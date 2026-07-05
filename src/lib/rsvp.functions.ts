@@ -169,7 +169,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
         })
         .eq("id", mem.id);
     }
-    return { ticket_code: row.ticket_code };
+    return { ticket_code: row.ticket_code, entry_code: row.entry_code };
   });
 
 
