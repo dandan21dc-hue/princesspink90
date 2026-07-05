@@ -188,6 +188,32 @@ function randCode(prefix: string, len: number) {
   return `${prefix}-${s}`;
 }
 
+export const updateAccessCodeGuestName = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string; used_by_name: string }) =>
+    z.object({
+      id: z.string().uuid(),
+      used_by_name: z.string().trim().min(1, "Guest name is required").max(120),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    // Only allow editing the name on codes that are already marked used.
+    const { data: row, error: readErr } = await context.supabase
+      .from("event_access_codes")
+      .select("id, used_at")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw readErr;
+    if (!row) throw new Error("Not found");
+    if (!row.used_at) throw new Error("Code is not marked as used");
+    const { error } = await context.supabase
+      .from("event_access_codes")
+      .update({ used_by_name: data.used_by_name.trim() })
+      .eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 export const bulkAddAccessCodes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { event_id: string; quantity: number; prefix?: string; note?: string; length?: number }) =>
