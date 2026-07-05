@@ -28,6 +28,7 @@ const eventInput = z.object({
   legal_capacity: z.number().int().positive().max(100000).optional().nullable(),
   capacity_confirmed: z.boolean().default(false),
   compliance_notes: z.string().trim().max(2000).optional().nullable(),
+  waiver_text: z.string().trim().min(20, "Waiver must be at least 20 characters").max(20000).optional(),
 }).superRefine((v, ctx) => {
   if (v.capacity && v.legal_capacity && v.capacity > v.legal_capacity) {
     ctx.addIssue({
