@@ -305,13 +305,14 @@ function DocSlot({
   type: DocType; label: string; hint: string; required?: boolean;
   docs: {
     id: string; file_name: string; size_bytes: number | null; uploaded_at: string;
+    content_type?: string | null;
     policy_version_id?: string | null; policy_version_label?: string | null;
   }[];
   uploading: boolean;
   uploadDisabled: boolean;
   currentPolicyId: string | null;
   onUpload: (file: File) => void;
-  onOpen: (id: string) => void;
+  onOpen: (doc: { id: string; file_name: string; content_type?: string | null }) => void;
   onDelete: (id: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
