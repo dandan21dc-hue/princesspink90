@@ -5,7 +5,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   listSafetyIncidents,
   createSafetyIncident,
-  deleteSafetyIncident,
+  archiveSafetyIncident,
+  restoreSafetyIncident,
 } from "@/lib/safety-incidents.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/safety-incidents")({
@@ -30,19 +31,31 @@ const emptyForm = {
   resolution_taken: "",
 };
 
+type View = "active" | "archived" | "all";
+
 function AdminSafetyIncidentsPage() {
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<View>("active");
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
 
   const listFn = useServerFn(listSafetyIncidents);
   const createFn = useServerFn(createSafetyIncident);
-  const deleteFn = useServerFn(deleteSafetyIncident);
+  const archiveFn = useServerFn(archiveSafetyIncident);
+  const restoreFn = useServerFn(restoreSafetyIncident);
   const qc = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["admin-safety-incidents", search],
-    queryFn: () => listFn({ data: { search, limit: 200 } }),
+    queryKey: ["admin-safety-incidents", search, view],
+    queryFn: () =>
+      listFn({
+        data: {
+          search,
+          limit: 200,
+          include_archived: view === "all",
+          only_archived: view === "archived",
+        },
+      }),
   });
 
   const createMut = useMutation({
@@ -55,8 +68,14 @@ function AdminSafetyIncidentsPage() {
     onError: (e: any) => setError(e?.message ?? "Failed to create incident"),
   });
 
-  const deleteMut = useMutation({
-    mutationFn: (id: string) => deleteFn({ data: { id } }),
+  const archiveMut = useMutation({
+    mutationFn: (v: { id: string; reason: string }) => archiveFn({ data: v }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["admin-safety-incidents"] }),
+  });
+
+  const restoreMut = useMutation({
+    mutationFn: (id: string) => restoreFn({ data: { id } }),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: ["admin-safety-incidents"] }),
   });
@@ -87,6 +106,7 @@ function AdminSafetyIncidentsPage() {
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
           Log incidents and maintain a searchable compliance audit trail.
+          Records are immutable — archive with a reason instead of deleting.
         </p>
       </header>
 
