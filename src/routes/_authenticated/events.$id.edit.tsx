@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { EventForm, toPayload, type EventFormValues } from "@/components/EventForm";
-import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes } from "@/lib/host.functions";
+import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes, setAccessCodeUsed } from "@/lib/host.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$id/edit")({
