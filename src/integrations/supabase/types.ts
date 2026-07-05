@@ -381,6 +381,39 @@ export type Database = {
           },
         ]
       }
+      cron_health_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          details: Json
+          id: string
+          job_name: string | null
+          message: string
+          resolved_at: string | null
+          severity: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          details?: Json
+          id?: string
+          job_name?: string | null
+          message: string
+          resolved_at?: string | null
+          severity: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          job_name?: string | null
+          message?: string
+          resolved_at?: string | null
+          severity?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1454,6 +1487,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cron_health_snapshot: { Args: never; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
