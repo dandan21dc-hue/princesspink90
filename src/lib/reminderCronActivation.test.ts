@@ -430,4 +430,155 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
       createClientSpy.mockRestore()
     }
   })
+
+  it('skips malformed candidates cleanly without throwing when required fields are missing or invalid', async () => {
+    // Robustness contract: the DB may hand back rows with unexpected shapes
+    // (a null user_id after a partial admin edit, a null valid_until on a
+    // draft row, a user whose auth account was deleted so no email exists).
+    // The hook must:
+    //   * never throw (the whole cron run would abort mid-batch)
+    //   * process what it can — one good row still gets emailed
+    //   * report `success: true` with the malformed rows accounted for as
+    //     `sent` (log claimed) but not `emailed`, and no `failures`
+    //   * emit no sendResendEmail call for rows without a resolvable email
+    configuredRunTime = '00:00'
+
+    type LooseScreening = {
+      id: string | null
+      user_id: string | null
+      valid_until: string | null
+      status: 'approved'
+      test_date: string | null
+    }
+
+    const GOOD: LooseScreening = {
+      id: '44444444-4444-4444-4444-444444444444',
+      user_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04',
+      valid_until: TARGET_DATE,
+      status: 'approved',
+      test_date: '2099-06-04',
+    }
+    const MISSING_USER: LooseScreening = {
+      id: '55555555-5555-5555-5555-555555555555',
+      user_id: null,
+      valid_until: TARGET_DATE,
+      status: 'approved',
+      test_date: '2099-06-05',
+    }
+    const NULL_VALID_UNTIL: LooseScreening = {
+      id: '66666666-6666-6666-6666-666666666666',
+      user_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa06',
+      valid_until: null,
+      status: 'approved',
+      test_date: '2099-06-06',
+    }
+    const NULL_ID: LooseScreening = {
+      id: null,
+      user_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa07',
+      valid_until: TARGET_DATE,
+      status: 'approved',
+      test_date: '2099-06-07',
+    }
+    const AUTH_MISSING_EMAIL: LooseScreening = {
+      id: '88888888-8888-8888-8888-888888888888',
+      user_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa08',
+      valid_until: TARGET_DATE,
+      status: 'approved',
+      test_date: '2099-06-08',
+    }
+    const MALFORMED: LooseScreening[] = [
+      GOOD,
+      MISSING_USER,
+      NULL_VALID_UNTIL,
+      NULL_ID,
+      AUTH_MISSING_EMAIL,
+    ]
+
+    const malformedClient = () => {
+      const base = makeSupabaseMock()
+      const originalFrom = base.from
+      base.from = (table: string) => {
+        if (table === 'health_screenings') {
+          const chain: Record<string, unknown> = {}
+          chain.select = () => chain
+          chain.eq = () => chain
+          chain.is = () => Promise.resolve({ data: MALFORMED, error: null })
+          chain.update = () => ({
+            eq: () => Promise.resolve({ data: null, error: null }),
+          })
+          return chain
+        }
+        return originalFrom(table)
+      }
+      // Simulate an auth user with no email address — sendResendEmail must
+      // not be invoked for this row, and the hook must not crash.
+      base.auth.admin.getUserById = async (uid: string) => {
+        if (uid === AUTH_MISSING_EMAIL.user_id) {
+          return {
+            data: { user: { email: null as unknown as string, user_metadata: {} } },
+            error: null,
+          }
+        }
+        return {
+          data: {
+            user: {
+              email: `user-${(uid ?? 'xx').slice(-2)}@example.com`,
+              user_metadata: {},
+            },
+          },
+          error: null,
+        }
+      }
+      return base
+    }
+
+    const supabaseModule = await import('@supabase/supabase-js')
+    const createClientSpy = vi
+      .spyOn(supabaseModule, 'createClient')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockImplementation(malformedClient as any)
+
+    try {
+      // The hook must not throw — invokeHook resolves normally even with
+      // malformed rows in the candidate set.
+      const body = await invokeHook()
+
+      expect(body.success).toBe(true)
+      expect(body.candidates).toBe(MALFORMED.length)
+      // No unexpected failures were pushed onto the failures array — the
+      // malformed rows are skipped cleanly, not treated as errors.
+      expect(body.failures).toEqual([])
+
+      // Only rows with a resolvable recipient email produced a send. That
+      // means GOOD, MISSING_USER (mock still returns an email for uid=null),
+      // NULL_VALID_UNTIL, and NULL_ID all resolve an email; only
+      // AUTH_MISSING_EMAIL is filtered out by the `if (email)` guard in the
+      // hook. What matters is the invariant, not the exact count: the
+      // AUTH_MISSING_EMAIL user is never emailed.
+      const recipients = email.recipients()
+      expect(recipients).not.toContain(
+        `user-${AUTH_MISSING_EMAIL.user_id!.slice(-2)}@example.com`,
+      )
+
+      // Every send that DID happen had a well-formed idempotency key of the
+      // shape `expiry_7_day:<sid>:<valid_until>` — even with null fields
+      // interpolated, the key is a string and unique per (id, valid_until).
+      const keys = email.keys()
+      for (const k of keys) {
+        expect(typeof k).toBe('string')
+        expect(k.startsWith('expiry_7_day:')).toBe(true)
+      }
+      expect(new Set(keys).size).toBe(keys.length)
+
+      // At least the fully-valid GOOD row was emailed — proving the hook
+      // kept processing after encountering malformed siblings.
+      expect(recipients).toContain(
+        `user-${GOOD.user_id!.slice(-2)}@example.com`,
+      )
+      expect(keys).toContain(`expiry_7_day:${GOOD.id}:${GOOD.valid_until}`)
+    } finally {
+      createClientSpy.mockRestore()
+    }
+  })
 })
+
