@@ -433,8 +433,15 @@ function StatusPanel({
         {(app as any).bio && <Info label="Bio">{(app as any).bio}</Info>}
         {app.event_types && <Info label="Event types">{app.event_types}</Info>}
         <Info label="Experience">{app.hosting_experience}</Info>
+        {(app as any).relevant_experience && (
+          <Info label="Relevant experience">{(app as any).relevant_experience}</Info>
+        )}
         <Info label="Why">{app.why_join}</Info>
-        {app.admin_notes && <Info label="Reviewer notes">{app.admin_notes}</Info>}
+        {(app as any).agreement_file_path && (
+          <Info label="Signed agreement">
+            <span className="text-neon">✓ Uploaded</span>
+          </Info>
+        )}
       </div>
       {app.status === "pending" && (
         <button
