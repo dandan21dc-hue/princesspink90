@@ -3,24 +3,68 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const env = () => (process.env.NODE_ENV === "production" ? "live" : "sandbox");
 
+/**
+ * Which membership kinds unlock the "1 free event ticket" perk.
+ *
+ *  - `lifetime`         → always eligible.
+ *  - `term_pass_12`     → eligible while the pass is active (`expires_at > now()`).
+ *
+ * `term_pass_3` / `term_pass_6` do NOT include a free ticket per the
+ * store copy on /store/subscribe.
+ */
+const TICKET_ELIGIBLE_KINDS = ["lifetime", "term_pass_12"] as const;
+type TicketEligibleKind = (typeof TICKET_ELIGIBLE_KINDS)[number];
+
+/**
+ * Resolve the membership row that owns the perks. Lifetime wins over an
+ * active 12-month pass so a member holding both doesn't spend their
+ * lifetime ticket on a term-pass RSVP.
+ */
+async function loadPerkMembership(
+  supabase: any,
+  userId: string,
+): Promise<{
+  id: string;
+  kind: TicketEligibleKind;
+  event_ticket_used_at: string | null;
+  event_ticket_event_id: string | null;
+  expires_at: string | null;
+  private_session_requested_at: string | null;
+  private_session_fulfilled_at: string | null;
+} | null> {
+  const { data: rows } = await supabase
+    .from("memberships")
+    .select(
+      "id, kind, event_ticket_used_at, event_ticket_event_id, expires_at, private_session_requested_at, private_session_fulfilled_at",
+    )
+    .eq("user_id", userId)
+    .eq("environment", env())
+    .in("kind", TICKET_ELIGIBLE_KINDS as unknown as string[]);
+
+  if (!rows?.length) return null;
+  const now = Date.now();
+  const lifetime = rows.find((r: any) => r.kind === "lifetime");
+  if (lifetime) return lifetime;
+  const term12 = rows.find(
+    (r: any) =>
+      r.kind === "term_pass_12" && r.expires_at && new Date(r.expires_at).getTime() > now,
+  );
+  return term12 ?? null;
+}
+
 export const getMyMembership = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
-    const { data } = await supabase
-      .from("memberships")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("environment", env())
-      .eq("kind", "lifetime")
-      .maybeSingle();
-    return { membership: data ?? null };
+    const membership = await loadPerkMembership(supabase, userId);
+    return { membership };
   });
 
 export const requestPrivateSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
+    // Private session is a LIFETIME-only perk — do not widen this.
     const { data: m } = await supabase
       .from("memberships")
       .select("id, private_session_requested_at")
@@ -67,14 +111,8 @@ export const redeemEventTicket = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
-    const { data: m } = await supabase
-      .from("memberships")
-      .select("id, event_ticket_used_at")
-      .eq("user_id", userId)
-      .eq("environment", env())
-      .eq("kind", "lifetime")
-      .maybeSingle();
-    if (!m) throw new Error("No lifetime membership on file");
+    const m = await loadPerkMembership(supabase, userId);
+    if (!m) throw new Error("No membership with a free ticket perk on file");
     if (m.event_ticket_used_at) throw new Error("Free event ticket already used");
 
     const { error } = await supabase
@@ -85,5 +123,5 @@ export const redeemEventTicket = createServerFn({ method: "POST" })
       })
       .eq("id", m.id);
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, redeemedFrom: m.kind };
   });
