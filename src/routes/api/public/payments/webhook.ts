@@ -152,7 +152,7 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       title: `New sale — $${amount}`,
       body: `Someone unlocked "${item.title ?? "your content"}".`,
       link_url: "/dashboard",
-      metadata: { content_item_id: contentItemId, session_id: session.id, env },
+      metadata: { content_item_id: contentItemId, session_id: session.id, env } as any,
     });
   }
 }
