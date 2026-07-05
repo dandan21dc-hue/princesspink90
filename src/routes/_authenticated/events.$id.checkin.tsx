@@ -418,7 +418,22 @@ function ScanHistory({ entries, onClear }: { entries: ScanEntry[]; onClear: () =
               <li key={e.id} className="flex items-start justify-between gap-3 py-2.5 text-sm">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs tracking-widest text-neon">{e.code}</span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(e.code);
+                          toast.success(`Copied ${e.code}`);
+                        } catch {
+                          toast.error("Couldn't copy — clipboard blocked.");
+                        }
+                      }}
+                      title="Copy ticket code"
+                      className="group inline-flex items-center gap-1.5 rounded-md border border-transparent px-1.5 py-0.5 font-mono text-xs tracking-widest text-neon hover:border-neon/40 hover:bg-neon/10"
+                    >
+                      <span>{e.code}</span>
+                      <span className="text-[10px] text-muted-foreground group-hover:text-neon">⧉</span>
+                    </button>
                     <span className="text-[10px] text-muted-foreground">
                       {new Date(e.at).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -438,6 +453,7 @@ function ScanHistory({ entries, onClear }: { entries: ScanEntry[]; onClear: () =
                   {meta.label}
                 </span>
               </li>
+
             );
           })}
         </ul>
