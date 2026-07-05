@@ -63,11 +63,29 @@ function AdminGoLivePage() {
         <h1 className="mt-2 font-display text-3xl font-semibold">
           Go-Live checklist
         </h1>
-        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-          Live readiness signals pulled directly from the database. Refreshes
-          automatically every 30 seconds.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Live readiness signals pulled directly from the database. Refreshes
+            automatically every 30 seconds.
+          </p>
+          <button
+            type="button"
+            onClick={() => query.refetch()}
+            disabled={query.isFetching}
+            aria-busy={query.isFetching}
+            className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-card/60 px-3 py-1.5 text-xs font-medium uppercase tracking-widest text-foreground/90 hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span
+              aria-hidden="true"
+              className={`inline-block h-3 w-3 rounded-full border-2 border-current border-t-transparent ${
+                query.isFetching ? "animate-spin" : "opacity-40"
+              }`}
+            />
+            {query.isFetching ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
       </header>
+
 
       {query.error && (
         <section className="mx-auto max-w-4xl px-5 pb-6">
