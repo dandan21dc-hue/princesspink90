@@ -5,6 +5,8 @@ import { sendResendEmail } from '@/lib/resend.server'
 import { renderHealthScreeningReminder } from '@/lib/email-templates-resend/health-screening-reminder'
 import { resolveAppOrigin } from '@/lib/app-origin.server'
 import { redactLogPayload } from '@/lib/log-redaction'
+import { maskEmail } from '@/lib/mask-email'
+
 
 
 // Daily job: finds admin-approved health screenings expiring in exactly 7 days
@@ -141,17 +143,7 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           return `${origin}/health-screenings?${qs.toString()}`
         }
 
-        // Mask an email for logs: keep first char + domain, drop the rest of
-        // the local part. Avoids raw PII in log stores while keeping enough
-        // signal to correlate with support tickets.
-        const maskEmail = (e: string): string => {
-          const at = e.indexOf('@')
-          if (at <= 0) return '***'
-          const local = e.slice(0, at)
-          const domain = e.slice(at + 1)
-          const head = local.slice(0, 1)
-          return `${head}***@${domain}`
-        }
+
 
 
 
