@@ -91,6 +91,12 @@ function CohostApply() {
 
   const submit = useMutation({
     mutationFn: async () => {
+      if (!handbookAcknowledged) {
+        throw new Error("You must sign and acknowledge the Handbook Acknowledgement form.");
+      }
+      if (handbookSignatureName.trim().length < 2) {
+        throw new Error("Please type your full name as your digital signature.");
+      }
       if (!agreementFile) {
         throw new Error("Please upload a signed copy of the Co-Host Agreement.");
       }
@@ -133,12 +139,18 @@ function CohostApply() {
           availability,
           event_types,
           agreement_file_path: path,
+          handbook_signature_name: handbookSignatureName.trim(),
+          handbook_acknowledged: true as const,
+          handbook_version: HANDBOOK_VERSION,
         },
       });
     },
     onSuccess: () => {
       toast.success("Application submitted — status: Pending Review");
       setAgreementFile(null);
+      setHandbookAcknowledged(false);
+      setHandbookSignatureName("");
+      setHandbookDownloaded(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["my-cohost-application"] });
     },
