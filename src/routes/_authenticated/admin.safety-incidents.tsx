@@ -168,6 +168,36 @@ function AdminSafetyIncidentsPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function exportXlsx() {
+    const XLSX = await import("xlsx");
+    const headers = exportCols.length > 0 ? exportCols : DEFAULT_EXPORT_COLS;
+    const labels = headers.map(
+      (h) => ALL_COLUMNS.find((c) => c.key === h)?.label ?? h,
+    );
+    const data = (rows as any[]).map((r) => {
+      const obj: Record<string, unknown> = {};
+      headers.forEach((h, i) => {
+        const v = r[h];
+        obj[labels[i]] = v === null || v === undefined ? "" : v;
+      });
+      return obj;
+    });
+    const ws = XLSX.utils.json_to_sheet(data, { header: labels });
+    ws["!cols"] = labels.map((l) => ({
+      wch: Math.min(
+        40,
+        Math.max(
+          l.length + 2,
+          ...data.map((d) => String(d[l] ?? "").length + 2),
+        ),
+      ),
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Safety incidents");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    XLSX.writeFile(wb, `safety-incidents-${view}-${stamp}.xlsx`);
+  }
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-5xl px-5 pt-16 pb-8">
@@ -324,6 +354,14 @@ function AdminSafetyIncidentsPage() {
               className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted disabled:opacity-50"
             >
               Export CSV
+            </button>
+            <button
+              type="button"
+              onClick={exportXlsx}
+              disabled={rows.length === 0 || exportCols.length === 0}
+              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted disabled:opacity-50"
+            >
+              Export XLSX
             </button>
           </div>
         </div>
