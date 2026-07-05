@@ -12,6 +12,12 @@ import {
   generateComplianceSummaryPdf,
   listVenueComplianceAudit,
 } from "@/lib/venue-compliance.functions";
+import {
+  VENUE_COMPLIANCE_ACCEPT_ATTR,
+  VENUE_COMPLIANCE_FILE_HELP,
+  validateComplianceFile,
+  validateExpiryDate,
+} from "@/lib/venue-compliance-validation";
 
 const ACTION_LABEL: Record<string, string> = {
   uploaded: "Uploaded",
