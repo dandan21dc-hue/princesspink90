@@ -163,6 +163,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
   const rsvpFn = useServerFn(rsvpToEvent);
   const cancelFn = useServerFn(cancelRsvp);
   const router = useRouter();
+  const pdf = useWaiverPdfDownload();
 
   const { data: mine } = useQuery({
     queryKey: ["my-rsvp", eventId],
