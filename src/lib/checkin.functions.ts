@@ -220,6 +220,7 @@ export const getDoorSheet = createServerFn({ method: "GET" })
     const guests = (rows ?? []).map((r) => ({
       id: r.id,
       ticket_code: r.ticket_code,
+      entry_code: r.entry_code,
       guest_count: r.guest_count,
       display_name: nameByUser.get(r.user_id) ?? null,
       age_status: ageByUser.get(r.user_id) ?? "missing",
