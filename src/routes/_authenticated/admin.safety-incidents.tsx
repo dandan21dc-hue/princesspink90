@@ -575,7 +575,4 @@ function IncidentAttachments({
     </div>
   );
 }
-      </section>
-    </main>
-  );
-}
+
