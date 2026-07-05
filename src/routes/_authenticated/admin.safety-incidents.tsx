@@ -580,6 +580,8 @@ function AdminSafetyIncidentsPage() {
           )}
         </div>
       </section>
+      </>
+      )}
     </main>
   );
 }
