@@ -180,6 +180,16 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
             permits, insurance, or capacity documents. Check the agreement box above — uploads
             will unlock as soon as your agreement is recorded.
           </p>
+          {lastRejection && (
+            <div className="mt-2 rounded border border-destructive/40 bg-background/60 p-2 text-[11px] text-destructive">
+              <div className="font-semibold uppercase tracking-widest text-destructive/80">
+                Server response
+              </div>
+              <p className="mt-1 font-mono leading-snug text-destructive/90 break-words">
+                {lastRejection}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
