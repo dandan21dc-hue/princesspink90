@@ -19,9 +19,33 @@ function CheckinPage() {
   const { id: eventId } = Route.useParams();
   const lookupFn = useServerFn(lookupCheckin);
   const checkinFn = useServerFn(performCheckin);
+  const rosterFn = useServerFn(listCheckins);
+  const qc = useQueryClient();
 
   const [code, setCode] = useState("");
   const [result, setResult] = useState<Lookup | null>(null);
+
+  const roster = useQuery({
+    queryKey: ["checkin-roster", eventId],
+    queryFn: () => rosterFn({ data: { event_id: eventId } }),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+  });
+
+  // Realtime nudge: when the rsvps row updates, refetch immediately.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`checkin-roster-${eventId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "rsvps", filter: `event_id=eq.${eventId}` },
+        () => qc.invalidateQueries({ queryKey: ["checkin-roster", eventId] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId, qc]);
 
   const lookup = useMutation({
     mutationFn: (t: string) => lookupFn({ data: { event_id: eventId, ticket_code: t } }),
