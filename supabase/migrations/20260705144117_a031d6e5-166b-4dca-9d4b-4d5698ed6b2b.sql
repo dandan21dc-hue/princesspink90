@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.user_can_access_content(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.user_can_access_content(uuid, uuid, text) TO service_role;
