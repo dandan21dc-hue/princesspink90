@@ -119,25 +119,30 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       .maybeSingle();
 
     const now = new Date().toISOString();
+    // `data.entry_phrase` is already normalized by the input validator:
+    // null when the caller sent blank / whitespace-only. Omit the field
+    // entirely in that case so the BEFORE INSERT trigger picks one.
+    const upsertPayload: Record<string, unknown> = {
+      event_id: data.event_id,
+      user_id: context.userId,
+      guest_count: data.guest_count,
+      status: "confirmed",
+      age_confirmed_at: now,
+      consent_confirmed_at: now,
+      video_consent: data.video_consent,
+      waiver_signature: data.waiver_signature.trim(),
+      waiver_accepted_at: now,
+      waiver_text_hash: currentHash,
+    };
+    if (data.entry_phrase !== null) {
+      upsertPayload.entry_phrase = data.entry_phrase;
+    }
     const { data: row, error } = await context.supabase
       .from("rsvps")
-      .upsert(
-        {
-          event_id: data.event_id,
-          user_id: context.userId,
-          guest_count: data.guest_count,
-          status: "confirmed",
-          age_confirmed_at: now,
-          consent_confirmed_at: now,
-          video_consent: data.video_consent,
-          waiver_signature: data.waiver_signature.trim(),
-          waiver_accepted_at: now,
-          waiver_text_hash: currentHash,
-        },
-        { onConflict: "event_id,user_id" },
-      )
+      .upsert(upsertPayload, { onConflict: "event_id,user_id" })
       .select("id, ticket_code, entry_code, entry_phrase")
       .single();
+
     if (error) throw error;
 
     // Record an audit entry for this waiver acceptance
