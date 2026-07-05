@@ -367,7 +367,11 @@ function DocSlot({
       {has && (
         <ul className="mt-3 divide-y divide-border/50">
           {docs.map((d) => {
-            const stale = d.policy_version_id && currentPolicyId && d.policy_version_id !== currentPolicyId;
+            const stale = isDocumentStale({
+              docPolicyVersionId: d.policy_version_id,
+              currentPolicyVersionId: currentPolicyId,
+              reAcknowledged,
+            });
             return (
               <li key={d.id} className="flex items-center justify-between gap-3 py-2 text-xs">
                 <button
