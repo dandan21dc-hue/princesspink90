@@ -50,6 +50,21 @@ function CheckinPage() {
   const [scanFeedback, setScanFeedback] = useState<ScanFeedback>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  type ScanOutcome = "admitted" | "already" | "matched" | "invalid" | "error";
+  type ScanEntry = {
+    id: string;
+    code: string;
+    guest: string | null;
+    outcome: ScanOutcome;
+    detail?: string;
+    at: number;
+  };
+  const [history, setHistory] = useState<ScanEntry[]>([]);
+  const pushHistory = (e: Omit<ScanEntry, "id" | "at">) =>
+    setHistory((h) =>
+      [{ ...e, id: crypto.randomUUID(), at: Date.now() }, ...h].slice(0, 20),
+    );
+
   const flashFeedback = (fb: NonNullable<ScanFeedback>, ms = 4000) => {
     setScanFeedback(fb);
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
@@ -59,6 +74,7 @@ function CheckinPage() {
   useEffect(() => () => {
     if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
   }, []);
+
 
 
   // Keep focus on the input while scanner mode is on so a keyboard-wedge
