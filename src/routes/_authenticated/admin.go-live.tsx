@@ -405,3 +405,42 @@ function Badge({
     </span>
   );
 }
+
+function AlertBanner({
+  severity,
+  title,
+  body,
+  actions,
+}: {
+  severity: "critical" | "warning";
+  title: string;
+  body: React.ReactNode;
+  actions?: React.ReactNode;
+}) {
+  const tone =
+    severity === "critical"
+      ? "border-destructive/60 bg-destructive/10 text-destructive"
+      : "border-amber-500/60 bg-amber-500/10 text-amber-400";
+  const label = severity === "critical" ? "Critical" : "Warning";
+  return (
+    <div
+      role="alert"
+      className={`rounded-2xl border ${tone} p-4 shadow-sm`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest ring-1 ring-current/40">
+          {label}
+        </span>
+        <div className="flex-1 text-xs leading-relaxed">
+          <div className="text-sm font-semibold">{title}</div>
+          <div className="mt-1 opacity-90">{body}</div>
+          {actions && (
+            <div className="mt-3 flex flex-wrap gap-2">{actions}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+}
