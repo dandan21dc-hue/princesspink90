@@ -305,8 +305,28 @@ function RsvpBox({ eventId }: { eventId: string }) {
 
   const canSubmit = ageOk && waiverOk && signature.trim().length >= 2 && !rsvp.isPending;
 
+  const waiverRead = showWaiver || waiverOk;
+  const waiverSigned = signature.trim().length >= 2;
+  const waiverComplete = waiverOk && waiverSigned;
+
   return (
     <div className="space-y-4 rounded-lg border border-border/60 bg-card/40 p-4">
+      <div className="rounded-md border border-border/60 bg-background/40 p-3">
+        <div className="mb-2 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          Waiver status
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-[11px]">
+          <StatusChip label="Read" ok={waiverRead} />
+          <StatusChip label="Accepted" ok={waiverOk} />
+          <StatusChip label="Signed" ok={waiverSigned} />
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {waiverComplete
+            ? "Waiver ready — you can confirm your RSVP."
+            : "Read, accept, and sign below before confirming."}
+        </p>
+      </div>
+
       <label className="flex items-start gap-2 text-sm">
         <input
           type="checkbox"
@@ -332,7 +352,19 @@ function RsvpBox({ eventId }: { eventId: string }) {
 
       <div className="rounded-lg border border-border/60 bg-background/50 p-3 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-primary">Liability waiver</div>
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] uppercase tracking-[0.25em] text-primary">Liability waiver</div>
+            <span
+              className={
+                "rounded-full px-2 py-0.5 text-[9px] uppercase tracking-widest " +
+                (waiverComplete
+                  ? "bg-emerald-500/15 text-emerald-300"
+                  : "bg-amber-500/15 text-amber-300")
+              }
+            >
+              {waiverComplete ? "Ready to sign" : "Action needed"}
+            </span>
+          </div>
           <button
             type="button"
             onClick={() => setShowWaiver((v) => !v)}
