@@ -397,6 +397,45 @@ function AdminSafetyIncidentsPage() {
           </div>
         </div>
 
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            From
+            <input
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            To
+            <input
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(e) => setToDate(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            />
+          </label>
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFromDate("");
+                setToDate("");
+              }}
+              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted"
+            >
+              Clear dates
+            </button>
+          )}
+          {dateRangeError && (
+            <p className="text-xs text-destructive sm:ml-2">{dateRangeError}</p>
+          )}
+        </div>
+
+
         {showColumnPicker && (
           <ColumnPicker
             selected={exportCols}
