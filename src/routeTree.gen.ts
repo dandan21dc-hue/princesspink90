@@ -37,6 +37,7 @@ import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
+import { Route as AuthenticatedAdminGoLiveRouteImport } from './routes/_authenticated/admin.go-live'
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
 import { Route as AuthenticatedAdminEmailSetupRouteImport } from './routes/_authenticated/admin.email-setup'
 import { Route as AuthenticatedAdminEmailDeliveryRouteImport } from './routes/_authenticated/admin.email-delivery'
@@ -205,6 +206,12 @@ const AuthenticatedAdminHealthPurgeRoute =
     path: '/admin/health-purge',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminGoLiveRoute =
+  AuthenticatedAdminGoLiveRouteImport.update({
+    id: '/admin/go-live',
+    path: '/admin/go-live',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminEventsComplianceRoute =
   AuthenticatedAdminEventsComplianceRouteImport.update({
     id: '/admin/events-compliance',
@@ -337,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
+  '/admin/go-live': typeof AuthenticatedAdminGoLiveRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
@@ -384,6 +392,7 @@ export interface FileRoutesByTo {
   '/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
+  '/admin/go-live': typeof AuthenticatedAdminGoLiveRoute
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
@@ -433,6 +442,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/_authenticated/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/_authenticated/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
+  '/_authenticated/admin/go-live': typeof AuthenticatedAdminGoLiveRoute
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
@@ -482,6 +492,7 @@ export interface FileRouteTypes {
     | '/admin/email-delivery'
     | '/admin/email-setup'
     | '/admin/events-compliance'
+    | '/admin/go-live'
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
     | '/admin/email-delivery'
     | '/admin/email-setup'
     | '/admin/events-compliance'
+    | '/admin/go-live'
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
@@ -577,6 +589,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/email-delivery'
     | '/_authenticated/admin/email-setup'
     | '/_authenticated/admin/events-compliance'
+    | '/_authenticated/admin/go-live'
     | '/_authenticated/admin/health-purge'
     | '/_authenticated/admin/health-reminders'
     | '/_authenticated/admin/lifetime'
@@ -821,6 +834,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminHealthPurgeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/go-live': {
+      id: '/_authenticated/admin/go-live'
+      path: '/admin/go-live'
+      fullPath: '/admin/go-live'
+      preLoaderRoute: typeof AuthenticatedAdminGoLiveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/events-compliance': {
       id: '/_authenticated/admin/events-compliance'
       path: '/admin/events-compliance'
@@ -988,6 +1008,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminEmailDeliveryRoute: typeof AuthenticatedAdminEmailDeliveryRoute
   AuthenticatedAdminEmailSetupRoute: typeof AuthenticatedAdminEmailSetupRoute
   AuthenticatedAdminEventsComplianceRoute: typeof AuthenticatedAdminEventsComplianceRoute
+  AuthenticatedAdminGoLiveRoute: typeof AuthenticatedAdminGoLiveRoute
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
@@ -1018,6 +1039,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminEmailSetupRoute: AuthenticatedAdminEmailSetupRoute,
   AuthenticatedAdminEventsComplianceRoute:
     AuthenticatedAdminEventsComplianceRoute,
+  AuthenticatedAdminGoLiveRoute: AuthenticatedAdminGoLiveRoute,
   AuthenticatedAdminHealthPurgeRoute: AuthenticatedAdminHealthPurgeRoute,
   AuthenticatedAdminHealthRemindersRoute:
     AuthenticatedAdminHealthRemindersRoute,
