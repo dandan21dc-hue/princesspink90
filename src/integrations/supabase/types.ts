@@ -175,6 +175,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cohost_handbook_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          created_at: string
+          handbook_version: string
+          id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          created_at?: string
+          handbook_version?: string
+          id?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          created_at?: string
+          handbook_version?: string
+          id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       compliance_policy_agreements: {
         Row: {
           accepted_at: string

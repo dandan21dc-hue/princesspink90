@@ -10,6 +10,12 @@ import {
   adminListCohostApplicationReviews,
   adminReviewCohostApplication,
 } from "@/lib/cohost.functions";
+import {
+  acknowledgeHandbook,
+  getMyHandbookAck,
+  HANDBOOK_VERSION,
+} from "@/lib/cohost-handbook.functions";
+import handbookAsset from "@/assets/princess-pink-cohost-handbook.pdf.asset.json";
 
 import {
   Sheet,
@@ -117,6 +123,7 @@ function AdminCohosts() {
         </div>
       </div>
 
+      <ResourcesSection />
 
       {q.isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
@@ -133,6 +140,89 @@ function AdminCohosts() {
         </ul>
       )}
     </Shell>
+  );
+}
+
+
+function ResourcesSection() {
+  const qc = useQueryClient();
+  const getAck = useServerFn(getMyHandbookAck);
+  const ackFn = useServerFn(acknowledgeHandbook);
+  const ack = useQuery({ queryKey: ["my-handbook-ack"], queryFn: () => getAck() });
+
+  const mutate = useMutation({
+    mutationFn: () => ackFn(),
+    onSuccess: () => {
+      toast.success("Handbook acknowledgement recorded");
+      qc.invalidateQueries({ queryKey: ["my-handbook-ack"] });
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const acknowledged = !!ack.data;
+  const ackedAt = ack.data?.acknowledged_at
+    ? new Date(ack.data.acknowledged_at).toLocaleString()
+    : null;
+
+  return (
+    <section className="mb-8 rounded-xl border border-primary/30 bg-primary/5 p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-widest text-primary">
+            Resources
+          </div>
+          <h2 className="mt-1 font-display text-xl">Co-host handbook</h2>
+        </div>
+        <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          v{HANDBOOK_VERSION}
+        </span>
+      </div>
+
+      <p className="mt-2 text-sm text-muted-foreground">
+        The Princess Pink Co-Host Handbook covers guest verification, consent,
+        safety, compliance and confidentiality. You must read and acknowledge it
+        before you are cleared to manage an event.
+      </p>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <a
+          href={handbookAsset.url}
+          download="Princess-Pink-Co-Host-Handbook.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-md border border-primary/50 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+        >
+          Download handbook (PDF)
+        </a>
+        {acknowledged && (
+          <span className="text-xs text-muted-foreground">
+            Acknowledged {ackedAt}
+          </span>
+        )}
+      </div>
+
+      <label className="mt-4 flex items-start gap-3 rounded-lg border border-border/60 bg-background/60 p-3 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 shrink-0 accent-primary disabled:opacity-60"
+          checked={acknowledged}
+          disabled={acknowledged || mutate.isPending || ack.isLoading}
+          onChange={(e) => {
+            if (e.target.checked && !acknowledged) mutate.mutate();
+          }}
+        />
+        <span>
+          I confirm I have read and understood the Princess Pink Co-Host
+          Handbook (v{HANDBOOK_VERSION}) and agree to follow it while managing
+          any event.
+          {!acknowledged && (
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Event management is locked until this box is ticked.
+            </span>
+          )}
+        </span>
+      </label>
+    </section>
   );
 }
 
