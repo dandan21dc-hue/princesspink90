@@ -22,12 +22,20 @@ function Dashboard() {
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Dashboard</div>
           <h1 className="mt-2 font-display text-3xl font-semibold">Your green room</h1>
         </div>
-        <Link
-          to="/events/new"
-          className="rounded-md bg-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-        >
-          + Host an event
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            to="/content"
+            className="rounded-md border border-primary/40 bg-primary/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+          >
+            Manage content
+          </Link>
+          <Link
+            to="/events/new"
+            className="rounded-md bg-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+          >
+            + Host an event
+          </Link>
+        </div>
       </div>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-2">

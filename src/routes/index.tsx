@@ -41,6 +41,25 @@ function Home() {
           <EventList />
         </Suspense>
       </section>
+      <section className="mx-auto max-w-6xl px-5 pb-16">
+        <Link
+          to="/store"
+          className="group flex items-center justify-between gap-4 rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/20 via-primary/5 to-transparent p-6 shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
+        >
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-primary">New · Boutique</div>
+            <div className="mt-1 font-display text-2xl font-bold sm:text-3xl">
+              Buy my pictures &amp; videos
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              Individual sets and clips — or unlock everything with the $10/mo All-Access Pass.
+            </div>
+          </div>
+          <span className="shrink-0 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground">
+            Enter →
+          </span>
+        </Link>
+      </section>
       <HostBlock />
     </>
   );
