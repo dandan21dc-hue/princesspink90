@@ -155,7 +155,10 @@ function Dashboard() {
                       {" · "}{r.events?.venue_name}
                     </div>
                   </div>
-                  <div className="font-mono text-sm font-bold tracking-wider text-neon">{r.ticket_code}</div>
+                  <div className="text-right">
+                    <div className="font-mono text-sm font-bold tracking-wider text-neon">{r.entry_code}</div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Entry code</div>
+                  </div>
                 </li>
               ))}
             </ul>
