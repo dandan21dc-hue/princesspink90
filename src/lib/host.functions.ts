@@ -96,14 +96,17 @@ export const createEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: z.infer<typeof eventInput>) => eventInput.parse(data))
   .handler(async ({ data, context }) => {
+    // New events always start as drafts — required compliance docs are uploaded
+    // on the edit page before publishing.
     const { data: row, error } = await context.supabase
       .from("events")
-      .insert({ ...data, host_id: context.userId })
+      .insert({ ...data, published: false, host_id: context.userId })
       .select("id")
       .single();
     if (error) throw error;
     return row;
   });
+
 
 export const updateEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
