@@ -185,6 +185,11 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
             const displayName = profile?.display_name ?? authName
 
             if (email) {
+              const portalUrl = buildPortalUrl({
+                rid: logRow.id,
+                sid: row.id,
+                uid: row.user_id,
+              })
               const tmpl = renderHealthScreeningReminder({
                 recipientName: displayName,
                 validUntil: row.valid_until,
