@@ -85,8 +85,9 @@ export const getMyEvent = createServerFn({ method: "GET" })
       .eq("event_id", data.id)
       .order("created_at", { ascending: false });
     const userIds = (rsvpsRaw ?? []).map((r) => r.user_id);
+    const { supabaseAdmin: sbAdmin1 } = await import("@/integrations/supabase/client.server");
     const { data: profs } = userIds.length
-      ? await context.supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+      ? await sbAdmin1.from("profiles").select("user_id, display_name").in("user_id", userIds)
       : { data: [] as { user_id: string; display_name: string | null }[] };
     const nameByUser = new Map((profs ?? []).map((p) => [p.user_id, p.display_name]));
     const rsvps = (rsvpsRaw ?? []).map((r) => ({ ...r, display_name: nameByUser.get(r.user_id) ?? null }));
