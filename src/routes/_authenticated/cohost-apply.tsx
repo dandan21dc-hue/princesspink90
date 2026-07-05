@@ -197,6 +197,18 @@ function CohostApply() {
               placeholder="TikTok, OnlyFans, portfolio…"
             />
           </Field>
+          <Field label="Short bio">
+            <Textarea
+              value={form.bio}
+              onChange={(v) => setForm((f) => ({ ...f, bio: v }))}
+              rows={3}
+              maxLength={600}
+              placeholder="A couple sentences about you — vibe, scene, what makes you a good host."
+            />
+            <div className="mt-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+              {form.bio.length}/600
+            </div>
+          </Field>
           <Field label="Hosting / event experience" required>
             <Textarea
               value={form.hosting_experience}
@@ -214,23 +226,52 @@ function CohostApply() {
               maxLength={2000}
             />
           </Field>
-          <Field label="Availability">
-            <Textarea
-              value={form.availability}
-              onChange={(v) => setForm((f) => ({ ...f, availability: v }))}
-              rows={2}
-              maxLength={500}
-              placeholder="Weekends, evenings, travel-ready…"
+
+          <Field label="Availability — days you're usually free">
+            <ChipGroup
+              options={DAY_OPTIONS}
+              selected={form.availability_days}
+              onToggle={(v) =>
+                setForm((f) => ({
+                  ...f,
+                  availability_days: f.availability_days.includes(v)
+                    ? f.availability_days.filter((d) => d !== v)
+                    : [...f.availability_days, v],
+                }))
+              }
             />
+            <div className="mt-3">
+              <Textarea
+                value={form.availability_notes}
+                onChange={(v) => setForm((f) => ({ ...f, availability_notes: v }))}
+                rows={2}
+                maxLength={400}
+                placeholder="Notes — evenings only, travel-ready, blackout weeks…"
+              />
+            </div>
           </Field>
+
           <Field label="Event types you're interested in">
-            <Textarea
-              value={form.event_types}
-              onChange={(v) => setForm((f) => ({ ...f, event_types: v }))}
-              rows={2}
-              maxLength={500}
-              placeholder="Private, club nights, brand collabs…"
+            <ChipGroup
+              options={EVENT_TYPE_OPTIONS}
+              selected={form.event_types_presets}
+              onToggle={(v) =>
+                setForm((f) => ({
+                  ...f,
+                  event_types_presets: f.event_types_presets.includes(v)
+                    ? f.event_types_presets.filter((t) => t !== v)
+                    : [...f.event_types_presets, v],
+                }))
+              }
             />
+            <div className="mt-3">
+              <Input
+                value={form.event_types_other}
+                onChange={(v) => setForm((f) => ({ ...f, event_types_other: v }))}
+                maxLength={300}
+                placeholder="Other (comma-separated)"
+              />
+            </div>
           </Field>
 
           <button
@@ -243,6 +284,38 @@ function CohostApply() {
         </form>
       )}
     </section>
+  );
+}
+
+function ChipGroup({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: string[];
+  selected: string[];
+  onToggle: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const active = selected.includes(opt);
+        return (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onToggle(opt)}
+            className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-widest transition ${
+              active
+                ? "border-primary bg-primary/20 text-primary"
+                : "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
+            }`}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
