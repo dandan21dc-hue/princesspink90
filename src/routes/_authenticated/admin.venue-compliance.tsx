@@ -155,6 +155,8 @@ function AdminVenueCompliancePage() {
   const updateMut = useMutation({
     mutationFn: () => {
       if (!editingId) throw new Error("Nothing to update");
+      const expiryCheck = validateExpiryDate(editForm.expires_on || null);
+      if (!expiryCheck.ok) throw new Error(expiryCheck.error);
       return updateFn({
         data: {
           id: editingId,
