@@ -135,14 +135,21 @@ function ReminderJobConfigSection() {
   });
 
   const [time, setTime] = useState("08:00");
+  const [days, setDays] = useState<number>(7);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (config.data) setTime(config.data.daily_run_time_utc);
+    if (config.data) {
+      setTime(config.data.daily_run_time_utc);
+      setDays(config.data.expiring_within_days);
+    }
   }, [config.data]);
 
   const save = useMutation({
-    mutationFn: () => updateFn({ data: { daily_run_time_utc: time } }),
+    mutationFn: () =>
+      updateFn({
+        data: { daily_run_time_utc: time, expiring_within_days: days },
+      }),
     onSuccess: () => {
       setSaved(true);
       qc.invalidateQueries({ queryKey: ["reminder-job-config"] });
@@ -154,8 +161,9 @@ function ReminderJobConfigSection() {
     <section className="mt-12 border-t border-border pt-8">
       <h2 className="font-display text-xl font-bold">Reminder job</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Time of day (UTC) the daily reminder job runs — sends health screening
-        expiry reminders 7 days before expiration. Defaults to 08:00 UTC.
+        Configure when the daily reminder job runs and how far in advance guests
+        are notified of expiring health screenings. Defaults: 08:00 UTC, 7 days
+        before expiry.
       </p>
       <form
         className="mt-5 space-y-4"
@@ -170,6 +178,21 @@ function ReminderJobConfigSection() {
             required
             value={time}
             onChange={(e) => setTime(e.target.value)}
+            className="w-40 rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+        </Field>
+        <Field
+          label="Expiring within (days)"
+          hint="How many days before expiry to send the reminder (1–90)."
+        >
+          <input
+            type="number"
+            required
+            min={1}
+            max={90}
+            step={1}
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
             className="w-40 rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </Field>
@@ -192,7 +215,7 @@ function ReminderJobConfigSection() {
           <p className="text-[11px] text-muted-foreground">
             Last updated {new Date(config.data.updated_at).toLocaleString()}.
             Note: the cron schedule itself is managed by the platform — update it
-            there to match this value.
+            there to match the run time above.
           </p>
         )}
       </form>
