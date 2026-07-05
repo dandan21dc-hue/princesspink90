@@ -312,6 +312,23 @@ function MyDocumentsSection() {
     queryFn: () => versionsFn(),
   });
 
+  const qc = useQueryClient();
+  const reAckFn = useServerFn(recordPolicyAgreement);
+  const reAck = useMutation({
+    mutationFn: (vars: { policy_version_id: string; event_id: string | null }) =>
+      reAckFn({ data: vars }),
+    onSuccess: (_res, vars) => {
+      toast.success("Re-acknowledged current compliance policy for this event.");
+      qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
+      if (vars.event_id) {
+        qc.invalidateQueries({ queryKey: ["my-policy-agreements", vars.event_id] });
+      }
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Could not re-acknowledge policy"),
+  });
+
+
   const [versionFilter, setVersionFilter] = useState<string>("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
