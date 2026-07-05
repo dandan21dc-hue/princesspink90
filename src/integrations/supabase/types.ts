@@ -771,6 +771,27 @@ export type Database = {
         }
         Relationships: []
       }
+      reminder_job_config: {
+        Row: {
+          daily_run_time_utc: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          daily_run_time_utc?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          daily_run_time_utc?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       rsvps: {
         Row: {
           age_confirmed_at: string | null
