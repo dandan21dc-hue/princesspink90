@@ -24,6 +24,28 @@ function CheckinPage() {
 
   const [code, setCode] = useState("");
   const [result, setResult] = useState<Lookup | null>(null);
+  const [scanner, setScanner] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keep focus on the input while scanner mode is on so a keyboard-wedge
+  // barcode/QR scanner always lands its keystrokes here.
+  useEffect(() => {
+    if (!scanner) return;
+    inputRef.current?.focus();
+    const onFocus = () => inputRef.current?.focus();
+    const onClick = (e: MouseEvent) => {
+      const t = e.target as HTMLElement | null;
+      // Don't steal focus from actual form controls (buttons, checkboxes, other inputs)
+      if (t?.closest("button, input, textarea, select, a, label")) return;
+      inputRef.current?.focus();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("click", onClick);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("click", onClick);
+    };
+  }, [scanner]);
 
   const roster = useQuery({
     queryKey: ["checkin-roster", eventId],
