@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getPublicEventById } from "@/lib/events.functions";
 import { rsvpToEvent, cancelRsvp, myRsvpForEvent } from "@/lib/rsvp.functions";
 import { getMyAgeVerification, type VideoConsent } from "@/lib/verification.functions";
+import { listMyHealthScreenings, isScreeningCurrent } from "@/lib/health.functions";
 import { useWaiverPdfDownload } from "@/lib/useWaiverPdfDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -173,6 +174,11 @@ function RsvpBox({ eventId }: { eventId: string }) {
   const { data: age, isLoading: ageLoading } = useQuery({
     queryKey: ["my-age-verification"],
     queryFn: () => getAge(),
+  });
+  const getScreenings = useServerFn(listMyHealthScreenings);
+  const { data: screenings, isLoading: screeningsLoading } = useQuery({
+    queryKey: ["my-health-screenings"],
+    queryFn: () => getScreenings(),
   });
 
   const [ageOk, setAgeOk] = useState(false);
