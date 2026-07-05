@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { DocumentPreviewDialog } from "@/components/DocumentPreviewDialog";
 import { Loader2 } from "lucide-react";
+import { isDocumentStale } from "@/lib/complianceStale";
 
 
 
