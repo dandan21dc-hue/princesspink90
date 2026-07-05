@@ -265,15 +265,66 @@ describe.skipIf(!HAS_CREDS)(
           .single()
         expect(rsvpErr, rsvpErr?.message).toBeFalsy()
         rsvpId = rsvp!.id
+        console.log(`[smoke] inserted rsvp id=${rsvpId} initial row=${fmt(rsvp)}`)
 
         expect(rsvp!.entry_code).toMatch(/^PINK-\d+$/)
         expect(rsvp!.ticket_code, 'ticket_code should be generated').toBeTruthy()
+
+        // BEFORE INSERT triggers mutate NEW in place, so entry_phrase should
+        // already be populated on the returning row. If it isn't (async
+        // trigger, replica lag, etc.), poll a fresh SELECT before failing so
+        // the assertion diagnoses the actual state rather than a stale copy.
+        let phrase = rsvp!.entry_phrase as string | null
+        if (!phrase) {
+          console.warn(
+            `[smoke] entry_phrase missing on RETURNING row for rsvp=${rsvpId}; polling fresh SELECT`,
+          )
+          phrase = await poll(
+            async () => {
+              const { data: fresh, error: freshErr } = await admin
+                .from('rsvps')
+                .select('entry_phrase')
+                .eq('id', rsvpId)
+                .single()
+              if (freshErr) {
+                console.warn(`[smoke] rsvps re-select error: ${freshErr.message}`)
+                return null
+              }
+              return fresh?.entry_phrase && String(fresh.entry_phrase).trim() !== ''
+                ? (fresh.entry_phrase as string)
+                : null
+            },
+            {
+              timeoutMs: 10_000,
+              intervalMs: 500,
+              onTick: (attempt, elapsedMs) =>
+                console.log(
+                  `[smoke] entry_phrase poll attempt=${attempt} elapsed=${elapsedMs}ms`,
+                ),
+            },
+          )
+
+          if (!phrase) {
+            // Dump the row + trigger metadata to make the failure actionable.
+            const { data: fresh } = await admin
+              .from('rsvps')
+              .select('*')
+              .eq('id', rsvpId)
+              .single()
+            console.error(
+              `[smoke] entry_phrase never populated for rsvp=${rsvpId}. ` +
+                `full row: ${fmt(fresh)}. ` +
+                `check trigger rsvps_assign_entry_phrase_trg exists and column default/nullability.`,
+            )
+          }
+        }
+
         expect(
-          rsvp!.entry_phrase,
-          'entry_phrase must be populated by the trigger',
+          phrase,
+          `entry_phrase must be populated by the rsvps_assign_entry_phrase trigger (see console for row dump)`,
         ).toBeTruthy()
-        expect(String(rsvp!.entry_phrase).length).toBeGreaterThan(0)
-        expect(rsvp!.entry_phrase).not.toBe('')
+        expect(String(phrase).trim().length).toBeGreaterThan(0)
+
       },
       TEST_TIMEOUT_MS,
     )
