@@ -5,8 +5,26 @@ import { useEffect, useRef, useState } from "react";
 import { lookupCheckin, performCheckin, listCheckins } from "@/lib/checkin.functions";
 import type { VideoConsent } from "@/lib/verification.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { QrCameraScanner } from "@/components/QrCameraScanner";
+import { QrCameraScanner, type ScanFeedback } from "@/components/QrCameraScanner";
 import { toast } from "sonner";
+
+/** Extract a ticket code from a raw QR payload — supports plain codes and
+ *  URLs like `https://…/checkin?t=ABC123` or `.../tickets/ABC123`. */
+function extractTicketCode(raw: string): string {
+  const s = raw.trim();
+  if (!s) return "";
+  try {
+    const u = new URL(s);
+    const q = u.searchParams.get("t") ?? u.searchParams.get("ticket") ?? u.searchParams.get("code");
+    if (q) return q.trim().toUpperCase();
+    const tail = u.pathname.split("/").filter(Boolean).pop();
+    if (tail) return tail.trim().toUpperCase();
+  } catch {
+    // not a URL — fall through
+  }
+  return s.replace(/[\s\r\n\t]/g, "").toUpperCase();
+}
+
 
 export const Route = createFileRoute("/_authenticated/events/$id/checkin")({
   head: () => ({ meta: [{ title: "Door check-in · AFTERDARK" }] }),
