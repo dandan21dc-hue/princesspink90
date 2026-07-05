@@ -1012,6 +1012,39 @@ export type Database = {
         }
         Relationships: []
       }
+      venue_compliance_audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          details: Json
+          document_id: string | null
+          document_kind: string | null
+          document_title: string | null
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          details?: Json
+          document_id?: string | null
+          document_kind?: string | null
+          document_title?: string | null
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          details?: Json
+          document_id?: string | null
+          document_kind?: string | null
+          document_title?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       venue_compliance_documents: {
         Row: {
           created_at: string
