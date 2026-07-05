@@ -167,6 +167,7 @@ export const listCheckins = createServerFn({ method: "GET" })
       id: r.id,
       ticket_code: r.ticket_code,
       entry_code: r.entry_code,
+      entry_phrase: r.entry_phrase,
       guest_count: r.guest_count,
       checked_in_at: r.checked_in_at as string,
       display_name: nameByUser.get(r.user_id) ?? null,
