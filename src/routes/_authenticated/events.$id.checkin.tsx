@@ -108,12 +108,114 @@ function CheckinPage() {
           onCheckedIn={() => {
             setCode("");
             setResult(null);
+            qc.invalidateQueries({ queryKey: ["checkin-roster", eventId] });
             toast.success("Checked in — welcome them in.");
           }}
           checkinFn={checkinFn}
         />
       )}
+
+      <Roster
+        guests={roster.data?.guests ?? []}
+        totalHeads={roster.data?.total_heads ?? 0}
+        loading={roster.isLoading}
+        fetching={roster.isFetching}
+      />
     </main>
+  );
+}
+
+function Roster({
+  guests,
+  totalHeads,
+  loading,
+  fetching,
+}: {
+  guests: {
+    id: string;
+    ticket_code: string;
+    guest_count: number;
+    checked_in_at: string;
+    display_name: string | null;
+    consent: VideoConsent | null;
+    door_notes: string | null;
+  }[];
+  totalHeads: number;
+  loading: boolean;
+  fetching: boolean;
+}) {
+  return (
+    <section className="mt-10 rounded-2xl border border-border/60 bg-card/40 p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Admitted tonight</div>
+          <div className="mt-1 font-display text-2xl font-bold">
+            {guests.length}{" "}
+            <span className="text-sm font-normal text-muted-foreground">
+              check-in{guests.length === 1 ? "" : "s"} · {totalHeads} head{totalHeads === 1 ? "" : "s"}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className={`h-2 w-2 rounded-full ${fetching ? "bg-neon animate-pulse" : "bg-neon/40"}`} />
+          Live
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="mt-4 text-xs text-muted-foreground">Loading roster…</p>
+      ) : guests.length === 0 ? (
+        <p className="mt-4 text-xs text-muted-foreground">No one has been admitted yet.</p>
+      ) : (
+        <ul className="mt-4 divide-y divide-border/50">
+          {guests.map((g) => (
+            <li key={g.id} className="flex items-start justify-between gap-3 py-3 text-sm">
+              <div className="min-w-0">
+                <div className="truncate font-medium">{g.display_name ?? "Guest"}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  <span className="font-mono tracking-widest text-neon">{g.ticket_code}</span>
+                  {" · "}Party of {g.guest_count}
+                  {" · "}
+                  {new Date(g.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                {g.door_notes && (
+                  <div className="mt-1 text-xs italic text-muted-foreground">“{g.door_notes}”</div>
+                )}
+              </div>
+              <ConsentBadges consent={g.consent} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function ConsentBadges({ consent }: { consent: VideoConsent | null }) {
+  if (!consent) {
+    return <span className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] uppercase tracking-widest text-muted-foreground">No consent recorded</span>;
+  }
+  const items: { key: keyof VideoConsent; short: string; cls: string }[] = [
+    { key: "no_filming", short: "No film", cls: "border-destructive/60 bg-destructive/10 text-destructive" },
+    { key: "face_blurred_only", short: "Blur only", cls: "border-primary/50 bg-primary/10 text-primary" },
+    { key: "private_archive", short: "Archive", cls: "border-neon/50 bg-neon/10 text-neon" },
+    { key: "public_promo", short: "Promo OK", cls: "border-neon/50 bg-neon/10 text-neon" },
+  ];
+  const active = items.filter((i) => consent[i.key]);
+  if (!active.length) {
+    return <span className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] uppercase tracking-widest text-muted-foreground">No preference</span>;
+  }
+  return (
+    <div className="flex shrink-0 flex-wrap justify-end gap-1">
+      {active.map((i) => (
+        <span
+          key={i.key}
+          className={`rounded-md border px-2 py-1 text-[10px] uppercase tracking-widest ${i.cls}`}
+        >
+          {i.short}
+        </span>
+      ))}
+    </div>
   );
 }
 
