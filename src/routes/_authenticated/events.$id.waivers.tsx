@@ -3,6 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { listEventWaivers, listWaiverAudit } from "@/lib/host.functions";
+import { useWaiverPdfDownload } from "@/lib/useWaiverPdfDownload";
+
 
 export const Route = createFileRoute("/_authenticated/events/$id/waivers")({
   head: () => ({
@@ -84,12 +86,13 @@ function WaiversPage() {
                   <th className="px-3 py-2 text-left">Accepted</th>
                   <th className="px-3 py-2 text-left">Signature</th>
                   <th className="px-3 py-2 text-left">Waiver hash</th>
+                  <th className="px-3 py-2 text-left">PDF</th>
                 </tr>
               </thead>
               <tbody>
                 {q.data.rsvps.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
+                    <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
                       No RSVPs yet.
                     </td>
                   </tr>
@@ -232,6 +235,7 @@ type RsvpRow = Awaited<ReturnType<typeof listEventWaivers>>["rsvps"][number];
 
 function Row({ r, currentHash }: { r: RsvpRow; currentHash: string }) {
   const [open, setOpen] = useState(false);
+  const pdf = useWaiverPdfDownload();
   const badge = r.waiver_accepted
     ? r.waiver_hash_current
       ? { text: "Accepted", cls: "bg-emerald-500/15 text-emerald-300" }
@@ -278,10 +282,24 @@ function Row({ r, currentHash }: { r: RsvpRow; currentHash: string }) {
             {shortHash}
           </button>
         </td>
+        <td className="px-3 py-3">
+          {r.waiver_accepted ? (
+            <button
+              type="button"
+              onClick={() => pdf.download(r.id)}
+              disabled={pdf.isPending(r.id)}
+              className="rounded-md border border-border px-2 py-1 text-[10px] uppercase tracking-widest hover:bg-card disabled:opacity-60"
+            >
+              {pdf.isPending(r.id) ? "…" : "Download"}
+            </button>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">—</span>
+          )}
+        </td>
       </tr>
       {open && r.waiver_text_hash && (
         <tr className="bg-background/60">
-          <td colSpan={5} className="px-3 py-3 text-[11px] text-muted-foreground">
+          <td colSpan={6} className="px-3 py-3 text-[11px] text-muted-foreground">
             <div className="break-all font-mono">
               <span className="uppercase tracking-widest text-foreground/70">Signed hash:</span>{" "}
               {r.waiver_text_hash}
