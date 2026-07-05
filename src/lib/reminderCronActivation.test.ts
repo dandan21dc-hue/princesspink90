@@ -238,9 +238,7 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     // Exactly one send per due reminder — no duplicates, no missed rows.
     expect(sendResendEmail).toHaveBeenCalledTimes(DUE.length)
 
-    const recipients = sendResendEmail.mock.calls.map(
-      (c) => ((c as unknown as [{ to: string }])[0]).to,
-    )
+    const recipients = sendResendEmail.mock.calls.map((c) => c[0].to)
     const unique = new Set(recipients)
     expect(unique.size).toBe(DUE.length)
     for (const s of DUE) {
@@ -248,13 +246,13 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
     }
 
     // Every send used the deterministic per-screening idempotency key.
-    const keys = sendResendEmail.mock.calls.map(
-      (c) => ((c as unknown as [{ idempotencyKey: string }])[0]).idempotencyKey,
-    )
+    const keys = sendResendEmail.mock.calls.map((c) => c[0].idempotencyKey)
     for (const s of DUE) {
       expect(keys).toContain(`expiry_7_day:${s.id}:${s.valid_until}`)
     }
   })
+
+
 
   it('does not double-send when cron re-invokes the hook (idempotency)', async () => {
     configuredRunTime = '00:00'
