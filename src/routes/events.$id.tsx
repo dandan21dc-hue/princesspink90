@@ -227,13 +227,15 @@ function RsvpBox({ eventId }: { eventId: string }) {
     const signed = Boolean(mine.waiver_signature && mine.waiver_accepted_at);
     return (
       <div className="rounded-lg border border-primary/50 bg-primary/10 p-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-primary">RSVP confirmed · Entry code</div>
-        <div className="mt-1 font-mono text-3xl font-bold tracking-widest text-neon">
-          {mine.entry_code}
+        <div className="text-[10px] uppercase tracking-[0.25em] text-primary">RSVP confirmed · Secret entry phrase</div>
+        <div className="mt-1 font-display text-3xl font-bold tracking-wide text-neon">
+          “{mine.entry_phrase}”
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Show this Entry Code at the door.{" "}
-          <span className="opacity-70">Scan code: <span className="font-mono">{mine.ticket_code}</span></span>
+        <p className="mt-2 text-sm font-medium text-foreground">
+          You must speak this phrase to the monitor when you enter the booth so we can verify your booking.
+        </p>
+        <p className="mt-1 text-[11px] text-muted-foreground opacity-70">
+          Scan backup: <span className="font-mono">{mine.ticket_code}</span>
         </p>
 
         <div
