@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { type StripeEnv, verifyWebhook } from "@/lib/stripe.server";
+import { type StripeEnv, verifyWebhook, createStripeClient } from "@/lib/stripe.server";
 
 let _supabase: ReturnType<typeof createClient<Database>> | null = null;
 function getSupabase() {
@@ -323,6 +323,133 @@ async function handleAsyncPaymentFailed(session: any, env: StripeEnv) {
   });
 }
 
+/**
+ * Look up the Checkout Session tied to a Stripe Charge/Dispute so we can
+ * find the local rows we wrote from `stripe_session_id`. Charges/disputes
+ * carry `payment_intent`, not `session.id`, so we ask Stripe.
+ */
+async function findSessionByPaymentIntent(paymentIntent: string, env: StripeEnv) {
+  try {
+    const stripe = createStripeClient(env);
+    const list = await stripe.checkout.sessions.list({
+      payment_intent: paymentIntent,
+      limit: 1,
+    });
+    return list.data[0] ?? null;
+  } catch (e) {
+    console.error("findSessionByPaymentIntent failed:", e);
+    return null;
+  }
+}
+
+/**
+ * Revoke every entitlement granted from a given Checkout Session:
+ * - delete content purchase rows (locks the item behind the paywall again)
+ * - delete membership rows (lifetime or term_pass) — user_can_access_content
+ *   no longer matches
+ * - cancel any private-room booking (frees the slot)
+ *
+ * Deleting is safe because the source of truth is the Stripe session; if a
+ * dispute later resolves in the seller's favor we replay
+ * handleCheckoutCompleted(session) to re-grant.
+ */
+async function revokeEntitlementsForSession(session: any, env: StripeEnv) {
+  const sessionId = session.id as string;
+  const nowIso = new Date().toISOString();
+
+  await getSupabase()
+    .from("content_purchases")
+    .delete()
+    .eq("stripe_session_id", sessionId)
+    .eq("environment", env);
+
+  await getSupabase()
+    .from("memberships")
+    .delete()
+    .eq("stripe_session_id", sessionId)
+    .eq("environment", env);
+
+  await getSupabase()
+    .from("private_room_bookings")
+    .update({ status: "cancelled", updated_at: nowIso })
+    .eq("stripe_session_id", sessionId)
+    .eq("environment", env);
+}
+
+/**
+ * charge.refunded — fires on every refund (partial or full). We only revoke
+ * on a full refund; partial refunds don't unlock/lock a digital good.
+ */
+async function handleChargeRefunded(charge: any, env: StripeEnv) {
+  if (!charge?.payment_intent) return;
+  const fullyRefunded =
+    charge.refunded === true ||
+    (typeof charge.amount === "number" &&
+      typeof charge.amount_refunded === "number" &&
+      charge.amount_refunded >= charge.amount);
+  if (!fullyRefunded) {
+    console.log("charge.refunded: partial refund, no revoke for", charge.id);
+    return;
+  }
+  const session = await findSessionByPaymentIntent(charge.payment_intent, env);
+  if (!session) return;
+  await revokeEntitlementsForSession(session, env);
+  await notifyAllCreators({
+    kind: "refund",
+    title: "Purchase refunded — access revoked",
+    body: "A charge was fully refunded; the buyer no longer has access.",
+    link_url: "/dashboard",
+    metadata: { session_id: session.id, charge_id: charge.id, env } as any,
+  });
+}
+
+/**
+ * charge.dispute.created — freeze access as soon as a chargeback opens.
+ * If we later win the dispute we restore via handleDisputeClosed.
+ */
+async function handleDisputeCreated(dispute: any, env: StripeEnv) {
+  if (!dispute?.payment_intent) return;
+  const session = await findSessionByPaymentIntent(dispute.payment_intent, env);
+  if (!session) return;
+  await revokeEntitlementsForSession(session, env);
+  await notifyAllCreators({
+    kind: "dispute_opened",
+    title: "Payment dispute opened — access frozen",
+    body: "Access has been revoked pending the dispute outcome.",
+    link_url: "/dashboard",
+    metadata: { session_id: session.id, dispute_id: dispute.id, env } as any,
+  });
+}
+
+/**
+ * charge.dispute.closed — if we won, replay the grant path so the buyer
+ * gets their access back. Any other outcome (lost, warning_closed) keeps
+ * the entitlements revoked.
+ */
+async function handleDisputeClosed(dispute: any, env: StripeEnv) {
+  if (!dispute?.payment_intent) return;
+  const session = await findSessionByPaymentIntent(dispute.payment_intent, env);
+  if (!session) return;
+  if (dispute.status === "won") {
+    await handleCheckoutCompleted(session, env);
+    await notifyAllCreators({
+      kind: "dispute_won",
+      title: "Dispute won — access restored",
+      body: "The buyer's access has been re-granted.",
+      link_url: "/dashboard",
+      metadata: { session_id: session.id, dispute_id: dispute.id, env } as any,
+    });
+  } else {
+    await notifyAllCreators({
+      kind: "dispute_closed",
+      title: `Dispute closed (${dispute.status})`,
+      body: "Access remains revoked.",
+      link_url: "/dashboard",
+      metadata: { session_id: session.id, dispute_id: dispute.id, env } as any,
+    });
+  }
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
   switch (event.type) {
@@ -346,6 +473,15 @@ async function handleWebhook(req: Request, env: StripeEnv) {
       break;
     case "checkout.session.async_payment_failed":
       await handleAsyncPaymentFailed(event.data.object, env);
+      break;
+    case "charge.refunded":
+      await handleChargeRefunded(event.data.object, env);
+      break;
+    case "charge.dispute.created":
+      await handleDisputeCreated(event.data.object, env);
+      break;
+    case "charge.dispute.closed":
+      await handleDisputeClosed(event.data.object, env);
       break;
     default:
       console.log("Unhandled event:", event.type);
