@@ -57,7 +57,11 @@ function CohostApply() {
     event_types_other: "",
   });
   const [agreementFile, setAgreementFile] = useState<File | null>(null);
+  const [handbookSignatureName, setHandbookSignatureName] = useState("");
+  const [handbookAcknowledged, setHandbookAcknowledged] = useState(false);
+  const [handbookDownloaded, setHandbookDownloaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const todayIso = new Date().toISOString().slice(0, 10);
 
   useEffect(() => {
     if (mine.data) {
