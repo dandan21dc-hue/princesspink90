@@ -238,11 +238,21 @@ function RsvpBox({ eventId }: { eventId: string }) {
             </span>
           </div>
           {signed ? (
-            <p className="mt-1.5 text-[11px] text-muted-foreground">
-              Signed as <span className="text-foreground">{mine.waiver_signature}</span> on{" "}
-              {new Date(mine.waiver_accepted_at!).toLocaleDateString()}. Your entry is
-              cleared.
-            </p>
+            <>
+              <p className="mt-1.5 text-[11px] text-muted-foreground">
+                Signed as <span className="text-foreground">{mine.waiver_signature}</span> on{" "}
+                {new Date(mine.waiver_accepted_at!).toLocaleDateString()}. Your entry is
+                cleared.
+              </p>
+              <button
+                type="button"
+                onClick={() => pdf.download(mine.id)}
+                disabled={pdf.isPending(mine.id)}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] uppercase tracking-widest text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-60"
+              >
+                {pdf.isPending(mine.id) ? "Preparing…" : "Download signed waiver (PDF)"}
+              </button>
+            </>
           ) : (
             <p className="mt-1.5 text-[11px] text-muted-foreground">
               Cancel and re-RSVP to sign the current waiver — required at the door.
