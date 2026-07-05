@@ -64,7 +64,7 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
 
         const { data: candidates, error: selErr } = await supabase
           .from('health_screenings')
-          .select('id, user_id, valid_until')
+          .select('id, user_id, valid_until, status, test_date')
           .eq('status', 'approved')
           .eq('valid_until', targetDate)
           .is('expiry_reminder_sent_at', null)
@@ -154,10 +154,18 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           try {
             const { data: userRow } = await supabase.auth.admin.getUserById(row.user_id)
             const email = userRow?.user?.email
-            const displayName =
+            const authName =
               (userRow?.user?.user_metadata?.full_name as string | undefined) ??
               (userRow?.user?.user_metadata?.name as string | undefined) ??
               null
+
+            // Prefer the portal-managed profile display name; fall back to auth metadata.
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('display_name')
+              .eq('user_id', row.user_id)
+              .maybeSingle()
+            const displayName = profile?.display_name ?? authName
 
             if (email) {
               const tmpl = renderHealthScreeningReminder({
@@ -165,6 +173,8 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
                 validUntil: row.valid_until,
                 daysUntilExpiry: windowDays,
                 portalUrl,
+                status: row.status,
+                testDate: row.test_date,
               })
               const result = await sendResendEmail({
                 to: email,
