@@ -2,13 +2,23 @@ import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@supabase/supabase-js'
 
 // Daily job: finds admin-approved health screenings expiring in exactly 7 days
-// and creates exactly one in-app reminder notification per screening.
-// Exactness is enforced via the expiry_reminder_sent_at column (updated atomically).
+// and records exactly one reminder per screening.
+//
+// Idempotency strategy (defense in depth):
+//   1. Deterministic idempotency_key = "expiry_7_day:<screening_id>:<valid_until>"
+//   2. UNIQUE constraint on health_screening_reminder_log.idempotency_key —
+//      the database rejects any duplicate insert (Postgres error 23505).
+//   3. Log insert happens FIRST. Only on successful insert do we create the
+//      user notification and update expiry_reminder_sent_at.
+//   4. Retries, concurrent runs, and replays are all safe: the second attempt
+//      hits the unique violation and is skipped.
 export const Route = createFileRoute('/api/public/hooks/health-screening-reminders')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apikey = request.headers.get('apikey') ?? request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+        const apikey =
+          request.headers.get('apikey') ??
+          request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
         const expected = process.env.SUPABASE_PUBLISHABLE_KEY
         if (!apikey || !expected || apikey !== expected) {
           return new Response(JSON.stringify({ error: 'unauthorized' }), {
@@ -23,7 +33,7 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           { auth: { persistSession: false, autoRefreshToken: false } },
         )
 
-        // Compute the target date: exactly 7 days from today (UTC).
+        // Target date: exactly 7 days from today (UTC).
         const target = new Date()
         target.setUTCDate(target.getUTCDate() + 7)
         const targetDate = target.toISOString().slice(0, 10)
@@ -44,26 +54,41 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
         }
 
         let sent = 0
+        let skipped = 0
         const failures: Array<{ id: string; error: string }> = []
 
         for (const row of candidates ?? []) {
-          // Claim the reminder atomically: only proceed if we successfully flip
-          // expiry_reminder_sent_at from NULL to now(). Prevents duplicate sends
-          // if the job runs concurrently or retries after a partial failure.
-          const claimedAt = new Date().toISOString()
-          const { data: claimed, error: claimErr } = await supabase
-            .from('health_screenings')
-            .update({ expiry_reminder_sent_at: claimedAt })
-            .eq('id', row.id)
-            .is('expiry_reminder_sent_at', null)
-            .select('id')
-            .maybeSingle()
+          const idempotencyKey = `expiry_7_day:${row.id}:${row.valid_until}`
+          const channelsAttempted: string[] = ['in_app']
 
-          if (claimErr || !claimed) {
-            if (claimErr) failures.push({ id: row.id, error: claimErr.message })
+          // Step 1: claim via unique log insert. Duplicate = already reminded.
+          const { data: logRow, error: logErr } = await supabase
+            .from('health_screening_reminder_log')
+            .insert({
+              screening_id: row.id,
+              user_id: row.user_id,
+              reminder_type: 'expiry_7_day',
+              valid_until: row.valid_until,
+              channels: channelsAttempted,
+              status: 'sent',
+              idempotency_key: idempotencyKey,
+            })
+            .select('id')
+            .single()
+
+          if (logErr) {
+            // 23505 = unique_violation → already reminded, safe to skip.
+            const code = (logErr as { code?: string }).code
+            if (code === '23505') {
+              skipped += 1
+              continue
+            }
+            failures.push({ id: row.id, error: logErr.message })
             continue
           }
 
+          // Step 2: create in-app notification. If it fails, mark the log row
+          // as failed so an admin can see it (do NOT delete — audit trail).
           const { error: notifErr } = await supabase.from('notifications').insert({
             user_id: row.user_id,
             kind: 'health_screening_expiring',
@@ -74,19 +99,24 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
               screening_id: row.id,
               valid_until: row.valid_until,
               days_until_expiry: 7,
+              idempotency_key: idempotencyKey,
             },
           })
 
           if (notifErr) {
-            // Roll back the claim so a future run can retry this screening.
             await supabase
-              .from('health_screenings')
-              .update({ expiry_reminder_sent_at: null })
-              .eq('id', row.id)
-              .eq('expiry_reminder_sent_at', claimedAt)
+              .from('health_screening_reminder_log')
+              .update({ status: 'failed', error_message: notifErr.message })
+              .eq('id', logRow.id)
             failures.push({ id: row.id, error: notifErr.message })
             continue
           }
+
+          // Step 3: flip the screening flag so future scans skip this row fast.
+          await supabase
+            .from('health_screenings')
+            .update({ expiry_reminder_sent_at: new Date().toISOString() })
+            .eq('id', row.id)
 
           sent += 1
         }
@@ -97,6 +127,7 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
             target_date: targetDate,
             candidates: candidates?.length ?? 0,
             sent,
+            skipped,
             failures,
           }),
           { headers: { 'Content-Type': 'application/json' } },
