@@ -1,8 +1,34 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import {
+  VENUE_COMPLIANCE_ALLOWED_MIME,
+  VENUE_COMPLIANCE_MAX_BYTES,
+  validateComplianceFile,
+  validateExpiryDate,
+} from "@/lib/venue-compliance-validation";
 
 const BUCKET = "venue-compliance";
+const ALLOWED_MIME_SET = new Set<string>(VENUE_COMPLIANCE_ALLOWED_MIME);
+
+// Sniff the first bytes of an upload to confirm the file's actual type.
+// Returns the canonical MIME string, or null when nothing matches.
+function detectFileKind(bytes: Uint8Array): string | null {
+  if (bytes.length >= 4 &&
+      bytes[0] === 0x25 && bytes[1] === 0x50 &&
+      bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf"; // %PDF
+  if (bytes.length >= 8 &&
+      bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e &&
+      bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a &&
+      bytes[6] === 0x1a && bytes[7] === 0x0a) return "image/png";
+  if (bytes.length >= 3 &&
+      bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes.length >= 12 &&
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50)
+    return "image/webp";
+  return null;
+}
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {
@@ -66,9 +92,24 @@ const createSchema = z.object({
   expires_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
   notes: z.string().trim().max(4000).optional().nullable(),
   file_name: z.string().trim().min(1).max(255),
-  file_mime_type: z.string().trim().max(200).optional().nullable(),
-  file_size: z.number().int().min(0).max(20 * 1024 * 1024).optional().nullable(),
-  // base64 payload of the file bytes (<=20MB)
+  file_mime_type: z
+    .string()
+    .trim()
+    .max(200)
+    .optional()
+    .nullable()
+    .refine(
+      (v) => !v || ALLOWED_MIME_SET.has(v.toLowerCase()),
+      "Only PDF, PNG, JPG, or WEBP files are accepted.",
+    ),
+  file_size: z
+    .number()
+    .int()
+    .min(1, "The selected file is empty.")
+    .max(VENUE_COMPLIANCE_MAX_BYTES, "File exceeds the 15 MB limit.")
+    .optional()
+    .nullable(),
+  // base64 payload of the file bytes
   file_base64: z.string().min(1),
 });
 
@@ -78,25 +119,56 @@ export const uploadVenueComplianceDoc = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
 
+    // Re-run the shared validators server-side.
+    const nameCheck = validateComplianceFile({
+      name: data.file_name,
+      size: data.file_size ?? 0,
+      type: data.file_mime_type ?? null,
+    });
+    if (!nameCheck.ok) throw new Error(nameCheck.error);
+
+    const expiryCheck = validateExpiryDate(data.expires_on);
+    if (!expiryCheck.ok) throw new Error(expiryCheck.error);
+
     // decode base64 -> bytes
     const bin = atob(data.file_base64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    if (bytes.byteLength > 20 * 1024 * 1024) {
-      throw new Error("File exceeds 20MB limit");
+    if (bytes.byteLength > VENUE_COMPLIANCE_MAX_BYTES) {
+      throw new Error("File exceeds the 15 MB limit.");
+    }
+    if (bytes.byteLength === 0) {
+      throw new Error("The uploaded file is empty.");
+    }
+
+    // Magic-byte sniff to ensure the bytes actually match the claimed type.
+    const detected = detectFileKind(bytes);
+    if (!detected) {
+      throw new Error(
+        "Only PDF, PNG, JPG, or WEBP files can be uploaded as compliance documents.",
+      );
+    }
+    const claimed = (data.file_mime_type ?? "").toLowerCase();
+    if (claimed && claimed !== detected) {
+      throw new Error(
+        `File contents (${detected}) do not match the declared type (${claimed}).`,
+      );
     }
 
     const safeName = data.file_name.replace(/[^\w.\-]+/g, "_").slice(-120);
     const path = `${data.kind}/${crypto.randomUUID()}-${safeName}`;
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
     const { error: upErr } = await supabaseAdmin.storage
       .from(BUCKET)
       .upload(path, bytes, {
-        contentType: data.file_mime_type ?? "application/octet-stream",
+        contentType: data.file_mime_type ?? detected,
         upsert: false,
       });
     if (upErr) throw upErr;
+
 
     const { data: row, error } = await context.supabase
       .from("venue_compliance_documents")
@@ -156,6 +228,9 @@ export const updateVenueComplianceDoc = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => updateSchema.parse(data))
   .handler(async ({ data, context }) => {
+    const expiryCheck = validateExpiryDate(data.expires_on);
+    if (!expiryCheck.ok) throw new Error(expiryCheck.error);
+
     await assertAdmin(context.supabase, context.userId);
 
     const { data: before, error: bErr } = await context.supabase

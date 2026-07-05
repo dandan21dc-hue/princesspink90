@@ -12,6 +12,12 @@ import {
   generateComplianceSummaryPdf,
   listVenueComplianceAudit,
 } from "@/lib/venue-compliance.functions";
+import {
+  VENUE_COMPLIANCE_ACCEPT_ATTR,
+  VENUE_COMPLIANCE_FILE_HELP,
+  validateComplianceFile,
+  validateExpiryDate,
+} from "@/lib/venue-compliance-validation";
 
 const ACTION_LABEL: Record<string, string> = {
   uploaded: "Uploaded",
@@ -111,8 +117,15 @@ function AdminVenueCompliancePage() {
 
   const uploadMut = useMutation({
     mutationFn: async () => {
-      if (!file) throw new Error("Choose a file first");
-      if (file.size > 20 * 1024 * 1024) throw new Error("File exceeds 20MB");
+      if (!file) throw new Error("Choose a file first.");
+      const fileCheck = validateComplianceFile({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      if (!fileCheck.ok) throw new Error(fileCheck.error);
+      const expiryCheck = validateExpiryDate(form.expires_on || null);
+      if (!expiryCheck.ok) throw new Error(expiryCheck.error);
       const file_base64 = await fileToBase64(file);
       return uploadFn({
         data: {
@@ -142,6 +155,8 @@ function AdminVenueCompliancePage() {
   const updateMut = useMutation({
     mutationFn: () => {
       if (!editingId) throw new Error("Nothing to update");
+      const expiryCheck = validateExpiryDate(editForm.expires_on || null);
+      if (!expiryCheck.ok) throw new Error(expiryCheck.error);
       return updateFn({
         data: {
           id: editingId,
@@ -310,11 +325,23 @@ function AdminVenueCompliancePage() {
               <input
                 type="date"
                 value={form.expires_on}
+                min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) =>
                   setForm({ ...form, expires_on: e.target.value })
                 }
                 className="w-full rounded-md border border-border bg-background px-3 py-2"
+                aria-invalid={
+                  form.expires_on &&
+                  !validateExpiryDate(form.expires_on).ok
+                    ? true
+                    : undefined
+                }
               />
+              {form.expires_on && !validateExpiryDate(form.expires_on).ok && (
+                <p className="text-xs text-destructive">
+                  {(validateExpiryDate(form.expires_on) as { error: string }).error}
+                </p>
+              )}
             </label>
             <label className="space-y-1 text-sm md:col-span-2">
               <span className="text-muted-foreground">Notes</span>
@@ -328,16 +355,38 @@ function AdminVenueCompliancePage() {
             </label>
             <label className="space-y-1 text-sm md:col-span-2">
               <span className="text-muted-foreground">
-                File (PDF or image, max 20MB)
+                File · {VENUE_COMPLIANCE_FILE_HELP}
               </span>
               <input
                 type="file"
                 required
-                accept="application/pdf,image/*"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                accept={VENUE_COMPLIANCE_ACCEPT_ATTR}
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  if (f) {
+                    const check = validateComplianceFile({
+                      name: f.name,
+                      size: f.size,
+                      type: f.type,
+                    });
+                    if (!check.ok) {
+                      toast.error(check.error);
+                      e.target.value = "";
+                      setFile(null);
+                      return;
+                    }
+                  }
+                  setFile(f);
+                }}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               />
+              {file && (
+                <p className="text-xs text-muted-foreground">
+                  Selected: {file.name} · {(file.size / (1024 * 1024)).toFixed(2)} MB
+                </p>
+              )}
             </label>
+
           </div>
           <div className="flex justify-end">
             <button
@@ -568,6 +617,12 @@ function AdminVenueCompliancePage() {
                               }
                               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                             />
+                            {editForm.expires_on &&
+                              !validateExpiryDate(editForm.expires_on).ok && (
+                                <p className="text-xs text-destructive">
+                                  {(validateExpiryDate(editForm.expires_on) as { error: string }).error}
+                                </p>
+                              )}
                           </label>
                           <label className="space-y-1 text-xs md:col-span-2">
                             <span className="text-muted-foreground">Notes</span>
