@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { readReminderJobConfig } from '@/lib/reminder-job-config.functions'
 import { sendResendEmail } from '@/lib/resend.server'
 import { renderHealthScreeningReminder } from '@/lib/email-templates-resend/health-screening-reminder'
+import { resolveAppOrigin } from '@/lib/app-origin.server'
 
 // Daily job: finds admin-approved health screenings expiring in exactly 7 days
 // and records exactly one reminder per screening.
@@ -82,12 +83,8 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
         const failures: Array<{ id: string; error: string }> = []
 
         // Resolve app origin for portal links inside the reminder email.
-        const origin =
-          process.env.PUBLIC_APP_URL ??
-          process.env.SITE_URL ??
-          request.headers.get('origin') ??
-          `https://${request.headers.get('host') ?? 'princesspink90.com'}`
-        const portalUrl = `${origin.replace(/\/$/, '')}/health-screenings`
+        const origin = resolveAppOrigin(request)
+        const portalUrl = `${origin}/health-screenings`
 
         let emailed = 0
         for (const row of candidates ?? []) {
