@@ -469,6 +469,8 @@ function MyDocumentsSection() {
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [q, setQ] = useState<string>("");
+  const [sortKey, setSortKey] = useState<"uploaded_at" | "policy_version">("uploaded_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   if (!signedIn) return null;
   const allRows = docs.data ?? [];
