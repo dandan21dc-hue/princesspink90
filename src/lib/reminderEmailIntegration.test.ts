@@ -168,7 +168,11 @@ describe('reminder email integration — end-to-end send + structured logs', () 
     }
 
     // The portal_url the user will click matches what was logged.
+    // HTML escapes `&` as `&amp;`, so compare against both forms.
     const rendered = String(emailArgs.html ?? emailArgs.text ?? '')
-    expect(rendered).toContain(portalUrl)
+    const escaped = portalUrl.replace(/&/g, '&amp;')
+    expect(
+      rendered.includes(portalUrl) || rendered.includes(escaped),
+    ).toBe(true)
   })
 })
