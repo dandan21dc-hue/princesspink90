@@ -334,6 +334,79 @@ function CohostApply() {
           </Field>
 
 
+          <div className="rounded-lg border border-primary/40 bg-primary/10 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-xs font-semibold uppercase tracking-widest text-primary">
+                Handbook Acknowledgement <span className="text-primary">*</span>
+              </div>
+              <span className="rounded-full border border-border bg-background/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                v{HANDBOOK_VERSION}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              You must download and read the Princess Pink Co-Host Handbook,
+              then digitally sign this acknowledgement. Your signature and the
+              timestamp are stored as a permanent audit record.
+            </p>
+            <a
+              href={handbookAsset.url}
+              download="Princess-Pink-Co-Host-Handbook.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setHandbookDownloaded(true)}
+              className="mt-3 inline-block rounded-md border border-primary/50 bg-primary/15 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/25"
+            >
+              Download handbook (PDF)
+            </a>
+            {handbookDownloaded && (
+              <div className="mt-2 text-[11px] text-muted-foreground">
+                ✓ Handbook downloaded
+              </div>
+            )}
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Digital signature — full legal name *
+                </label>
+                <Input
+                  value={handbookSignatureName}
+                  onChange={setHandbookSignatureName}
+                  maxLength={120}
+                  placeholder="Type your full name to sign"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Date
+                </label>
+                <input
+                  type="text"
+                  value={todayIso}
+                  readOnly
+                  className="w-full rounded-md border border-border bg-background/60 px-3 py-2 text-sm text-muted-foreground"
+                />
+              </div>
+            </div>
+
+            <label className="mt-3 flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                checked={handbookAcknowledged}
+                onChange={(e) => setHandbookAcknowledged(e.target.checked)}
+                required
+              />
+              <span>
+                By ticking this box and typing my name above, I confirm I have
+                downloaded, read, and understood the Princess Pink Co-Host
+                Handbook (v{HANDBOOK_VERSION}) and agree to abide by it. I
+                understand this constitutes a legally binding electronic
+                signature and that the date and time will be recorded.
+              </span>
+            </label>
+          </div>
+
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-primary">
               Co-Host Agreement <span className="text-primary">*</span>
@@ -372,7 +445,13 @@ function CohostApply() {
 
           <button
             type="submit"
-            disabled={submit.isPending || isReadOnly === true || !agreementFile}
+            disabled={
+              submit.isPending ||
+              isReadOnly === true ||
+              !agreementFile ||
+              !handbookAcknowledged ||
+              handbookSignatureName.trim().length < 2
+            }
             className="rounded-md bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:opacity-50"
           >
             {submit.isPending ? "Submitting…" : "Submit application"}
