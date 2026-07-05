@@ -57,16 +57,37 @@ let rsvpId = ''
 
 async function poll<T>(
   fn: () => Promise<T | null | undefined>,
-  { timeoutMs = 30_000, intervalMs = 1_000 } = {},
+  {
+    timeoutMs = 30_000,
+    intervalMs = 1_000,
+    onTick,
+  }: {
+    timeoutMs?: number
+    intervalMs?: number
+    onTick?: (attempt: number, elapsedMs: number) => void
+  } = {},
 ): Promise<T | null> {
-  const deadline = Date.now() + timeoutMs
+  const start = Date.now()
+  const deadline = start + timeoutMs
+  let attempt = 0
   while (Date.now() < deadline) {
+    attempt++
     const v = await fn()
     if (v) return v
+    onTick?.(attempt, Date.now() - start)
     await new Promise((r) => setTimeout(r, intervalMs))
   }
   return null
 }
+
+function fmt(v: unknown) {
+  try {
+    return JSON.stringify(v, null, 2)
+  } catch {
+    return String(v)
+  }
+}
+
 
 describe.skipIf(!HAS_CREDS)(
   'smoke: signup → RSVP → entry_phrase + email log',
@@ -119,26 +140,70 @@ describe.skipIf(!HAS_CREDS)(
         expect(error, error?.message).toBeNull()
         expect(data.user?.id).toBeTruthy()
         userId = data.user!.id
+        console.log(`[smoke] signUp ok user=${userId} email=${email}`)
 
-        const rows = await poll(
+        // Poll until a template_name=signup row lands for this recipient.
+        // Keep the most recent snapshot around so we can surface it in the
+        // failure message if the poll times out.
+        let lastRows: Array<{
+          id: string
+          template_name: string | null
+          status: string | null
+          recipient_email: string | null
+          error_message?: string | null
+          created_at: string
+        }> = []
+        const signup = await poll(
           async () => {
-            const { data } = await admin
+            const { data, error: qErr } = await admin
               .from('email_send_log')
-              .select('id, template_name, status, recipient_email, created_at')
+              .select('id, template_name, status, recipient_email, error_message, created_at')
               .eq('recipient_email', email)
               .order('created_at', { ascending: false })
-              .limit(10)
-            return data && data.length > 0 ? data : null
+              .limit(20)
+            if (qErr) {
+              console.warn(`[smoke] email_send_log query error: ${qErr.message}`)
+              return null
+            }
+            lastRows = data ?? []
+            return lastRows.find((r) => r.template_name === 'signup') ?? null
           },
-          { timeoutMs: EMAIL_POLL_TIMEOUT_MS },
+          {
+            timeoutMs: EMAIL_POLL_TIMEOUT_MS,
+            onTick: (attempt, elapsedMs) => {
+              if (attempt % 5 === 0) {
+                console.log(
+                  `[smoke] waiting for signup email (${Math.round(elapsedMs / 1000)}s) — rows so far for ${email}: ${
+                    lastRows.length
+                  } [${lastRows.map((r) => `${r.template_name}:${r.status}`).join(', ') || 'none'}]`,
+                )
+              }
+            },
+          },
         )
 
+        if (!signup) {
+          // Broader context to help diagnose: recent log rows across all
+          // recipients + a hint at queue health.
+          const { data: recent } = await admin
+            .from('email_send_log')
+            .select('template_name, status, recipient_email, error_message, created_at')
+            .order('created_at', { ascending: false })
+            .limit(10)
+          console.error(
+            `[smoke] no signup email for ${email} in ${EMAIL_POLL_TIMEOUT_MS}ms.\n` +
+              `  rows for this recipient: ${fmt(lastRows)}\n` +
+              `  10 most recent email_send_log rows (any recipient): ${fmt(recent)}`,
+          )
+        }
+
         expect(
-          rows,
-          `no email_send_log row for ${email} within ${EMAIL_POLL_TIMEOUT_MS}ms — is the auth webhook / email queue running?`,
-        ).not.toBeNull()
-        const signup = rows!.find((r) => r.template_name === 'signup')
-        expect(signup, 'no template_name=signup row for the new user').toBeTruthy()
+          signup,
+          `no template_name='signup' row for ${email} within ${EMAIL_POLL_TIMEOUT_MS}ms — ` +
+            `check the auth webhook (/lovable/email/auth/webhook) and the process-email-queue cron. ` +
+            `see console output above for the most recent log rows.`,
+        ).toBeTruthy()
+
       },
       TEST_TIMEOUT_MS,
     )
@@ -200,15 +265,66 @@ describe.skipIf(!HAS_CREDS)(
           .single()
         expect(rsvpErr, rsvpErr?.message).toBeFalsy()
         rsvpId = rsvp!.id
+        console.log(`[smoke] inserted rsvp id=${rsvpId} initial row=${fmt(rsvp)}`)
 
         expect(rsvp!.entry_code).toMatch(/^PINK-\d+$/)
         expect(rsvp!.ticket_code, 'ticket_code should be generated').toBeTruthy()
+
+        // BEFORE INSERT triggers mutate NEW in place, so entry_phrase should
+        // already be populated on the returning row. If it isn't (async
+        // trigger, replica lag, etc.), poll a fresh SELECT before failing so
+        // the assertion diagnoses the actual state rather than a stale copy.
+        let phrase = rsvp!.entry_phrase as string | null
+        if (!phrase) {
+          console.warn(
+            `[smoke] entry_phrase missing on RETURNING row for rsvp=${rsvpId}; polling fresh SELECT`,
+          )
+          phrase = await poll(
+            async () => {
+              const { data: fresh, error: freshErr } = await admin
+                .from('rsvps')
+                .select('entry_phrase')
+                .eq('id', rsvpId)
+                .single()
+              if (freshErr) {
+                console.warn(`[smoke] rsvps re-select error: ${freshErr.message}`)
+                return null
+              }
+              return fresh?.entry_phrase && String(fresh.entry_phrase).trim() !== ''
+                ? (fresh.entry_phrase as string)
+                : null
+            },
+            {
+              timeoutMs: 10_000,
+              intervalMs: 500,
+              onTick: (attempt, elapsedMs) =>
+                console.log(
+                  `[smoke] entry_phrase poll attempt=${attempt} elapsed=${elapsedMs}ms`,
+                ),
+            },
+          )
+
+          if (!phrase) {
+            // Dump the row + trigger metadata to make the failure actionable.
+            const { data: fresh } = await admin
+              .from('rsvps')
+              .select('*')
+              .eq('id', rsvpId)
+              .single()
+            console.error(
+              `[smoke] entry_phrase never populated for rsvp=${rsvpId}. ` +
+                `full row: ${fmt(fresh)}. ` +
+                `check trigger rsvps_assign_entry_phrase_trg exists and column default/nullability.`,
+            )
+          }
+        }
+
         expect(
-          rsvp!.entry_phrase,
-          'entry_phrase must be populated by the trigger',
+          phrase,
+          `entry_phrase must be populated by the rsvps_assign_entry_phrase trigger (see console for row dump)`,
         ).toBeTruthy()
-        expect(String(rsvp!.entry_phrase).length).toBeGreaterThan(0)
-        expect(rsvp!.entry_phrase).not.toBe('')
+        expect(String(phrase).trim().length).toBeGreaterThan(0)
+
       },
       TEST_TIMEOUT_MS,
     )
