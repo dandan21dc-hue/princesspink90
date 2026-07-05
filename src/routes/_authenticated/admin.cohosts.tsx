@@ -123,6 +123,7 @@ function AdminCohosts() {
         </div>
       </div>
 
+      <ResourcesSection />
 
       {q.isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
