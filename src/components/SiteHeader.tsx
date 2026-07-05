@@ -23,7 +23,7 @@ export function SiteHeader() {
         <Link to="/" className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary shadow-[var(--shadow-glow-pink)] animate-neon" />
           <span className="font-display text-lg font-semibold tracking-tight">
-            AFTER<span className="text-neon">DARK</span>
+            PRINCESS <span className="text-neon">PINK</span>
           </span>
         </Link>
         <nav className="flex items-center gap-1 text-sm">
