@@ -1,6 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+export type GoLiveDiagnostic = {
+  label: string;
+  status: "ok" | "warn" | "fail" | "unknown";
+  detail: string;
+  [key: string]: unknown;
+};
+
 export type GoLiveStatus = {
   cron_jobs: Array<{ jobname: string; schedule: string; active: boolean }>;
   last_email_sent_at: string | null;
@@ -9,7 +16,9 @@ export type GoLiveStatus = {
   rsvp_total: number;
   rsvp_with_entry_phrase: number;
   last_entry_phrase_at: string | null;
+  diagnostics?: GoLiveDiagnostic[];
 };
+
 
 export const getGoLiveStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
