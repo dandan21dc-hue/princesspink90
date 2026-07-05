@@ -782,6 +782,9 @@ export type Database = {
       }
       safety_incident_reports: {
         Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
           created_at: string
           created_by: string
           id: string
@@ -793,6 +796,9 @@ export type Database = {
           venue: string
         }
         Insert: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           created_by: string
           id?: string
@@ -804,6 +810,9 @@ export type Database = {
           venue: string
         }
         Update: {
+          archive_reason?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           created_by?: string
           id?: string
