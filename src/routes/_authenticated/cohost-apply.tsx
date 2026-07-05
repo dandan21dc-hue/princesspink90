@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getCohostEligibility,
   getMyCohostApplication,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/cohost-apply")({
   head: () => ({ meta: [{ title: "Co-host application · AFTERDARK" }] }),
   component: CohostApply,
 });
+
 
 const DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const EVENT_TYPE_OPTIONS = [
@@ -45,12 +47,15 @@ function CohostApply() {
     other_socials: "",
     bio: "",
     hosting_experience: "",
+    relevant_experience: "",
     why_join: "",
     availability_days: [] as string[],
     availability_notes: "",
     event_types_presets: [] as string[],
     event_types_other: "",
   });
+  const [agreementFile, setAgreementFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (mine.data) {
@@ -68,6 +73,7 @@ function CohostApply() {
         other_socials: mine.data.other_socials ?? "",
         bio: (mine.data as any).bio ?? "",
         hosting_experience: mine.data.hosting_experience ?? "",
+        relevant_experience: (mine.data as any).relevant_experience ?? "",
         why_join: mine.data.why_join ?? "",
         availability_days: availDays,
         availability_notes: availNotes,
@@ -78,7 +84,27 @@ function CohostApply() {
   }, [mine.data]);
 
   const submit = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      if (!agreementFile) {
+        throw new Error("Please upload a signed copy of the Co-Host Agreement.");
+      }
+      const allowed = ["application/pdf", "image/png", "image/jpeg"];
+      if (!allowed.includes(agreementFile.type)) {
+        throw new Error("Agreement must be a PDF, PNG, or JPG file.");
+      }
+      if (agreementFile.size > 10 * 1024 * 1024) {
+        throw new Error("Agreement file must be under 10MB.");
+      }
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) throw new Error("You must be signed in.");
+      const userId = userData.user.id;
+      const ext = agreementFile.name.split(".").pop() || "bin";
+      const path = `${userId}/signed-agreement-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("cohost-agreements")
+        .upload(path, agreementFile, { upsert: true, contentType: agreementFile.type });
+      if (upErr) throw new Error(upErr.message);
+
       const availability = [
         form.availability_days.join(", "),
         form.availability_notes.trim(),
@@ -96,18 +122,24 @@ function CohostApply() {
           other_socials: form.other_socials.trim(),
           bio: form.bio.trim(),
           hosting_experience: form.hosting_experience.trim(),
+          relevant_experience: form.relevant_experience.trim(),
           why_join: form.why_join.trim(),
           availability,
           event_types,
+          agreement_file_path: path,
         },
       });
     },
     onSuccess: () => {
-      toast.success("Application submitted");
+      toast.success("Application submitted — status: Pending Review");
+      setAgreementFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       qc.invalidateQueries({ queryKey: ["my-cohost-application"] });
     },
     onError: (e) => toast.error((e as Error).message),
   });
+
+
 
   const withdraw = useMutation({
     mutationFn: () => withdrawFn(),
@@ -218,6 +250,15 @@ function CohostApply() {
               placeholder="Events you've hosted, promoted, or worked at."
             />
           </Field>
+          <Field label="Relevant experience" required>
+            <Textarea
+              value={form.relevant_experience}
+              onChange={(v) => setForm((f) => ({ ...f, relevant_experience: v }))}
+              rows={4}
+              maxLength={2000}
+              placeholder="Any additional relevant experience — hospitality, community moderation, safety training, kink/adult industry work, etc."
+            />
+          </Field>
           <Field label="Why do you want to co-host?" required>
             <Textarea
               value={form.why_join}
@@ -274,9 +315,46 @@ function CohostApply() {
             </div>
           </Field>
 
+
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <div className="text-xs font-semibold uppercase tracking-widest text-primary">
+              Co-Host Agreement <span className="text-primary">*</span>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Download the agreement template, print and sign it (or sign digitally),
+              then upload your signed copy below. This is required before your
+              application can be reviewed.
+            </p>
+            <a
+              href="/cohost-agreement-template.txt"
+              download
+              className="mt-3 inline-block rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+            >
+              Download agreement template
+            </a>
+            <div className="mt-4">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Upload signed agreement (PDF, PNG, or JPG · max 10MB) *
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,image/png,image/jpeg"
+                required
+                onChange={(e) => setAgreementFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:text-primary-foreground hover:file:brightness-110"
+              />
+              {agreementFile && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Selected: {agreementFile.name} ({Math.round(agreementFile.size / 1024)} KB)
+                </div>
+              )}
+            </div>
+          </div>
+
           <button
             type="submit"
-            disabled={submit.isPending || isReadOnly === true}
+            disabled={submit.isPending || isReadOnly === true || !agreementFile}
             className="rounded-md bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:opacity-50"
           >
             {submit.isPending ? "Submitting…" : "Submit application"}
@@ -355,7 +433,15 @@ function StatusPanel({
         {(app as any).bio && <Info label="Bio">{(app as any).bio}</Info>}
         {app.event_types && <Info label="Event types">{app.event_types}</Info>}
         <Info label="Experience">{app.hosting_experience}</Info>
+        {(app as any).relevant_experience && (
+          <Info label="Relevant experience">{(app as any).relevant_experience}</Info>
+        )}
         <Info label="Why">{app.why_join}</Info>
+        {(app as any).agreement_file_path && (
+          <Info label="Signed agreement">
+            <span className="text-neon">✓ Uploaded</span>
+          </Info>
+        )}
         {app.admin_notes && <Info label="Reviewer notes">{app.admin_notes}</Info>}
       </div>
       {app.status === "pending" && (

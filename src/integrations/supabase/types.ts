@@ -104,6 +104,8 @@ export type Database = {
         Row: {
           admin_notes: string | null
           age: number
+          agreement_file_path: string | null
+          agreement_uploaded_at: string | null
           availability: string | null
           bio: string | null
           city: string
@@ -114,6 +116,7 @@ export type Database = {
           id: string
           instagram_handle: string | null
           other_socials: string | null
+          relevant_experience: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           status: string
@@ -125,6 +128,8 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           age: number
+          agreement_file_path?: string | null
+          agreement_uploaded_at?: string | null
           availability?: string | null
           bio?: string | null
           city: string
@@ -135,6 +140,7 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           other_socials?: string | null
+          relevant_experience?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
@@ -146,6 +152,8 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           age?: number
+          agreement_file_path?: string | null
+          agreement_uploaded_at?: string | null
           availability?: string | null
           bio?: string | null
           city?: string
@@ -156,6 +164,7 @@ export type Database = {
           id?: string
           instagram_handle?: string | null
           other_socials?: string | null
+          relevant_experience?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: string
