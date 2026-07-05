@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listMyEvents } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
+import { amIAdmin } from "@/lib/admin.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -13,8 +14,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const myEventsFn = useServerFn(listMyEvents);
   const myRsvpsFn = useServerFn(listMyRsvps);
+  const amIAdminFn = useServerFn(amIAdmin);
   const events = useQuery({ queryKey: ["my-events"], queryFn: () => myEventsFn() });
   const rsvps = useQuery({ queryKey: ["my-rsvps"], queryFn: () => myRsvpsFn() });
+  const admin = useQuery({ queryKey: ["am-i-admin"], queryFn: () => amIAdminFn() });
+
 
   return (
     <section className="mx-auto max-w-5xl px-5 py-12">
