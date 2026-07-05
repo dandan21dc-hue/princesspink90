@@ -41,6 +41,7 @@ import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicHooksVenueComplianceRemindersRouteImport } from './routes/api/public/hooks/venue-compliance-reminders'
 import { Route as ApiPublicHooksReminderRetriesRouteImport } from './routes/api/public/hooks/reminder-retries'
@@ -223,6 +224,12 @@ const AuthenticatedAdminCohostsRoute =
     path: '/admin/cohosts',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicPaymentsWebhookRoute =
   ApiPublicPaymentsWebhookRouteImport.update({
     id: '/api/public/payments/webhook',
@@ -311,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRoutesByTo {
@@ -352,6 +360,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRoutesById {
@@ -395,6 +404,7 @@ export interface FileRoutesById {
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/_authenticated/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRouteTypes {
@@ -438,6 +448,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/payments/webhook'
+    | '/lovable/email/queue/process'
     | '/events/$id/checkin/print'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -479,6 +490,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/payments/webhook'
+    | '/lovable/email/queue/process'
     | '/events/$id/checkin/print'
   id:
     | '__root__'
@@ -521,6 +533,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/payments/webhook'
+    | '/lovable/email/queue/process'
     | '/_authenticated/events/$id/checkin/print'
   fileRoutesById: FileRoutesById
 }
@@ -539,6 +552,7 @@ export interface RootRouteChildren {
   ApiPublicHooksReminderRetriesRoute: typeof ApiPublicHooksReminderRetriesRoute
   ApiPublicHooksVenueComplianceRemindersRoute: typeof ApiPublicHooksVenueComplianceRemindersRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -767,6 +781,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCohostsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/payments/webhook': {
       id: '/api/public/payments/webhook'
       path: '/api/public/payments/webhook'
@@ -942,6 +963,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksVenueComplianceRemindersRoute:
     ApiPublicHooksVenueComplianceRemindersRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
