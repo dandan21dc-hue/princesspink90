@@ -499,11 +499,26 @@ function MyDocumentsSection() {
                 ) : (
                   <span className="text-amber-300">No agreement record on file</span>
                 )}
-                {stale && currentVersion && (
-                  <span className="text-amber-300">
-                    Current policy is v{currentVersion} — consider re-uploading.
-                  </span>
+                {stale && currentVersion && currentId && (
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-amber-300">
+                      Current policy is v{currentVersion} — consider re-uploading.
+                    </span>
+                    <button
+                      type="button"
+                      disabled={reAck.isPending}
+                      onClick={() =>
+                        reAck.mutate({ policy_version_id: currentId, event_id: d.event_id })
+                      }
+                      className="rounded-md border border-primary/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10 disabled:opacity-50"
+                    >
+                      {reAck.isPending && reAck.variables?.event_id === d.event_id
+                        ? "Recording…"
+                        : `Re-acknowledge v${currentVersion}`}
+                    </button>
+                  </div>
                 )}
+
               </div>
 
             </li>
