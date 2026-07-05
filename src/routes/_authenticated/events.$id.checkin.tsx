@@ -205,9 +205,17 @@ function CheckinPage() {
 
       {camera && (
         <QrCameraScanner
+          feedback={scanFeedback}
           onScan={(text) => {
-            const cleaned = text.trim().toUpperCase();
-            if (!cleaned) return;
+            const cleaned = extractTicketCode(text);
+            if (!cleaned) {
+              flashFeedback({
+                tone: "err",
+                title: "Unreadable QR",
+                detail: "That code didn't contain a ticket. Try again.",
+              });
+              return;
+            }
             // Debounce identical scans (QR stays in view for many frames).
             const now = Date.now();
             if (lastScanRef.current.code === cleaned && now - lastScanRef.current.at < 2500) return;
@@ -216,9 +224,13 @@ function CheckinPage() {
             setResult(null);
             lookup.mutate(cleaned);
           }}
-          onClose={() => setCamera(false)}
+          onClose={() => {
+            setCamera(false);
+            setScanFeedback(null);
+          }}
         />
       )}
+
 
       <form
         onSubmit={(e) => {
