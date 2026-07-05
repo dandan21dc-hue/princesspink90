@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   getCohostEligibility,
   getMyCohostApplication,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/cohost-apply")({
   head: () => ({ meta: [{ title: "Co-host application · AFTERDARK" }] }),
   component: CohostApply,
 });
+
 
 const DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const EVENT_TYPE_OPTIONS = [
