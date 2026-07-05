@@ -460,6 +460,36 @@ function RsvpBox({ eventId }: { eventId: string }) {
 
       <ConsentCompliance checked={complianceOk} onChange={setComplianceOk} />
 
+      <label className="flex items-start gap-2 rounded-lg border border-border/60 bg-background/40 p-3 text-sm">
+        <input
+          type="checkbox"
+          checked={termsOk}
+          onChange={(e) => setTermsOk(e.target.checked)}
+          className="mt-1"
+        />
+        <span>
+          I have read and agree to the Princess Pink{" "}
+          <Link
+            to="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-2"
+          >
+            Privacy Policy
+          </Link>{" "}
+          and{" "}
+          <Link
+            to="/conduct"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary underline underline-offset-2"
+          >
+            Terms of Service
+          </Link>
+          .
+        </span>
+      </label>
+
       <button
         onClick={() => rsvp.mutate()}
         disabled={!canSubmit}
@@ -467,13 +497,16 @@ function RsvpBox({ eventId }: { eventId: string }) {
           !canSubmit
             ? !screeningCurrent
               ? "Upload a current admin-approved health screening to finalize your RSVP."
-              : "Confirm age, accept the waiver and code of conduct, and sign your name to RSVP."
+              : !termsOk
+                ? "Read and agree to the Privacy Policy and Terms of Service before finalizing your booking."
+                : "Confirm age, accept the waiver and code of conduct, and sign your name to RSVP."
             : undefined
         }
         className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-50"
       >
         {rsvp.isPending ? "Confirming…" : "Sign & RSVP · Reserve entry"}
       </button>
+
     </div>
   );
 }
