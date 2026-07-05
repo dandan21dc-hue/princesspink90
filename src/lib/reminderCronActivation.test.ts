@@ -289,4 +289,67 @@ describe('reminder cron activation → exactly-once send per due reminder', () =
       `user-${preClaimed.user_id.slice(-2)}@example.com`,
     )
   })
+
+  it('never resends an email for the same idempotency key across duplicate hook invocations', async () => {
+    // Hardening test for the exactly-once guarantee: even if the candidate
+    // filter fails to exclude already-sent rows (e.g. expiry_reminder_sent_at
+    // wasn't flipped, a replica lag, or a concurrent cron overlap), the
+    // unique constraint on health_screening_reminder_log.idempotency_key
+    // MUST prevent a second sendResendEmail call for the same key.
+    //
+    // We simulate that by shadowing the mock's `.is()` filter so it returns
+    // the full DUE set on every invocation regardless of claimedKeys. Only
+    // the 23505 unique_violation on the log insert protects us here.
+    configuredRunTime = '00:00'
+
+    const originalMake = makeSupabaseMock
+    const alwaysReturnAllCandidates = () => {
+      const client = originalMake()
+      const originalFrom = client.from
+      client.from = (table: string) => {
+        if (table === 'health_screenings') {
+          const chain: Record<string, unknown> = {}
+          chain.select = () => chain
+          chain.eq = () => chain
+          chain.is = () => Promise.resolve({ data: DUE, error: null })
+          chain.update = () => ({
+            eq: () => Promise.resolve({ data: null, error: null }),
+          })
+          return chain
+        }
+        return originalFrom(table)
+      }
+      return client
+    }
+
+    const supabaseModule = await import('@supabase/supabase-js')
+    const createClientSpy = vi
+      .spyOn(supabaseModule, 'createClient')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .mockImplementation(alwaysReturnAllCandidates as any)
+
+    try {
+      // Invoke the hook three times back-to-back — the same candidates come
+      // through every time, so only the idempotency-key uniqueness stops
+      // duplicate sends.
+      await invokeHook()
+      await invokeHook()
+      await invokeHook()
+
+      // Exactly one send per unique key, ever.
+      expect(email.sendResendEmail).toHaveBeenCalledTimes(DUE.length)
+
+      const keys = email.keys()
+      expect(new Set(keys).size).toBe(keys.length)
+      expect(new Set(keys).size).toBe(DUE.length)
+      for (const s of DUE) {
+        expect(keys).toContain(`expiry_7_day:${s.id}:${s.valid_until}`)
+      }
+
+      const recipients = email.recipients()
+      expect(new Set(recipients).size).toBe(DUE.length)
+    } finally {
+      createClientSpy.mockRestore()
+    }
+  })
 })
