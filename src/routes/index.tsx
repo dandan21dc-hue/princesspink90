@@ -133,16 +133,16 @@ function Hero() {
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.25em] text-primary">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-neon" />
-            Members-only · 18+
+            Hosted by Princess Pink · 18+
           </div>
           <h1 className="mt-6 font-display text-5xl font-extrabold leading-[1.05] sm:text-7xl">
-            After the credits roll,{" "}
-            <span className="text-neon animate-neon">the real show begins.</span>
+            Glory holes, gang bangs,{" "}
+            <span className="text-neon animate-neon">and the theatre after dark.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted-foreground leading-relaxed">
-            AFTERDARK curates discreet, consent-first nights at adult theatres
-            and grown-up venues. Browse the public marquee, or enter a code to
-            unlock a private invitation.
+            Princess Pink curates discreet, consent-first nights at adult
+            theatres and private venues. Browse the public marquee, or enter a
+            code to unlock a private invitation.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
@@ -151,12 +151,12 @@ function Hero() {
             >
               See the marquee
             </a>
-            <Link
-              to="/unlock"
+            <a
+              href="#host"
               className="rounded-md border border-border bg-background/40 px-6 py-3 text-sm font-semibold uppercase tracking-widest backdrop-blur hover:bg-secondary/40 transition"
             >
-              Enter a code
-            </Link>
+              Meet the host
+            </a>
           </div>
         </div>
       </div>
