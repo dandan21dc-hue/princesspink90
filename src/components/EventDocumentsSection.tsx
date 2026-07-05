@@ -226,6 +226,7 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
             uploading={uploadingType === r.type}
             uploadDisabled={!hasAgreedToCurrent}
             currentPolicyId={currentVersionId}
+            reAcknowledged={hasAgreedToCurrent}
             onUpload={(f) => upload(r.type, f)}
             onOpen={openDoc}
             onDelete={(id) => del.mutate(id)}
@@ -237,6 +238,7 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
           uploading={uploadingType === "other"}
           uploadDisabled={!hasAgreedToCurrent}
           currentPolicyId={currentVersionId}
+          reAcknowledged={hasAgreedToCurrent}
           onUpload={(f) => upload("other", f)}
           onOpen={openDoc}
           onDelete={(id) => del.mutate(id)}
