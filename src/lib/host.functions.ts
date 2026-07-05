@@ -377,6 +377,9 @@ export const registerEventDocument = createServerFn({ method: "POST" })
     if (!pv.is_current) {
       throw new Error("Policy has been updated. Please review the current version before uploading.");
     }
+    // Ensure an agreement record exists for this host / version / event.
+    await recordAgreementRow(context.supabase, context.userId, pv.id, pv.version, data.event_id);
+
     const { data: row, error } = await context.supabase
       .from("event_documents")
       .insert({
@@ -395,6 +398,100 @@ export const registerEventDocument = createServerFn({ method: "POST" })
     if (error) throw error;
     return row;
   });
+
+async function recordAgreementRow(
+  supabase: any,
+  userId: string,
+  policyVersionId: string,
+  policyVersionLabel: string,
+  eventId: string | null,
+) {
+  const { getRequestHeader } = await import("@tanstack/react-start/server");
+  const ua = getRequestHeader("user-agent") ?? null;
+  const ip =
+    (getRequestHeader("x-forwarded-for") ?? "").split(",")[0]?.trim() ||
+    getRequestHeader("cf-connecting-ip") ||
+    null;
+  // Idempotent — unique index on (user, version, coalesce(event, sentinel)).
+  const { error } = await supabase
+    .from("compliance_policy_agreements")
+    .upsert(
+      {
+        accepted_by_user_id: userId,
+        policy_version_id: policyVersionId,
+        policy_version_label: policyVersionLabel,
+        event_id: eventId,
+        ip_address: ip,
+        user_agent: ua,
+      },
+      { onConflict: "accepted_by_user_id,policy_version_id,event_id", ignoreDuplicates: true },
+    );
+  // Ignore upsert errors caused by the COALESCE-index conflict target not matching;
+  // fall back to a plain insert that swallows duplicate-key errors.
+  if (error) {
+    const { error: insErr } = await supabase
+      .from("compliance_policy_agreements")
+      .insert({
+        accepted_by_user_id: userId,
+        policy_version_id: policyVersionId,
+        policy_version_label: policyVersionLabel,
+        event_id: eventId,
+        ip_address: ip,
+        user_agent: ua,
+      });
+    if (insErr && !String(insErr.message ?? "").toLowerCase().includes("duplicate")) throw insErr;
+  }
+}
+
+export const recordPolicyAgreement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { policy_version_id: string; event_id?: string | null }) =>
+    z.object({
+      policy_version_id: z.string().uuid(),
+      event_id: z.string().uuid().optional().nullable(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: pv, error: pvErr } = await context.supabase
+      .from("compliance_policy_versions")
+      .select("id, version, is_current")
+      .eq("id", data.policy_version_id)
+      .maybeSingle();
+    if (pvErr) throw pvErr;
+    if (!pv) throw new Error("Unknown policy version");
+    if (!pv.is_current) {
+      throw new Error("This policy version is no longer current.");
+    }
+    if (data.event_id) {
+      await assertOwnsEvent(context.supabase, context.userId, data.event_id);
+    }
+    await recordAgreementRow(
+      context.supabase,
+      context.userId,
+      pv.id,
+      pv.version,
+      data.event_id ?? null,
+    );
+    return { ok: true, policy_version_id: pv.id, policy_version_label: pv.version, accepted_at: new Date().toISOString() };
+  });
+
+export const listMyPolicyAgreements = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { event_id?: string | null }) =>
+    z.object({ event_id: z.string().uuid().optional().nullable() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    let query = context.supabase
+      .from("compliance_policy_agreements")
+      .select("id, policy_version_id, policy_version_label, event_id, accepted_at, ip_address, user_agent")
+      .eq("accepted_by_user_id", context.userId)
+      .order("accepted_at", { ascending: false });
+    if (data.event_id) query = query.eq("event_id", data.event_id);
+    const { data: rows, error } = await query;
+    if (error) throw error;
+    return rows ?? [];
+  });
+
 
 
 export const deleteEventDocument = createServerFn({ method: "POST" })
