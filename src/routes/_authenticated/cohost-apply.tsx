@@ -442,6 +442,7 @@ function StatusPanel({
             <span className="text-neon">✓ Uploaded</span>
           </Info>
         )}
+        {app.admin_notes && <Info label="Reviewer notes">{app.admin_notes}</Info>}
       </div>
       {app.status === "pending" && (
         <button
