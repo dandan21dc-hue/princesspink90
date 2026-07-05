@@ -122,6 +122,10 @@ function CohostBlock() {
         </div>
       </div>
     </section>
+  );
+}
+
+
 
 function HostBlock() {
   const { data: settings } = useSuspenseQuery(settingsQuery);
