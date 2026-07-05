@@ -124,6 +124,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const isLifetime = data.priceId === "lifetime_onetime_aud" || data.priceId === "lifetime_onetime";
         const termPassMatch = /^all_access_(3|6|12)mo_onetime(?:_aud)?$/.exec(data.priceId);
         const termMonths = termPassMatch ? Number(termPassMatch[1]) : null;
+        const isPanty = /^panty_(24|48|72)hr_aud$/.test(data.priceId);
         const session = await stripe.checkout.sessions.create({
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
@@ -131,16 +132,30 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           return_url: data.returnUrl,
           ...(customerId && { customer: customerId }),
           ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
+          ...(isPanty && {
+            shipping_address_collection: { allowed_countries: ["AU"] },
+            shipping_options: [
+              {
+                shipping_rate_data: {
+                  type: "fixed_amount",
+                  display_name: "Discreet AU shipping",
+                  fixed_amount: { amount: 1500, currency: "aud" },
+                },
+              },
+            ],
+          }),
           ...(data.userId && {
             metadata: {
               userId: data.userId,
               ...(isLifetime && { membership: "lifetime" }),
               ...(termMonths && { membership: "term_pass", term_months: String(termMonths) }),
+              ...(isPanty && { panty_order: data.priceId }),
             },
             ...(isRecurring && { subscription_data: { metadata: { userId: data.userId } } }),
           }),
         });
         return { clientSecret: session.client_secret ?? "" };
+
 
       }
 
