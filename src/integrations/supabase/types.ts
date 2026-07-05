@@ -774,18 +774,21 @@ export type Database = {
       reminder_job_config: {
         Row: {
           daily_run_time_utc: string
+          expiring_within_days: number
           id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           daily_run_time_utc?: string
+          expiring_within_days?: number
           id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           daily_run_time_utc?: string
+          expiring_within_days?: number
           id?: string
           updated_at?: string
           updated_by?: string | null

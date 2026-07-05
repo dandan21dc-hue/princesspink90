@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@supabase/supabase-js'
-import { readDailyRunTimeUtc } from '@/lib/reminder-job-config.functions'
+import { readReminderJobConfig } from '@/lib/reminder-job-config.functions'
 
 // Daily job: finds admin-approved health screenings expiring in exactly 7 days
 // and records exactly one reminder per screening.
@@ -37,7 +37,8 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
         // Respect the configured daily run time (UTC). If invoked before it,
         // skip so the cron/hosted scheduler stays the source of truth on WHEN,
         // while the config row is the source of truth on the target time.
-        const dailyRunTime = await readDailyRunTimeUtc(); // "HH:MM"
+        const { daily_run_time_utc: dailyRunTime, expiring_within_days: windowDays } =
+          await readReminderJobConfig();
         const now = new Date();
         const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
         const [h, m] = dailyRunTime.split(':').map(Number);
@@ -54,9 +55,9 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           )
         }
 
-        // Target date: exactly 7 days from today (UTC).
+        // Target date: exactly `windowDays` from today (UTC).
         const target = new Date()
-        target.setUTCDate(target.getUTCDate() + 7)
+        target.setUTCDate(target.getUTCDate() + windowDays)
         const targetDate = target.toISOString().slice(0, 10)
 
         const { data: candidates, error: selErr } = await supabase
@@ -113,13 +114,13 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           const { error: notifErr } = await supabase.from('notifications').insert({
             user_id: row.user_id,
             kind: 'health_screening_expiring',
-            title: 'Your health screening expires in 7 days',
+            title: `Your health screening expires in ${windowDays} day${windowDays === 1 ? '' : 's'}`,
             body: `Your approved health screening is valid until ${row.valid_until}. Please upload a renewed certificate before it expires to keep your access active.`,
             link_url: '/health-screenings',
             metadata: {
               screening_id: row.id,
               valid_until: row.valid_until,
-              days_until_expiry: 7,
+              days_until_expiry: windowDays,
               idempotency_key: idempotencyKey,
             },
           })
