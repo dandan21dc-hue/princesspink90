@@ -393,6 +393,16 @@ function ApplicationDetailSheet({
             {row.bio && <Info label="Bio">{row.bio}</Info>}
             <Info label="Experience">{row.hosting_experience}</Info>
             <Info label="Why join">{row.why_join}</Info>
+            {row.co_host_agreement_signed_at && (
+              <Info label="Handbook acknowledgement">
+                <span className="text-neon">✓ Signed</span> by{" "}
+                <span className="text-foreground">{row.handbook_signature_name}</span>{" "}
+                on {new Date(row.co_host_agreement_signed_at).toLocaleString()}
+                {row.handbook_version && (
+                  <span className="text-muted-foreground"> · handbook v{row.handbook_version}</span>
+                )}
+              </Info>
+            )}
           </div>
 
           <div>

@@ -18,6 +18,9 @@ export type CohostApplication = {
   event_types: string | null;
   agreement_file_path: string | null;
   agreement_uploaded_at: string | null;
+  co_host_agreement_signed_at: string | null;
+  handbook_signature_name: string | null;
+  handbook_version: string | null;
   status: "pending" | "approved" | "rejected" | "withdrawn";
   admin_notes: string | null;
   submitted_at: string;
@@ -37,6 +40,11 @@ const applicationInput = z.object({
   availability: z.string().trim().max(500).optional().or(z.literal("")),
   event_types: z.string().trim().max(500).optional().or(z.literal("")),
   agreement_file_path: z.string().trim().min(1).max(500),
+  handbook_signature_name: z.string().trim().min(2).max(120),
+  handbook_acknowledged: z.literal(true, {
+    errorMap: () => ({ message: "You must acknowledge the handbook to apply." }),
+  }),
+  handbook_version: z.string().trim().min(1).max(20).default("1.0"),
 });
 
 
@@ -61,7 +69,7 @@ export const getMyCohostApplication = createServerFn({ method: "GET" })
     const { data, error } = await context.supabase
       .from("cohost_applications")
       .select(
-        "id, user_id, display_name, age, city, instagram_handle, other_socials, bio, hosting_experience, relevant_experience, why_join, availability, event_types, agreement_file_path, agreement_uploaded_at, status, admin_notes, submitted_at, reviewed_at",
+        "id, user_id, display_name, age, city, instagram_handle, other_socials, bio, hosting_experience, relevant_experience, why_join, availability, event_types, agreement_file_path, agreement_uploaded_at, co_host_agreement_signed_at, handbook_signature_name, handbook_version, status, admin_notes, submitted_at, reviewed_at",
       )
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -119,6 +127,9 @@ export const submitCohostApplication = createServerFn({ method: "POST" })
       event_types: data.event_types || null,
       agreement_file_path: data.agreement_file_path,
       agreement_uploaded_at: nowIso,
+      co_host_agreement_signed_at: nowIso,
+      handbook_signature_name: data.handbook_signature_name,
+      handbook_version: data.handbook_version || "1.0",
       status: "pending" as const,
       submitted_at: nowIso,
     };

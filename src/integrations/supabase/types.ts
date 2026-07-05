@@ -109,9 +109,12 @@ export type Database = {
           availability: string | null
           bio: string | null
           city: string
+          co_host_agreement_signed_at: string | null
           created_at: string
           display_name: string
           event_types: string | null
+          handbook_signature_name: string | null
+          handbook_version: string | null
           hosting_experience: string
           id: string
           instagram_handle: string | null
@@ -133,9 +136,12 @@ export type Database = {
           availability?: string | null
           bio?: string | null
           city: string
+          co_host_agreement_signed_at?: string | null
           created_at?: string
           display_name: string
           event_types?: string | null
+          handbook_signature_name?: string | null
+          handbook_version?: string | null
           hosting_experience: string
           id?: string
           instagram_handle?: string | null
@@ -157,9 +163,12 @@ export type Database = {
           availability?: string | null
           bio?: string | null
           city?: string
+          co_host_agreement_signed_at?: string | null
           created_at?: string
           display_name?: string
           event_types?: string | null
+          handbook_signature_name?: string | null
+          handbook_version?: string | null
           hosting_experience?: string
           id?: string
           instagram_handle?: string | null
