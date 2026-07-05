@@ -315,9 +315,46 @@ function CohostApply() {
             </div>
           </Field>
 
+
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+            <div className="text-xs font-semibold uppercase tracking-widest text-primary">
+              Co-Host Agreement <span className="text-primary">*</span>
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Download the agreement template, print and sign it (or sign digitally),
+              then upload your signed copy below. This is required before your
+              application can be reviewed.
+            </p>
+            <a
+              href="/cohost-agreement-template.txt"
+              download
+              className="mt-3 inline-block rounded-md border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+            >
+              Download agreement template
+            </a>
+            <div className="mt-4">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Upload signed agreement (PDF, PNG, or JPG · max 10MB) *
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,image/png,image/jpeg"
+                required
+                onChange={(e) => setAgreementFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:text-primary-foreground hover:file:brightness-110"
+              />
+              {agreementFile && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Selected: {agreementFile.name} ({Math.round(agreementFile.size / 1024)} KB)
+                </div>
+              )}
+            </div>
+          </div>
+
           <button
             type="submit"
-            disabled={submit.isPending || isReadOnly === true}
+            disabled={submit.isPending || isReadOnly === true || !agreementFile}
             className="rounded-md bg-primary px-6 py-3 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:opacity-50"
           >
             {submit.isPending ? "Submitting…" : "Submit application"}
