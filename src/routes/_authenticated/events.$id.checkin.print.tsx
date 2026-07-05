@@ -114,8 +114,8 @@ function PrintPage() {
           <thead>
             <tr>
               <th style={{ width: "24px" }}>✓</th>
-              <th style={{ width: "110px" }}>Entry code</th>
-              <th style={{ width: "110px" }}>Scan code</th>
+              <th style={{ width: "160px" }}>Secret phrase</th>
+              <th style={{ width: "90px" }}>Entry code</th>
               <th>Guest</th>
               <th style={{ width: "50px" }}>Party</th>
               <th style={{ width: "70px" }}>ID</th>
@@ -128,8 +128,8 @@ function PrintPage() {
                 <td style={{ textAlign: "center" }}>
                   <span className="box" />
                 </td>
+                <td style={{ fontWeight: 700 }}>“{g.entry_phrase}”</td>
                 <td className="code">{g.entry_code}</td>
-                <td className="code">{g.ticket_code}</td>
                 <td>{g.display_name ?? "—"}</td>
                 <td style={{ textAlign: "center" }}>{g.guest_count}</td>
                 <td className={g.age_status !== "approved" ? "warn" : ""}>
