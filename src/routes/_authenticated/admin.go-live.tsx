@@ -234,10 +234,11 @@ function AdminGoLivePage() {
         />
       </section>
 
-      <section className="mx-auto max-w-4xl px-5 pb-8">
+      <section id="scheduled-jobs" className="mx-auto max-w-4xl px-5 pb-8 scroll-mt-16">
         <h2 className="mb-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
           Scheduled jobs
         </h2>
+
         <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card/60">
           <table className="w-full min-w-[560px] text-sm">
             <thead className="bg-muted/30 text-left text-[11px] uppercase tracking-widest text-muted-foreground">
