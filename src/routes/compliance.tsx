@@ -844,8 +844,10 @@ function MyDocumentsSection() {
             <AlertDialogCancel disabled={reAck.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               disabled={reAck.isPending || !currentId}
+              aria-busy={reAck.isPending}
               onClick={(e) => {
                 e.preventDefault();
+                if (reAck.isPending) return;
                 if (!currentId || !confirmTarget) return;
                 reAck.mutate(
                   { policy_version_id: currentId, event_id: confirmTarget.event_id },
@@ -854,7 +856,9 @@ function MyDocumentsSection() {
                   // the mutation's onError already surfaces a toast.
                 );
               }}
+              className="inline-flex items-center gap-2"
             >
+              {reAck.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
               {reAck.isPending ? "Recording…" : `Record agreement to v${currentVersion ?? "?"}`}
             </AlertDialogAction>
           </AlertDialogFooter>
