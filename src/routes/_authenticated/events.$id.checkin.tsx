@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { lookupCheckin, performCheckin, listCheckins } from "@/lib/checkin.functions";
 import type { VideoConsent } from "@/lib/verification.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { QrCameraScanner } from "@/components/QrCameraScanner";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$id/checkin")({
@@ -25,7 +26,9 @@ function CheckinPage() {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<Lookup | null>(null);
   const [scanner, setScanner] = useState(false);
+  const [camera, setCamera] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastScanRef = useRef<{ code: string; at: number }>({ code: "", at: 0 });
 
   // Keep focus on the input while scanner mode is on so a keyboard-wedge
   // barcode/QR scanner always lands its keystrokes here.
@@ -101,25 +104,55 @@ function CheckinPage() {
         </div>
       </div>
 
-      <div className="mb-2 flex items-center justify-between">
-        <label className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={scanner}
-            onChange={(e) => {
-              setScanner(e.target.checked);
-              if (e.target.checked) setTimeout(() => inputRef.current?.focus(), 0);
-            }}
-          />
-          Scanner mode
-        </label>
-        {scanner && (
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={scanner}
+              onChange={(e) => {
+                setScanner(e.target.checked);
+                if (e.target.checked) setTimeout(() => inputRef.current?.focus(), 0);
+              }}
+            />
+            Hardware scanner
+          </label>
+          <button
+            type="button"
+            onClick={() => setCamera((c) => !c)}
+            className={`rounded-md border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest transition ${
+              camera
+                ? "border-neon bg-neon/10 text-neon"
+                : "border-border text-foreground hover:bg-accent"
+            }`}
+          >
+            {camera ? "◉ Camera on" : "◉ Camera scan"}
+          </button>
+        </div>
+        {scanner && !camera && (
           <span className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-neon">
             <span className="h-2 w-2 animate-pulse rounded-full bg-neon" />
             Ready — scan a ticket
           </span>
         )}
       </div>
+
+      {camera && (
+        <QrCameraScanner
+          onScan={(text) => {
+            const cleaned = text.trim().toUpperCase();
+            if (!cleaned) return;
+            // Debounce identical scans (QR stays in view for many frames).
+            const now = Date.now();
+            if (lastScanRef.current.code === cleaned && now - lastScanRef.current.at < 2500) return;
+            lastScanRef.current = { code: cleaned, at: now };
+            setCode(cleaned);
+            setResult(null);
+            lookup.mutate(cleaned);
+          }}
+          onClose={() => setCamera(false)}
+        />
+      )}
 
       <form
         onSubmit={(e) => {
