@@ -34,6 +34,26 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           { auth: { persistSession: false, autoRefreshToken: false } },
         )
 
+        // Respect the configured daily run time (UTC). If invoked before it,
+        // skip so the cron/hosted scheduler stays the source of truth on WHEN,
+        // while the config row is the source of truth on the target time.
+        const dailyRunTime = await readDailyRunTimeUtc(); // "HH:MM"
+        const now = new Date();
+        const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+        const [h, m] = dailyRunTime.split(':').map(Number);
+        const configuredMinutes = h * 60 + m;
+        if (nowMinutes < configuredMinutes) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              skipped_reason: 'before_configured_run_time',
+              configured_run_time_utc: dailyRunTime,
+              now_utc: now.toISOString(),
+            }),
+            { headers: { 'Content-Type': 'application/json' } },
+          )
+        }
+
         // Target date: exactly 7 days from today (UTC).
         const target = new Date()
         target.setUTCDate(target.getUTCDate() + 7)
