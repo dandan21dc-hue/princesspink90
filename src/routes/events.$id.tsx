@@ -136,7 +136,26 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+const DEFAULT_WAIVER = `LIABILITY WAIVER, ASSUMPTION OF RISK & RELEASE
+
+By entering the event, I acknowledge that attendance is voluntary and involves inherent risks, including but not limited to physical contact, adult-themed performances, alcohol service, and interaction with other adult guests. I confirm I am at least 18 years old.
+
+I assume all risk of personal injury, illness, or property loss arising from my participation. I release and hold harmless the host, venue, performers, staff, and other guests from any and all claims arising from my attendance, except in cases of gross negligence or wilful misconduct.
+
+I agree to abide by the house rules, respect consent at all times, and follow all reasonable instructions from staff. I understand I may be removed without refund for violating these terms.
+
+I confirm the video / photography preferences I selected are accurate and consent to their enforcement by staff.`;
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 function RsvpBox({ eventId }: { eventId: string }) {
+  const event = Route.useLoaderData();
+  const waiverText = ((event as any)?.waiver_text ?? DEFAULT_WAIVER).trim();
+
   const qc = useQueryClient();
   const getMy = useServerFn(myRsvpForEvent);
   const getAge = useServerFn(getMyAgeVerification);
@@ -154,6 +173,9 @@ function RsvpBox({ eventId }: { eventId: string }) {
   });
 
   const [ageOk, setAgeOk] = useState(false);
+  const [waiverOk, setWaiverOk] = useState(false);
+  const [signature, setSignature] = useState("");
+  const [showWaiver, setShowWaiver] = useState(false);
   const [consent, setConsent] = useState<VideoConsent>({
     private_archive: false,
     public_promo: false,
@@ -162,15 +184,20 @@ function RsvpBox({ eventId }: { eventId: string }) {
   });
 
   const rsvp = useMutation({
-    mutationFn: () =>
-      rsvpFn({
+    mutationFn: async () => {
+      const hash = await sha256Hex(waiverText);
+      return rsvpFn({
         data: {
           event_id: eventId,
           guest_count: 1,
           age_confirmed: true,
           video_consent: consent,
+          waiver_accepted: true,
+          waiver_signature: signature.trim(),
+          waiver_text_hash: hash,
         },
-      }),
+      });
+    },
     onSuccess: (r) => {
       toast.success(`Confirmed! Ticket ${r.ticket_code}`);
       qc.invalidateQueries({ queryKey: ["my-rsvp", eventId] });
@@ -194,6 +221,12 @@ function RsvpBox({ eventId }: { eventId: string }) {
           {mine.ticket_code}
         </div>
         <p className="mt-1 text-xs text-muted-foreground">Show this code at the door.</p>
+        {mine.waiver_signature && mine.waiver_accepted_at && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Waiver signed as <span className="text-foreground">{mine.waiver_signature}</span> on{" "}
+            {new Date(mine.waiver_accepted_at).toLocaleDateString()}.
+          </p>
+        )}
         <button
           onClick={() => cancel.mutate()}
           disabled={cancel.isPending}
@@ -247,6 +280,8 @@ function RsvpBox({ eventId }: { eventId: string }) {
     });
   };
 
+  const canSubmit = ageOk && waiverOk && signature.trim().length >= 2 && !rsvp.isPending;
+
   return (
     <div className="space-y-4 rounded-lg border border-border/60 bg-card/40 p-4">
       <label className="flex items-start gap-2 text-sm">
@@ -272,12 +307,72 @@ function RsvpBox({ eventId }: { eventId: string }) {
         </p>
       </div>
 
+      <div className="rounded-lg border border-border/60 bg-background/50 p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-[10px] uppercase tracking-[0.25em] text-primary">Liability waiver</div>
+          <button
+            type="button"
+            onClick={() => setShowWaiver((v) => !v)}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          >
+            {showWaiver ? "Hide" : "Read full waiver"}
+          </button>
+        </div>
+        {showWaiver && (
+          <div className="max-h-56 overflow-auto rounded-md border border-border/50 bg-background p-3 text-[12px] leading-relaxed whitespace-pre-wrap text-muted-foreground">
+            {waiverText}
+          </div>
+        )}
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={waiverOk}
+            onChange={(e) => setWaiverOk(e.target.checked)}
+            className="mt-1"
+          />
+          <span>
+            I have read and accept the liability waiver, assumption of risk & release.
+            {!showWaiver && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => setShowWaiver(true)}
+                  className="text-primary underline underline-offset-2"
+                >
+                  Read it
+                </button>
+                .
+              </>
+            )}
+          </span>
+        </label>
+        <label className="block">
+          <div className="mb-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+            Type your full legal name to sign
+          </div>
+          <input
+            type="text"
+            value={signature}
+            onChange={(e) => setSignature(e.target.value)}
+            placeholder="e.g. Alex Rivera"
+            maxLength={120}
+            autoComplete="off"
+            className="w-full rounded-md border border-input bg-background px-3 py-2 font-serif italic text-base focus:border-primary focus:outline-none"
+          />
+          {signature.trim().length > 0 && signature.trim().length < 2 && (
+            <p className="mt-1 text-[11px] text-red-400">Please type your full name.</p>
+          )}
+        </label>
+      </div>
+
       <button
         onClick={() => rsvp.mutate()}
-        disabled={rsvp.isPending || !ageOk}
+        disabled={!canSubmit}
+        title={!canSubmit ? "Confirm age, accept the waiver, and sign your name to RSVP." : undefined}
         className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-50"
       >
-        {rsvp.isPending ? "Confirming…" : "RSVP · Reserve entry"}
+        {rsvp.isPending ? "Confirming…" : "Sign & RSVP · Reserve entry"}
       </button>
     </div>
   );
@@ -291,3 +386,4 @@ function Check({ label, checked, onChange }: { label: string; checked: boolean; 
     </label>
   );
 }
+
