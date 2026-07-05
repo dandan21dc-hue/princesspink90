@@ -251,6 +251,33 @@ function EditEvent() {
           Delete event
         </button>
       </div>
+      </div>
+
+      <AlertDialog open={!!confirmBulk} onOpenChange={(o) => !o && setConfirmBulk(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmBulk?.used ? "Mark codes as used?" : "Unmark codes?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmBulk?.used
+                ? `This will mark ${selected.size} access code${selected.size === 1 ? "" : "s"} as used${bulkGuestName.trim() ? ` and record the guest name "${bulkGuestName.trim()}"` : ""}.`
+                : `This will clear the used status on ${selected.size} access code${selected.size === 1 ? "" : "s"}, allowing them to unlock the invitation again.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmBulk) bulkMark.mutate({ used: confirmBulk.used });
+                setConfirmBulk(null);
+              }}
+            >
+              {confirmBulk?.used ? "Mark used" : "Unmark"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
