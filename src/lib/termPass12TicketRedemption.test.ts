@@ -341,7 +341,9 @@ describe.skipIf(!HAS_ENV)(
         .select('event_ticket_used_at, event_ticket_event_id')
         .eq('id', membershipId)
         .single()
-      expect(readback.data!.event_ticket_used_at).toBe(nowIso)
+      expect(new Date(readback.data!.event_ticket_used_at as string).getTime()).toBe(
+        new Date(nowIso).getTime(),
+      )
       expect(readback.data!.event_ticket_event_id).toBe(eventId)
 
       await authed.auth.signOut()
