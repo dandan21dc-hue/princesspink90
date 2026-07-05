@@ -118,10 +118,39 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
   });
 }
 
+/**
+ * Grant entitlements only after Stripe confirms funds have settled.
+ *
+ * `checkout.session.completed` fires as soon as the customer finishes the
+ * checkout form, even for async payment methods (bank debits, some wallets)
+ * where the money hasn't actually landed yet. For those, `payment_status`
+ * is `"unpaid"` at completion and later flips via
+ * `checkout.session.async_payment_succeeded` (paid) or
+ * `checkout.session.async_payment_failed` (never paid).
+ *
+ * This function is the single "grant everything" path — called from both
+ * `checkout.session.completed` (for instant-pay methods where payment_status
+ * is already `"paid"`) and `checkout.session.async_payment_succeeded` (once
+ * async funds settle). If payment_status isn't `"paid"`, we bail without
+ * writing memberships/purchases so nothing gets unlocked prematurely.
+ */
 async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   if (session.mode !== "payment") return;
   const userId = session.metadata?.userId;
   if (!userId) return;
+
+  // GATE: only grant entitlements once funds have settled. Async payment
+  // methods return here with payment_status "unpaid" and get processed
+  // later by handleAsyncPaymentSucceeded.
+  if (session.payment_status !== "paid") {
+    console.log(
+      "checkout.session.completed skipped: payment_status is",
+      session.payment_status,
+      "for session",
+      session.id,
+    );
+    return;
+  }
 
   // Private room booking — confirm the pre-created pending booking.
   if (session.metadata?.booking === "private_room") {
@@ -262,6 +291,38 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
   }
 }
 
+/**
+ * Fires when an async payment method (delayed-settlement bank debit, etc.)
+ * ultimately fails after `checkout.session.completed` already went out.
+ *
+ * At that point we've already been skipped by handleCheckoutCompleted (the
+ * payment_status gate above), so no entitlements were granted — but for
+ * private-room bookings the pending row still exists in the DB, holding
+ * the slot. Roll it back so the calendar frees up and staff aren't
+ * expecting the guest to show.
+ */
+async function handleAsyncPaymentFailed(session: any, env: StripeEnv) {
+  if (session.metadata?.booking !== "private_room") return;
+  const bookingId = session.metadata?.private_room_booking_id;
+  if (!bookingId) return;
+  await getSupabase()
+    .from("private_room_bookings")
+    .update({
+      status: "canceled",
+      stripe_session_id: session.id,
+      environment: env,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", bookingId);
+  await notifyAllCreators({
+    kind: "private_room_booking_failed",
+    title: "Private room payment failed",
+    body: "An async payment for a private-room booking did not settle — the slot has been released.",
+    link_url: "/dashboard",
+    metadata: { booking_id: bookingId, session_id: session.id, env } as any,
+  });
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
   switch (event.type) {
@@ -273,7 +334,18 @@ async function handleWebhook(req: Request, env: StripeEnv) {
       await handleSubscriptionDeleted(event.data.object, env);
       break;
     case "checkout.session.completed":
+      // Instant-pay path. payment_status is enforced inside the handler so
+      // async completions are ignored here and later re-processed via
+      // checkout.session.async_payment_succeeded.
       await handleCheckoutCompleted(event.data.object, env);
+      break;
+    case "checkout.session.async_payment_succeeded":
+      // Funds settled for a delayed-settlement method. Same grant path;
+      // the handler's payment_status === "paid" check will now pass.
+      await handleCheckoutCompleted(event.data.object, env);
+      break;
+    case "checkout.session.async_payment_failed":
+      await handleAsyncPaymentFailed(event.data.object, env);
       break;
     default:
       console.log("Unhandled event:", event.type);

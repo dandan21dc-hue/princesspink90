@@ -149,6 +149,17 @@ async function postWebhook(opts: {
   timestamp?: number
   secret?: string
 }) {
+  // For checkout.session.completed events, default payment_status to 'paid'
+  // so pre-existing tests keep asserting the "funds settled → grant" path.
+  // Tests that specifically exercise unpaid/async gating set it explicitly.
+  const rawBody = opts.body as any
+  if (
+    rawBody?.type === 'checkout.session.completed' &&
+    rawBody?.data?.object &&
+    rawBody.data.object.payment_status === undefined
+  ) {
+    rawBody.data.object.payment_status = 'paid'
+  }
   const body = JSON.stringify(opts.body)
   let signature: string | null | undefined = opts.signature
   if (signature === undefined) {
@@ -559,6 +570,150 @@ describe('webhook event → database mapping', () => {
       },
     })
     expect(db.memberships).toHaveLength(0)
+  })
+
+  // ---- payment_status gate + async payment lifecycle ----------------------
+
+  describe('payment_status gate + async payment events', () => {
+    it('checkout.session.completed with payment_status="unpaid" grants nothing', async () => {
+      // Async payment methods (some bank debits, wallets) complete the session
+      // BEFORE funds settle — payment_status is "unpaid" at this point. We
+      // must not write memberships/purchases yet; that happens later on
+      // checkout.session.async_payment_succeeded.
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_pending_1',
+              mode: 'payment',
+              payment_status: 'unpaid',
+              amount_total: 50000,
+              metadata: { userId: USER_ID, membership: 'lifetime' },
+            },
+          },
+        },
+      })
+      expect(db.memberships).toHaveLength(0)
+    })
+
+    it('checkout.session.completed with payment_status="unpaid" does NOT confirm a private-room booking', async () => {
+      db.private_room_bookings.push({
+        id: 'booking_pending',
+        user_id: USER_ID,
+        status: 'pending',
+        environment: 'sandbox',
+      })
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_room_pending',
+              mode: 'payment',
+              payment_status: 'unpaid',
+              amount_total: 27500,
+              metadata: {
+                userId: USER_ID,
+                booking: 'private_room',
+                private_room_booking_id: 'booking_pending',
+              },
+            },
+          },
+        },
+      })
+      const row = db.private_room_bookings.find((r) => r.id === 'booking_pending')
+      // Slot stays pending — we haven't been paid yet, so we don't confirm.
+      expect(row?.status).toBe('pending')
+    })
+
+    it('checkout.session.async_payment_succeeded grants the entitlement once funds settle', async () => {
+      // First: the initial "completed" arrives unpaid and grants nothing.
+      await postWebhook({
+        body: {
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_async_ok',
+              mode: 'payment',
+              payment_status: 'unpaid',
+              amount_total: 50000,
+              metadata: { userId: USER_ID, membership: 'lifetime' },
+            },
+          },
+        },
+      })
+      expect(db.memberships).toHaveLength(0)
+
+      // Later: funds settle. Stripe re-delivers the same session object
+      // with payment_status='paid' under async_payment_succeeded.
+      await postWebhook({
+        body: {
+          type: 'checkout.session.async_payment_succeeded',
+          data: {
+            object: {
+              id: 'cs_async_ok',
+              mode: 'payment',
+              payment_status: 'paid',
+              amount_total: 50000,
+              metadata: { userId: USER_ID, membership: 'lifetime' },
+            },
+          },
+        },
+      })
+      const row = db.memberships.find((r) => r.stripe_session_id === 'cs_async_ok')
+      expect(row?.kind).toBe('lifetime')
+      expect(row?.user_id).toBe(USER_ID)
+    })
+
+    it('checkout.session.async_payment_failed releases the pending private-room booking', async () => {
+      db.private_room_bookings.push({
+        id: 'booking_async_fail',
+        user_id: USER_ID,
+        status: 'pending',
+        environment: 'sandbox',
+      })
+      await postWebhook({
+        body: {
+          type: 'checkout.session.async_payment_failed',
+          data: {
+            object: {
+              id: 'cs_async_fail',
+              mode: 'payment',
+              payment_status: 'unpaid',
+              metadata: {
+                userId: USER_ID,
+                booking: 'private_room',
+                private_room_booking_id: 'booking_async_fail',
+              },
+            },
+          },
+        },
+      })
+      const row = db.private_room_bookings.find((r) => r.id === 'booking_async_fail')
+      expect(row?.status).toBe('canceled')
+      expect(row?.stripe_session_id).toBe('cs_async_fail')
+    })
+
+    it('checkout.session.async_payment_failed for a non-booking session is a safe no-op', async () => {
+      // A failed async lifetime purchase: we never granted anything, and
+      // there is no booking row to release, so this event must not throw
+      // or write anything.
+      await postWebhook({
+        body: {
+          type: 'checkout.session.async_payment_failed',
+          data: {
+            object: {
+              id: 'cs_async_fail_life',
+              mode: 'payment',
+              payment_status: 'unpaid',
+              metadata: { userId: USER_ID, membership: 'lifetime' },
+            },
+          },
+        },
+      })
+      expect(db.memberships).toHaveLength(0)
+    })
   })
 
   it('unhandled event types are accepted (200) without touching the database', async () => {
