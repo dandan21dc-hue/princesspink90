@@ -579,19 +579,42 @@ function MyDocumentsSection() {
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
         </label>
-        <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="sm:col-span-2 lg:col-span-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>
             Showing {rows.length} of {allRows.length}
           </span>
-          {filtersActive && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="uppercase tracking-widest">Sort</span>
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as "uploaded_at" | "policy_version")}
+              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+              aria-label="Sort by"
+            >
+              <option value="uploaded_at">Upload date</option>
+              <option value="policy_version">Policy version</option>
+            </select>
             <button
               type="button"
-              onClick={() => { setVersionFilter(""); setFromDate(""); setToDate(""); setQ(""); }}
-              className="text-primary hover:underline"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              className="rounded-md border border-input px-2 py-1 text-xs text-foreground hover:bg-muted/40"
+              aria-label={`Toggle sort direction (currently ${sortDir === "asc" ? "ascending" : "descending"})`}
+              title={sortDir === "asc" ? "Ascending — click for descending" : "Descending — click for ascending"}
             >
-              Clear filters
+              {sortKey === "uploaded_at"
+                ? sortDir === "desc" ? "Newest first ↓" : "Oldest first ↑"
+                : sortDir === "desc" ? "Highest first ↓" : "Lowest first ↑"}
             </button>
-          )}
+            {filtersActive && (
+              <button
+                type="button"
+                onClick={() => { setVersionFilter(""); setFromDate(""); setToDate(""); setQ(""); }}
+                className="text-primary hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
