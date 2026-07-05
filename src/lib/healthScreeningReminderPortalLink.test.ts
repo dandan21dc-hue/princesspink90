@@ -89,8 +89,9 @@ describe('health screening reminder — portal link', () => {
     assertNoLocalhost(tmpl.text)
   })
 
-  it('falls back to the production URL when only dev signals are present and no env override', () => {
-    const req = mockRequest({ host: '127.0.0.1:8080' })
+  it('falls back to the production URL when no host signals and no env override are present', () => {
+    // No headers at all — mirrors a pg_cron-style invocation with no proxy info.
+    const req = mockRequest({})
     const { portalUrl, tmpl } = renderPortalLink(req)
     expect(portalUrl.startsWith('https://princesspink90.com/health-screenings?')).toBe(true)
     assertNoLocalhost(portalUrl)
