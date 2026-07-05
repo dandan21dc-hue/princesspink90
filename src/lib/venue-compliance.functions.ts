@@ -1,8 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
+import {
+  VENUE_COMPLIANCE_ALLOWED_MIME,
+  VENUE_COMPLIANCE_MAX_BYTES,
+  validateComplianceFile,
+  validateExpiryDate,
+} from "@/lib/venue-compliance-validation";
 
 const BUCKET = "venue-compliance";
+const ALLOWED_MIME_SET = new Set<string>(VENUE_COMPLIANCE_ALLOWED_MIME);
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {
