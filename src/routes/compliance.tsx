@@ -529,10 +529,9 @@ function MyDocumentsSection() {
                   </span>
                   <button
                     type="button"
-                    onClick={() => openDoc(d.id)}
-                    disabled={openingId === d.id}
-                    title="Open document in a new tab"
-                    className="font-medium text-foreground truncate hover:text-primary underline-offset-2 hover:underline disabled:opacity-60"
+                    onClick={() => openDoc(d.id, d.file_name)}
+                    title="Preview document"
+                    className="font-medium text-foreground truncate hover:text-primary underline-offset-2 hover:underline"
                   >
                     {d.file_name}
                   </button>
@@ -544,11 +543,10 @@ function MyDocumentsSection() {
                   <span aria-hidden>·</span>
                   <button
                     type="button"
-                    onClick={() => openDoc(d.id)}
-                    disabled={openingId === d.id}
-                    className="text-primary hover:underline disabled:opacity-60"
+                    onClick={() => openDoc(d.id, d.file_name)}
+                    className="text-primary hover:underline"
                   >
-                    {openingId === d.id ? "Opening…" : "Preview / download →"}
+                    Preview →
                   </button>
                 </div>
 
