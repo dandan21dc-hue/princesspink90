@@ -124,15 +124,9 @@ function EditEvent() {
           </div>
           <ul className="mt-4 space-y-2">
             {codes.map((c) => (
-              <li key={c.id} className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2 text-sm">
-                <div className="font-mono">{c.code}</div>
-                <div className="flex items-center gap-3">
-                  {c.note && <span className="text-xs text-muted-foreground">{c.note}</span>}
-                  <button onClick={() => delC.mutate(c.id)} className="text-xs text-muted-foreground hover:text-destructive">
-                    Delete
-                  </button>
-                </div>
-              </li>
+              <AccessCodeRow key={c.id} c={c} onDelete={() => delC.mutate(c.id)}
+                onToggle={(used, name) => markUsed.mutate({ id: c.id, used, used_by_name: name })}
+                pending={markUsed.isPending && markUsed.variables?.id === c.id} />
             ))}
             {!codes.length && <li className="text-xs text-muted-foreground">No codes yet.</li>}
           </ul>
