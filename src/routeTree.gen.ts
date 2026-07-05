@@ -59,7 +59,6 @@ import { Route as ApiPublicHooksPreviewReminderEmailRouteImport } from './routes
 import { Route as ApiPublicHooksPreviewPortalLinkRouteImport } from './routes/api/public/hooks/preview-portal-link'
 import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './routes/api/public/hooks/health-screening-reminders'
 import { Route as ApiPublicHooksCronHealthCheckRouteImport } from './routes/api/public/hooks/cron-health-check'
-import { Route as ApiPublicDevVerifyAudCheckoutsRouteImport } from './routes/api/public/dev/verify-aud-checkouts'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
@@ -342,12 +341,6 @@ const ApiPublicHooksCronHealthCheckRoute =
     path: '/api/public/hooks/cron-health-check',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicDevVerifyAudCheckoutsRoute =
-  ApiPublicDevVerifyAudCheckoutsRouteImport.update({
-    id: '/api/public/dev/verify-aud-checkouts',
-    path: '/api/public/dev/verify-aud-checkouts',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthenticatedEventsIdWaiversRoute =
   AuthenticatedEventsIdWaiversRouteImport.update({
     id: '/events/$id/waivers',
@@ -415,7 +408,6 @@ export interface FileRoutesByFullPath {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
-  '/api/public/dev/verify-aud-checkouts': typeof ApiPublicDevVerifyAudCheckoutsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -471,7 +463,6 @@ export interface FileRoutesByTo {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
-  '/api/public/dev/verify-aud-checkouts': typeof ApiPublicDevVerifyAudCheckoutsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -529,7 +520,6 @@ export interface FileRoutesById {
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
-  '/api/public/dev/verify-aud-checkouts': typeof ApiPublicDevVerifyAudCheckoutsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -587,7 +577,6 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
-    | '/api/public/dev/verify-aud-checkouts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -643,7 +632,6 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
-    | '/api/public/dev/verify-aud-checkouts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -700,7 +688,6 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
     | '/_authenticated/events/$id/waivers'
-    | '/api/public/dev/verify-aud-checkouts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -727,7 +714,6 @@ export interface RootRouteChildren {
   UnlockRoute: typeof UnlockRoute
   ApiChatRoute: typeof ApiChatRoute
   EventsIdRoute: typeof EventsIdRoute
-  ApiPublicDevVerifyAudCheckoutsRoute: typeof ApiPublicDevVerifyAudCheckoutsRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
   ApiPublicHooksPreviewPortalLinkRoute: typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -1093,13 +1079,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCronHealthCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/dev/verify-aud-checkouts': {
-      id: '/api/public/dev/verify-aud-checkouts'
-      path: '/api/public/dev/verify-aud-checkouts'
-      fullPath: '/api/public/dev/verify-aud-checkouts'
-      preLoaderRoute: typeof ApiPublicDevVerifyAudCheckoutsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/events/$id/waivers': {
       id: '/_authenticated/events/$id/waivers'
       path: '/events/$id/waivers'
@@ -1255,7 +1234,6 @@ const rootRouteChildren: RootRouteChildren = {
   UnlockRoute: UnlockRoute,
   ApiChatRoute: ApiChatRoute,
   EventsIdRoute: EventsIdRoute,
-  ApiPublicDevVerifyAudCheckoutsRoute: ApiPublicDevVerifyAudCheckoutsRoute,
   ApiPublicHooksCronHealthCheckRoute: ApiPublicHooksCronHealthCheckRoute,
   ApiPublicHooksHealthScreeningRemindersRoute:
     ApiPublicHooksHealthScreeningRemindersRoute,
@@ -1274,13 +1252,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
