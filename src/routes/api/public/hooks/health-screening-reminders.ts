@@ -98,16 +98,19 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           (globalThis.crypto?.randomUUID?.() as string | undefined) ??
           `run_${Date.now().toString(36)}`
         const logEvent = (event: string, fields: Record<string, unknown>) => {
-          console.log(
-            JSON.stringify({
-              event,
-              run_id: runId,
-              hook: 'health-screening-reminders',
-              ts: new Date().toISOString(),
-              ...fields,
-            }),
-          )
+          // Route every log payload through the runtime redactor so a stray
+          // email address, bearer token, or URL with a sensitive query param
+          // can never make it into the log stream verbatim.
+          const safe = redactLogPayload({
+            event,
+            run_id: runId,
+            hook: 'health-screening-reminders',
+            ts: new Date().toISOString(),
+            ...fields,
+          })
+          console.log(JSON.stringify(safe))
         }
+
         logEvent('reminder_cron_start', {
           resolved_origin: origin,
           public_app_url_set: Boolean(process.env.PUBLIC_APP_URL),
