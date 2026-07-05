@@ -235,6 +235,7 @@ type RsvpRow = Awaited<ReturnType<typeof listEventWaivers>>["rsvps"][number];
 
 function Row({ r, currentHash }: { r: RsvpRow; currentHash: string }) {
   const [open, setOpen] = useState(false);
+  const pdf = useWaiverPdfDownload();
   const badge = r.waiver_accepted
     ? r.waiver_hash_current
       ? { text: "Accepted", cls: "bg-emerald-500/15 text-emerald-300" }
