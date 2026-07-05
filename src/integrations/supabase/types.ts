@@ -572,6 +572,39 @@ export type Database = {
         }
         Relationships: []
       }
+      health_screenings_purge_log: {
+        Row: {
+          id: string
+          original_screening_id: string
+          purged_at: string
+          reason: string
+          status: string | null
+          test_date: string | null
+          user_id: string
+          valid_until: string | null
+        }
+        Insert: {
+          id?: string
+          original_screening_id: string
+          purged_at?: string
+          reason: string
+          status?: string | null
+          test_date?: string | null
+          user_id: string
+          valid_until?: string | null
+        }
+        Update: {
+          id?: string
+          original_screening_id?: string
+          purged_at?: string
+          reason?: string
+          status?: string | null
+          test_date?: string | null
+          user_id?: string
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       memberships: {
         Row: {
           amount_cents: number | null
@@ -906,6 +939,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_expired_health_screenings: { Args: never; Returns: number }
       user_can_access_content: {
         Args: { _content_id: string; _env?: string; _user_id: string }
         Returns: boolean
