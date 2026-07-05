@@ -68,7 +68,14 @@ function EditEvent() {
   const [confirmBulk, setConfirmBulk] = useState<null | { used: boolean }>(null);
   const bulkMark = useMutation({
     mutationFn: (v: { used: boolean }) =>
-      bulkMarkFn({ data: { ids: Array.from(selected), used: v.used, used_by_name: bulkGuestName.trim() || undefined } }),
+      bulkMarkFn({
+        data: {
+          ids: Array.from(selected),
+          used: v.used,
+          // Guest name is only sent when marking used; ignored on unmark.
+          used_by_name: v.used ? bulkGuestName.trim() : undefined,
+        },
+      }),
     onSuccess: (r, v) => {
       toast.success(`${v.used ? "Marked" : "Unmarked"} ${r.count} code${r.count === 1 ? "" : "s"}`);
       setSelected(new Set()); setBulkGuestName("");
