@@ -191,13 +191,15 @@ export function EventDocumentsSection({ eventId }: { eventId: string }) {
 }
 
 function PolicyAgreementCard({
-  loading, version, effectiveAt, summary, agreed, onAgreeChange,
+  loading, version, effectiveAt, summary, agreed, acceptedAt, recording, onAgreeChange,
 }: {
   loading: boolean;
   version: string | null;
   effectiveAt: string | null;
   summary: string | null;
   agreed: boolean;
+  acceptedAt: string | null;
+  recording: boolean;
   onAgreeChange: (checked: boolean) => void;
 }) {
   if (loading) {
@@ -224,17 +226,26 @@ function PolicyAgreementCard({
           id="policy-agree"
           type="checkbox"
           checked={agreed}
+          disabled={agreed || recording}
           onChange={(e) => onAgreeChange(e.target.checked)}
-          className="mt-0.5 h-4 w-4 accent-primary"
+          className="mt-0.5 h-4 w-4 accent-primary disabled:opacity-70"
         />
         <label htmlFor="policy-agree" className="text-xs text-foreground">
           I have read and agree to the current{" "}
           <Link to="/compliance" target="_blank" className="text-primary underline underline-offset-2">
             compliance policy (v{version})
           </Link>{" "}
-          for every document I upload in this session.
+          for every document I upload against this event.
         </label>
       </div>
+      {agreed && acceptedAt && (
+        <div className="mt-2 text-[11px] text-emerald-400">
+          Agreement recorded {new Date(acceptedAt).toLocaleString()}. Your acceptance is stored with your account.
+        </div>
+      )}
+      {recording && (
+        <div className="mt-2 text-[11px] text-muted-foreground">Recording agreement…</div>
+      )}
     </div>
   );
 }
