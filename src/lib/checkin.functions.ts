@@ -35,13 +35,14 @@ export const lookupCheckin = createServerFn({ method: "POST" })
     await assertEventHostOrAdmin(context.supabase, context.userId, data.event_id);
     const code = data.ticket_code.trim().toUpperCase();
 
+    // Match either the scan-code (ticket_code) or the human-readable entry_code.
     const { data: rsvp, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, guest_count, status, video_consent, checked_in_at, door_notes",
+        "id, user_id, ticket_code, entry_code, guest_count, status, video_consent, checked_in_at, door_notes",
       )
       .eq("event_id", data.event_id)
-      .eq("ticket_code", code)
+      .or(`ticket_code.eq.${code},entry_code.eq.${code}`)
       .maybeSingle();
     if (error) throw error;
     if (!rsvp) return { found: false as const };
@@ -144,7 +145,7 @@ export const listCheckins = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, guest_count, checked_in_at, consent_at_checkin, video_consent, door_notes",
+        "id, user_id, ticket_code, entry_code, guest_count, checked_in_at, consent_at_checkin, video_consent, door_notes",
       )
       .eq("event_id", data.event_id)
       .not("checked_in_at", "is", null)
@@ -165,6 +166,7 @@ export const listCheckins = createServerFn({ method: "GET" })
     const guests = (rows ?? []).map((r) => ({
       id: r.id,
       ticket_code: r.ticket_code,
+      entry_code: r.entry_code,
       guest_count: r.guest_count,
       checked_in_at: r.checked_in_at as string,
       display_name: nameByUser.get(r.user_id) ?? null,
@@ -196,11 +198,11 @@ export const getDoorSheet = createServerFn({ method: "GET" })
     const { data: rows, error } = await context.supabase
       .from("rsvps")
       .select(
-        "id, user_id, ticket_code, guest_count, status, video_consent, checked_in_at",
+        "id, user_id, ticket_code, entry_code, guest_count, status, video_consent, checked_in_at",
       )
       .eq("event_id", data.event_id)
       .eq("status", "confirmed")
-      .order("ticket_code", { ascending: true });
+      .order("entry_code", { ascending: true });
     if (error) throw error;
 
     const userIds = Array.from(new Set((rows ?? []).map((r) => r.user_id)));
@@ -219,6 +221,7 @@ export const getDoorSheet = createServerFn({ method: "GET" })
     const guests = (rows ?? []).map((r) => ({
       id: r.id,
       ticket_code: r.ticket_code,
+      entry_code: r.entry_code,
       guest_count: r.guest_count,
       display_name: nameByUser.get(r.user_id) ?? null,
       age_status: ageByUser.get(r.user_id) ?? "missing",

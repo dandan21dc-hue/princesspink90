@@ -209,7 +209,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
       });
     },
     onSuccess: (r) => {
-      toast.success(`Confirmed! Ticket ${r.ticket_code}`);
+      toast.success(`Confirmed! Entry code ${r.entry_code}`);
       qc.invalidateQueries({ queryKey: ["my-rsvp", eventId] });
       router.invalidate();
     },
@@ -227,11 +227,14 @@ function RsvpBox({ eventId }: { eventId: string }) {
     const signed = Boolean(mine.waiver_signature && mine.waiver_accepted_at);
     return (
       <div className="rounded-lg border border-primary/50 bg-primary/10 p-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-primary">You're in</div>
-        <div className="mt-1 font-mono text-2xl font-bold tracking-widest text-neon">
-          {mine.ticket_code}
+        <div className="text-[10px] uppercase tracking-[0.25em] text-primary">RSVP confirmed · Entry code</div>
+        <div className="mt-1 font-mono text-3xl font-bold tracking-widest text-neon">
+          {mine.entry_code}
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">Show this code at the door.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Show this Entry Code at the door.{" "}
+          <span className="opacity-70">Scan code: <span className="font-mono">{mine.ticket_code}</span></span>
+        </p>
 
         <div
           className={

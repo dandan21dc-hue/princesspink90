@@ -801,6 +801,7 @@ export type Database = {
           consent_confirmed_at: string | null
           created_at: string
           door_notes: string | null
+          entry_code: string
           event_id: string
           guest_count: number
           id: string
@@ -820,6 +821,7 @@ export type Database = {
           consent_confirmed_at?: string | null
           created_at?: string
           door_notes?: string | null
+          entry_code?: string
           event_id: string
           guest_count?: number
           id?: string
@@ -839,6 +841,7 @@ export type Database = {
           consent_confirmed_at?: string | null
           created_at?: string
           door_notes?: string | null
+          entry_code?: string
           event_id?: string
           guest_count?: number
           id?: string
