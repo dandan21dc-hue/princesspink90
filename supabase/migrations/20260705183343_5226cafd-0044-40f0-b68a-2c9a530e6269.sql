@@ -1,0 +1,2 @@
+ALTER TABLE public.health_screenings ADD COLUMN IF NOT EXISTS expiry_reminder_sent_at timestamptz;
+CREATE INDEX IF NOT EXISTS idx_health_screenings_expiry_reminder ON public.health_screenings (valid_until, status) WHERE expiry_reminder_sent_at IS NULL;
