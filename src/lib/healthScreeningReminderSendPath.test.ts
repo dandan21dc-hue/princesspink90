@@ -154,7 +154,7 @@ describe('health-screening-reminders — send path integration', () => {
 
     // 1. The email was sent exactly once, to the expected recipient.
     expect(sendResendEmail).toHaveBeenCalledTimes(1)
-    const emailArgs = sendResendEmail.mock.calls[0][0] as {
+    const emailArgs = (sendResendEmail.mock.calls as any[])[0][0] as {
       to: string
       html: string
       text: string
@@ -213,7 +213,7 @@ describe('health-screening-reminders — send path integration', () => {
       restore()
     }
 
-    const emailArgs = sendResendEmail.mock.calls[0][0] as { html: string; text: string }
+    const emailArgs = (sendResendEmail.mock.calls as any[])[0][0] as { html: string; text: string }
     const href = emailArgs.html.match(/href="([^"]+)"/)![1].replace(/&amp;/g, '&')
     assertNoLocalhost(href)
     assertNoLocalhost(emailArgs.text)
