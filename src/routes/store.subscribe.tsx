@@ -86,31 +86,31 @@ function SubscribePage() {
             <div className="mt-8 grid gap-4 md:grid-cols-4">
               <PassCard
                 label="Monthly"
-                price="$10"
+                price="A$10"
                 cadence="/month"
                 perks={["Full library streaming", "Cancel anytime"]}
                 cta="Subscribe"
-                onClick={() => buy("all_access_monthly")}
+                onClick={() => buy("all_access_monthly_aud")}
               />
               <PassCard
                 label="3-Month Pass"
-                price="$27"
+                price="A$27"
                 cadence="one-time"
                 perks={["Full library for 3 months", "No auto-renew"]}
                 cta="Buy 3-month"
-                onClick={() => buy("all_access_3mo_onetime")}
+                onClick={() => buy("all_access_3mo_onetime_aud")}
               />
               <PassCard
                 label="6-Month Pass"
-                price="$48"
+                price="A$48"
                 cadence="one-time"
                 perks={["Full library for 6 months", "No auto-renew"]}
                 cta="Buy 6-month"
-                onClick={() => buy("all_access_6mo_onetime")}
+                onClick={() => buy("all_access_6mo_onetime_aud")}
               />
               <PassCard
                 label="12-Month Pass"
-                price="$84"
+                price="A$84"
                 cadence="one-time"
                 highlight="Includes free entry"
                 perks={[
@@ -119,7 +119,7 @@ function SubscribePage() {
                   "No auto-renew",
                 ]}
                 cta="Buy 12-month"
-                onClick={() => buy("all_access_12mo_onetime")}
+                onClick={() => buy("all_access_12mo_onetime_aud")}
               />
             </div>
 
@@ -132,7 +132,7 @@ function SubscribePage() {
                 Lifetime Membership
               </div>
               <h2 className="mt-2 font-display text-5xl font-extrabold">
-                $500<span className="text-lg text-muted-foreground"> one-time</span>
+                A$500<span className="text-lg text-muted-foreground"> one-time</span>
               </h2>
               <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
                 <li>
@@ -150,12 +150,13 @@ function SubscribePage() {
                 <li>· No recurring charges, ever</li>
               </ul>
               <button
-                onClick={() => buy("lifetime_onetime")}
+                onClick={() => buy("lifetime_onetime_aud")}
                 className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto"
               >
                 Buy lifetime
               </button>
             </div>
+
           </>
         )}
       </section>
