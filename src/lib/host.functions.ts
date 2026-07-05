@@ -112,6 +112,20 @@ export const updateEvent = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { id, ...update } = data;
+    if (update.published) {
+      const { data: docs, error: docErr } = await context.supabase
+        .from("event_documents")
+        .select("doc_type")
+        .eq("event_id", id);
+      if (docErr) throw docErr;
+      const have = new Set((docs ?? []).map((d) => d.doc_type));
+      const missing = REQUIRED_DOC_TYPES.filter((t) => !have.has(t));
+      if (missing.length) {
+        throw new Error(
+          `Upload required documents before publishing: ${missing.join(", ")}. Save as draft otherwise.`,
+        );
+      }
+    }
     const { error } = await context.supabase
       .from("events")
       .update(update)
@@ -120,6 +134,7 @@ export const updateEvent = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
 
 export const deleteEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
