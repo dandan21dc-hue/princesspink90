@@ -17,6 +17,16 @@ export type EventFormValues = {
   cover_image_url: string;
   is_private: boolean;
   published: boolean;
+  // Venue compliance
+  permits_confirmed: boolean;
+  permit_details: string;
+  insurance_confirmed: boolean;
+  insurance_provider: string;
+  insurance_policy_number: string;
+  insurance_expires_on: string;
+  legal_capacity: string;
+  capacity_confirmed: boolean;
+  compliance_notes: string;
 };
 
 export function emptyForm(): EventFormValues {
@@ -28,12 +38,25 @@ export function emptyForm(): EventFormValues {
     capacity: "", ticket_price_cents: "0",
     cover_image_url: "",
     is_private: false, published: true,
+    permits_confirmed: false, permit_details: "",
+    insurance_confirmed: false, insurance_provider: "",
+    insurance_policy_number: "", insurance_expires_on: "",
+    legal_capacity: "", capacity_confirmed: false,
+    compliance_notes: "",
   };
 }
 
 export function toPayload(v: EventFormValues) {
   if (!v.title || !v.venue_name || !v.starts_at) {
     throw new Error("Title, venue and start time are required.");
+  }
+  const capacity = v.capacity ? parseInt(v.capacity, 10) : null;
+  const legalCap = v.legal_capacity ? parseInt(v.legal_capacity, 10) : null;
+  if (capacity != null && legalCap != null && capacity > legalCap) {
+    throw new Error("Event capacity cannot exceed the venue's legal capacity.");
+  }
+  if (v.published && !(v.permits_confirmed && v.insurance_confirmed && v.capacity_confirmed)) {
+    throw new Error("Confirm permits, insurance, and capacity before publishing. Uncheck 'Published' to save as draft.");
   }
   return {
     title: v.title.trim(),
@@ -46,13 +69,23 @@ export function toPayload(v: EventFormValues) {
     ends_at: v.ends_at ? new Date(v.ends_at).toISOString() : null,
     dress_code: v.dress_code.trim() || null,
     theme: v.theme.trim() || null,
-    capacity: v.capacity ? parseInt(v.capacity, 10) : null,
+    capacity,
     ticket_price_cents: v.ticket_price_cents ? parseInt(v.ticket_price_cents, 10) : 0,
     cover_image_url: v.cover_image_url.trim() || null,
     is_private: v.is_private,
     published: v.published,
+    permits_confirmed: v.permits_confirmed,
+    permit_details: v.permit_details.trim() || null,
+    insurance_confirmed: v.insurance_confirmed,
+    insurance_provider: v.insurance_provider.trim() || null,
+    insurance_policy_number: v.insurance_policy_number.trim() || null,
+    insurance_expires_on: v.insurance_expires_on || null,
+    legal_capacity: legalCap,
+    capacity_confirmed: v.capacity_confirmed,
+    compliance_notes: v.compliance_notes.trim() || null,
   };
 }
+
 
 export function EventForm({
   initial, onSubmit, submitting, submitLabel,
