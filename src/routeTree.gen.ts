@@ -40,6 +40,7 @@ import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminGoLiveRouteImport } from './routes/_authenticated/admin.go-live'
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
 import { Route as AuthenticatedAdminEmailSetupRouteImport } from './routes/_authenticated/admin.email-setup'
+import { Route as AuthenticatedAdminEmailRecipientSearchRouteImport } from './routes/_authenticated/admin.email-recipient-search'
 import { Route as AuthenticatedAdminEmailDeliveryRouteImport } from './routes/_authenticated/admin.email-delivery'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
@@ -224,6 +225,12 @@ const AuthenticatedAdminEmailSetupRoute =
     path: '/admin/email-setup',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminEmailRecipientSearchRoute =
+  AuthenticatedAdminEmailRecipientSearchRouteImport.update({
+    id: '/admin/email-recipient-search',
+    path: '/admin/email-recipient-search',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminEmailDeliveryRoute =
   AuthenticatedAdminEmailDeliveryRouteImport.update({
     id: '/admin/email-delivery',
@@ -342,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
+  '/admin/email-recipient-search': typeof AuthenticatedAdminEmailRecipientSearchRoute
   '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/go-live': typeof AuthenticatedAdminGoLiveRoute
@@ -390,6 +398,7 @@ export interface FileRoutesByTo {
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
+  '/admin/email-recipient-search': typeof AuthenticatedAdminEmailRecipientSearchRoute
   '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/admin/go-live': typeof AuthenticatedAdminGoLiveRoute
@@ -440,6 +449,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/_authenticated/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
+  '/_authenticated/admin/email-recipient-search': typeof AuthenticatedAdminEmailRecipientSearchRoute
   '/_authenticated/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
   '/_authenticated/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
   '/_authenticated/admin/go-live': typeof AuthenticatedAdminGoLiveRoute
@@ -490,6 +500,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/email-delivery'
+    | '/admin/email-recipient-search'
     | '/admin/email-setup'
     | '/admin/events-compliance'
     | '/admin/go-live'
@@ -538,6 +549,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/email-delivery'
+    | '/admin/email-recipient-search'
     | '/admin/email-setup'
     | '/admin/events-compliance'
     | '/admin/go-live'
@@ -587,6 +599,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
     | '/_authenticated/admin/email-delivery'
+    | '/_authenticated/admin/email-recipient-search'
     | '/_authenticated/admin/email-setup'
     | '/_authenticated/admin/events-compliance'
     | '/_authenticated/admin/go-live'
@@ -855,6 +868,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEmailSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/email-recipient-search': {
+      id: '/_authenticated/admin/email-recipient-search'
+      path: '/admin/email-recipient-search'
+      fullPath: '/admin/email-recipient-search'
+      preLoaderRoute: typeof AuthenticatedAdminEmailRecipientSearchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/email-delivery': {
       id: '/_authenticated/admin/email-delivery'
       path: '/admin/email-delivery'
@@ -1006,6 +1026,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
   AuthenticatedAdminEmailDeliveryRoute: typeof AuthenticatedAdminEmailDeliveryRoute
+  AuthenticatedAdminEmailRecipientSearchRoute: typeof AuthenticatedAdminEmailRecipientSearchRoute
   AuthenticatedAdminEmailSetupRoute: typeof AuthenticatedAdminEmailSetupRoute
   AuthenticatedAdminEventsComplianceRoute: typeof AuthenticatedAdminEventsComplianceRoute
   AuthenticatedAdminGoLiveRoute: typeof AuthenticatedAdminGoLiveRoute
@@ -1036,6 +1057,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminCompliancePolicyRoute:
     AuthenticatedAdminCompliancePolicyRoute,
   AuthenticatedAdminEmailDeliveryRoute: AuthenticatedAdminEmailDeliveryRoute,
+  AuthenticatedAdminEmailRecipientSearchRoute:
+    AuthenticatedAdminEmailRecipientSearchRoute,
   AuthenticatedAdminEmailSetupRoute: AuthenticatedAdminEmailSetupRoute,
   AuthenticatedAdminEventsComplianceRoute:
     AuthenticatedAdminEventsComplianceRoute,
