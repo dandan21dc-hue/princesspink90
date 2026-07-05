@@ -29,6 +29,7 @@ import { Route as AuthenticatedContentNewRouteImport } from './routes/_authentic
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
+import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
 import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes/_authenticated/admin.events-compliance'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
@@ -142,6 +143,12 @@ const AuthenticatedAdminLifetimeRoute =
     path: '/admin/lifetime',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminHealthPurgeRoute =
+  AuthenticatedAdminHealthPurgeRouteImport.update({
+    id: '/admin/health-purge',
+    path: '/admin/health-purge',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminEventsComplianceRoute =
   AuthenticatedAdminEventsComplianceRouteImport.update({
     id: '/admin/events-compliance',
@@ -216,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
+  '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
@@ -246,6 +254,7 @@ export interface FileRoutesByTo {
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
+  '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
@@ -278,6 +287,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/_authenticated/admin/events-compliance': typeof AuthenticatedAdminEventsComplianceRoute
+  '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/events-compliance'
+    | '/admin/health-purge'
     | '/admin/lifetime'
     | '/admin/settings'
     | '/admin/verifications'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/events-compliance'
+    | '/admin/health-purge'
     | '/admin/lifetime'
     | '/admin/settings'
     | '/admin/verifications'
@@ -371,6 +383,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
     | '/_authenticated/admin/events-compliance'
+    | '/_authenticated/admin/health-purge'
     | '/_authenticated/admin/lifetime'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/verifications'
@@ -537,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLifetimeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/health-purge': {
+      id: '/_authenticated/admin/health-purge'
+      path: '/admin/health-purge'
+      fullPath: '/admin/health-purge'
+      preLoaderRoute: typeof AuthenticatedAdminHealthPurgeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/events-compliance': {
       id: '/_authenticated/admin/events-compliance'
       path: '/admin/events-compliance'
@@ -639,6 +659,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
   AuthenticatedAdminEventsComplianceRoute: typeof AuthenticatedAdminEventsComplianceRoute
+  AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
@@ -661,6 +682,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminCompliancePolicyRoute,
   AuthenticatedAdminEventsComplianceRoute:
     AuthenticatedAdminEventsComplianceRoute,
+  AuthenticatedAdminHealthPurgeRoute: AuthenticatedAdminHealthPurgeRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
