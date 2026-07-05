@@ -383,6 +383,67 @@ function MyDocumentsSection() {
     old_version: string | null;
   } | null>(null);
 
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+
+  const bulkReAck = useMutation({
+    mutationFn: async (vars: { policy_version_id: string; event_ids: (string | null)[] }) => {
+      const results = await Promise.allSettled(
+        vars.event_ids.map((event_id) =>
+          reAckFn({ data: { policy_version_id: vars.policy_version_id, event_id } }),
+        ),
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      return { total: vars.event_ids.length, failed };
+    },
+    onMutate: async (vars) => {
+      await qc.cancelQueries({ queryKey: ["my-compliance-documents"] });
+      const key = ["my-compliance-documents"] as const;
+      const previous = qc.getQueryData<any[]>(key);
+      const nowIso = new Date().toISOString();
+      const currentLabel = current.data?.version ?? null;
+      const eventSet = new Set(vars.event_ids);
+      if (previous) {
+        qc.setQueryData<any[]>(
+          key,
+          previous.map((row) =>
+            eventSet.has(row.event_id)
+              ? {
+                  ...row,
+                  current_policy_version_id: vars.policy_version_id,
+                  current_policy_version_label:
+                    row.current_policy_version_label ?? currentLabel,
+                  current_agreement_accepted_at: nowIso,
+                  current_agreement_accepted_by_display_name:
+                    row.current_agreement_accepted_by_display_name ??
+                    row.uploaded_by_display_name ??
+                    null,
+                }
+              : row,
+          ),
+        );
+      }
+      return { previous };
+    },
+    onError: (e, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(["my-compliance-documents"], ctx.previous);
+      toast.error(e instanceof Error ? e.message : "Bulk re-acknowledge failed");
+    },
+    onSuccess: (res) => {
+      const ok = res.total - res.failed;
+      if (res.failed === 0) {
+        toast.success(`Re-acknowledged current policy for ${ok} event${ok === 1 ? "" : "s"}.`);
+      } else {
+        toast.warning(`Re-acknowledged ${ok} of ${res.total}. ${res.failed} failed — please retry.`);
+      }
+      setSelected(new Set());
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
+      setBulkConfirmOpen(false);
+    },
+  });
+
   const signFn = useServerFn(signEventDocumentUrl);
   const [previewTarget, setPreviewTarget] = useState<{ id: string; file_name: string } | null>(null);
   async function openDoc(id: string, file_name: string) {
@@ -391,6 +452,14 @@ function MyDocumentsSection() {
   async function signUrlFor(id: string): Promise<string> {
     const { url } = await signFn({ data: { id } });
     return url;
+  }
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
 
