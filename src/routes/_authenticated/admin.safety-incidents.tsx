@@ -178,6 +178,7 @@ function AdminSafetyIncidentsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    void logExport("csv", headers, rows.length);
   }
 
   async function exportXlsx() {
