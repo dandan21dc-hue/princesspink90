@@ -182,6 +182,7 @@ function CheckinPage() {
             setResult(null);
             qc.invalidateQueries({ queryKey: ["checkin-roster", eventId] });
             toast.success("Checked in — welcome them in.");
+            if (scanner) setTimeout(() => inputRef.current?.focus(), 0);
           }}
           checkinFn={checkinFn}
         />
