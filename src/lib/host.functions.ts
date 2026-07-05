@@ -140,6 +140,25 @@ export const deleteAccessCode = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const setAccessCodeUsed = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string; used: boolean; used_by_name?: string }) =>
+    z.object({
+      id: z.string().uuid(),
+      used: z.boolean(),
+      used_by_name: z.string().trim().max(120).optional(),
+    }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const patch = data.used
+      ? { used_at: new Date().toISOString(), used_by_name: data.used_by_name ?? null }
+      : { used_at: null, used_by_name: null };
+    const { error } = await context.supabase
+      .from("event_access_codes").update(patch).eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 function randCode(prefix: string, len: number) {
   let s = "";

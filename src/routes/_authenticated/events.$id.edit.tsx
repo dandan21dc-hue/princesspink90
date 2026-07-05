@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { EventForm, toPayload, type EventFormValues } from "@/components/EventForm";
-import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes } from "@/lib/host.functions";
+import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes, setAccessCodeUsed } from "@/lib/host.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$id/edit")({
@@ -49,6 +49,13 @@ function EditEvent() {
   const delC = useMutation({
     mutationFn: (codeId: string) => delCode({ data: { id: codeId } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-event", id] }),
+  });
+
+  const markUsedFn = useServerFn(setAccessCodeUsed);
+  const markUsed = useMutation({
+    mutationFn: (v: { id: string; used: boolean; used_by_name?: string }) => markUsedFn({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-event", id] }),
+    onError: (e) => toast.error(e.message),
   });
 
   const bulkFn = useServerFn(bulkAddAccessCodes);
@@ -124,15 +131,9 @@ function EditEvent() {
           </div>
           <ul className="mt-4 space-y-2">
             {codes.map((c) => (
-              <li key={c.id} className="flex items-center justify-between rounded-md border border-border/50 px-3 py-2 text-sm">
-                <div className="font-mono">{c.code}</div>
-                <div className="flex items-center gap-3">
-                  {c.note && <span className="text-xs text-muted-foreground">{c.note}</span>}
-                  <button onClick={() => delC.mutate(c.id)} className="text-xs text-muted-foreground hover:text-destructive">
-                    Delete
-                  </button>
-                </div>
-              </li>
+              <AccessCodeRow key={c.id} c={c} onDelete={() => delC.mutate(c.id)}
+                onToggle={(used, name) => markUsed.mutate({ id: c.id, used, used_by_name: name })}
+                pending={markUsed.isPending && markUsed.variables?.id === c.id} />
             ))}
             {!codes.length && <li className="text-xs text-muted-foreground">No codes yet.</li>}
           </ul>
@@ -198,5 +199,74 @@ function EditEvent() {
         </button>
       </div>
     </section>
+  );
+}
+
+type CodeRow = {
+  id: string;
+  code: string;
+  note: string | null;
+  used_at: string | null;
+  used_by_name: string | null;
+};
+
+function AccessCodeRow({
+  c, onDelete, onToggle, pending,
+}: {
+  c: CodeRow;
+  onDelete: () => void;
+  onToggle: (used: boolean, name?: string) => void;
+  pending: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(c.used_by_name ?? "");
+  const used = !!c.used_at;
+
+  return (
+    <li className={`rounded-md border px-3 py-2 text-sm ${used ? "border-primary/40 bg-primary/5" : "border-border/50"}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className={`font-mono ${used ? "text-muted-foreground line-through" : ""}`}>{c.code}</div>
+          {used && (
+            <div className="mt-0.5 text-[11px] text-muted-foreground">
+              Used {new Date(c.used_at!).toLocaleDateString()}
+              {c.used_by_name ? ` · ${c.used_by_name}` : ""}
+            </div>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          {c.note && !used && <span className="text-xs text-muted-foreground">{c.note}</span>}
+          {used ? (
+            <button disabled={pending} onClick={() => onToggle(false)}
+              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+              Unmark
+            </button>
+          ) : (
+            <button disabled={pending} onClick={() => setEditing((v) => !v)}
+              className="text-xs uppercase tracking-widest text-primary hover:brightness-125">
+              Mark used
+            </button>
+          )}
+          <button onClick={onDelete} className="text-xs text-muted-foreground hover:text-destructive">
+            Delete
+          </button>
+        </div>
+      </div>
+      {editing && !used && (
+        <div className="mt-2 flex gap-2">
+          <input autoFocus value={name} onChange={(e) => setName(e.target.value)}
+            placeholder="Guest name (optional)"
+            className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm" />
+          <button disabled={pending} onClick={() => { onToggle(true, name.trim() || undefined); setEditing(false); }}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground">
+            Confirm
+          </button>
+          <button onClick={() => setEditing(false)}
+            className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest">
+            Cancel
+          </button>
+        </div>
+      )}
+    </li>
   );
 }
