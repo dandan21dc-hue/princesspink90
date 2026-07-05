@@ -81,6 +81,7 @@ function CompliancePage() {
           by the platform operator and does not replace local law or advice from your
           own counsel.
         </p>
+        <PolicyVersionBanner />
       </header>
 
       <Section eyebrow="Overview" title="Who this applies to">
