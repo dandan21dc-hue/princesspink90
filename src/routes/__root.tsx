@@ -124,7 +124,10 @@ function RootComponent() {
         <SiteHeader />
         <Outlet />
         <footer className="border-t border-border/50 mt-24 py-10 text-center text-xs text-muted-foreground">
-          PRINCESS PINK · Adults only · 18+ · Consent, safety and discretion are non-negotiable.
+          <div>PRINCESS PINK · Adults only · 18+ · Consent, safety and discretion are non-negotiable.</div>
+          <div className="mt-2">
+            <Link to="/privacy" className="hover:text-foreground transition">Privacy</Link>
+          </div>
         </footer>
       </div>
       <AgeGate />
