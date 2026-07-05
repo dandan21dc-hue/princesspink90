@@ -708,8 +708,21 @@ function MyDocumentsSection() {
         <ul className="mt-4 space-y-3">
 
         {rows.map((d) => {
-          const stale = currentId && d.policy_version_id && d.policy_version_id !== currentId;
-          const canBulkSelect = !!(stale && !d.current_agreement_accepted_at);
+          // Split the two related concepts:
+          //   versionMismatch — the doc was uploaded under an older policy.
+          //   needsReAck      — versionMismatch AND no re-ack recorded yet.
+          // The amber "action needed" state uses `needsReAck`; the historical
+          // "Re-acknowledged v{n}" pill uses `versionMismatch` so we still
+          // show what happened once the user has actioned it.
+          const versionMismatch = !!(
+            currentId && d.policy_version_id && d.policy_version_id !== currentId
+          );
+          const needsReAck = isDocumentStale({
+            docPolicyVersionId: d.policy_version_id,
+            currentPolicyVersionId: currentId,
+            reAcknowledged: d.current_agreement_accepted_at,
+          });
+          const canBulkSelect = needsReAck;
           return (
             <li
               key={d.id}
