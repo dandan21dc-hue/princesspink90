@@ -91,6 +91,7 @@ export const submitCohostApplication = createServerFn({ method: "POST" })
       city: data.city,
       instagram_handle: data.instagram_handle || null,
       other_socials: data.other_socials || null,
+      bio: data.bio || null,
       hosting_experience: data.hosting_experience,
       why_join: data.why_join,
       availability: data.availability || null,
