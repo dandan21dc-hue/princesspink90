@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@supabase/supabase-js'
+import { readDailyRunTimeUtc } from '@/lib/reminder-job-config.functions'
 
 // Daily job: finds admin-approved health screenings expiring in exactly 7 days
 // and records exactly one reminder per screening.
