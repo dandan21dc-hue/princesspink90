@@ -3,6 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { listEventWaivers, listWaiverAudit } from "@/lib/host.functions";
+import { useWaiverPdfDownload } from "@/lib/useWaiverPdfDownload";
+
 
 export const Route = createFileRoute("/_authenticated/events/$id/waivers")({
   head: () => ({
