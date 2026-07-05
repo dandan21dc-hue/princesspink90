@@ -8,6 +8,7 @@ import { getMyAgeVerification, type VideoConsent } from "@/lib/verification.func
 import { useWaiverPdfDownload } from "@/lib/useWaiverPdfDownload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ConsentCompliance } from "@/components/ConsentCompliance";
 
 const eventQuery = (id: string) =>
   queryOptions({
@@ -184,6 +185,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
     face_blurred_only: false,
     no_filming: true,
   });
+  const [complianceOk, setComplianceOk] = useState(false);
 
   const rsvp = useMutation({
     mutationFn: async () => {
@@ -315,7 +317,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
     });
   };
 
-  const canSubmit = ageOk && waiverOk && signature.trim().length >= 2 && !rsvp.isPending;
+  const canSubmit = ageOk && waiverOk && complianceOk && signature.trim().length >= 2 && !rsvp.isPending;
 
   const waiverRead = showWaiver || waiverOk;
   const waiverSigned = signature.trim().length >= 2;
@@ -433,10 +435,12 @@ function RsvpBox({ eventId }: { eventId: string }) {
         </label>
       </div>
 
+      <ConsentCompliance checked={complianceOk} onChange={setComplianceOk} />
+
       <button
         onClick={() => rsvp.mutate()}
         disabled={!canSubmit}
-        title={!canSubmit ? "Confirm age, accept the waiver, and sign your name to RSVP." : undefined}
+        title={!canSubmit ? "Confirm age, accept the waiver and code of conduct, and sign your name to RSVP." : undefined}
         className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-50"
       >
         {rsvp.isPending ? "Confirming…" : "Sign & RSVP · Reserve entry"}
