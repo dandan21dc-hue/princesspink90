@@ -716,6 +716,111 @@ describe('webhook event → database mapping', () => {
     })
   })
 
+  // ---- checkout cancel / expiry flow -------------------------------------
+  //
+  // When a user closes the embedded checkout without paying, Stripe emits
+  // `checkout.session.expired` (embedded sessions expire after 24h of
+  // inactivity, or immediately when the customer bails from a hosted flow
+  // that then gets marked expired). The webhook has no case for it, so it
+  // must be a total no-op: no subscription row, no membership row, no
+  // content purchase, no panty order, and any pre-created pending private
+  // room booking must stay `pending` (never flipped to `confirmed`) so the
+  // slot stays held-then-released by the 15-minute grace, not falsely
+  // confirmed.
+  describe('checkout cancel / expired flow', () => {
+    async function postExpired(sessionObject: Record<string, unknown>) {
+      return postWebhook({
+        body: {
+          type: 'checkout.session.expired',
+          data: { object: { id: 'cs_expired', mode: 'payment', ...sessionObject } },
+        },
+      })
+    }
+
+    it('lifetime checkout that expired writes no membership row', async () => {
+      const res = await postExpired({
+        payment_status: 'unpaid',
+        metadata: { userId: USER_ID, membership: 'lifetime' },
+        amount_total: 55000,
+      })
+      expect(res.status).toBe(200)
+      expect(db.memberships).toHaveLength(0)
+    })
+
+    it('term_pass checkout that expired writes no membership row', async () => {
+      const res = await postExpired({
+        payment_status: 'unpaid',
+        metadata: { userId: USER_ID, membership: 'term_pass', term_months: '12' },
+        amount_total: 42000,
+      })
+      expect(res.status).toBe(200)
+      expect(db.memberships).toHaveLength(0)
+    })
+
+    it('subscription checkout that expired writes no subscription row', async () => {
+      // No `customer.subscription.created` ever fires when the customer
+      // bails before paying — only `checkout.session.expired`. The
+      // subscriptions table must stay empty.
+      const res = await postExpired({
+        mode: 'subscription',
+        payment_status: 'unpaid',
+        metadata: { userId: USER_ID },
+      })
+      expect(res.status).toBe(200)
+      expect(db.subscriptions).toHaveLength(0)
+    })
+
+    it('content-item checkout that expired writes no content_purchases row', async () => {
+      const res = await postExpired({
+        payment_status: 'unpaid',
+        metadata: { userId: USER_ID, content_item_id: 'ci_locked_video' },
+        amount_total: 1500,
+      })
+      expect(res.status).toBe(200)
+      expect(db.content_purchases).toHaveLength(0)
+    })
+
+    it('private-room checkout that expired leaves the pending booking alone (never confirmed)', async () => {
+      // The booking is inserted as `pending` before checkout opens. If the
+      // buyer cancels, the row must stay `pending` — never flipped to
+      // `confirmed`. `get_private_room_busy` uses `pending + created within
+      // 15 min` as the "held" window, so untouched-pending is the correct
+      // locked state.
+      db.private_room_bookings.push({
+        id: 'booking_expired',
+        user_id: USER_ID,
+        status: 'pending',
+        stripe_session_id: null,
+      })
+      const res = await postExpired({
+        payment_status: 'unpaid',
+        metadata: {
+          userId: USER_ID,
+          booking: 'private_room',
+          private_room_booking_id: 'booking_expired',
+        },
+      })
+      expect(res.status).toBe(200)
+      const row = db.private_room_bookings.find((r) => r.id === 'booking_expired')
+      expect(row?.status).toBe('pending')
+      expect(row?.stripe_session_id).toBeNull()
+    })
+
+    it('checkout without a userId (anonymous cancel) writes nothing', async () => {
+      const res = await postExpired({
+        payment_status: 'unpaid',
+        metadata: {},
+      })
+      expect(res.status).toBe(200)
+      expect(db.memberships).toHaveLength(0)
+      expect(db.subscriptions).toHaveLength(0)
+      expect(db.content_purchases).toHaveLength(0)
+      expect(db.notifications).toHaveLength(0)
+    })
+  })
+
+
+
   it('unhandled event types are accepted (200) without touching the database', async () => {
     const res = await postWebhook({
       body: {
