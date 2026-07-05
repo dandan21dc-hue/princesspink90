@@ -156,8 +156,8 @@ function Dashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono text-sm font-bold tracking-wider text-neon">{r.entry_code}</div>
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Entry code</div>
+                    <div className="font-display text-sm font-bold tracking-wide text-neon">“{r.entry_phrase}”</div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Entry phrase</div>
                   </div>
                 </li>
               ))}
