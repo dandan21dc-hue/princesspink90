@@ -12,8 +12,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 //      health_screening_reminder_log makes the second attempt skip via a
 //      Postgres 23505 unique_violation.
 
-const sendResendEmail = vi.fn(async () => ({ ok: true as const }))
+type SendResendEmailArgs = {
+  to: string
+  idempotencyKey: string
+  subject?: string
+  html?: string
+  from?: string
+  [key: string]: unknown
+}
+const sendResendEmail = vi.fn(
+  async (_args: SendResendEmailArgs) => ({ ok: true as const }),
+)
 vi.mock('@/lib/resend.server', () => ({ sendResendEmail }))
+
 
 // Fixed target: today + 7 days in UTC (matches hook's window logic).
 const TODAY = new Date()
