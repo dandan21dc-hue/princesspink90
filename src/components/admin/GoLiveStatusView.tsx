@@ -1,4 +1,8 @@
-import type { GoLiveStatus } from "@/lib/go-live-status.functions";
+import type {
+  GoLiveDiagnostic,
+  GoLiveStatus,
+} from "@/lib/go-live-status.functions";
+
 
 /**
  * Pure presentational view for the go-live status RPC payload.
@@ -64,6 +68,35 @@ export function GoLiveStatusView({
           }
         />
       </section>
+
+      <section
+        aria-label="Signup pipeline diagnostics"
+        className="mx-auto max-w-4xl px-5 pb-8"
+      >
+        <h2 className="mb-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+          Signup pipeline diagnostics
+        </h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Mirrors the three checks in the E2E smoke test — trigger, webhook,
+          and queue. A failing card points to the exact stage that broke.
+        </p>
+        <div className="grid gap-3">
+          {(data?.diagnostics ?? []).map((d) => (
+            <DiagnosticRow key={d.label} d={d} />
+          ))}
+          {!data && (
+            <div className="rounded-2xl border border-border/60 bg-card/60 p-4 text-sm text-muted-foreground">
+              Loading…
+            </div>
+          )}
+          {data && (data.diagnostics ?? []).length === 0 && (
+            <div className="rounded-2xl border border-border/60 bg-card/60 p-4 text-sm text-muted-foreground">
+              Diagnostics unavailable — update the go_live_status RPC.
+            </div>
+          )}
+        </div>
+      </section>
+
 
       <section
         id="scheduled-jobs"
@@ -244,3 +277,40 @@ export function Badge({
     </span>
   );
 }
+
+export function DiagnosticRow({ d }: { d: GoLiveDiagnostic }) {
+  const kind =
+    d.status === "ok"
+      ? "ok"
+      : d.status === "fail"
+        ? "bad"
+        : d.status === "warn"
+          ? "warn"
+          : "warn";
+  const border =
+    d.status === "fail"
+      ? "border-destructive/50"
+      : d.status === "warn"
+        ? "border-amber-500/40"
+        : d.status === "ok"
+          ? "border-emerald-500/30"
+          : "border-border/60";
+  return (
+    <div
+      className={`rounded-2xl border ${border} bg-card/60 p-4`}
+      data-testid={`diag-${d.label.replace(/\s+/g, "-").toLowerCase()}`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-medium">{d.label}</div>
+        <Badge kind={kind}>{d.status}</Badge>
+      </div>
+      <div className="mt-2 text-sm text-foreground/80">{d.detail}</div>
+      {d.last_error && (
+        <div className="mt-2 rounded border border-destructive/40 bg-destructive/10 p-2 font-mono text-[11px] text-destructive">
+          {d.last_error}
+        </div>
+      )}
+    </div>
+  );
+}
+
