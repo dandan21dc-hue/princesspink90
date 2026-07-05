@@ -308,6 +308,12 @@ function RsvpBox({ eventId }: { eventId: string }) {
     );
   }
 
+  if (screeningsLoading) return <div className="h-24 animate-pulse rounded-lg bg-card" />;
+
+  const screeningList = screenings ?? [];
+  const screeningCurrent = isScreeningCurrent(screeningList);
+  const latestScreening = screeningList[0];
+
   const toggle = (key: keyof VideoConsent) => (v: boolean) => {
     setConsent((c) => {
       const next = { ...c, [key]: v };
@@ -323,7 +329,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
     });
   };
 
-  const canSubmit = ageOk && waiverOk && complianceOk && signature.trim().length >= 2 && !rsvp.isPending;
+  const canSubmit = ageOk && waiverOk && complianceOk && screeningCurrent && signature.trim().length >= 2 && !rsvp.isPending;
 
   const waiverRead = showWaiver || waiverOk;
   const waiverSigned = signature.trim().length >= 2;
