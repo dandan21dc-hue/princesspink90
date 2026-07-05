@@ -45,6 +45,9 @@ const eventInput = z.object({
   }
 });
 
+const REQUIRED_DOC_TYPES = ["permit", "insurance", "capacity"] as const;
+
+
 
 export const listMyEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
