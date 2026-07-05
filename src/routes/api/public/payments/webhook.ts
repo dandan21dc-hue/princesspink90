@@ -451,6 +451,14 @@ async function revokeEntitlementsForSession(session: any, env: StripeEnv) {
     .update({ status: "cancelled", updated_at: nowIso })
     .eq("stripe_session_id", sessionId)
     .eq("environment", env);
+
+  // Physical panty order — keep the row (we still need shipping records for
+  // returns / audit) but mark it refunded so admins stop fulfilling it.
+  await (getSupabase() as any)
+    .from("panty_orders")
+    .update({ status: "refunded", updated_at: nowIso })
+    .eq("stripe_session_id", sessionId)
+    .eq("environment", env);
 }
 
 /**
