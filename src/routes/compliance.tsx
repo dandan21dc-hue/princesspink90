@@ -846,7 +846,9 @@ function MyDocumentsSection() {
                 if (!currentId || !confirmTarget) return;
                 reAck.mutate(
                   { policy_version_id: currentId, event_id: confirmTarget.event_id },
-                  { onSettled: () => setConfirmTarget(null) },
+                  { onSuccess: () => setConfirmTarget(null) },
+                  // On failure: keep the modal open so the user can retry;
+                  // the mutation's onError already surfaces a toast.
                 );
               }}
             >
