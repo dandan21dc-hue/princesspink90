@@ -328,6 +328,28 @@ function MyDocumentsSection() {
 
   const qc = useQueryClient();
   const reAckFn = useServerFn(recordPolicyAgreement);
+
+  // Reconcile every cache surface that depends on policy-agreement state.
+  // Awaited so callers (mutation onSettled) block on server reconciliation
+  // — the button stays in the "Recording…" state until real data lands,
+  // guaranteeing the UI matches the server before the user can act again.
+  async function reconcileAgreementCaches(eventIds: (string | null)[] = []) {
+    const uniqueEventIds = Array.from(new Set(eventIds));
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["my-compliance-documents"], refetchType: "active" }),
+      qc.invalidateQueries({ queryKey: ["compliance-policy-current"], refetchType: "active" }),
+      qc.invalidateQueries({ queryKey: ["compliance-policy-list"], refetchType: "active" }),
+      ...uniqueEventIds.map((eid) =>
+        eid
+          ? qc.invalidateQueries({
+              queryKey: ["my-policy-agreements", eid],
+              refetchType: "active",
+            })
+          : Promise.resolve(),
+      ),
+    ]);
+  }
+
   const reAck = useMutation({
     mutationFn: (vars: { policy_version_id: string; event_id: string | null }) =>
       reAckFn({ data: vars }),
@@ -362,17 +384,17 @@ function MyDocumentsSection() {
       return { previous };
     },
     onError: (e, _vars, ctx) => {
+      // Roll back the optimistic patch to the last known server truth,
+      // then still trigger a refetch in onSettled so we don't drift if the
+      // failure happened after the server already persisted.
       if (ctx?.previous) qc.setQueryData(["my-compliance-documents"], ctx.previous);
       toast.error(e instanceof Error ? e.message : "Could not re-acknowledge policy");
     },
-    onSuccess: (_res, vars) => {
+    onSuccess: () => {
       toast.success("Re-acknowledged current compliance policy for this event.");
-      if (vars.event_id) {
-        qc.invalidateQueries({ queryKey: ["my-policy-agreements", vars.event_id] });
-      }
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
+    onSettled: async (_res, _err, vars) => {
+      await reconcileAgreementCaches(vars ? [vars.event_id] : []);
     },
   });
 
@@ -439,10 +461,10 @@ function MyDocumentsSection() {
       }
       setSelected(new Set());
     },
-    onSettled: (res) => {
-      qc.invalidateQueries({ queryKey: ["my-compliance-documents"] });
-      // Only close the confirm modal if every request succeeded — otherwise
-      // keep it open so the user can retry the failed ones.
+    onSettled: async (res, _err, vars) => {
+      // Await reconciliation so the modal only closes after the UI reflects
+      // the actual server state — never on an unverified optimistic patch.
+      await reconcileAgreementCaches(vars?.event_ids ?? []);
       if (res && res.failed === 0) setBulkConfirmOpen(false);
     },
   });
