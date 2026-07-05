@@ -48,6 +48,24 @@ function AdminGoLivePage() {
   const phraseOk = (data?.rsvp_with_entry_phrase ?? 0) > 0;
   const cronOk = expectedRows.every((r) => r.job?.active);
 
+  // Missing = row absent from cron.job entirely. Inactive = present but disabled.
+  const missingJobs = expectedRows.filter((r) => !r.job).map((r) => r.name);
+  const inactiveJobs = expectedRows
+    .filter((r) => r.job && !r.job.active)
+    .map((r) => r.name);
+
+  // "No recent email" = never sent, or last successful send >24h ago. The
+  // reminder/auth/transactional queues should produce at least one send/day
+  // in normal operation, so a longer gap warrants an alert on the go-live page.
+  const RECENT_EMAIL_WINDOW_MS = 24 * 60 * 60 * 1000;
+  const lastEmailAgeMs = data?.last_email_sent_at
+    ? Date.now() - new Date(data.last_email_sent_at).getTime()
+    : null;
+  const emailStale =
+    Boolean(data) &&
+    (lastEmailAgeMs === null || lastEmailAgeMs > RECENT_EMAIL_WINDOW_MS);
+
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-4xl px-5 pt-16 pb-8">
