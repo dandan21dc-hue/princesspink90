@@ -35,13 +35,14 @@ export const lookupCheckin = createServerFn({ method: "POST" })
     await assertEventHostOrAdmin(context.supabase, context.userId, data.event_id);
     const code = data.ticket_code.trim().toUpperCase();
 
+    // Match either the scan-code (ticket_code) or the human-readable entry_code.
     const { data: rsvp, error } = await context.supabase
       .from("rsvps")
       .select(
         "id, user_id, ticket_code, entry_code, guest_count, status, video_consent, checked_in_at, door_notes",
       )
       .eq("event_id", data.event_id)
-      .eq("ticket_code", code)
+      .or(`ticket_code.eq.${code},entry_code.eq.${code}`)
       .maybeSingle();
     if (error) throw error;
     if (!rsvp) return { found: false as const };
