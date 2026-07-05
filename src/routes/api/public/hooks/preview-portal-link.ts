@@ -72,10 +72,26 @@ function summarize(request: Request, origin: string, portalUrl: string) {
   }
 }
 
+function checkApikey(request: Request): Response | null {
+  const apikey =
+    request.headers.get('apikey') ??
+    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+  const expected = process.env.SUPABASE_PUBLISHABLE_KEY
+  if (!apikey || !expected || apikey !== expected) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+  return null
+}
+
 export const Route = createFileRoute('/api/public/hooks/preview-portal-link')({
   server: {
     handlers: {
       GET: async ({ request }) => {
+        const unauth = checkApikey(request)
+        if (unauth) return unauth
         const origin = resolveAppOrigin(request)
         const portalUrl = buildPortalUrl(origin, DEFAULT_PARAMS)
         return Response.json(summarize(request, origin, portalUrl))
