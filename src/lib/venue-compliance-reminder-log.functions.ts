@@ -78,7 +78,7 @@ export const listVenueComplianceReminderLog = createServerFn({ method: "GET" })
     let q = sb
       .from("venue_compliance_reminder_log")
       .select(
-        `id, document_id, kind, reminder_type, expires_on, recipients, channels, status, error_message, idempotency_key, created_at,
+        `id, document_id, kind, reminder_type, expires_on, recipients, channels, status, error_message, idempotency_key, created_at, attempt_count, max_attempts, last_attempt_at, next_retry_at,
          document:venue_compliance_documents(id, title, venue_name)`,
       )
       .order("created_at", { ascending: false })
@@ -138,6 +138,14 @@ export const listVenueComplianceReminderLog = createServerFn({ method: "GET" })
         error_message: r.error_message,
         idempotency_key: r.idempotency_key,
         created_at: r.created_at,
+        attempt_count:
+          (r as { attempt_count?: number }).attempt_count ?? 1,
+        max_attempts:
+          (r as { max_attempts?: number }).max_attempts ?? 5,
+        last_attempt_at:
+          (r as { last_attempt_at?: string | null }).last_attempt_at ?? null,
+        next_retry_at:
+          (r as { next_retry_at?: string | null }).next_retry_at ?? null,
         document: r.document ?? null,
         recipient_list: toRecipientList(r.recipients),
       })),

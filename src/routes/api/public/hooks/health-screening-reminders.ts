@@ -126,9 +126,15 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
           })
 
           if (notifErr) {
+            const { computeNextRetryAt } = await import('@/lib/reminder-retry')
             await supabase
               .from('health_screening_reminder_log')
-              .update({ status: 'failed', error_message: notifErr.message })
+              .update({
+                status: 'failed',
+                error_message: notifErr.message,
+                last_attempt_at: new Date().toISOString(),
+                next_retry_at: computeNextRetryAt(1)?.toISOString() ?? null,
+              })
               .eq('id', logRow.id)
             failures.push({ id: row.id, error: notifErr.message })
             continue

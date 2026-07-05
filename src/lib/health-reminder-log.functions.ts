@@ -29,7 +29,7 @@ export const listHealthReminderLog = createServerFn({ method: "GET" })
     let q = sb
       .from("health_screening_reminder_log")
       .select(
-        "id, screening_id, user_id, reminder_type, valid_until, channels, status, error_message, idempotency_key, created_at",
+        "id, screening_id, user_id, reminder_type, valid_until, channels, status, error_message, idempotency_key, created_at, attempt_count, max_attempts, last_attempt_at, next_retry_at",
       )
       .order("created_at", { ascending: false })
       .limit(data.limit);

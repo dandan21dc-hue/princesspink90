@@ -538,11 +538,15 @@ export type Database = {
       }
       health_screening_reminder_log: {
         Row: {
+          attempt_count: number
           channels: Json
           created_at: string
           error_message: string | null
           id: string
           idempotency_key: string
+          last_attempt_at: string
+          max_attempts: number
+          next_retry_at: string | null
           reminder_type: string
           screening_id: string
           status: string
@@ -550,11 +554,15 @@ export type Database = {
           valid_until: string
         }
         Insert: {
+          attempt_count?: number
           channels?: Json
           created_at?: string
           error_message?: string | null
           id?: string
           idempotency_key: string
+          last_attempt_at?: string
+          max_attempts?: number
+          next_retry_at?: string | null
           reminder_type?: string
           screening_id: string
           status?: string
@@ -562,11 +570,15 @@ export type Database = {
           valid_until: string
         }
         Update: {
+          attempt_count?: number
           channels?: Json
           created_at?: string
           error_message?: string | null
           id?: string
           idempotency_key?: string
+          last_attempt_at?: string
+          max_attempts?: number
+          next_retry_at?: string | null
           reminder_type?: string
           screening_id?: string
           status?: string
@@ -1176,6 +1188,7 @@ export type Database = {
       }
       venue_compliance_reminder_log: {
         Row: {
+          attempt_count: number
           channels: Json
           created_at: string
           document_id: string
@@ -1184,11 +1197,15 @@ export type Database = {
           id: string
           idempotency_key: string
           kind: Database["public"]["Enums"]["venue_compliance_kind"]
+          last_attempt_at: string
+          max_attempts: number
+          next_retry_at: string | null
           recipients: Json
           reminder_type: string
           status: string
         }
         Insert: {
+          attempt_count?: number
           channels?: Json
           created_at?: string
           document_id: string
@@ -1197,11 +1214,15 @@ export type Database = {
           id?: string
           idempotency_key: string
           kind: Database["public"]["Enums"]["venue_compliance_kind"]
+          last_attempt_at?: string
+          max_attempts?: number
+          next_retry_at?: string | null
           recipients?: Json
           reminder_type?: string
           status?: string
         }
         Update: {
+          attempt_count?: number
           channels?: Json
           created_at?: string
           document_id?: string
@@ -1210,6 +1231,9 @@ export type Database = {
           id?: string
           idempotency_key?: string
           kind?: Database["public"]["Enums"]["venue_compliance_kind"]
+          last_attempt_at?: string
+          max_attempts?: number
+          next_retry_at?: string | null
           recipients?: Json
           reminder_type?: string
           status?: string
