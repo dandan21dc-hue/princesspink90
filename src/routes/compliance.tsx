@@ -829,17 +829,22 @@ function MyDocumentsSection() {
                     <button
                       type="button"
                       disabled={reAck.isPending}
-                      onClick={() =>
+                      aria-busy={reAck.isPending && reAck.variables?.event_id === d.event_id}
+                      onClick={() => {
+                        if (reAck.isPending) return;
                         setConfirmTarget({
                           doc_id: d.id,
                           event_id: d.event_id,
                           event_title: d.event_title ?? null,
                           file_name: d.file_name,
                           old_version: d.policy_version_label ?? null,
-                        })
-                      }
-                      className="rounded-md border border-primary/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10 disabled:opacity-50"
+                        });
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-primary/50 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10 disabled:opacity-50"
                     >
+                      {reAck.isPending && reAck.variables?.event_id === d.event_id && (
+                        <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                      )}
                       {reAck.isPending && reAck.variables?.event_id === d.event_id
                         ? "Recording…"
                         : `Re-acknowledge v${currentVersion}`}
