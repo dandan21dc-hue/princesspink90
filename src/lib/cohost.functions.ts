@@ -233,3 +233,74 @@ export const adminListCohostApplicationReviews = createServerFn({ method: "GET" 
     return list.map((r) => ({ ...r, reviewer_email: emails[r.reviewer_id] ?? null }));
   });
 
+export const adminExportCohostReviews = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: reviews, error } = await supabaseAdmin
+      .from("cohost_application_reviews")
+      .select("id, application_id, reviewer_id, decision, notes, previous_status, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const list = reviews ?? [];
+    const appIds = Array.from(new Set(list.map((r) => r.application_id)));
+    const reviewerIds = Array.from(new Set(list.map((r) => r.reviewer_id)));
+
+    const apps: Record<string, { display_name: string; user_id: string; city: string | null }> = {};
+    if (appIds.length) {
+      const { data: appRows } = await supabaseAdmin
+        .from("cohost_applications")
+        .select("id, display_name, user_id, city")
+        .in("id", appIds);
+      for (const a of appRows ?? []) apps[a.id] = a as any;
+    }
+
+    const applicantEmails: Record<string, string | null> = {};
+    const reviewerEmails: Record<string, string | null> = {};
+    for (const id of Array.from(new Set(Object.values(apps).map((a) => a.user_id)))) {
+      const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
+      applicantEmails[id] = u.user?.email ?? null;
+    }
+    for (const id of reviewerIds) {
+      const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
+      reviewerEmails[id] = u.user?.email ?? null;
+    }
+
+    const esc = (v: unknown) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const header = [
+      "decided_at",
+      "decision",
+      "previous_status",
+      "applicant_name",
+      "applicant_email",
+      "applicant_city",
+      "reviewer_email",
+      "notes",
+      "application_id",
+      "review_id",
+    ];
+    const rows = list.map((r) => {
+      const app = apps[r.application_id];
+      return [
+        r.created_at,
+        r.decision,
+        r.previous_status ?? "",
+        app?.display_name ?? "",
+        app ? applicantEmails[app.user_id] ?? "" : "",
+        app?.city ?? "",
+        reviewerEmails[r.reviewer_id] ?? "",
+        r.notes ?? "",
+        r.application_id,
+        r.id,
+      ].map(esc).join(",");
+    });
+    const csv = [header.join(","), ...rows].join("\n");
+    return { csv, count: list.length };
+  });
+
