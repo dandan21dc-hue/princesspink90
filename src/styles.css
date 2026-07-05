@@ -105,7 +105,7 @@
 @utility grain {
   position: relative;
 }
-@utility grain::after {
+.grain::after {
   content: "";
   position: absolute; inset: 0;
   pointer-events: none;
