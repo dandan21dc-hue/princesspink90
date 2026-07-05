@@ -62,6 +62,12 @@ function AdminSafetyIncidentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [exportCols, setExportCols] = useState<string[]>(DEFAULT_EXPORT_COLS);
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  const dateRangeError =
+    fromDate && toDate && fromDate > toDate
+      ? "'From' date must be on or before 'To' date."
+      : null;
 
   useEffect(() => {
     try {
@@ -97,7 +103,7 @@ function AdminSafetyIncidentsPage() {
   const qc = useQueryClient();
 
   const query = useQuery({
-    queryKey: ["admin-safety-incidents", search, view],
+    queryKey: ["admin-safety-incidents", search, view, fromDate, toDate],
     queryFn: () =>
       listFn({
         data: {
@@ -105,8 +111,11 @@ function AdminSafetyIncidentsPage() {
           limit: 200,
           include_archived: view === "all",
           only_archived: view === "archived",
+          from_date: fromDate || null,
+          to_date: toDate || null,
         },
       }),
+    enabled: !dateRangeError,
   });
 
   const createMut = useMutation({
@@ -142,8 +151,16 @@ function AdminSafetyIncidentsPage() {
 
   async function logExport(format: "csv" | "xlsx", headers: string[], rowCount: number) {
     try {
+      const rangeSuffix =
+        fromDate || toDate ? ` [dates: ${fromDate || "*"}..${toDate || "*"}]` : "";
       await logExportFn({
-        data: { format, view, search, columns: headers, row_count: rowCount },
+        data: {
+          format,
+          view,
+          search: (search + rangeSuffix).slice(0, 200),
+          columns: headers,
+          row_count: rowCount,
+        },
       });
     } catch (e) {
       console.warn("Failed to log export", e);
@@ -379,6 +396,45 @@ function AdminSafetyIncidentsPage() {
             </button>
           </div>
         </div>
+
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            From
+            <input
+              type="date"
+              value={fromDate}
+              max={toDate || undefined}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs uppercase tracking-widest text-muted-foreground">
+            To
+            <input
+              type="date"
+              value={toDate}
+              min={fromDate || undefined}
+              onChange={(e) => setToDate(e.target.value)}
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm normal-case tracking-normal text-foreground"
+            />
+          </label>
+          {(fromDate || toDate) && (
+            <button
+              type="button"
+              onClick={() => {
+                setFromDate("");
+                setToDate("");
+              }}
+              className="rounded-md border border-border bg-background px-3 py-2 text-xs font-medium uppercase tracking-widest text-foreground hover:bg-muted"
+            >
+              Clear dates
+            </button>
+          )}
+          {dateRangeError && (
+            <p className="text-xs text-destructive sm:ml-2">{dateRangeError}</p>
+          )}
+        </div>
+
 
         {showColumnPicker && (
           <ColumnPicker
