@@ -243,8 +243,8 @@ async function getLibraryHasSubscription() {
   // same way getMyLibrary does, so we lock in the shape it reads.
   const supabase = makeSupabase()
   const [{ data: sub }, { data: memberships }] = await Promise.all([
-    supabase
-      .from('subscriptions')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase.from('subscriptions') as any)
       .select()
       .eq('user_id', USER_ID)
       .eq('environment', 'sandbox')
