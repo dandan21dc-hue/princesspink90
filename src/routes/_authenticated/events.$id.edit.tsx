@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { EventForm, toPayload, type EventFormValues } from "@/components/EventForm";
-import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes, setAccessCodeUsed } from "@/lib/host.functions";
+import { getMyEvent, updateEvent, deleteEvent, addAccessCode, deleteAccessCode, bulkAddAccessCodes, setAccessCodeUsed, bulkSetAccessCodesUsed } from "@/lib/host.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/events/$id/edit")({
@@ -55,6 +55,20 @@ function EditEvent() {
   const markUsed = useMutation({
     mutationFn: (v: { id: string; used: boolean; used_by_name?: string }) => markUsedFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["my-event", id] }),
+    onError: (e) => toast.error(e.message),
+  });
+
+  const bulkMarkFn = useServerFn(bulkSetAccessCodesUsed);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkGuestName, setBulkGuestName] = useState("");
+  const bulkMark = useMutation({
+    mutationFn: (v: { used: boolean }) =>
+      bulkMarkFn({ data: { ids: Array.from(selected), used: v.used, used_by_name: bulkGuestName.trim() || undefined } }),
+    onSuccess: (r, v) => {
+      toast.success(`${v.used ? "Marked" : "Unmarked"} ${r.count} code${r.count === 1 ? "" : "s"}`);
+      setSelected(new Set()); setBulkGuestName("");
+      qc.invalidateQueries({ queryKey: ["my-event", id] });
+    },
     onError: (e) => toast.error(e.message),
   });
 
@@ -129,9 +143,43 @@ function EditEvent() {
               Add
             </button>
           </div>
+          {codes.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+              <label className="flex items-center gap-2 text-muted-foreground">
+                <input type="checkbox"
+                  checked={selected.size === codes.length}
+                  ref={(el) => { if (el) el.indeterminate = selected.size > 0 && selected.size < codes.length; }}
+                  onChange={(e) => setSelected(e.target.checked ? new Set(codes.map((c) => c.id)) : new Set())} />
+                Select all
+              </label>
+              <span className="text-muted-foreground">· {selected.size} selected</span>
+              {selected.size > 0 && (
+                <div className="flex flex-wrap items-center gap-2 ml-auto">
+                  <input value={bulkGuestName} onChange={(e) => setBulkGuestName(e.target.value)}
+                    placeholder="Guest name (optional)"
+                    className="rounded-md border border-input bg-background px-2 py-1 text-xs w-44" />
+                  <button disabled={bulkMark.isPending} onClick={() => bulkMark.mutate({ used: true })}
+                    className="rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
+                    Mark used
+                  </button>
+                  <button disabled={bulkMark.isPending} onClick={() => bulkMark.mutate({ used: false })}
+                    className="rounded-md border border-border px-3 py-1.5 text-[11px] uppercase tracking-widest hover:bg-secondary/50 disabled:opacity-50">
+                    Unmark
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <ul className="mt-4 space-y-2">
             {codes.map((c) => (
-              <AccessCodeRow key={c.id} c={c} onDelete={() => delC.mutate(c.id)}
+              <AccessCodeRow key={c.id} c={c}
+                selected={selected.has(c.id)}
+                onSelect={(checked) => setSelected((prev) => {
+                  const next = new Set(prev);
+                  if (checked) next.add(c.id); else next.delete(c.id);
+                  return next;
+                })}
+                onDelete={() => delC.mutate(c.id)}
                 onToggle={(used, name) => markUsed.mutate({ id: c.id, used, used_by_name: name })}
                 pending={markUsed.isPending && markUsed.variables?.id === c.id} />
             ))}
@@ -211,12 +259,14 @@ type CodeRow = {
 };
 
 function AccessCodeRow({
-  c, onDelete, onToggle, pending,
+  c, onDelete, onToggle, pending, selected, onSelect,
 }: {
   c: CodeRow;
   onDelete: () => void;
   onToggle: (used: boolean, name?: string) => void;
   pending: boolean;
+  selected: boolean;
+  onSelect: (checked: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(c.used_by_name ?? "");
@@ -225,6 +275,8 @@ function AccessCodeRow({
   return (
     <li className={`rounded-md border px-3 py-2 text-sm ${used ? "border-primary/40 bg-primary/5" : "border-border/50"}`}>
       <div className="flex items-center justify-between gap-3">
+        <input type="checkbox" checked={selected} onChange={(e) => onSelect(e.target.checked)}
+          className="shrink-0" aria-label={`Select ${c.code}`} />
         <div className="min-w-0 flex-1">
           <div className={`font-mono ${used ? "text-muted-foreground line-through" : ""}`}>{c.code}</div>
           {used && (
