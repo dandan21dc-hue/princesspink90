@@ -10,6 +10,12 @@ import {
   adminListCohostApplicationReviews,
   adminReviewCohostApplication,
 } from "@/lib/cohost.functions";
+import {
+  acknowledgeHandbook,
+  getMyHandbookAck,
+  HANDBOOK_VERSION,
+} from "@/lib/cohost-handbook.functions";
+import handbookAsset from "@/assets/princess-pink-cohost-handbook.pdf.asset.json";
 
 import {
   Sheet,
