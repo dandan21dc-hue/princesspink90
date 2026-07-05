@@ -35,6 +35,8 @@ function EditEvent() {
   const delCode = useServerFn(deleteAccessCode);
 
   const q = useQuery({ queryKey: ["my-event", id], queryFn: () => getFn({ data: { id } }) });
+  const ackFn = useServerFn(getMyHandbookAck);
+  const ackQ = useQuery({ queryKey: ["my-handbook-ack"], queryFn: () => ackFn() });
 
   const update = useMutation({
     mutationFn: (payload: ReturnType<typeof toPayload>) => updateFn({ data: { id, ...payload } }),
