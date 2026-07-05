@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, render, screen, within } from "@testing-library/react";
+
 import { GoLiveStatusView } from "./GoLiveStatusView";
 import type { GoLiveStatus } from "@/lib/go-live-status.functions";
 
