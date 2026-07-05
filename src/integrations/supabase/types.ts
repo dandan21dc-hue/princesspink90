@@ -166,6 +166,42 @@ export type Database = {
         }
         Relationships: []
       }
+      compliance_policy_versions: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          effective_at: string
+          id: string
+          is_current: boolean
+          summary: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: string
+          is_current?: boolean
+          summary: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: string
+          is_current?: boolean
+          summary?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       content_items: {
         Row: {
           cover_url: string | null
@@ -295,6 +331,8 @@ export type Database = {
           file_name: string
           file_path: string
           id: string
+          policy_version_id: string | null
+          policy_version_label: string | null
           size_bytes: number | null
           uploaded_at: string
           uploaded_by: string
@@ -306,6 +344,8 @@ export type Database = {
           file_name: string
           file_path: string
           id?: string
+          policy_version_id?: string | null
+          policy_version_label?: string | null
           size_bytes?: number | null
           uploaded_at?: string
           uploaded_by: string
@@ -317,6 +357,8 @@ export type Database = {
           file_name?: string
           file_path?: string
           id?: string
+          policy_version_id?: string | null
+          policy_version_label?: string | null
           size_bytes?: number | null
           uploaded_at?: string
           uploaded_by?: string
@@ -327,6 +369,13 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_documents_policy_version_id_fkey"
+            columns: ["policy_version_id"]
+            isOneToOne: false
+            referencedRelation: "compliance_policy_versions"
             referencedColumns: ["id"]
           },
         ]
