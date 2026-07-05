@@ -22,6 +22,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
@@ -90,6 +91,12 @@ const AuthenticatedContentNewRoute = AuthenticatedContentNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedContentRoute,
 } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/admin/settings',
+    path: '/admin/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminLifetimeRoute =
   AuthenticatedAdminLifetimeRouteImport.update({
     id: '/admin/lifetime',
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -138,6 +146,7 @@ export interface FileRoutesByTo {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -157,6 +166,7 @@ export interface FileRoutesById {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/admin/lifetime'
+    | '/admin/settings'
     | '/content/new'
     | '/events/new'
     | '/events/$id/edit'
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/admin/lifetime'
+    | '/admin/settings'
     | '/content/new'
     | '/events/new'
     | '/events/$id/edit'
@@ -211,6 +223,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/_authenticated/admin/lifetime'
+    | '/_authenticated/admin/settings'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
     | '/_authenticated/events/$id/edit'
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContentNewRouteImport
       parentRoute: typeof AuthenticatedContentRoute
     }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/lifetime': {
       id: '/_authenticated/admin/lifetime'
       path: '/admin/lifetime'
@@ -360,6 +380,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
   AuthenticatedEventsIdEditRoute: typeof AuthenticatedEventsIdEditRoute
 }
@@ -369,6 +390,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
+  AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedEventsNewRoute: AuthenticatedEventsNewRoute,
   AuthenticatedEventsIdEditRoute: AuthenticatedEventsIdEditRoute,
 }

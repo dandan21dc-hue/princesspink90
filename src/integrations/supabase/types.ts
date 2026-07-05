@@ -346,6 +346,30 @@ export type Database = {
           },
         ]
       }
+      site_settings: {
+        Row: {
+          email: string
+          fetlife_handle: string
+          id: string
+          reddit_handle: string
+          updated_at: string
+        }
+        Insert: {
+          email?: string
+          fetlife_handle?: string
+          id?: string
+          reddit_handle?: string
+          updated_at?: string
+        }
+        Update: {
+          email?: string
+          fetlife_handle?: string
+          id?: string
+          reddit_handle?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null

@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { listPublicEvents } from "@/lib/events.functions";
+import { getSiteSettings } from "@/lib/settings.functions";
 import { EventCard } from "@/components/EventCard";
 import heroImg from "@/assets/hero.jpg";
 
@@ -10,8 +11,17 @@ const eventsQuery = queryOptions({
   queryFn: () => listPublicEvents(),
 });
 
+const settingsQuery = queryOptions({
+  queryKey: ["site-settings"],
+  queryFn: () => getSiteSettings(),
+});
+
 export const Route = createFileRoute("/")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
+  loader: ({ context }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(eventsQuery),
+      context.queryClient.ensureQueryData(settingsQuery),
+    ]),
   head: () => ({
     meta: [
       { property: "og:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
@@ -19,6 +29,7 @@ export const Route = createFileRoute("/")({
   }),
   component: Home,
 });
+
 
 function Home() {
   return (
@@ -66,6 +77,7 @@ function Home() {
 }
 
 function HostBlock() {
+  const { data: settings } = useSuspenseQuery(settingsQuery);
   const tags = [
     "Glory hole nights",
     "Gang bangs",
@@ -95,13 +107,10 @@ function HostBlock() {
           ))}
         </div>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          <ContactCard label="Email" value="princesspink9014@gmail.com" href="mailto:princesspink9014@gmail.com" />
-          <ContactCard label="FetLife" value="/pink_princess90" href="https://fetlife.com/pink_princess90" />
-          <ContactCard label="Reddit" value="u/19pink-princess90" href="https://reddit.com/u/19pink-princess90" />
+          <ContactCard label="Email" value={settings.email} href={`mailto:${settings.email}`} />
+          <ContactCard label="FetLife" value={`/${settings.fetlife_handle}`} href={`https://fetlife.com/${settings.fetlife_handle}`} />
+          <ContactCard label="Reddit" value={`u/${settings.reddit_handle}`} href={`https://reddit.com/u/${settings.reddit_handle}`} />
         </div>
-        <p className="mt-6 text-[11px] uppercase tracking-widest text-muted-foreground">
-          Update these handles anytime in the code — placeholders shown.
-        </p>
       </div>
     </section>
   );
