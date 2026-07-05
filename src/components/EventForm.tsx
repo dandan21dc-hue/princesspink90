@@ -85,6 +85,7 @@ export function toPayload(v: EventFormValues) {
     legal_capacity: legalCap,
     capacity_confirmed: v.capacity_confirmed,
     compliance_notes: v.compliance_notes.trim() || null,
+    ...(v.waiver_text.trim() ? { waiver_text: v.waiver_text.trim() } : {}),
   };
 }
 
