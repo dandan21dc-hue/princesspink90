@@ -171,23 +171,34 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       // Auditing is best-effort — never block a valid RSVP if the log write fails.
     }
 
-    // Auto-redeem lifetime member's free event ticket on first RSVP
+    // Auto-redeem free event ticket on first RSVP for members whose plan
+    // includes one: lifetime (always) or an active 12-month all-access pass
+    // (`term_pass_12` with `expires_at > now`). Lifetime wins over term_pass_12
+    // if the user somehow holds both.
     const env = process.env.NODE_ENV === "production" ? "live" : "sandbox";
-    const { data: mem } = await context.supabase
+    const { data: perkRows } = await context.supabase
       .from("memberships")
-      .select("id, event_ticket_used_at")
+      .select("id, kind, event_ticket_used_at, expires_at")
       .eq("user_id", context.userId)
       .eq("environment", env)
-      .eq("kind", "lifetime")
-      .maybeSingle();
-    if (mem && !mem.event_ticket_used_at) {
+      .in("kind", ["lifetime", "term_pass_12"]);
+    const nowMs = Date.now();
+    const perkRow =
+      (perkRows ?? []).find((r: any) => r.kind === "lifetime") ??
+      (perkRows ?? []).find(
+        (r: any) =>
+          r.kind === "term_pass_12" &&
+          r.expires_at &&
+          new Date(r.expires_at).getTime() > nowMs,
+      );
+    if (perkRow && !perkRow.event_ticket_used_at) {
       await context.supabase
         .from("memberships")
         .update({
           event_ticket_used_at: now,
           event_ticket_event_id: data.event_id,
         })
-        .eq("id", mem.id);
+        .eq("id", perkRow.id);
     }
     return {
       ticket_code: row.ticket_code,
