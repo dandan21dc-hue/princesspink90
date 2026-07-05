@@ -143,9 +143,43 @@ function EditEvent() {
               Add
             </button>
           </div>
+          {codes.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+              <label className="flex items-center gap-2 text-muted-foreground">
+                <input type="checkbox"
+                  checked={selected.size === codes.length}
+                  ref={(el) => { if (el) el.indeterminate = selected.size > 0 && selected.size < codes.length; }}
+                  onChange={(e) => setSelected(e.target.checked ? new Set(codes.map((c) => c.id)) : new Set())} />
+                Select all
+              </label>
+              <span className="text-muted-foreground">· {selected.size} selected</span>
+              {selected.size > 0 && (
+                <div className="flex flex-wrap items-center gap-2 ml-auto">
+                  <input value={bulkGuestName} onChange={(e) => setBulkGuestName(e.target.value)}
+                    placeholder="Guest name (optional)"
+                    className="rounded-md border border-input bg-background px-2 py-1 text-xs w-44" />
+                  <button disabled={bulkMark.isPending} onClick={() => bulkMark.mutate({ used: true })}
+                    className="rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50">
+                    Mark used
+                  </button>
+                  <button disabled={bulkMark.isPending} onClick={() => bulkMark.mutate({ used: false })}
+                    className="rounded-md border border-border px-3 py-1.5 text-[11px] uppercase tracking-widest hover:bg-secondary/50 disabled:opacity-50">
+                    Unmark
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           <ul className="mt-4 space-y-2">
             {codes.map((c) => (
-              <AccessCodeRow key={c.id} c={c} onDelete={() => delC.mutate(c.id)}
+              <AccessCodeRow key={c.id} c={c}
+                selected={selected.has(c.id)}
+                onSelect={(checked) => setSelected((prev) => {
+                  const next = new Set(prev);
+                  if (checked) next.add(c.id); else next.delete(c.id);
+                  return next;
+                })}
+                onDelete={() => delC.mutate(c.id)}
                 onToggle={(used, name) => markUsed.mutate({ id: c.id, used, used_by_name: name })}
                 pending={markUsed.isPending && markUsed.variables?.id === c.id} />
             ))}
