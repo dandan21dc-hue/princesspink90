@@ -56,6 +56,10 @@ export const listSafetyIncidents = createServerFn({ method: "GET" })
       q = q.is("archived_at", null);
     }
 
+    if (data.from_date) q = q.gte("incident_date", data.from_date);
+    if (data.to_date) q = q.lte("incident_date", data.to_date);
+
+
     if (data.search) {
       const s = data.search.replace(/[%,]/g, " ").trim();
       const like = `%${s}%`;
