@@ -115,7 +115,9 @@ describe('health screening reminder — portal link', () => {
     process.env.PUBLIC_APP_URL = 'https://princesspink90.com'
     const req = mockRequest()
     const { portalUrl, tmpl } = renderPortalLink(req)
-    expect(tmpl.html).toContain(`href="${portalUrl}"`)
+    // HTML escapes `&` inside attribute values, so compare against the escaped form.
+    const escapedPortalUrl = portalUrl.replace(/&/g, '&amp;')
+    expect(tmpl.html).toContain(`href="${escapedPortalUrl}"`)
     expect(tmpl.text).toContain(portalUrl)
   })
 })
