@@ -139,28 +139,20 @@ function AdminSafetyIncidentsPage() {
   }
 
   function exportCsv() {
-    const headers = [
-      "id",
-      "incident_date",
-      "venue",
-      "involved_party",
-      "nature_of_incident",
-      "resolution_taken",
-      "created_at",
-      "created_by",
-      "archived_at",
-      "archived_by",
-      "archive_reason",
-    ];
+    const headers = exportCols.length > 0 ? exportCols : DEFAULT_EXPORT_COLS;
     const escape = (v: unknown) => {
       if (v === null || v === undefined) return "";
       const s = String(v);
       return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
-    const lines = [headers.join(",")];
+    const lines = [headers.map((h) => {
+      const label = ALL_COLUMNS.find((c) => c.key === h)?.label ?? h;
+      return escape(label);
+    }).join(",")];
     for (const r of rows as any[]) {
       lines.push(headers.map((h) => escape(r[h])).join(","));
     }
+
     // Prepend BOM for Excel compatibility
     const blob = new Blob(["\ufeff" + lines.join("\r\n")], {
       type: "text/csv;charset=utf-8;",
