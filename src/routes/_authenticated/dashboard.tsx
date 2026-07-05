@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { listMyEvents } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
+import { amIAdmin } from "@/lib/admin.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -13,8 +14,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const myEventsFn = useServerFn(listMyEvents);
   const myRsvpsFn = useServerFn(listMyRsvps);
+  const amIAdminFn = useServerFn(amIAdmin);
   const events = useQuery({ queryKey: ["my-events"], queryFn: () => myEventsFn() });
   const rsvps = useQuery({ queryKey: ["my-rsvps"], queryFn: () => myRsvpsFn() });
+  const admin = useQuery({ queryKey: ["am-i-admin"], queryFn: () => amIAdminFn() });
+
 
   return (
     <section className="mx-auto max-w-5xl px-5 py-12">
@@ -25,6 +29,14 @@ function Dashboard() {
         </div>
         <div className="flex items-center gap-2">
           <NotificationsBell />
+          {admin.data?.isAdmin && (
+            <Link
+              to="/admin/lifetime"
+              className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
+            >
+              Admin
+            </Link>
+          )}
           <Link
             to="/content"
             className="rounded-md border border-primary/40 bg-primary/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
