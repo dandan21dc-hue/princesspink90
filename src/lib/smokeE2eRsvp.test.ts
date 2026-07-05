@@ -57,16 +57,37 @@ let rsvpId = ''
 
 async function poll<T>(
   fn: () => Promise<T | null | undefined>,
-  { timeoutMs = 30_000, intervalMs = 1_000 } = {},
+  {
+    timeoutMs = 30_000,
+    intervalMs = 1_000,
+    onTick,
+  }: {
+    timeoutMs?: number
+    intervalMs?: number
+    onTick?: (attempt: number, elapsedMs: number) => void
+  } = {},
 ): Promise<T | null> {
-  const deadline = Date.now() + timeoutMs
+  const start = Date.now()
+  const deadline = start + timeoutMs
+  let attempt = 0
   while (Date.now() < deadline) {
+    attempt++
     const v = await fn()
     if (v) return v
+    onTick?.(attempt, Date.now() - start)
     await new Promise((r) => setTimeout(r, intervalMs))
   }
   return null
 }
+
+function fmt(v: unknown) {
+  try {
+    return JSON.stringify(v, null, 2)
+  } catch {
+    return String(v)
+  }
+}
+
 
 describe.skipIf(!HAS_CREDS)(
   'smoke: signup → RSVP → entry_phrase + email log',
