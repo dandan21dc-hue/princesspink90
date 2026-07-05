@@ -897,17 +897,21 @@ function MyDocumentsSection() {
                   <AlertDialogCancel disabled={bulkReAck.isPending}>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     disabled={bulkReAck.isPending || !currentId || uniqueEventIds.length === 0}
+                    aria-busy={bulkReAck.isPending}
                     onClick={(e) => {
                       e.preventDefault();
+                      if (bulkReAck.isPending) return;
                       if (!currentId) return;
                       bulkReAck.mutate({
                         policy_version_id: currentId,
                         event_ids: uniqueEventIds,
                       });
                     }}
+                    className="inline-flex items-center gap-2"
                   >
+                    {bulkReAck.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
                     {bulkReAck.isPending
-                      ? "Recording…"
+                      ? `Recording ${uniqueEventIds.length}…`
                       : `Record ${uniqueEventIds.length} agreement${uniqueEventIds.length === 1 ? "" : "s"}`}
                   </AlertDialogAction>
                 </AlertDialogFooter>
