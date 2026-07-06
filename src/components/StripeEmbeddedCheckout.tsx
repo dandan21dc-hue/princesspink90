@@ -210,11 +210,22 @@ export function StripeEmbeddedCheckout(props: Props) {
   const fetchClientSecret = useCallback((): Promise<string> => {
     const cached = inFlightRef.current;
     if (cached && cached.attempt === attempt) {
+      logLifecycle("in_flight_ref_reused", {
+        attempt,
+        cached_attempt: cached.attempt,
+      });
       logLifecycle("session_request_deduped", { attempt });
       setDedupedHits((n) => n + 1);
       return cached.promise;
     }
 
+    logLifecycle("in_flight_ref_initialized", {
+      attempt,
+      // "replaced" when we're rolling over from a previous attempt's cache
+      // (e.g. after a failed request or retry); "fresh" when nothing was cached.
+      state: cached ? "replaced" : "fresh",
+      previous_attempt: cached?.attempt ?? null,
+    });
     const promise = runFetchClientSecret().catch((e) => {
       // On failure, drop the cache so the next explicit retry (attempt++)
       // starts fresh; keep it cached on success so the client secret is stable.
@@ -233,9 +244,19 @@ export function StripeEmbeddedCheckout(props: Props) {
     value: { fetchClientSecret: () => Promise<string> };
   } | null>(null);
   if (!optionsRef.current || optionsRef.current.attempt !== attempt) {
+    logLifecycle("options_ref_initialized", {
+      attempt,
+      state: optionsRef.current ? "replaced" : "fresh",
+      previous_attempt: optionsRef.current?.attempt ?? null,
+    });
     optionsRef.current = { attempt, value: { fetchClientSecret } };
   }
+  // Note: we intentionally do NOT log options_ref_reused on every render —
+  // it fires on every parent re-render and would flood logs. Reuse is implied
+  // by the absence of an options_ref_initialized event for the same attempt.
+
   const options = optionsRef.current.value;
+
 
 
   // Fail loudly if Stripe.js itself doesn't load (blocked, offline, bad key).
