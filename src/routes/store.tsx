@@ -154,11 +154,26 @@ function AllAccessCard() {
               </div>
             );
 
+            const trackPayload = {
+              plan: p.plan,
+              label: p.label,
+              price: p.price,
+              cadence: p.cadence,
+              owned,
+              superseded_by_lifetime: supersededByLifetime,
+              current_plan: currentLabel ?? "none",
+            };
+
             return (
               <li key={p.plan}>
                 {disabled ? (
                   <div
                     aria-disabled="true"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() =>
+                      track("boutique_tier_click", { ...trackPayload, action: "blocked" })
+                    }
                     className="-mx-2 flex cursor-not-allowed flex-col gap-0.5 rounded-lg px-2 py-1.5 opacity-60"
                   >
                     {row}
@@ -167,7 +182,10 @@ function AllAccessCard() {
                   <Link
                     to="/store/subscribe"
                     search={{ plan: p.plan }}
-                    onClick={() => track("all_access_tier_click", { plan: p.plan })}
+                    onClick={() => {
+                      track("all_access_tier_click", { plan: p.plan });
+                      track("boutique_tier_click", { ...trackPayload, action: "navigate" });
+                    }}
                     className="group -mx-2 flex flex-col gap-0.5 rounded-lg px-2 py-1.5 hover:bg-primary/15 focus:bg-primary/15 focus:outline-none"
                   >
                     {row}
