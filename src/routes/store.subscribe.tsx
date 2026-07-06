@@ -104,12 +104,12 @@ function SubscribePage() {
     });
   }, []);
 
-  async function buy(priceId: PriceId) {
+  async function buy(priceId: PriceId, autoRenew?: boolean) {
     if (pending) {
       console.log("[subscribe] click ignored — already pending", { pending, priceId });
       return;
     }
-    console.log("[subscribe] click", { priceId, hasUser: !!user });
+    console.log("[subscribe] click", { priceId, hasUser: !!user, autoRenew });
     if (!user) {
       navigate({ to: "/auth" });
       return;
@@ -138,12 +138,13 @@ function SubscribePage() {
       if (priceId.startsWith("panty_")) {
         track("panty_checkout_started", { variant: priceId });
       }
-      track("checkout_open", { priceId });
+      track("checkout_open", { priceId, autoRenew: autoRenew ? "1" : "0" });
       openCheckout({
         priceId,
         userId: user.id,
         customerEmail: user.email,
         returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
+        autoRenew,
       });
     } catch (e) {
       console.error("[subscribe] buy failed", e);
@@ -207,7 +208,7 @@ function priceLabel(prices: Record<string, SubscribePrice>, key: PriceId, fallba
   return formatMoney(p.unit_amount, p.currency);
 }
 
-function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: PriceId | null }) {
+function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) => void; pending: PriceId | null }) {
   const { data: prices } = useSuspenseQuery(pricesQuery());
   const busy = (id: PriceId) => pending === id;
   const disabled = pending !== null;
@@ -254,43 +255,37 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
           loading={busy("all_access_monthly_aud")}
           disabled={disabled}
         />
-        <PassCard
+        <TermPassCard
           label="3-Month Term"
-          price={priceLabel(prices, "all_access_3mo_monthly_aud", "A$27")}
-          cadence="for 3 months"
-          perks={["Full library streaming", "One-time upfront payment", "3 months of access — no renewal"]}
-          cta="Buy 3-month term"
-          onClick={() => onBuy("all_access_3mo_monthly_aud")}
+          termMonths={3}
+          priceId="all_access_3mo_monthly_aud"
+          priceText={priceLabel(prices, "all_access_3mo_monthly_aud", "A$27")}
+          onBuy={onBuy}
           loading={busy("all_access_3mo_monthly_aud")}
           disabled={disabled}
         />
-        <PassCard
+        <TermPassCard
           label="6-Month Term"
-          price={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48")}
-          cadence="for 6 months"
-          perks={["Full library streaming", "One-time upfront payment", "6 months of access — no renewal"]}
-          cta="Buy 6-month term"
-          onClick={() => onBuy("all_access_6mo_monthly_aud")}
+          termMonths={6}
+          priceId="all_access_6mo_monthly_aud"
+          priceText={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48")}
+          onBuy={onBuy}
           loading={busy("all_access_6mo_monthly_aud")}
           disabled={disabled}
         />
-        <PassCard
+        <TermPassCard
           label="12-Month Term"
-          price={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84")}
-          cadence="for 12 months"
+          termMonths={12}
+          priceId="all_access_12mo_monthly_aud"
+          priceText={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84")}
           highlight="Includes free entry"
-          perks={[
-            "Full library streaming",
-            "One-time upfront payment",
-            "12 months of access — no renewal",
-            "1 free event entry during the term",
-          ]}
-          cta="Buy 12-month term"
-          onClick={() => onBuy("all_access_12mo_monthly_aud")}
+          extraPerks={["1 free event entry during the term"]}
+          onBuy={onBuy}
           loading={busy("all_access_12mo_monthly_aud")}
           disabled={disabled}
         />
       </div>
+
 
 
       {/* Lifetime */}
@@ -536,5 +531,86 @@ function PassCard({
     </div>
   );
 }
+
+function TermPassCard({
+  label,
+  termMonths,
+  priceId,
+  priceText,
+  onBuy,
+  loading,
+  disabled,
+  highlight,
+  extraPerks = [],
+}: {
+  label: string;
+  termMonths: 3 | 6 | 12;
+  priceId: PriceId;
+  priceText: string;
+  onBuy: (id: PriceId, autoRenew?: boolean) => void;
+  loading: boolean;
+  disabled: boolean;
+  highlight?: string;
+  extraPerks?: string[];
+}) {
+  // Default to auto-renew ON so subscribers keep uninterrupted access.
+  // Toggle lets them opt into a one-time, non-renewing purchase instead.
+  const [autoRenew, setAutoRenew] = useState(true);
+
+  const perks = [
+    "Full library streaming",
+    autoRenew
+      ? `Auto-renews every ${termMonths} months at ${priceText} — cancel anytime`
+      : `One-time payment · ${termMonths} months of access · no renewal`,
+    ...extraPerks,
+  ];
+  const cadence = autoRenew ? `every ${termMonths} mo` : `for ${termMonths} months`;
+  const cta = autoRenew
+    ? `Subscribe · ${priceText}/${termMonths}mo`
+    : `Buy ${termMonths}-month term`;
+
+  return (
+    <div className="relative flex flex-col rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)]">
+      {highlight ? (
+        <div className="absolute right-3 top-3 rounded-full bg-primary/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-primary-foreground">
+          {highlight}
+        </div>
+      ) : null}
+      <div className="text-[10px] uppercase tracking-[0.3em] text-primary">{label}</div>
+      <div className="mt-2 font-display text-3xl font-extrabold">
+        {priceText}
+        <span className="ml-1 text-xs font-normal text-muted-foreground">{cadence}</span>
+      </div>
+      <ul className="mt-4 flex-1 space-y-1.5 text-xs text-muted-foreground">
+        {perks.map((p) => (
+          <li key={p}>· {p}</li>
+        ))}
+      </ul>
+
+      <label className="mt-4 flex cursor-pointer items-start gap-2 rounded-md border border-primary/30 bg-background/60 px-3 py-2 text-[11px] text-foreground/90 hover:bg-primary/5">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-3.5 w-3.5 accent-primary"
+          checked={autoRenew}
+          onChange={(e) => setAutoRenew(e.target.checked)}
+          disabled={disabled || loading}
+        />
+        <span>
+          <span className="font-semibold">Auto-renew</span> at term end
+          <span className="ml-1 text-muted-foreground">(uncheck to pay once)</span>
+        </span>
+      </label>
+
+      <button
+        onClick={() => onBuy(priceId, autoRenew)}
+        disabled={disabled || loading}
+        className="mt-3 min-h-11 w-full rounded-md bg-primary px-4 py-3 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {loading ? "Processing…" : cta}
+      </button>
+    </div>
+  );
+}
+
 
 

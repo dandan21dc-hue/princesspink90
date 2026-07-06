@@ -11,6 +11,7 @@ interface Props {
   userId?: string;
   customerEmail?: string;
   bookingStartsAt?: string;
+  autoRenew?: boolean;
 }
 
 /**
@@ -65,6 +66,7 @@ export function StripeEmbeddedCheckout(props: Props) {
           environment: getStripeEnvironment(),
           bookingStartsAt: props.bookingStartsAt,
           customerCountry: country,
+          autoRenew: props.autoRenew,
         },
       });
     } catch (e) {

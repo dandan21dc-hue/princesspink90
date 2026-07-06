@@ -109,22 +109,28 @@ async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
       { onConflict: "stripe_subscription_id" },
     );
 
-  // Term-pass perk provisioning: 12-month subscribers get a `term_pass_12`
-  // membership row so the "1 free event entry during the term" perk is
-  // grantable. Kept idempotent — we only insert if no row exists for
-  // (user_id, kind, environment) linked to this subscription.
+  // Term-pass perk provisioning for recurring term plans (3/6/12 mo,
+  // one-time OR auto-renew). Derives termMonths from the price lookup_key
+  // and syncs the membership row's expires_at to Stripe's
+  // current_period_end so renewals extend access automatically.
+  const termLookup = typeof priceId === "string"
+    ? /^all_access_(3|6|12)mo_(monthly|renew|onetime)_aud$/.exec(priceId)
+    : null;
+  const subTermMonths = termLookup ? Number(termLookup[1]) : null;
   if (
-    priceId === "all_access_12mo_monthly_aud" &&
+    subTermMonths &&
     (subscription.status === "active" || subscription.status === "trialing")
   ) {
     await ensureTermPassMembership({
       userId,
       subscriptionId: subscription.id,
       env,
-      termMonths: 12,
+      termMonths: subTermMonths,
       periodStartUnix: periodStart,
+      periodEndUnix: periodEnd,
     });
   }
+
 
   // Notify creators on new subscription
   if (!existing && (subscription.status === "active" || subscription.status === "trialing")) {
@@ -164,25 +170,58 @@ async function ensureTermPassMembership(opts: {
   env: StripeEnv;
   termMonths: number;
   periodStartUnix: number | null | undefined;
+  periodEndUnix?: number | null | undefined;
 }) {
   const kind = `term_pass_${opts.termMonths}`;
   const marker = `sub_${opts.subscriptionId}`;
 
+  const start = opts.periodStartUnix
+    ? new Date(opts.periodStartUnix * 1000)
+    : new Date();
+  // Prefer Stripe's period end so renewals extend the row automatically;
+  // fall back to periodStart + termMonths for one-time term passes.
+  const expires = opts.periodEndUnix
+    ? new Date(opts.periodEndUnix * 1000)
+    : (() => {
+        const d = new Date(start);
+        d.setMonth(d.getMonth() + opts.termMonths);
+        return d;
+      })();
+
   const { data: existing } = await getSupabase()
     .from("memberships")
-    .select("id")
+    .select("id, expires_at")
     .eq("user_id", opts.userId)
     .eq("kind", kind)
     .eq("environment", opts.env)
     .eq("stripe_session_id", marker)
     .maybeSingle();
-  if (existing) return;
 
-  const start = opts.periodStartUnix
-    ? new Date(opts.periodStartUnix * 1000)
-    : new Date();
-  const expires = new Date(start);
-  expires.setMonth(expires.getMonth() + opts.termMonths);
+  if (existing) {
+    // Renewal: bump expires_at to the new period end if it moved forward.
+    const currentExpiry = existing.expires_at ? new Date(existing.expires_at).getTime() : 0;
+    if (expires.getTime() > currentExpiry) {
+      const { error } = await getSupabase()
+        .from("memberships")
+        .update({ expires_at: expires.toISOString() })
+        .eq("id", (existing as { id: string }).id);
+      if (error) {
+        console.error("[webhook] term-pass renewal update failed", {
+          userId: opts.userId,
+          subscriptionId: opts.subscriptionId,
+          error: error.message,
+        });
+      } else {
+        console.log("[webhook] term-pass membership extended", {
+          userId: opts.userId,
+          kind,
+          subscriptionId: opts.subscriptionId,
+          expires_at: expires.toISOString(),
+        });
+      }
+    }
+    return;
+  }
 
   const { error } = await getSupabase().from("memberships").insert({
     user_id: opts.userId,
