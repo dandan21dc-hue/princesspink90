@@ -112,9 +112,30 @@ function Auth() {
             placeholder="Password (min 8 chars)"
             className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
           />
+          {mode === "signup" && (
+            <label className="flex items-start gap-2 pt-1 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={(e) => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/terms" target="_blank" className="text-primary underline">
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" target="_blank" className="text-primary underline">
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+          )}
           <button
-            type="submit" disabled={loading}
-            className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:opacity-50"
+            type="submit" disabled={loading || (mode === "signup" && !agreedToTerms)}
+            className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
           </button>
