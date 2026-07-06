@@ -104,7 +104,25 @@ jobs:
           # but every added name is still cross-checked against
           # APPROVED_ALLOWLIST and rejected if it lacks a recorded rationale.
           SUPABASE_LINT_ALLOWLIST: "authenticated_security_definer_function_executable,0029_authenticated_security_definer_function_executable,PRIVILEGE_ESCALATION,${{ vars.SUPABASE_LINT_ALLOWLIST }}"
-        run: bun run lint:supabase
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/security-lint
+          bun run lint:supabase 2>&1 \
+            | tee /tmp/security-lint/lint.log
+
+      - name: Snapshot baseline for artifact
+        if: always()
+        run: |
+          mkdir -p /tmp/security-lint
+          cp security/lint-baseline.json /tmp/security-lint/lint-baseline.json 2>/dev/null || true
+
+      - name: Upload security lint report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-security-lint-report
+          path: /tmp/security-lint/
+          retention-days: 7
 
 
   supabase_migrations:
