@@ -130,7 +130,7 @@ export function AgeGate() {
         <div className="mt-6 flex gap-3">
           <button
             onClick={() => {
-              localStorage.setItem(KEY, "1");
+              writeStoredConfirmation();
               logAgeGateEvent("confirmed", gateContext);
               setOk(true);
             }}

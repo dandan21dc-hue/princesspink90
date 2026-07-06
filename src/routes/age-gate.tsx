@@ -30,7 +30,12 @@ function AgeGatePage() {
     try {
       const result = await confirm();
       if ("error" in result) throw new Error(result.error);
-      try { localStorage.setItem("age-gate-ok", "1"); } catch { /* ignore */ }
+      try {
+        localStorage.setItem(
+          "age-gate-ok",
+          JSON.stringify({ v: 1, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 }),
+        );
+      } catch { /* ignore */ }
       // Only allow same-origin redirects; otherwise home.
       let dest = "/";
       try {
