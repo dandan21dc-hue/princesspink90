@@ -72,6 +72,9 @@ export function AccountIndex() {
         </p>
       </div>
 
+
+      <PerksWidget />
+
       <section className="rounded-lg border border-border p-5">
         <h2 className="font-display text-lg">Billing</h2>
         <p className="mt-1 text-sm text-muted-foreground">
