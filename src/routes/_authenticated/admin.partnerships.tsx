@@ -71,8 +71,13 @@ type Inquiry = {
 
 const STATUS_LABEL: Record<Inquiry['status'], string> = {
   new: 'New',
-  contacted: 'Contacted',
+  contacted: 'Replied',
   archived: 'Archived',
+}
+
+function toDateInputValue(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 function AdminPartnerships() {
