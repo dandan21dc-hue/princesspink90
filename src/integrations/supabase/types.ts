@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      age_gate_events: {
+        Row: {
+          context: string
+          created_at: string
+          id: string
+          ip_hash: string | null
+          outcome: string
+          path: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          outcome: string
+          path?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: string
+          created_at?: string
+          id?: string
+          ip_hash?: string | null
+          outcome?: string
+          path?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       age_verifications: {
         Row: {
           adult_content_release: boolean

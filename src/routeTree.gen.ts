@@ -40,6 +40,7 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPartnershipRouteImport } from './routes/api/public/partnership'
+import { Route as ApiPublicAgeGateEventRouteImport } from './routes/api/public/age-gate-event'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
 import { Route as AuthenticatedAdminWebhookEventsRouteImport } from './routes/_authenticated/admin.webhook-events'
@@ -240,6 +241,11 @@ const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
 const ApiPublicPartnershipRoute = ApiPublicPartnershipRouteImport.update({
   id: '/api/public/partnership',
   path: '/api/public/partnership',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAgeGateEventRoute = ApiPublicAgeGateEventRouteImport.update({
+  id: '/api/public/age-gate-event',
+  path: '/api/public/age-gate-event',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedEventsNewRoute = AuthenticatedEventsNewRouteImport.update({
@@ -562,6 +568,7 @@ export interface FileRoutesByFullPath {
   '/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
@@ -638,6 +645,7 @@ export interface FileRoutesByTo {
   '/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account': typeof AuthenticatedAccountIndexRoute
@@ -717,6 +725,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
@@ -796,6 +805,7 @@ export interface FileRouteTypes {
     | '/admin/webhook-events'
     | '/content/new'
     | '/events/new'
+    | '/api/public/age-gate-event'
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/account/'
@@ -872,6 +882,7 @@ export interface FileRouteTypes {
     | '/admin/webhook-events'
     | '/content/new'
     | '/events/new'
+    | '/api/public/age-gate-event'
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/account'
@@ -950,6 +961,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/webhook-events'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
+    | '/api/public/age-gate-event'
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/_authenticated/account/'
@@ -993,6 +1005,7 @@ export interface RootRouteChildren {
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventsIdRoute: typeof EventsIdRoute
+  ApiPublicAgeGateEventRoute: typeof ApiPublicAgeGateEventRoute
   ApiPublicPartnershipRoute: typeof ApiPublicPartnershipRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicCronDunningEscalationRoute: typeof ApiPublicCronDunningEscalationRoute
@@ -1229,6 +1242,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/partnership'
       fullPath: '/api/public/partnership'
       preLoaderRoute: typeof ApiPublicPartnershipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/age-gate-event': {
+      id: '/api/public/age-gate-event'
+      path: '/api/public/age-gate-event'
+      fullPath: '/api/public/age-gate-event'
+      preLoaderRoute: typeof ApiPublicAgeGateEventRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/events/new': {
@@ -1708,6 +1728,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventsIdRoute: EventsIdRoute,
+  ApiPublicAgeGateEventRoute: ApiPublicAgeGateEventRoute,
   ApiPublicPartnershipRoute: ApiPublicPartnershipRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicCronDunningEscalationRoute: ApiPublicCronDunningEscalationRoute,

@@ -1,9 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAgeGate } from "@/lib/account.functions";
 
 const KEY = "age-gate-ok";
+
+function logAgeGateEvent(outcome: "viewed" | "confirmed" | "declined", context: "anonymous" | "authenticated") {
+  try {
+    const body = JSON.stringify({
+      outcome,
+      context,
+      path: typeof window !== "undefined" ? window.location.pathname : undefined,
+    });
+    const url = "/api/public/age-gate-event";
+    if (typeof navigator !== "undefined" && "sendBeacon" in navigator) {
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon(url, blob)) return;
+    }
+    void fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    /* best-effort audit log */
+  }
+}
+
 
 /**
  * Two-layer age gate:
@@ -16,8 +40,10 @@ const KEY = "age-gate-ok";
 export function AgeGate() {
   const [ok, setOk] = useState(true);
   const [signedInChecked, setSignedInChecked] = useState(false);
+  const [gateContext, setGateContext] = useState<"anonymous" | "authenticated">("anonymous");
   const navigate = useNavigate();
   const location = useLocation();
+  const viewedLoggedRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -25,7 +51,7 @@ export function AgeGate() {
       const { data: userRes } = await supabase.auth.getUser();
       if (!alive) return;
       if (userRes.user) {
-        // Signed in — defer to server-recorded confirmation.
+        setGateContext("authenticated");
         try {
           const gate = await checkAgeGate();
           if (!alive) return;
@@ -35,13 +61,12 @@ export function AgeGate() {
           }
           setOk(true);
         } catch {
-          // If the check fails (network, etc.) don't hard-lock the user.
           setOk(true);
         } finally {
           setSignedInChecked(true);
         }
       } else {
-        // Anonymous — localStorage prompt.
+        setGateContext("anonymous");
         const stored = typeof window !== "undefined" && localStorage.getItem(KEY) === "1";
         setOk(stored);
         setSignedInChecked(true);
@@ -49,6 +74,13 @@ export function AgeGate() {
     })();
     return () => { alive = false; };
   }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    if (signedInChecked && !ok && !viewedLoggedRef.current) {
+      viewedLoggedRef.current = true;
+      logAgeGateEvent("viewed", gateContext);
+    }
+  }, [signedInChecked, ok, gateContext]);
 
   if (ok || !signedInChecked) return null;
   return (
@@ -65,13 +97,18 @@ export function AgeGate() {
         </p>
         <div className="mt-6 flex gap-3">
           <button
-            onClick={() => { localStorage.setItem(KEY, "1"); setOk(true); }}
+            onClick={() => {
+              localStorage.setItem(KEY, "1");
+              logAgeGateEvent("confirmed", gateContext);
+              setOk(true);
+            }}
             className="flex-1 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
           >
             I'm 18 or older — enter
           </button>
           <a
             href="https://www.google.com"
+            onClick={() => logAgeGateEvent("declined", gateContext)}
             className="rounded-md border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary/50 transition"
           >
             Leave
@@ -81,3 +118,4 @@ export function AgeGate() {
     </div>
   );
 }
+
