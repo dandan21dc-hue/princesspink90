@@ -70,12 +70,12 @@ function StorePage() {
 }
 
 function AllAccessCard() {
-  const passes: Array<{ label: string; price: string; cadence: string; hash?: "panty-drawer" }> = [
+  const passes: Array<{ label: string; price: string; cadence: string; perk?: string; hash?: "panty-drawer" }> = [
     { label: "Monthly", price: "A$10", cadence: "/month" },
     { label: "3-Month Pass", price: "A$27", cadence: "one-time" },
     { label: "6-Month Pass", price: "A$48", cadence: "one-time" },
-    { label: "12-Month Pass", price: "A$84", cadence: "one-time" },
-    { label: "Lifetime", price: "A$500", cadence: "one-time" },
+    { label: "12-Month Pass", price: "A$84", cadence: "one-time", perk: "+ 1 free ticketed event" },
+    { label: "Lifetime", price: "A$500", cadence: "one-time", perk: "+ 1 free ticketed event & 1 free private room session" },
   ];
 
   return (
@@ -85,14 +85,19 @@ function AllAccessCard() {
         className="group rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)] hover:brightness-110"
       >
         <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
-        <ul className="mt-2 space-y-1 text-sm">
+        <ul className="mt-2 space-y-1.5 text-sm">
           {passes.map((p) => (
-            <li key={p.label} className="flex items-center justify-between gap-3">
-              <span className="text-foreground">{p.label}</span>
-              <span className="font-display font-bold">
-                {p.price}
-                <span className="ml-1 text-[10px] font-normal text-muted-foreground">{p.cadence}</span>
-              </span>
+            <li key={p.label} className="flex flex-col gap-0.5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-foreground">{p.label}</span>
+                <span className="font-display font-bold">
+                  {p.price}
+                  <span className="ml-1 text-[10px] font-normal text-muted-foreground">{p.cadence}</span>
+                </span>
+              </div>
+              {p.perk && (
+                <span className="text-[10px] text-primary/90">{p.perk}</span>
+              )}
             </li>
           ))}
         </ul>
