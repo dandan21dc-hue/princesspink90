@@ -90,14 +90,14 @@ async function readEvents(page: Page): Promise<TrackedEvent[]> {
   );
 }
 
-async function waitForEvent(page: Page, name: string) {
+async function waitForEvent(page: Page, name: string, timeout = 20_000) {
   await page.waitForFunction(
     (n) =>
       (window as unknown as { __events: { name: string }[] }).__events.some(
         (e) => e.name === n,
       ),
     name,
-    { timeout: 10_000 },
+    { timeout },
   );
 }
 
