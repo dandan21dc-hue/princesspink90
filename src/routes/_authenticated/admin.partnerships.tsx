@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
@@ -131,40 +131,48 @@ function AdminPartnerships() {
         <ul className="space-y-2">
           {filtered.map((i) => (
             <li key={i.id}>
-              <button
-                onClick={() => setSelected(i)}
-                className={`w-full rounded-xl border p-4 text-left transition ${
+              <div
+                className={`rounded-xl border p-4 transition ${
                   selected?.id === i.id
                     ? 'border-neon bg-neon/5'
                     : 'border-border/60 bg-card/40 hover:border-neon/40'
                 }`}
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-display text-sm font-semibold">{i.name}</span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest ${
-                      i.status === 'new'
-                        ? 'bg-neon/20 text-neon'
-                        : i.status === 'contacted'
-                          ? 'bg-primary/20 text-primary'
-                          : 'bg-muted text-muted-foreground'
-                    }`}
+                <button onClick={() => setSelected(i)} className="w-full text-left">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-display text-sm font-semibold">{i.name}</span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest ${
+                        i.status === 'new'
+                          ? 'bg-neon/20 text-neon'
+                          : i.status === 'contacted'
+                            ? 'bg-primary/20 text-primary'
+                            : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {STATUS_LABEL[i.status]}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {i.organization ? `${i.organization} · ` : ''}{i.email}
+                  </div>
+                  <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{i.message}</div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
+                    <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
+                  </div>
+                </button>
+                <div className="mt-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
+                  <span>{new Date(i.created_at).toLocaleString()}</span>
+                  <Link
+                    to="/admin/partnerships/$id"
+                    params={{ id: i.id }}
+                    className="text-neon hover:brightness-125"
                   >
-                    {STATUS_LABEL[i.status]}
-                  </span>
+                    Open detail →
+                  </Link>
                 </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {i.organization ? `${i.organization} · ` : ''}{i.email}
-                </div>
-                <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{i.message}</div>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
-                  <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
-                </div>
-                <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                  {new Date(i.created_at).toLocaleString()}
-                </div>
-              </button>
+              </div>
             </li>
           ))}
         </ul>
