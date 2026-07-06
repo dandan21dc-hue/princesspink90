@@ -320,6 +320,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             ...(data.userId && { userId: data.userId }),
             ...(isLifetime && { membership: "lifetime" }),
             ...(termMonths && { membership: "term_pass", term_months: String(termMonths) }),
+            ...(isRecurring && data.priceId && { subscription: data.priceId }),
             ...(isPanty && { panty_order: data.priceId }),
             ...(privateRoomBookingId && {
               booking: "private_room",
@@ -328,6 +329,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             managed_payments: useManagedPayments ? "true" : "false",
             ...(customerCountry && { customer_country: customerCountry }),
           },
+
           ...(isRecurring && data.userId && {
             subscription_data: { metadata: { userId: data.userId } },
           }),
