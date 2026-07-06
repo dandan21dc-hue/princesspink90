@@ -299,7 +299,7 @@ async function handleCartSession(session: any, env: StripeEnv) {
   }
 }
 
-
+/**
  * Grant entitlements only after Stripe confirms funds have settled.
  *
  * `checkout.session.completed` fires as soon as the customer finishes the
