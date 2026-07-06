@@ -157,11 +157,31 @@ const baselineFingerprints = new Set(
 
 const currentFingerprints = new Set();
 const blocking = [];
+const suppressed = [];
 for (const f of warnOrError) {
-  if (allowlist.has(f.name)) continue;
+  // A finding is allowlisted if either its rule `name` or its `category`
+  // (e.g. PRIVILEGE_ESCALATION) is present in the SUPABASE_LINT_ALLOWLIST
+  // AND has an APPROVED_ALLOWLIST rationale.
+  const matchKey = [f.name, f.category].find(
+    (k) => k && allowlist.has(k) && approvedRationale(k) !== null,
+  );
+  if (matchKey) {
+    suppressed.push({ finding: f, key: matchKey, rationale: approvedRationale(matchKey) });
+    continue;
+  }
   const fp = fingerprintOf(f);
   currentFingerprints.add(fp);
   if (!baselineFingerprints.has(fp)) blocking.push({ ...f, __fp: fp });
+}
+
+if (suppressed.length > 0) {
+  console.log(
+    `supabase-security-lint: ${suppressed.length} finding(s) suppressed by allowlist:`,
+  );
+  for (const { finding, key, rationale } of suppressed) {
+    console.log(`  - [${finding.level}] ${finding.name} (matched: ${key})`);
+    console.log(`      rationale: ${rationale}`);
+  }
 }
 
 // Warn (don't fail) on stale baseline entries so we can prune them in a PR
