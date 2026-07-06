@@ -93,9 +93,13 @@ function CheckoutReturn() {
     const key = `${sessionId}:${eventName}`;
     if (trackedRef.current === key) return;
     trackedRef.current = key;
-    const basePayload = {
+    const basePayload: Record<string, string | number | boolean | undefined> = {
       variant: pantyVariant,
       session_id: sessionId,
+      payment_intent_id: session.payment_intent_id ?? undefined,
+      client_order_ref: md.client_order_ref ?? undefined,
+      total_amount_cents: session.amount_total ?? undefined,
+      currency: session.currency ?? undefined,
       status,
       cart_mode: md.cart_mode === "1",
     };
@@ -150,6 +154,11 @@ function CheckoutReturn() {
     // in the header resets and the user isn't offered a re-purchase.
     if (session?.metadata?.cart_mode === "1") {
       cartStore.clear();
+      try {
+        sessionStorage.removeItem("pp_cart_client_order_ref");
+      } catch {
+        // ignore
+      }
     }
     const t = setTimeout(() => {
       navigate({ to: destination });
