@@ -250,12 +250,11 @@ export function StripeEmbeddedCheckout(props: Props) {
       previous_attempt: optionsRef.current?.attempt ?? null,
     });
     optionsRef.current = { attempt, value: { fetchClientSecret } };
-  } else {
-    logLifecycle("options_ref_reused", {
-      attempt,
-      cached_attempt: optionsRef.current.attempt,
-    });
   }
+  // Note: we intentionally do NOT log options_ref_reused on every render —
+  // it fires on every parent re-render and would flood logs. Reuse is implied
+  // by the absence of an options_ref_initialized event for the same attempt.
+
   const options = optionsRef.current.value;
 
 
