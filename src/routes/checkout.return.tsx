@@ -95,11 +95,15 @@ function CheckoutReturn() {
     const key = `${sessionId}:${eventName}`;
     if (trackedRef.current === key) return;
     trackedRef.current = key;
+    const orderIds = session.order_ids ?? [];
     const basePayload: Record<string, string | number | boolean | undefined> = {
       variant: pantyVariant,
       session_id: sessionId,
       payment_intent_id: session.payment_intent_id ?? undefined,
       client_order_ref: md.client_order_ref ?? undefined,
+      order_id: orderIds[0] ?? undefined,
+      order_ids: orderIds.length > 0 ? orderIds.join(",") : undefined,
+      order_count: orderIds.length,
       total_amount_cents: session.amount_total ?? undefined,
       currency: session.currency ?? undefined,
       status,

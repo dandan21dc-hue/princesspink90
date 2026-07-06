@@ -809,6 +809,7 @@ export const getCheckoutSession = createServerFn({ method: "POST" })
         payment_intent_id: string | null;
         amount_total: number | null;
         currency: string | null;
+        order_ids: string[];
       }
     | { error: string }
   > => {
@@ -824,6 +825,16 @@ export const getCheckoutSession = createServerFn({ method: "POST" })
         typeof session.payment_intent === "string"
           ? session.payment_intent
           : (session.payment_intent?.id ?? null);
+
+      // Reconciliation: return the panty_orders row id(s) the webhook created
+      // for this session so client tracking can include order_id alongside the
+      // Stripe identifiers. RLS scopes this read to the session's owner.
+      const { data: orders } = await context.supabase
+        .from("panty_orders")
+        .select("id")
+        .eq("stripe_session_id", session.id);
+      const orderIds = (orders ?? []).map((o) => o.id as string);
+
       return {
         status: session.status ?? null,
         metadata,
@@ -831,6 +842,7 @@ export const getCheckoutSession = createServerFn({ method: "POST" })
         payment_intent_id: paymentIntentId,
         amount_total: session.amount_total ?? null,
         currency: session.currency ?? null,
+        order_ids: orderIds,
       };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
