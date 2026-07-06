@@ -4,6 +4,8 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createStoreCheckoutSession } from "@/lib/store.functions";
 import { track } from "@/lib/track";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 interface Props {
   priceId?: string;
@@ -76,6 +78,7 @@ export function StripeEmbeddedCheckout(props: Props) {
   // Re-rendering hands EmbeddedCheckoutProvider a new `options.fetchClientSecret`,
   // which Stripe rejects ("You cannot change fetchClientSecret after setting it"),
   // and the checkout form never mounts.
+  const [countryReady, setCountryReady] = useState(false);
   const countryRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     logLifecycle("mount_started");
@@ -95,6 +98,9 @@ export function StripeEmbeddedCheckout(props: Props) {
           message: (e as Error)?.message?.slice(0, 200),
           duration_ms: Date.now() - started,
         });
+      })
+      .finally(() => {
+        setCountryReady(true);
       });
     return () => {
       logLifecycle("unmounted");
@@ -113,7 +119,9 @@ export function StripeEmbeddedCheckout(props: Props) {
   const [error, setError] = useState<string | null>(null);
   // Bumping this key remounts the provider with a fresh fetcher so retry works.
   const [attempt, setAttempt] = useState(0);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
 
   const fetchClientSecret = useCallback(async (): Promise<string> => {
     const p = propsRef.current;
@@ -176,7 +184,9 @@ export function StripeEmbeddedCheckout(props: Props) {
       attempt,
       duration_ms: Date.now() - requestStartedAt,
     });
+    setSessionLoaded(true);
     return result.clientSecret;
+
     // attempt is intentionally in deps so each retry creates a fresh fetcher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt, logLifecycle]);
@@ -228,6 +238,7 @@ export function StripeEmbeddedCheckout(props: Props) {
   const handleRetry = useCallback(() => {
     logLifecycle("retry_clicked", { attempt });
     setError(null);
+    setSessionLoaded(false);
     setAttempt((n) => n + 1);
   }, [attempt, logLifecycle]);
 
@@ -256,12 +267,39 @@ export function StripeEmbeddedCheckout(props: Props) {
     );
   }
 
+  const showSkeleton = !countryReady || !sessionLoaded;
+  const skeletonLabel = !countryReady
+    ? "Preparing secure checkout…"
+    : "Loading payment form…";
+
   return (
-    <div id="checkout" ref={containerRef} key={attempt}>
-      <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
-        <EmbeddedCheckout />
-      </EmbeddedCheckoutProvider>
+    <div className="relative min-h-[420px]">
+      {showSkeleton && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label={skeletonLabel}
+          className="absolute inset-0 z-10 flex flex-col gap-4 rounded-md border border-border bg-background/95 p-6"
+        >
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-11 w-full" />
+          <p className="mt-1 text-center text-xs text-muted-foreground">{skeletonLabel}</p>
+        </div>
+      )}
+      <div id="checkout" ref={containerRef} key={attempt}>
+        <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
+          <EmbeddedCheckout />
+        </EmbeddedCheckoutProvider>
+      </div>
     </div>
   );
 }
+
 
