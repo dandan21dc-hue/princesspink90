@@ -1,11 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState, Suspense } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { getSubscribePrices, type SubscribePrice } from "@/lib/subscribePrices.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { cart } from "@/lib/cart";
 
 type PriceId =
   | "all_access_monthly_aud"
