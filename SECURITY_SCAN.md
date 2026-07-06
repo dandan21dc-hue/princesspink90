@@ -143,9 +143,10 @@ rule). If you can name a specific fingerprint, use the baseline instead.
 
 | Path | Purpose |
 | --- | --- |
-| `.github/workflows/ci.yml` | Defines `Supabase / Lint`, `Supabase / Migrations`, `Supabase / Gate (required)`. |
+| `.github/workflows/ci.yml` | Defines `Supabase / Config Validate`, `Supabase / Lint`, `Supabase / Migrations`, `Supabase / Gate (required)`. |
 | `.github/CODEOWNERS` | Requires security review for `security/`, `scripts/supabase-security-lint.mjs`, `supabase/migrations/`, `supabase/tests/`, and workflow files. |
 | `scripts/supabase-security-lint.mjs` | The linter runner: fetches findings, applies allowlist + baseline, prints rationales, exits non-zero on new WARN/ERROR. |
+| `scripts/validate-security-config.mjs` | No-network pre-flight for the gate. Validates baseline JSON schema (fields, level, uniqueness, sort order), parses `APPROVED_ALLOWLIST`, and rejects any `SUPABASE_LINT_ALLOWLIST` entry not in it. Run locally via `bun run validate:security-config`. |
 | `security/lint-baseline.json` | Fingerprint baseline of accepted findings. Regenerated with `--update-baseline`. |
 | `supabase/migrations/*.sql` | Schema, GRANTs, RLS policies, SECURITY DEFINER functions, field-tamper triggers. |
 | `supabase/tests/*.test.sql` | pgTAP-style regression tests run by `supabase db test`. |
