@@ -326,13 +326,26 @@ jobs:
             src/integrations/supabase/types.ts 2>&1 \
             | tee /tmp/types-out/tsgo.log
 
+      - name: Cap migrations artifact file sizes
+        if: always()
+        run: |
+          # types.ts is large but essential to compare — cap at 4 MiB.
+          # Everything else (logs, diff) capped at 2 MiB tail.
+          find /tmp/types-out -type f -size +4M -print0 2>/dev/null \
+            | while IFS= read -r -d '' f; do
+              echo "::warning::Truncating oversized artifact file: $f"
+              tail -c 4194304 "$f" > "$f.tail" && mv "$f.tail" "$f"
+            done
+
       - name: Upload migrations report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: supabase-migrations-report
           path: /tmp/types-out/
-          retention-days: 7
+          retention-days: ${{ job.status == 'success' && 3 || 14 }}
+          compression-level: 9
+          if-no-files-found: warn
 
       - name: Dump Supabase logs on failure
         if: failure()
