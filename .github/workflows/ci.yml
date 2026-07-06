@@ -55,7 +55,12 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          SUPABASE_LINT_ALLOWLIST: ${{ vars.SUPABASE_LINT_ALLOWLIST }}
+          # Allowlisted findings — intentionally accepted per the security
+          # memory. `has_role` is a SECURITY DEFINER helper called from RLS
+          # policies; signed-in EXECUTE is required for RLS to evaluate it.
+          # Repo-level `vars.SUPABASE_LINT_ALLOWLIST` (if set) is merged in
+          # so ops can extend the list without a code change.
+          SUPABASE_LINT_ALLOWLIST: "authenticated_security_definer_function_executable,0029_authenticated_security_definer_function_executable,${{ vars.SUPABASE_LINT_ALLOWLIST }}"
         run: bun run lint:supabase
 
 
