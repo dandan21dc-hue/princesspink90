@@ -34,7 +34,7 @@ jobs:
         run: bun run test
 
   supabase_security_lint:
-    name: Supabase Security Linter
+    name: Supabase / Lint
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
