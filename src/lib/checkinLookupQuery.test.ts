@@ -229,11 +229,14 @@ describe("lookupCheckinQuery", () => {
         return b;
       },
     };
+    // Errors from any branch are wrapped by unwrap() with a labeled
+    // Error whose message includes the original provider text.
     await expect(
       lookupCheckinQuery(supabase, {
         event_id: EVENT_ID,
         ticket_code: "ABC123",
       }),
-    ).rejects.toBe(boom);
+    ).rejects.toThrow(/db exploded/);
+
   });
 });
