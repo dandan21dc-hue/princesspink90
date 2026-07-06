@@ -23,6 +23,27 @@ const allowlist = new Set(
     .filter(Boolean),
 );
 
+// Any allowlist entry outside this set must go through a code review — it's
+// how we prevent someone widening the ignore list via repo `vars` or a stray
+// commit and silently accepting a new security finding.
+const APPROVED_ALLOWLIST = new Set([
+  "authenticated_security_definer_function_executable",
+  "0029_authenticated_security_definer_function_executable",
+]);
+const unapproved = [...allowlist].filter((name) => !APPROVED_ALLOWLIST.has(name));
+if (unapproved.length > 0) {
+  console.error(
+    `supabase-security-lint: SUPABASE_LINT_ALLOWLIST contains unapproved entries: ${unapproved.join(", ")}`,
+  );
+  console.error(
+    `  Approved entries: ${[...APPROVED_ALLOWLIST].join(", ")}`,
+  );
+  console.error(
+    "  To widen the allowlist, update APPROVED_ALLOWLIST in scripts/supabase-security-lint.mjs via PR.",
+  );
+  process.exit(1);
+}
+
 if (!token || !ref) {
   console.error(
     "supabase-security-lint: missing SUPABASE_ACCESS_TOKEN or SUPABASE_PROJECT_REF; skipping.",
