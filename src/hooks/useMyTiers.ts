@@ -39,6 +39,8 @@ export interface MyTiersState {
   refresh: () => void;
 }
 
+type TiersData = Omit<MyTiersState, "refresh">;
+
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
   all_access_monthly_aud: false,
   all_access_3mo_monthly_aud: false,
