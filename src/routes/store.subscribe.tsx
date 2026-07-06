@@ -244,14 +244,18 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
                 cta={p.cta}
                 onClick={() => onBuy(p.key)}
                 onAddToCart={() => {
-                  cart.add({
-                    kind: "panty",
-                    id: p.key,
-                    title: `${p.label} panty`,
-                    unit_amount_cents: unitCents,
-                    currency,
-                  });
-                  toast.success("Added to cart");
+                  try {
+                    cart.add({
+                      kind: "panty",
+                      id: p.key,
+                      title: `${p.label} panty`,
+                      unit_amount_cents: unitCents,
+                      currency,
+                    });
+                    toast.success("Added to cart");
+                  } catch (e) {
+                    toast.error((e as Error).message);
+                  }
                 }}
               />
             );
