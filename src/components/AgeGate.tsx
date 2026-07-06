@@ -4,6 +4,38 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkAgeGate } from "@/lib/account.functions";
 
 const KEY = "age-gate-ok";
+const TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function readStoredConfirmation(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return false;
+    // New format: JSON { v: 1, exp: <ms epoch> }
+    if (raw.startsWith("{")) {
+      const parsed = JSON.parse(raw) as { exp?: number };
+      if (typeof parsed.exp === "number" && parsed.exp > Date.now()) return true;
+      localStorage.removeItem(KEY);
+      return false;
+    }
+    // Legacy "1" — migrate to timestamped format.
+    if (raw === "1") {
+      writeStoredConfirmation();
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function writeStoredConfirmation() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({ v: 1, exp: Date.now() + TTL_MS }));
+  } catch {
+    /* ignore */
+  }
+}
 
 function logAgeGateEvent(outcome: "viewed" | "confirmed" | "declined", context: "anonymous" | "authenticated") {
   try {
@@ -67,7 +99,7 @@ export function AgeGate() {
         }
       } else {
         setGateContext("anonymous");
-        const stored = typeof window !== "undefined" && localStorage.getItem(KEY) === "1";
+        const stored = readStoredConfirmation();
         setOk(stored);
         setSignedInChecked(true);
       }
@@ -98,7 +130,7 @@ export function AgeGate() {
         <div className="mt-6 flex gap-3">
           <button
             onClick={() => {
-              localStorage.setItem(KEY, "1");
+              writeStoredConfirmation();
               logAgeGateEvent("confirmed", gateContext);
               setOk(true);
             }}
