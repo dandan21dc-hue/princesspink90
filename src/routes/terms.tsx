@@ -42,12 +42,12 @@ function Terms() {
         </p>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">1. Adults only (18+)</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">1. Eligibility (18+)</h2>
           <p className="mt-2">
-            The Service contains explicit adult content. You confirm you are at
-            least 18 years old (or the age of majority where you live, if
-            higher) and that accessing this content is legal in your
-            jurisdiction.
+            You must be 18 years of age or older (or the age of majority where you live,
+            if higher) and accessing this content must be legal in your jurisdiction. We
+            reserve the right to request official identification to verify your age
+            status at any time.
           </p>
         </section>
 
