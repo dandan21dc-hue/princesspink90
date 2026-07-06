@@ -139,6 +139,104 @@ rule). If you can name a specific fingerprint, use the baseline instead.
 
 ---
 
+## Reproducing the Gate Locally
+
+Run these in order. Passing all three means CI's `Supabase / Gate
+(required)` will pass for the same working tree — nothing in the gate
+runs anything you can't run here.
+
+### Prerequisites (once)
+
+```bash
+bun install --frozen-lockfile
+# Supabase CLI (for the migrations job). macOS:
+brew install supabase/tap/supabase
+# Docker Desktop / OrbStack running — `supabase db start` needs it.
+docker info >/dev/null
+```
+
+Export the same two secrets the CI linter job uses. `SUPABASE_PROJECT_REF`
+is the project ref; `SUPABASE_ACCESS_TOKEN` is a personal access token
+(GitHub → repo secret `SUPABASE_ACCESS_TOKEN`, or generate your own):
+
+```bash
+export SUPABASE_ACCESS_TOKEN=sbp_...
+export SUPABASE_PROJECT_REF=<ref>
+# Mirror the CI env var exactly — same three approved keys.
+export SUPABASE_LINT_ALLOWLIST="authenticated_security_definer_function_executable,0029_authenticated_security_definer_function_executable,PRIVILEGE_ESCALATION"
+```
+
+### 1. `Supabase / Config Validate` — no network, no secrets
+
+```bash
+bun run validate:security-config
+```
+
+Exit 0 = baseline JSON schema is valid, `APPROVED_ALLOWLIST` parses, and
+every `SUPABASE_LINT_ALLOWLIST` entry is approved. Any failure prints a
+specific fix-it line — resolve before running the linter.
+
+### 2. `Supabase / Lint` — hits the live linter API
+
+```bash
+bun run lint:supabase
+```
+
+Exit 0 = no new WARN/ERROR fingerprint outside `security/lint-baseline.json`
+and every suppression printed its rationale. On failure the output lists
+each blocking finding; follow **Playbook A** above.
+
+### 3. `Supabase / Migrations` — ephemeral DB + RLS tests + types diff
+
+```bash
+# Boot a fresh local Supabase stack, replay every migration, run tests.
+supabase db start
+supabase db reset --local          # replays supabase/migrations/*.sql
+supabase db test                    # runs supabase/tests/*.test.sql
+
+# Regenerate types from the freshly migrated schema and diff.
+supabase gen types typescript --local > /tmp/types-out.ts
+diff -u \
+  <(sed -e 's/[[:space:]]*$//' src/integrations/supabase/types.ts) \
+  <(sed -e 's/[[:space:]]*$//' /tmp/types-out.ts)
+
+# Typecheck the regenerated file in isolation, same as CI.
+cp /tmp/types-out.ts src/integrations/supabase/types.ts
+bunx --bun tsgo --noEmit src/integrations/supabase/types.ts
+
+# Always tear down.
+supabase stop --no-backup
+```
+
+Any non-zero exit or non-empty diff = the migrations job would fail in
+CI. If a `*.test.sql` fails, re-run it verbosely for the exact SQLSTATE
+and line — same command CI uses in the diagnose step:
+
+```bash
+DB_URL="$(supabase status -o env | awk -F= '/^DB_URL=/{gsub(/"/,"",$2); print $2}')"
+psql "$DB_URL" -v ON_ERROR_STOP=1 -a -e -f supabase/tests/<file>.test.sql
+```
+
+### 4. Gate parity check
+
+The gate itself has no local equivalent — it's a GitHub Actions
+aggregator. But the invariant it enforces is simple: **all three upstream
+jobs must exit 0.** If steps 1–3 above pass on your branch, the gate
+will pass.
+
+### One-liner: run 1 + 2 together
+
+```bash
+bun run validate:security-config && bun run lint:supabase
+```
+
+Use this as a pre-push hook when you're only touching migration/policy
+files (skip step 3 unless you edited SQL or committed types).
+
+---
+
+
+
 ## Where Things Live
 
 | Path | Purpose |
