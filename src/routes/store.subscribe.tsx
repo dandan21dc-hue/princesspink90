@@ -234,7 +234,7 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
         </div>
         <h2 className="mt-2 font-display text-5xl font-extrabold">
           {priceLabel(prices, "lifetime_onetime_aud", "A$500")}
-          <span className="text-lg text-muted-foreground"> one-time</span>
+          <span className="text-lg text-muted-foreground"> one-time payment</span>
         </h2>
         <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
           <li>· <span className="text-foreground">Forever access</span> to all photos &amp; videos</li>
