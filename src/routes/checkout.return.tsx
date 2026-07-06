@@ -150,8 +150,14 @@ function CheckoutReturn() {
     });
   }, [templateNotSubstituted, query.isError, query.error, sessionId]);
 
+  // Auto-redirect only for panty/cart checkouts — subscription and lifetime
+  // buyers see a confirmation summary with dates and click through manually.
+  const isMembershipPurchase =
+    session?.metadata?.membership === "lifetime" ||
+    session?.metadata?.membership === "term_pass" ||
+    !!session?.metadata?.subscription;
   useEffect(() => {
-    if (!isComplete) return;
+    if (!isComplete || isMembershipPurchase) return;
     // Cart mode: successful payment → wipe the local cart so the shopping bag
     // in the header resets and the user isn't offered a re-purchase.
     if (session?.metadata?.cart_mode === "1") {
@@ -166,7 +172,7 @@ function CheckoutReturn() {
       navigate({ to: destination });
     }, 1500);
     return () => clearTimeout(t);
-  }, [isComplete, destination, navigate, session?.metadata?.cart_mode]);
+  }, [isComplete, destination, navigate, session?.metadata?.cart_mode, isMembershipPurchase]);
 
   return (
     <section className="mx-auto max-w-md px-5 py-24 text-center">
@@ -199,6 +205,11 @@ function CheckoutReturn() {
             Go to your library
           </Link>
         </>
+      ) : isComplete && isMembershipPurchase ? (
+        <MembershipConfirmation
+          metadata={session!.metadata ?? {}}
+          destination={destination}
+        />
       ) : isComplete ? (
         <>
           <h1 className="text-2xl font-medium">Thank you! 🎉</h1>
@@ -225,3 +236,142 @@ function CheckoutReturn() {
     </section>
   );
 }
+
+/**
+ * Post-checkout summary for subscription and lifetime purchases: tells the
+ * user which tier they bought, when access begins, and when the next
+ * renewal / expiration date is. Reads live state from useMyTiers so the
+ * dates come from what the webhook actually wrote — if the webhook hasn't
+ * landed yet, shows a "finalising access" state that resolves via realtime.
+ */
+function MembershipConfirmation({
+  metadata,
+  destination,
+}: {
+  metadata: Record<string, string>;
+  destination: string;
+}) {
+  const tiers = useMyTiers();
+
+  const isLifetime = metadata.membership === "lifetime";
+  const termMonths = metadata.term_months ? Number(metadata.term_months) : null;
+
+  // Determine which plan row to read from useMyTiers.
+  const planId: PlanId | null = isLifetime
+    ? "lifetime_onetime_aud"
+    : tiers.active.all_access_12mo_monthly_aud
+      ? "all_access_12mo_monthly_aud"
+      : tiers.active.all_access_6mo_monthly_aud
+        ? "all_access_6mo_monthly_aud"
+        : tiers.active.all_access_3mo_monthly_aud
+          ? "all_access_3mo_monthly_aud"
+          : tiers.active.all_access_monthly_aud
+            ? "all_access_monthly_aud"
+            : null;
+
+  const planLabel = isLifetime
+    ? "Lifetime Membership"
+    : planId === "all_access_12mo_monthly_aud"
+      ? "12-Month Plan"
+      : planId === "all_access_6mo_monthly_aud"
+        ? "6-Month Plan"
+        : planId === "all_access_3mo_monthly_aud"
+          ? "3-Month Plan"
+          : planId === "all_access_monthly_aud"
+            ? "Monthly Plan"
+            : termMonths
+              ? `${termMonths}-Month Pass`
+              : "All-Access Pass";
+
+  const fmt = (iso?: string | null) => {
+    if (!iso) return null;
+    try {
+      return new Date(iso).toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const start = planId ? fmt(tiers.starts[planId]) : null;
+  const expires = planId && !isLifetime ? fmt(tiers.expires[planId]) : null;
+
+  // Access hasn't hit the tables yet — show a friendly waiting state and
+  // let realtime bring the row in.
+  const stillWaiting = !isLifetime && !planId && !tiers.loading;
+
+  return (
+    <>
+      <h1 className="text-2xl font-medium">Thank you! 🎉</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Payment confirmed. Here's what you unlocked:
+      </p>
+
+      <div className="mt-6 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-left shadow-[var(--shadow-glow-pink)]">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
+          Your plan
+        </div>
+        <div className="mt-1 font-display text-2xl font-extrabold">{planLabel}</div>
+
+        <dl className="mt-5 space-y-3 text-sm">
+          <div className="flex justify-between gap-3">
+            <dt className="text-muted-foreground">Access begins</dt>
+            <dd className="font-medium">
+              {tiers.loading ? "…" : start ?? "Today"}
+            </dd>
+          </div>
+          {isLifetime ? (
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Expires</dt>
+              <dd className="font-medium">Never — Lifetime</dd>
+            </div>
+          ) : (
+            <div className="flex justify-between gap-3">
+              <dt className="text-muted-foreground">Next renewal / ends</dt>
+              <dd className="font-medium">
+                {tiers.loading ? "…" : expires ?? "Finalising…"}
+              </dd>
+            </div>
+          )}
+        </dl>
+
+        {(isLifetime || planId === "all_access_12mo_monthly_aud") && (
+          <div className="mt-5 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-primary/90">
+            <div className="font-semibold uppercase tracking-widest">Perks unlocked</div>
+            <ul className="mt-2 space-y-1 text-left">
+              <li>· 1 free event entry</li>
+              {isLifetime && <li>· 1 free 30-min private-room session</li>}
+            </ul>
+          </div>
+        )}
+
+        {stillWaiting && (
+          <p className="mt-4 text-[11px] text-muted-foreground">
+            Finalising your access — this refreshes automatically as soon as
+            Stripe confirms with our server.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-6 flex flex-col gap-2">
+        <Link
+          to={destination as "/library"}
+          className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+        >
+          Enter the library
+        </Link>
+        <Link
+          to="/store"
+          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
+          Back to store
+        </Link>
+      </div>
+    </>
+  );
+}
+
