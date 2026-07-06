@@ -161,8 +161,16 @@ function AdminPartnerships() {
                   <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
                   <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
                 </div>
-                <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                  {new Date(i.created_at).toLocaleString()}
+                <div className="mt-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
+                  <span>{new Date(i.created_at).toLocaleString()}</span>
+                  <Link
+                    to="/admin/partnerships/$id"
+                    params={{ id: i.id }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-neon hover:brightness-125"
+                  >
+                    Open →
+                  </Link>
                 </div>
               </button>
             </li>
