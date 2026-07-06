@@ -301,6 +301,33 @@ To raise a limit for a specific job, edit the matching `retention-days`
 and size threshold in `.github/workflows/ci.yml`. Do not bump globally —
 green PRs churn multiple artifacts per push and dominate the quota.
 
+**Fetching artifacts locally.** Instead of clicking through the Actions
+UI, download every security artifact for a run in one shot with the
+helper script (requires `gh` CLI authenticated, plus `jq`):
+
+```bash
+# latest CI run on the current branch
+bun run security:artifacts
+
+# latest run on a specific branch / PR / a specific run id
+bun run security:artifacts -- --branch main
+bun run security:artifacts -- --pr 1234
+bun run security:artifacts -- 12345678901
+
+# only the most recent FAILED run (skip green ones)
+bun run security:artifacts -- --failed
+
+# download a single artifact and skip auto-open
+bun run security:artifacts -- --only supabase-db-test-logs --no-open
+```
+
+Files land under `.security-artifacts/<run-id>/<artifact-name>/`. The
+script prints the first 80 lines of every `*.log` and `*.diff` inline
+and opens the folder in Finder/Explorer/xdg-open. The
+`.security-artifacts/` directory is gitignored — safe to leave in place.
+
+
+
 
 
 ### 1. `Supabase / Config Validate` failed
