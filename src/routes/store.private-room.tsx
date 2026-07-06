@@ -43,6 +43,7 @@ function PrivateRoomPage() {
   const [duration, setDuration] = useState<Duration>(60);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
