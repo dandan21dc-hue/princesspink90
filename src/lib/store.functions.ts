@@ -664,6 +664,9 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
               },
             },
           ],
+          // Panty items in the cart are gated to subscribers; apply the
+          // subscriber thank-you discount to the whole order.
+          discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
         }),
         metadata: {
           userId,
