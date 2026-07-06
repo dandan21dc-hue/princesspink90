@@ -1,0 +1,50 @@
+# CODEOWNERS
+#
+# GitHub uses this file to auto-request reviews on PRs that touch the
+# listed paths. When branch protection has "Require review from Code
+# Owners" enabled on `main`, a PR touching any path below CANNOT be
+# merged without an approving review from the matched owner(s).
+#
+# Owner handle used below: @security-owners
+#   Replace with the actual GitHub team slug (e.g. @your-org/security)
+#   or an individual user handle (e.g. @alice). The handle MUST exist
+#   in the repo's organization and have at least read access, or GitHub
+#   silently ignores the rule.
+#
+# Last matching pattern wins (unlike .gitignore). Keep security rules
+# at the bottom so they override any broader default owner added later.
+
+# ---------------------------------------------------------------------
+# Security CI + scan logic
+# ---------------------------------------------------------------------
+
+# CI workflow — controls which jobs run on PRs (security linter,
+# migrations-against-fresh-DB, RLS/tamper regression tests, types diff,
+# checkout verification). Widening allowlists or removing a job here
+# is a security-sensitive change.
+/.github/workflows/ci.yml              @security-owners
+
+# Any future workflow files also get security review by default.
+/.github/workflows/                    @security-owners
+
+# CODEOWNERS itself — only security can change who owns security paths.
+/.github/CODEOWNERS                    @security-owners
+
+# Supabase database-linter runner + APPROVED_ALLOWLIST rationale gate.
+# Changes here can suppress security findings, so require review.
+/scripts/supabase-security-lint.mjs    @security-owners
+
+# Baseline of accepted database-linter findings — every added
+# fingerprint is an accepted security finding by definition.
+/security/                             @security-owners
+/security/lint-baseline.json           @security-owners
+
+# Database migrations shape RLS policies, GRANTs, SECURITY DEFINER
+# functions, and field-tamper triggers. All security-relevant.
+/supabase/migrations/                  @security-owners
+
+# SQL regression tests that guard RLS + tamper triggers on rsvps etc.
+/supabase/tests/                       @security-owners
+
+# Top-level security posture doc.
+/SECURITY.md                           @security-owners
