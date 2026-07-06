@@ -5,6 +5,7 @@ import { listPublicEvents } from "@/lib/events.functions";
 import { getSiteSettings } from "@/lib/settings.functions";
 import { EventCard } from "@/components/EventCard";
 import heroImg from "@/assets/hero.jpg";
+import { PartnershipForm } from "@/components/PartnershipForm";
 
 const eventsQuery = queryOptions({
   queryKey: ["public-events"],
