@@ -701,10 +701,17 @@ async function handleWebhook(req: Request, env: StripeEnv) {
     case "charge.dispute.closed":
       await handleDisputeClosed(event.data.object, env);
       break;
+    case "customer.subscription.trial_will_end":
+      await handleTrialWillEnd(event.data.object, env);
+      break;
+    case "setup_intent.succeeded":
+      await handleSetupIntentSucceeded(event.data.object, env);
+      break;
     default:
       console.log("Unhandled event:", event.type);
   }
 }
+
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {
