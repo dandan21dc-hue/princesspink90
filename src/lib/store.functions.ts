@@ -54,13 +54,8 @@ export const listPrivateRoomBusy = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
-    const { data: rows, error } = await supabase.rpc("get_private_room_busy", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc("get_private_room_busy", {
       from_ts: data.from,
       to_ts: data.to,
     });
