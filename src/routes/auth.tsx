@@ -30,6 +30,10 @@ function Auth() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (mode === "signup" && !agreedToTerms) {
+      toast.error("Please agree to the Terms of Service and Privacy Policy.");
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
