@@ -278,8 +278,10 @@ export function StripeEmbeddedCheckout(props: Props) {
     logLifecycle("retry_clicked", { attempt });
     setError(null);
     setSessionLoaded(false);
+    setDedupedHits(0);
     setAttempt((n) => n + 1);
   }, [attempt, logLifecycle]);
+
 
   if (error) {
     return (
