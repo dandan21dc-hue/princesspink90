@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { TermsAgreementGate } from "@/components/TermsAgreementGate";
 
 interface CheckoutOptions {
   priceId?: string;
@@ -26,6 +27,11 @@ export function useStripeCheckout() {
     setOptions(null);
   }, []);
 
-  const checkoutElement = isOpen && options ? <StripeEmbeddedCheckout {...options} /> : null;
+  const checkoutElement =
+    isOpen && options ? (
+      <TermsAgreementGate>
+        <StripeEmbeddedCheckout {...options} />
+      </TermsAgreementGate>
+    ) : null;
   return { openCheckout, closeCheckout, isOpen, checkoutElement };
 }
