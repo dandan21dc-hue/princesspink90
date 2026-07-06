@@ -282,6 +282,7 @@ function PassCard({
   perks,
   cta,
   onClick,
+  onAddToCart,
   highlight,
 }: {
   label: string;
@@ -290,6 +291,7 @@ function PassCard({
   perks: string[];
   cta: string;
   onClick: () => void;
+  onAddToCart?: () => void;
   highlight?: string;
 }) {
   return (
@@ -315,6 +317,15 @@ function PassCard({
       >
         {cta}
       </button>
+      {onAddToCart && (
+        <button
+          onClick={onAddToCart}
+          className="mt-2 w-full rounded-md border border-primary/60 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+        >
+          Add to cart
+        </button>
+      )}
     </div>
   );
 }
+
