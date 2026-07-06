@@ -220,6 +220,27 @@ function NewContentPage() {
                 {media.length} file(s) attached
               </div>
             )}
+            {uploadErrors.length > 0 && (
+              <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <div className="mb-1 font-semibold uppercase tracking-widest">
+                  {uploadErrors.length} file{uploadErrors.length > 1 ? "s" : ""} failed to upload
+                </div>
+                <ul className="space-y-1">
+                  {uploadErrors.map((e, i) => (
+                    <li key={i}>
+                      <span className="font-medium">{e.name}</span> ({e.type}): {e.message}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setUploadErrors([])}
+                  className="mt-2 text-[10px] uppercase tracking-widest underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
           </div>
         </Field>
 
