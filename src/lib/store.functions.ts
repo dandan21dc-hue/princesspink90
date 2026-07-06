@@ -188,6 +188,9 @@ async function assertPantyAccess(
       "The Panty Drawer is a members-only perk — grab an all-access pass or lifetime membership first.",
     );
   }
+}
+
+
 
 export const createStoreCheckoutSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
