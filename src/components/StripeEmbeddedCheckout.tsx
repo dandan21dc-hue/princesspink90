@@ -120,7 +120,9 @@ export function StripeEmbeddedCheckout(props: Props) {
   // Bumping this key remounts the provider with a fresh fetcher so retry works.
   const [attempt, setAttempt] = useState(0);
   const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [dedupedHits, setDedupedHits] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
 
   // Runtime guard: memoize the in-flight client-secret promise per attempt so
   // that any accidental re-invocation of fetchClientSecret (React StrictMode
