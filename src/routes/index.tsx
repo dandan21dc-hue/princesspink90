@@ -216,8 +216,7 @@ function Hero() {
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted-foreground leading-relaxed">
             Princess Pink curates discreet, consent-first nights at adult
-            theatres and private venues. Browse the public marquee, or enter a
-            code to unlock a private invitation.
+            theatres and private venues. Browse the public marquee below.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
