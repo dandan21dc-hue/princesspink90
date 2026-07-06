@@ -135,9 +135,11 @@ describe('store.subscribe.tsx — plan wiring regression', () => {
   })
 
   it('does not call onBuy() with any unknown PriceId, and every declared plan is used', () => {
-    const used = new Set<string>(
-      Array.from(SOURCE.matchAll(/onBuy\("([^"]+)"\)/g)).map((m) => m[1]!),
-    )
+    const used = new Set<string>([
+      ...Array.from(SOURCE.matchAll(/onBuy\("([^"]+)"\)/g)).map((m) => m[1]!),
+      // TermPassCard receives its PriceId as a prop and calls onBuy from inside the component.
+      ...Array.from(SOURCE.matchAll(/priceId="([^"]+)"/g)).map((m) => m[1]!),
+    ])
     // Panty PriceIds are passed through p.key, not a literal — check separately.
     const pantyUsed = /onBuy\(p\.key\)/.test(SOURCE)
     for (const id of used) {
