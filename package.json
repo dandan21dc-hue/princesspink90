@@ -20,6 +20,7 @@
     "security:baseline:update": "bash scripts/update-security-baseline.sh",
     "security:gate:local": "bash scripts/reproduce-security-gate.sh",
     "hooks:install": "bash scripts/install-git-hooks.sh",
+    "security:artifacts": "bash scripts/fetch-security-artifacts.sh",
     "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
 
   },
