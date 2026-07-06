@@ -161,6 +161,10 @@ function Dashboard() {
         </div>
       </div>
 
+      <div className="mt-10">
+        <PerksWidget />
+      </div>
+
       <div className="mt-10 grid gap-10 lg:grid-cols-2">
         <div>
           <h2 className="font-display text-lg mb-4">Your tickets</h2>
