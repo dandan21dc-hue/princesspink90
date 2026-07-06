@@ -380,6 +380,7 @@ jobs:
             done
 
       - name: Upload migrations report
+        id: upload_migrations
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -388,6 +389,37 @@ jobs:
           retention-days: ${{ job.status == 'success' && 3 || 14 }}
           compression-level: 9
           if-no-files-found: warn
+
+      - name: Write job summary
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          MIGRATIONS_URL: ${{ steps.upload_migrations.outputs.artifact-url }}
+          DB_TEST_URL: ${{ steps.upload_db_test.outputs.artifact-url }}
+          DB_TEST_OUTCOME: ${{ steps.db_test.outcome }}
+          TYPES_DIFF_OUTCOME: ${{ steps.types_diff.outcome }}
+          TYPES_TSC_OUTCOME: ${{ steps.types_tsc.outcome }}
+        run: |
+          {
+            echo "## Supabase / Migrations — \`$STATUS\`"
+            echo ""
+            echo "| Step | Outcome |"
+            echo "| --- | --- |"
+            echo "| db test (RLS + triggers) | \`${DB_TEST_OUTCOME:-skipped}\` |"
+            echo "| types diff | \`${TYPES_DIFF_OUTCOME:-skipped}\` |"
+            echo "| types typecheck | \`${TYPES_TSC_OUTCOME:-skipped}\` |"
+            echo ""
+            echo "### Artifacts"
+            if [ -n "$MIGRATIONS_URL" ]; then
+              echo "- 📎 [supabase-migrations-report]($MIGRATIONS_URL) — \`types.ts\`, \`types.committed.ts\`, \`types.diff\`, \`tsgo.log\`"
+            fi
+            if [ -n "$DB_TEST_URL" ]; then
+              echo "- 📎 [supabase-db-test-logs]($DB_TEST_URL) — \`db-reset.log\`, \`db-test.log\` (uploaded on db-test failure only)"
+            fi
+            if [ -z "$MIGRATIONS_URL" ] && [ -z "$DB_TEST_URL" ]; then
+              echo "_No artifacts uploaded._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Dump Supabase logs on failure
         if: failure()
