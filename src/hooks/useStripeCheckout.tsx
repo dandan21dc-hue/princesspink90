@@ -8,6 +8,7 @@ interface CheckoutOptions {
   userId?: string;
   customerEmail?: string;
   bookingStartsAt?: string;
+  autoRenew?: boolean;
 }
 
 
