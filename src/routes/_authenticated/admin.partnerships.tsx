@@ -301,6 +301,50 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
           ))}
         </ul>
       </div>
+
+      <div className="mt-8">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs uppercase tracking-widest text-muted-foreground">Email delivery</span>
+          <button
+            onClick={() => emailEvents.refetch()}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-neon"
+          >
+            {emailEvents.isFetching ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+        {emailEvents.isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
+        {emailEvents.error && (
+          <p className="text-xs text-red-400">Failed to load email events: {String((emailEvents.error as Error).message)}</p>
+        )}
+        {emailEvents.data && emailEvents.data.events.length === 0 && (
+          <p className="text-xs text-muted-foreground">No email sends logged for this enquiry.</p>
+        )}
+        <ul className="space-y-2">
+          {(emailEvents.data?.events ?? []).map((e: EmailEvent) => (
+            <li key={e.messageId} className="rounded-lg border border-border/40 bg-background/40 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <EmailKindLabel kind={e.kind} />
+                  <EmailStatusBadge status={e.status} />
+                </div>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {new Date(e.createdAt).toLocaleString()}
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {e.recipientEmail ?? '—'}
+                {e.templateName && <> · <span className="uppercase tracking-widest">{e.templateName}</span></>}
+              </div>
+              {e.errorMessage && (
+                <p className="mt-2 whitespace-pre-wrap rounded border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300">
+                  {e.errorMessage}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
     </div>
   )
 }
