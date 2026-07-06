@@ -535,6 +535,58 @@ async function handleDisputeClosed(dispute: any, env: StripeEnv) {
   }
 }
 
+/**
+ * Renewal payment failed. Flip the row to `past_due` (access still granted
+ * — Stripe will retry over the dunning window) and notify the subscriber.
+ */
+async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
+  const subId = invoice.subscription;
+  if (!subId || typeof subId !== "string") return;
+  const { data: sub } = await getSupabase()
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_subscription_id", subId)
+    .eq("environment", env)
+    .maybeSingle();
+  await getSupabase()
+    .from("subscriptions")
+    .update({ status: "past_due", updated_at: new Date().toISOString() })
+    .eq("stripe_subscription_id", subId)
+    .eq("environment", env);
+  if (sub?.user_id) {
+    await getSupabase().from("notifications").insert({
+      user_id: sub.user_id as string,
+      kind: "payment_failed",
+      title: "Payment failed — update your card",
+      body: "Your renewal payment didn't go through. Update your card in Account → Billing to avoid losing access.",
+      link_url: "/account/billing",
+      metadata: { subscription_id: subId, env } as any,
+    });
+  }
+}
+
+/**
+ * Renewal (or first) invoice paid. Clear any lingering past_due state so
+ * the dunning banner disappears immediately.
+ */
+async function handleInvoicePaymentSucceeded(invoice: any, env: StripeEnv) {
+  const subId = invoice.subscription;
+  if (!subId || typeof subId !== "string") return;
+  const { data: current } = await getSupabase()
+    .from("subscriptions")
+    .select("status")
+    .eq("stripe_subscription_id", subId)
+    .eq("environment", env)
+    .maybeSingle();
+  if (current?.status === "past_due") {
+    await getSupabase()
+      .from("subscriptions")
+      .update({ status: "active", updated_at: new Date().toISOString() })
+      .eq("stripe_subscription_id", subId)
+      .eq("environment", env);
+  }
+}
+
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
   switch (event.type) {
@@ -546,18 +598,18 @@ async function handleWebhook(req: Request, env: StripeEnv) {
       await handleSubscriptionDeleted(event.data.object, env);
       break;
     case "checkout.session.completed":
-      // Instant-pay path. payment_status is enforced inside the handler so
-      // async completions are ignored here and later re-processed via
-      // checkout.session.async_payment_succeeded.
-      await handleCheckoutCompleted(event.data.object, env);
-      break;
     case "checkout.session.async_payment_succeeded":
-      // Funds settled for a delayed-settlement method. Same grant path;
-      // the handler's payment_status === "paid" check will now pass.
       await handleCheckoutCompleted(event.data.object, env);
       break;
     case "checkout.session.async_payment_failed":
       await handleAsyncPaymentFailed(event.data.object, env);
+      break;
+    case "invoice.payment_failed":
+      await handleInvoicePaymentFailed(event.data.object, env);
+      break;
+    case "invoice.payment_succeeded":
+    case "invoice.paid":
+      await handleInvoicePaymentSucceeded(event.data.object, env);
       break;
     case "charge.refunded":
       await handleChargeRefunded(event.data.object, env);
