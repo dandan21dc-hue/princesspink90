@@ -522,6 +522,19 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
                 {e.recipientEmail ?? '—'}
                 {e.templateName && <> · <span className="uppercase tracking-widest">{e.templateName}</span></>}
               </div>
+              {(e.kind === 'notification' || e.kind === 'confirmation') &&
+                e.status &&
+                ['dlq', 'failed', 'bounced'].includes(e.status) && (
+                  <div className="mt-2">
+                    <button
+                      onClick={() => retryMut.mutate(e.kind as 'confirmation' | 'notification')}
+                      disabled={retryMut.isPending}
+                      className="rounded-full border border-red-500/40 px-3 py-1 text-[10px] uppercase tracking-widest text-red-300 hover:border-red-400 hover:text-red-200 disabled:opacity-50"
+                    >
+                      {retryMut.isPending && retryMut.variables === e.kind ? 'Retrying…' : 'Retry this delivery'}
+                    </button>
+                  </div>
+                )}
               {e.errorMessage && (
                 <p className="mt-2 whitespace-pre-wrap rounded border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300">
                   {e.errorMessage}
