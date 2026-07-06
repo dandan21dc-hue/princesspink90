@@ -315,7 +315,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
           </div>
         </div>
         <h2 className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-display text-4xl font-extrabold sm:text-5xl">
-          <span>{priceLabel(prices, "lifetime_onetime_aud", "A$500")}</span>
+          <span>{priceLabel(prices, "lifetime_onetime_aud", "A$00")}</span>
           <span
             className="font-semibold text-lg sm:text-xl"
             style={{ color: "#f5c542", textShadow: "0 0 10px rgba(245,197,66,0.5)" }}
