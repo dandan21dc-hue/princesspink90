@@ -77,12 +77,21 @@ const STATUS_LABEL: Record<Inquiry['status'], string> = {
 
 function AdminPartnerships() {
   const listFn = useServerFn(listPartnershipInquiries)
+  const summaryFn = useServerFn(listPartnershipEmailSummary)
   const q = useQuery({ queryKey: ['partnership-inquiries'], queryFn: () => listFn() })
   const [selected, setSelected] = useState<Inquiry | null>(null)
   const [filter, setFilter] = useState<'all' | Inquiry['status']>('all')
 
   const inquiries = (q.data?.inquiries ?? []) as Inquiry[]
   const filtered = filter === 'all' ? inquiries : inquiries.filter((i) => i.status === filter)
+
+  const ids = inquiries.map((i) => i.id)
+  const summaryQ = useQuery({
+    queryKey: ['partnership-email-summary', ids.join(',')],
+    queryFn: () => summaryFn({ data: { inquiryIds: ids } }),
+    enabled: ids.length > 0,
+  })
+  const summary = summaryQ.data?.summary ?? {}
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -148,6 +157,10 @@ function AdminPartnerships() {
                   {i.organization ? `${i.organization} · ` : ''}{i.email}
                 </div>
                 <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{i.message}</div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
+                  <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
+                </div>
                 <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
                   {new Date(i.created_at).toLocaleString()}
                 </div>
