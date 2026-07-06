@@ -108,12 +108,14 @@ export const cart = {
       next[idx] = { ...next[idx], quantity: capped } as CartItem;
       setItems(next);
     } else {
-      // If a panty variant is already in cart, block a second one for a
-      // *different* variant (Stripe session can only hold one panty row).
-      if (item.kind === "panty" && cache.some((it) => it.kind === "panty" && it.id !== item.id)) {
-        throw new Error("Only one panty variant per order — check out first, then add another.");
-      }
-      setItems([...cache, { ...item, quantity: item.kind === "panty" ? 1 : qty } as CartItem]);
+      // Stripe session can only hold one panty row — if a different panty
+      // variant is already in the cart, swap it for the newly-added one
+      // rather than blocking the click (reads as "button doesn't work").
+      const next =
+        item.kind === "panty"
+          ? cache.filter((it) => it.kind !== "panty")
+          : [...cache];
+      setItems([...next, { ...item, quantity: item.kind === "panty" ? 1 : qty } as CartItem]);
     }
   },
   remove(kind: CartItem["kind"], id: string) {
