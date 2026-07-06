@@ -61,22 +61,26 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">3. Payments &amp; renewals</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">3. Subscription &amp; billing</h2>
           <p className="mt-2">
-            Monthly plans renew automatically until cancelled. 3-, 6-, and
-            12-month term passes are single upfront lump-sum payments and do
-            not auto-renew. The Lifetime membership is a single one-time
-            payment. All charges are in the currency shown at checkout and are
-            processed by Stripe.
+            Subscription plans are upfront, lump-sum payments for the selected term
+            (3, 6, or 12 months, or Lifetime). There are no recurring monthly charges;
+            you will be prompted to renew when your access expires. All charges are in
+            the currency shown at checkout and are processed by Stripe.
+          </p>
+          <p className="mt-2">
+            All sales are final. No refunds are provided for partial term use or once
+            access has been granted, except where required by law. Contact support if
+            you believe you were charged in error.
           </p>
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">4. Refunds</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">4. Perks</h2>
           <p className="mt-2">
-            Digital content, memberships, and event tickets are non-refundable
-            once access is granted, except where required by law. Contact
-            support if you believe you were charged in error.
+            The "Free Event Entry" perk associated with 12-month and Lifetime tiers is
+            valid for the duration of your active term. Unused credits do not carry
+            over beyond your expiration date.
           </p>
         </section>
 
