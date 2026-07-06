@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ConsentCompliance } from "@/components/ConsentCompliance";
 
-const eventQuery = (id: string) =>
+export const eventQuery = (id: string) =>
   queryOptions({
     queryKey: ["public-event", id],
     queryFn: () => getPublicEventById({ data: { id } }),
