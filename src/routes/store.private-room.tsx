@@ -244,10 +244,10 @@ function PrivateRoomPage() {
                   </div>
                   <button
                     onClick={confirm}
-                    disabled={!selectedSlot}
-                    className="rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={!selectedSlot || pending}
+                    className="min-h-11 rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Book · A${duration === 30 ? "150" : "275"}
+                    {pending ? "Processing…" : `Book · A$${duration === 30 ? "150" : "275"}`}
                   </button>
                 </div>
 
