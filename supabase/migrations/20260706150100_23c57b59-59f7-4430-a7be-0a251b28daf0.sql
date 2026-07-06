@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_private_room_busy(timestamptz, timestamptz) TO anon, authenticated;
