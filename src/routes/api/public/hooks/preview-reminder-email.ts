@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { renderHealthScreeningReminder } from '@/lib/email-templates-resend/health-screening-reminder'
 import { resolveAppOrigin } from '@/lib/app-origin.server'
+import { checkHooksCronAuth } from '@/lib/hooks-auth.server'
 
 // Admin-only preview endpoint: renders the 7-day reminder template and returns
 // the HTML + plain text WITHOUT sending anything through Resend. Useful for
