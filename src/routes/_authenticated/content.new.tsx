@@ -12,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/content/new")({
 });
 
 type MediaRow = { url: string; type: "image" | "video" };
+type UploadError = { name: string; type: "image" | "video"; message: string };
 
 function NewContentPage() {
   const createFn = useServerFn(createContentItem);
