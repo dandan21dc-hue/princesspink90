@@ -7,6 +7,12 @@ const ALLOWED_EVENTS = new Set([
   "boutique_tier_click",
   "all_access_tier_click",
   "checkout_completed",
+  "panty_checkout_start",
+  "panty_checkout_started",
+  "panty_checkout_confirmed",
+  "panty_checkout_pending",
+  "panty_checkout_cancelled",
+  "stripe_checkout_return_failed",
 ]);
 
 type LogInput = {
