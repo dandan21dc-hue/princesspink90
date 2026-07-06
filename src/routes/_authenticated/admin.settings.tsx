@@ -122,7 +122,78 @@ function AdminSettings() {
       </form>
 
       <ReminderJobConfigSection />
+      <StripeCatalogueSyncSection />
     </Shell>
+  );
+}
+
+function StripeCatalogueSyncSection() {
+  const syncFn = useServerFn(syncMissingStripePrices);
+  const run = useMutation({
+    mutationFn: () => syncFn({ data: { environment: getStripeEnvironment() } }),
+  });
+
+  const data = run.data;
+  const summary =
+    data && "results" in data
+      ? `${data.created} created · ${data.existed} already present · ${data.errors} error${data.errors === 1 ? "" : "s"}`
+      : null;
+
+  return (
+    <section className="mt-12 border-t border-border pt-8">
+      <h2 className="font-display text-xl font-bold">Stripe catalogue sync</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Creates any missing Stripe product/price for the expected all-access and
+        lifetime lookup_keys in the current environment ({getStripeEnvironment()}).
+        Existing prices are never modified — this only fills gaps so checkout
+        never fails with "Price not found".
+      </p>
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => run.mutate()}
+          disabled={run.isPending}
+          className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+        >
+          {run.isPending ? "Syncing…" : "Sync missing prices"}
+        </button>
+        {summary && <span className="text-sm text-muted-foreground">{summary}</span>}
+        {run.error && (
+          <span className="text-sm text-destructive">
+            {(run.error as Error).message}
+          </span>
+        )}
+      </div>
+      {data && "error" in data && (
+        <p className="mt-3 text-sm text-destructive">{data.error}</p>
+      )}
+      {data && "results" in data && data.results.length > 0 && (
+        <ul className="mt-4 space-y-1 text-xs font-mono">
+          {data.results.map((r) => {
+            const tone =
+              r.status === "created"
+                ? "text-primary"
+                : r.status === "error"
+                ? "text-destructive"
+                : "text-muted-foreground";
+            const detail =
+              r.status === "created"
+                ? `created (${r.priceId})`
+                : r.status === "exists"
+                ? `exists (${r.priceId})`
+                : r.status === "skipped"
+                ? `skipped — ${r.reason}`
+                : `error — ${r.message}`;
+            return (
+              <li key={r.lookupKey} className={tone}>
+                <span className="mr-2">•</span>
+                {r.lookupKey}: {detail}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
