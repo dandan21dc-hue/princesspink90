@@ -103,11 +103,13 @@ function PrivateRoomPage() {
   }
 
   function confirm() {
+    if (pending) return;
     if (!selectedSlot) return;
     if (!user) {
       navigate({ to: "/auth" });
       return;
     }
+    setPending(true);
     const priceId = duration === 30 ? "private_room_30min_aud" : "private_room_60min_aud";
     openCheckout({
       priceId,
@@ -117,6 +119,13 @@ function PrivateRoomPage() {
       returnUrl: `${window.location.origin}/checkout/return?next=%2Fdashboard`,
     });
   }
+
+  useEffect(() => {
+    // Re-enable the confirm button if the user dismisses the embedded
+    // checkout without paying — otherwise it would stay stuck as
+    // "Processing…" until a full reload.
+    if (!isOpen && pending) setPending(false);
+  }, [isOpen, pending]);
 
   return (
     <>
