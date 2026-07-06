@@ -141,6 +141,24 @@ function CartBody({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={() => {
+            track("panty_checkout_start", {
+              source: "cart",
+              item_count: items.length,
+              unit_count: items.reduce((n, it) => n + it.quantity, 0),
+              subtotal_cents: subtotalCents,
+              currency,
+              has_panty: hasPanty,
+              items: JSON.stringify(
+                items.map((it) => ({
+                  kind: it.kind,
+                  id: it.id,
+                  title: it.title,
+                  quantity: it.quantity,
+                  unit_amount_cents: it.unit_amount_cents,
+                  currency: it.currency,
+                })),
+              ),
+            });
             onClose();
             navigate({ to: "/checkout/cart" });
           }}
