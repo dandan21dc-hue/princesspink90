@@ -35,15 +35,72 @@ async function detectCountry(): Promise<string | undefined> {
 const MOUNT_TIMEOUT_MS = 15_000;
 
 export function StripeEmbeddedCheckout(props: Props) {
+  // Stable id for correlating all lifecycle events for a single mount attempt.
+  const mountIdRef = useRef<string>(
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `mount_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  );
+  const mountedAtRef = useRef<number>(Date.now());
+
+  // Derive checkout "kind" once for logging tags.
+  const kind = props.priceId?.startsWith("panty_")
+    ? "panty"
+    : props.priceId
+      ? "subscription"
+      : props.contentItemId
+        ? "content_item"
+        : props.bookingStartsAt
+          ? "private_room"
+          : "unknown";
+  const source = props.priceId ?? props.contentItemId ?? "unknown";
+
+  const logLifecycle = useCallback(
+    (event: string, extra?: Record<string, unknown>) => {
+      const payload = {
+        mount_id: mountIdRef.current,
+        kind,
+        source,
+        environment: getStripeEnvironment(),
+        elapsed_ms: Date.now() - mountedAtRef.current,
+        ...extra,
+      };
+      track(`stripe_checkout_${event}`, payload);
+      // eslint-disable-next-line no-console
+      console.info(`[stripe-checkout] ${event}`, payload);
+    },
+    [kind, source],
+  );
+
   // Keep country in a ref so async detection does NOT trigger a re-render.
   // Re-rendering hands EmbeddedCheckoutProvider a new `options.fetchClientSecret`,
   // which Stripe rejects ("You cannot change fetchClientSecret after setting it"),
   // and the checkout form never mounts.
   const countryRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    detectCountry().then((c) => {
-      countryRef.current = c;
-    });
+    logLifecycle("mount_started");
+    const started = Date.now();
+    logLifecycle("country_detect_started");
+    detectCountry()
+      .then((c) => {
+        countryRef.current = c;
+        logLifecycle("country_detect_completed", {
+          country: c ?? null,
+          detected: Boolean(c),
+          duration_ms: Date.now() - started,
+        });
+      })
+      .catch((e) => {
+        logLifecycle("country_detect_failed", {
+          message: (e as Error)?.message?.slice(0, 200),
+          duration_ms: Date.now() - started,
+        });
+      });
+    return () => {
+      logLifecycle("unmounted");
+    };
+    // Mount-once instrumentation; logLifecycle is stable per kind/source.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Latest props via ref so the memoized fetcher stays referentially stable
@@ -60,24 +117,28 @@ export function StripeEmbeddedCheckout(props: Props) {
 
   const fetchClientSecret = useCallback(async (): Promise<string> => {
     const p = propsRef.current;
-    const source = p.priceId ?? p.contentItemId ?? "unknown";
-    const kind = p.priceId?.startsWith("panty_")
-      ? "panty"
-      : p.priceId
-        ? "subscription"
-        : p.contentItemId
-          ? "content_item"
-          : p.bookingStartsAt
-            ? "private_room"
-            : "unknown";
+    const requestStartedAt = Date.now();
+    logLifecycle("session_request_started", {
+      attempt,
+      has_user: Boolean(p.userId),
+      has_email: Boolean(p.customerEmail),
+      country: countryRef.current ?? null,
+      auto_renew: p.autoRenew ?? null,
+      booking_starts_at: p.bookingStartsAt ?? null,
+    });
     const fail = (reason: string, message?: string) => {
+      const duration = Date.now() - requestStartedAt;
       track("stripe_checkout_session_failed", {
+        mount_id: mountIdRef.current,
+        attempt,
         kind,
         source,
         environment: getStripeEnvironment(),
         reason,
+        duration_ms: duration,
         ...(message && { message: message.slice(0, 200) }),
       });
+      logLifecycle("session_request_failed", { reason, duration_ms: duration, message: message?.slice(0, 200) });
     };
     let result;
     try {
@@ -111,17 +172,35 @@ export function StripeEmbeddedCheckout(props: Props) {
       setError(msg);
       throw new Error(msg);
     }
+    logLifecycle("session_request_completed", {
+      attempt,
+      duration_ms: Date.now() - requestStartedAt,
+    });
     return result.clientSecret;
     // attempt is intentionally in deps so each retry creates a fresh fetcher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt]);
+  }, [attempt, logLifecycle]);
 
   // Fail loudly if Stripe.js itself doesn't load (blocked, offline, bad key).
   const stripePromise = useMemo(() => {
+    const initStartedAt = Date.now();
+    logLifecycle("provider_init_started", { attempt });
     const p = getStripe();
     p.then((s) => {
-      if (!s) setError("Stripe failed to load. Check your connection or ad blockers and try again.");
+      const duration = Date.now() - initStartedAt;
+      if (!s) {
+        logLifecycle("provider_init_failed", { reason: "stripe_null", duration_ms: duration });
+        setError("Stripe failed to load. Check your connection or ad blockers and try again.");
+      } else {
+        logLifecycle("provider_init_completed", { duration_ms: duration });
+      }
     }).catch((e) => {
+      const msg = (e as Error)?.message?.slice(0, 200);
+      logLifecycle("provider_init_failed", {
+        reason: "exception",
+        duration_ms: Date.now() - initStartedAt,
+        message: msg,
+      });
       setError((e as Error)?.message ?? "Stripe failed to load.");
     });
     return p;
@@ -137,16 +216,20 @@ export function StripeEmbeddedCheckout(props: Props) {
     const timer = window.setTimeout(() => {
       const iframe = containerRef.current?.querySelector("iframe");
       if (!iframe) {
+        logLifecycle("iframe_mount_timeout", { timeout_ms: MOUNT_TIMEOUT_MS, attempt });
         setError("The checkout form is taking too long to load. Please try again.");
+      } else {
+        logLifecycle("iframe_mounted", { attempt });
       }
     }, MOUNT_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [attempt, error]);
+  }, [attempt, error, logLifecycle]);
 
   const handleRetry = useCallback(() => {
+    logLifecycle("retry_clicked", { attempt });
     setError(null);
     setAttempt((n) => n + 1);
-  }, []);
+  }, [attempt, logLifecycle]);
 
   if (error) {
     return (
@@ -181,3 +264,4 @@ export function StripeEmbeddedCheckout(props: Props) {
     </div>
   );
 }
+
