@@ -5,6 +5,34 @@
 Report suspected vulnerabilities privately to danielle@princesspink90.com. Please
 do not open public GitHub issues for security reports.
 
+## CI security gate
+
+Merges to `main` are blocked by the `CI / Supabase / Gate (required)` status
+check, which aggregates the Supabase linter and migrations/RLS regression
+jobs. For the full operator guide — how the gate works, the two suppression
+layers (fingerprint baseline vs. category allowlist), and step-by-step
+playbooks for red builds, adding/removing acceptances, and writing new RLS
+tests — see [SECURITY_SCAN.md](./SECURITY_SCAN.md).
+
+**When to follow the allowlist/baseline update process** (details in
+`SECURITY_SCAN.md`, Playbook A / C / D):
+
+- A new WARN/ERROR finding appears in CI that is intentionally accepted →
+  update `@security-memory` with the rationale, regenerate the baseline
+  with `node scripts/supabase-security-lint.mjs --update-baseline`, and
+  ship the `security/lint-baseline.json` diff for CODEOWNERS review.
+- A whole finding category needs suppression (rare, e.g. a new
+  structurally-accepted trigger pattern) → add the entry to BOTH
+  `APPROVED_ALLOWLIST` in `scripts/supabase-security-lint.mjs` and
+  `SUPABASE_LINT_ALLOWLIST` in `.github/workflows/ci.yml`, with the
+  rationale in `@security-memory`.
+- CI reports a baseline fingerprint as "no longer reported (safe to
+  prune)" → delete it from `security/lint-baseline.json` in a follow-up
+  PR so stale acceptances can't hide future regressions.
+
+Prefer fingerprint baseline entries over category allowlist entries
+wherever a specific offender can be named.
+
 ## Allowlisted database linter findings
 
 The Supabase database linter runs in CI via `scripts/supabase-security-lint.mjs`
@@ -15,6 +43,7 @@ env var (what the runner ignores) and `APPROVED_ALLOWLIST` in the script itself
 that touches `APPROVED_ALLOWLIST`.
 
 Today the only allowlisted rule is:
+
 
 ### `authenticated_security_definer_function_executable` (and `0029_` prefix)
 
