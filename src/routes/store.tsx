@@ -88,14 +88,29 @@ function AllAccessCard() {
 
   const tiers = useMyTiers();
   const hasLifetime = tiers.active.lifetime_onetime_aud;
-  const currentLabel = (() => {
-    if (hasLifetime) return "Lifetime";
-    if (tiers.active.all_access_12mo_monthly_aud) return "12-Month Plan";
-    if (tiers.active.all_access_6mo_monthly_aud) return "6-Month Plan";
-    if (tiers.active.all_access_3mo_monthly_aud) return "3-Month Plan";
-    if (tiers.active.all_access_monthly_aud) return "Monthly";
-    return null;
-  })();
+  // Rank tiers so we can label other cards as Upgrade / Downgrade relative
+  // to the user's current plan. Lifetime is the top rank.
+  const TIER_RANK: Record<PlanId, number> = {
+    all_access_monthly_aud: 1,
+    all_access_3mo_monthly_aud: 2,
+    all_access_6mo_monthly_aud: 3,
+    all_access_12mo_monthly_aud: 4,
+    lifetime_onetime_aud: 5,
+  };
+  const currentPlan: PlanId | null = hasLifetime
+    ? "lifetime_onetime_aud"
+    : tiers.active.all_access_12mo_monthly_aud
+      ? "all_access_12mo_monthly_aud"
+      : tiers.active.all_access_6mo_monthly_aud
+        ? "all_access_6mo_monthly_aud"
+        : tiers.active.all_access_3mo_monthly_aud
+          ? "all_access_3mo_monthly_aud"
+          : tiers.active.all_access_monthly_aud
+            ? "all_access_monthly_aud"
+            : null;
+  const currentLabel = currentPlan
+    ? passes.find((p) => p.plan === currentPlan)?.label ?? null
+    : null;
   const fmtExpiry = (iso?: string | null) => {
     if (!iso) return null;
     try {
