@@ -204,11 +204,33 @@ async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
  * Non-throwing subscriber check for UI use (mirrors assertPantyAccess).
  */
 export const getSubscriberStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((data: { environment: StripeEnv }) => data)
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     try {
-      await assertPantyAccess(context.supabase, context.userId, data.environment);
+      // Read the caller's session lazily; signed-out visitors just get the
+      // non-subscriber response instead of a 401 that blanks the store page.
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const req = getRequest();
+      const authHeader = req?.headers.get("authorization") ?? "";
+      const token = authHeader.toLowerCase().startsWith("bearer ")
+        ? authHeader.slice(7).trim()
+        : "";
+      if (!token) return { isSubscriber: false, discountPercent: 0 };
+
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabase = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_PUBLISHABLE_KEY!,
+        {
+          auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        },
+      );
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      if (!userId) return { isSubscriber: false, discountPercent: 0 };
+
+      await assertPantyAccess(supabase, userId, data.environment);
       return { isSubscriber: true, discountPercent: SUBSCRIBER_DISCOUNT_PERCENT };
     } catch {
       return { isSubscriber: false, discountPercent: 0 };
