@@ -272,18 +272,39 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
 
 
       {/* Lifetime */}
-      <div className="mt-8 relative overflow-hidden rounded-3xl border-2 border-primary bg-gradient-to-br from-primary/25 via-background to-background p-6 shadow-[var(--shadow-glow-pink)] sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <div
+        className="mt-8 relative overflow-visible rounded-3xl border-2 p-6 sm:p-8 bg-gradient-to-br from-primary/25 via-background to-background"
+        style={{
+          borderColor: "#f5c542",
+          boxShadow:
+            "0 0 0 1px rgba(245,197,66,0.55), 0 0 40px rgba(245,197,66,0.35), 0 0 80px rgba(245,197,66,0.2), var(--shadow-glow-pink)",
+        }}
+      >
+        {/* Glowing gold BEST VALUE badge */}
+        <span
+          className="absolute -top-3 right-4 sm:right-6 z-10 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-black animate-pulse"
+          style={{
+            background: "linear-gradient(135deg, #ffe27a 0%, #f5c542 45%, #d4a017 100%)",
+            boxShadow:
+              "0 0 12px rgba(245,197,66,0.9), 0 0 24px rgba(245,197,66,0.6), 0 0 40px rgba(245,197,66,0.4)",
+          }}
+        >
+          ★ Best Value
+        </span>
+
+        <div className="flex flex-wrap items-center gap-2 pr-24 sm:pr-28">
           <div className="text-xs uppercase tracking-[0.3em] text-primary">
             Lifetime Membership
           </div>
-          <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-            Best value
-          </span>
         </div>
         <h2 className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-display text-4xl font-extrabold sm:text-5xl">
           <span>{priceLabel(prices, "lifetime_onetime_aud", "A$500")}</span>
-          <span className="text-base font-normal text-muted-foreground sm:text-lg">one-time payment</span>
+          <span
+            className="font-semibold text-lg sm:text-xl"
+            style={{ color: "#f5c542", textShadow: "0 0 10px rgba(245,197,66,0.5)" }}
+          >
+            one-time payment
+          </span>
         </h2>
 
         <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
@@ -295,7 +316,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
         <button
           onClick={() => onBuy("lifetime_onetime_aud")}
           disabled={disabled}
-          className="mt-8 min-h-12 w-full rounded-md bg-primary px-6 py-3.5 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-8 min-h-14 w-full rounded-lg bg-primary px-8 py-4 text-base sm:text-lg font-bold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto disabled:cursor-not-allowed disabled:opacity-70 animate-pulse hover:animate-none transition"
         >
           {busy("lifetime_onetime_aud") ? "Processing…" : "Buy lifetime"}
         </button>
