@@ -74,7 +74,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only.",
       },
-      { property: "og:title", content: "Princess Pink — Adult events, hosted with care" },
+      { property: "og:title", content: "Princess Pink — Glory holes, gang bangs & theatre nights" },
       {
         property: "og:description",
         content: "Glory holes, gang bangs, and adult theatre takeovers hosted by Princess Pink. 18+ only.",
@@ -83,6 +83,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:site_name", content: "Princess Pink" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#0a0a0f" },
+      { name: "twitter:title", content: "Princess Pink — Glory holes, gang bangs & theatre nights" },
+      { name: "description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only." },
+      { property: "og:description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only." },
+      { name: "twitter:description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only." },
+      { property: "og:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
+      { name: "twitter:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
