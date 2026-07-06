@@ -564,7 +564,7 @@ function TermPassCard({
       : `One-time payment · ${termMonths} months of access · no renewal`,
     ...extraPerks,
   ];
-  const cadence = autoRenew ? `every ${termMonths} mo` : `for ${termMonths} months`;
+  const cadence = `for ${termMonths} months`;
   const cta = autoRenew
     ? `Subscribe · ${priceText}/${termMonths}mo`
     : `Buy ${termMonths}-month term`;
