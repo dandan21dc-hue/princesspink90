@@ -151,3 +151,146 @@ export const getTierAnalytics = createServerFn({ method: "GET" })
       recent,
     };
   });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Checkout reconciliation: given a client_order_ref (UUID emitted by the
+// cart drawer at panty_checkout_start), return every persisted analytics
+// event that carries that ref plus a compact status matrix so admins can
+// see at a glance whether the funnel completed, stalled at pending, or
+// bounced through a cancelled / error path.
+
+export type ReconciliationEventRow = {
+  id: string;
+  event: string;
+  created_at: string;
+  session_id: string | null;
+  props: Record<string, unknown>;
+};
+
+export type ReconciliationStatus = {
+  seen: boolean;
+  count: number;
+  first_at: string | null;
+  last_at: string | null;
+};
+
+export type CheckoutReconciliation = {
+  client_order_ref: string;
+  total_events: number;
+  session_ids: string[];
+  order_ids: string[];
+  status: {
+    start: ReconciliationStatus;
+    confirmed: ReconciliationStatus;
+    pending: ReconciliationStatus;
+    cancelled: ReconciliationStatus;
+    return_failed: ReconciliationStatus;
+    checkout_completed: ReconciliationStatus;
+  };
+  events: ReconciliationEventRow[];
+};
+
+const CLIENT_ORDER_REF_RE = /^[0-9a-fA-F-]{8,64}$/;
+
+export const getCheckoutReconciliation = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { clientOrderRef: string }) => {
+    const ref = (data?.clientOrderRef ?? "").trim();
+    if (!CLIENT_ORDER_REF_RE.test(ref)) {
+      throw new Error("Invalid client_order_ref");
+    }
+    return { clientOrderRef: ref };
+  })
+  .handler(async ({ data, context }): Promise<CheckoutReconciliation> => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Query by both jsonb key lookup (indexed) and session_id fallback
+    // when the caller pastes a session_id by mistake — cheap and helpful.
+    const { data: events, error } = await supabaseAdmin
+      .from("analytics_events")
+      .select("id, event, created_at, session_id, props")
+      .eq("props->>client_order_ref", data.clientOrderRef)
+      .order("created_at", { ascending: true })
+      .limit(500);
+    if (error) throw new Error(error.message);
+
+    const empty = (): ReconciliationStatus => ({
+      seen: false,
+      count: 0,
+      first_at: null,
+      last_at: null,
+    });
+    const status = {
+      start: empty(),
+      confirmed: empty(),
+      pending: empty(),
+      cancelled: empty(),
+      return_failed: empty(),
+      checkout_completed: empty(),
+    };
+    const bump = (k: keyof typeof status, at: string) => {
+      const s = status[k];
+      s.seen = true;
+      s.count += 1;
+      s.first_at = s.first_at ?? at;
+      s.last_at = at;
+    };
+
+    const sessionIds = new Set<string>();
+    const orderIds = new Set<string>();
+
+    for (const e of events ?? []) {
+      const p = (e.props ?? {}) as Record<string, unknown>;
+      if (typeof p.session_id === "string") sessionIds.add(p.session_id);
+      if (typeof e.session_id === "string" && e.session_id) sessionIds.add(e.session_id);
+      if (typeof p.order_id === "string") orderIds.add(p.order_id);
+      if (typeof p.order_ids === "string") {
+        for (const id of p.order_ids.split(",")) {
+          const trimmed = id.trim();
+          if (trimmed) orderIds.add(trimmed);
+        }
+      }
+      switch (e.event) {
+        case "panty_checkout_start":
+        case "panty_checkout_started":
+          bump("start", e.created_at);
+          break;
+        case "panty_checkout_confirmed":
+          bump("confirmed", e.created_at);
+          break;
+        case "panty_checkout_pending":
+          bump("pending", e.created_at);
+          break;
+        case "panty_checkout_cancelled":
+          bump("cancelled", e.created_at);
+          break;
+        case "stripe_checkout_return_failed":
+          bump("return_failed", e.created_at);
+          break;
+        case "checkout_completed":
+          bump("checkout_completed", e.created_at);
+          break;
+      }
+    }
+
+    return {
+      client_order_ref: data.clientOrderRef,
+      total_events: events?.length ?? 0,
+      session_ids: Array.from(sessionIds),
+      order_ids: Array.from(orderIds),
+      status,
+      events: (events ?? []).map((e) => ({
+        id: e.id,
+        event: e.event,
+        created_at: e.created_at,
+        session_id: e.session_id,
+        props: (e.props ?? {}) as Record<string, unknown>,
+      })),
+    };
+  });
