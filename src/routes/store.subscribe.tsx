@@ -208,7 +208,7 @@ function priceLabel(prices: Record<string, SubscribePrice>, key: PriceId, fallba
   return formatMoney(p.unit_amount, p.currency);
 }
 
-function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: PriceId | null }) {
+function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) => void; pending: PriceId | null }) {
   const { data: prices } = useSuspenseQuery(pricesQuery());
   const busy = (id: PriceId) => pending === id;
   const disabled = pending !== null;
@@ -255,43 +255,37 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
           loading={busy("all_access_monthly_aud")}
           disabled={disabled}
         />
-        <PassCard
+        <TermPassCard
           label="3-Month Term"
-          price={priceLabel(prices, "all_access_3mo_monthly_aud", "A$27")}
-          cadence="for 3 months"
-          perks={["Full library streaming", "One-time upfront payment", "3 months of access — no renewal"]}
-          cta="Buy 3-month term"
-          onClick={() => onBuy("all_access_3mo_monthly_aud")}
+          termMonths={3}
+          priceId="all_access_3mo_monthly_aud"
+          priceText={priceLabel(prices, "all_access_3mo_monthly_aud", "A$27")}
+          onBuy={onBuy}
           loading={busy("all_access_3mo_monthly_aud")}
           disabled={disabled}
         />
-        <PassCard
+        <TermPassCard
           label="6-Month Term"
-          price={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48")}
-          cadence="for 6 months"
-          perks={["Full library streaming", "One-time upfront payment", "6 months of access — no renewal"]}
-          cta="Buy 6-month term"
-          onClick={() => onBuy("all_access_6mo_monthly_aud")}
+          termMonths={6}
+          priceId="all_access_6mo_monthly_aud"
+          priceText={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48")}
+          onBuy={onBuy}
           loading={busy("all_access_6mo_monthly_aud")}
           disabled={disabled}
         />
-        <PassCard
+        <TermPassCard
           label="12-Month Term"
-          price={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84")}
-          cadence="for 12 months"
+          termMonths={12}
+          priceId="all_access_12mo_monthly_aud"
+          priceText={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84")}
           highlight="Includes free entry"
-          perks={[
-            "Full library streaming",
-            "One-time upfront payment",
-            "12 months of access — no renewal",
-            "1 free event entry during the term",
-          ]}
-          cta="Buy 12-month term"
-          onClick={() => onBuy("all_access_12mo_monthly_aud")}
+          extraPerks={["1 free event entry during the term"]}
+          onBuy={onBuy}
           loading={busy("all_access_12mo_monthly_aud")}
           disabled={disabled}
         />
       </div>
+
 
 
       {/* Lifetime */}
