@@ -8,6 +8,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { getSubscribePrices, type SubscribePrice } from "@/lib/subscribePrices.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart } from "@/lib/cart";
+import { track } from "@/lib/track";
 
 type PriceId =
   | "all_access_monthly_aud"
@@ -242,7 +243,10 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
                 highlight={p.highlight}
                 perks={[...p.perks]}
                 cta={p.cta}
-                onClick={() => onBuy(p.key)}
+                onClick={() => {
+                  track("panty_buy_click", { variant: p.key, price_cents: unitCents, currency });
+                  onBuy(p.key);
+                }}
                 onAddToCart={() => {
                   try {
                     cart.add({
@@ -252,6 +256,7 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
                       unit_amount_cents: unitCents,
                       currency,
                     });
+                    track("panty_add_to_cart", { variant: p.key, price_cents: unitCents, currency });
                     toast.success("Added to cart");
                   } catch (e) {
                     toast.error((e as Error).message);

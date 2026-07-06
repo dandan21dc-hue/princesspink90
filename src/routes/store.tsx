@@ -3,6 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { listStoreItems } from "@/lib/store.functions";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { track } from "@/lib/track";
 
 const storeQuery = queryOptions({
   queryKey: ["store-items"],
@@ -85,6 +86,7 @@ function AllAccessCard() {
       <Link
         to="/store/subscribe"
         hash="panty-drawer"
+        onClick={() => track("panty_link_click", { location: "store_categories" })}
         className="group rounded-2xl border border-primary/50 bg-background/40 p-5 hover:border-primary hover:bg-primary/5"
       >
         <div className="text-[10px] uppercase tracking-[0.3em] text-primary">The Panty Drawer</div>
