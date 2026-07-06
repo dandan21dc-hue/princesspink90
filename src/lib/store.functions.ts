@@ -211,8 +211,18 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       // Subscription / lookup-key checkout
       if (data.priceId) {
         const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
-        if (!prices.data.length) throw new Error("Price not found");
         const stripePrice = prices.data[0];
+        // Validate against the expected catalogue (interval + amount).
+        // Logs a structured event when the plan is missing or misconfigured
+        // in Stripe so drift is visible in server function logs.
+        const { validatePlanPrice } = await import("@/lib/planPriceValidation.server");
+        const issue = validatePlanPrice(data.priceId, stripePrice);
+        if (!stripePrice) throw new Error("Price not found");
+        if (issue?.kind === "mismatch") {
+          throw new Error(
+            `Plan ${issue.lookupKey} is misconfigured in Stripe (${issue.fields.join(", ")}). Please contact support.`,
+          );
+        }
         const isRecurring = stripePrice.type === "recurring";
 
         // Retrieve product so we can (a) description one-time payments and
