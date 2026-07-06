@@ -73,7 +73,7 @@ export const Route = createFileRoute("/store/subscribe")({
       {
         name: "description",
         content:
-          "Monthly, 3-, 6-, or 12-month all-access passes, plus a lifetime membership. Stream every photo set and video.",
+          "Monthly all-access, 3/6/12-month upfront term passes, or a lifetime membership. Stream every photo set and video.",
       },
     ],
   }),
