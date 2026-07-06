@@ -72,6 +72,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -93,6 +101,42 @@ jobs:
       - name: Run database RLS + trigger tests
         run: supabase db test
 
+      # Regenerate the client TS types from the freshly migrated schema
+      # and diff against the committed src/integrations/supabase/types.ts.
+      # If a migration changed a table/column/enum but the committed
+      # types weren't regenerated, this diff is non-empty and CI fails.
+      # We also compile the regenerated file with tsc to catch any
+      # TypeScript errors the generator might emit against strict mode.
+      - name: Regenerate Supabase types and diff
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/types-out
+          supabase gen types typescript --local \
+            > /tmp/types-out/types.ts
+          # Normalize trailing whitespace / final newline to avoid noise.
+          diff -u \
+            <(sed -e 's/[[:space:]]*$//' src/integrations/supabase/types.ts) \
+            <(sed -e 's/[[:space:]]*$//' /tmp/types-out/types.ts) \
+            || {
+              echo ""
+              echo "❌ Supabase generated types are out of date."
+              echo "   Regenerate locally with:"
+              echo "     supabase gen types typescript --local > src/integrations/supabase/types.ts"
+              echo "   then commit the result."
+              exit 1
+            }
+
+      - name: Typecheck regenerated types in isolation
+        run: |
+          set -euo pipefail
+          # Compile the freshly generated types.ts as a standalone file
+          # under the project's strict tsconfig so a schema change that
+          # produces invalid TS (name collisions, reserved keywords in
+          # column names, unresolvable enum refs) fails the build.
+          cp /tmp/types-out/types.ts src/integrations/supabase/types.ts
+          bunx --bun tsgo --noEmit \
+            src/integrations/supabase/types.ts
+
       - name: Dump Supabase logs on failure
         if: failure()
         run: supabase logs --experimental || true
@@ -100,6 +144,7 @@ jobs:
       - name: Tear down
         if: always()
         run: supabase stop --no-backup || true
+
 
 
 
