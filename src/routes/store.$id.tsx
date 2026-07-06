@@ -75,22 +75,26 @@ function ItemPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const [pending, setPending] = useState<null | "buy" | "subscribe" | "cart">(null);
+  const busy = pending !== null;
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUser({ id: data.user.id, email: data.user.email ?? undefined });
-    });
-  }, []);
+    // When the embedded checkout is dismissed, clear the pending state so
+    // the buttons come back to life without needing a page reload.
+    if (!isOpen && pending && pending !== "cart") setPending(null);
+  }, [isOpen, pending]);
 
   if (!item) return <div className="p-10 text-center">Not found.</div>;
 
   const canBuyOneTime = !!item.price_cents && !item.subscribers_only;
 
   function buyThis() {
+    if (busy) return;
     if (!user) {
       navigate({ to: "/auth" });
       return;
     }
+    setPending("buy");
     openCheckout({
       contentItemId: item!.id,
       userId: user.id,
@@ -99,10 +103,12 @@ function ItemPage() {
     });
   }
   function subscribe() {
+    if (busy) return;
     if (!user) {
       navigate({ to: "/auth" });
       return;
     }
+    setPending("subscribe");
     openCheckout({
       priceId: "all_access_monthly_aud",
       userId: user.id,
