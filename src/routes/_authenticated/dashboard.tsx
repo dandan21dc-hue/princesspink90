@@ -6,6 +6,7 @@ import { listMyRsvps } from "@/lib/rsvp.functions";
 import { amIAdmin } from "@/lib/admin.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
+import { PerksWidget } from "@/components/PerksWidget";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
@@ -158,6 +159,10 @@ function Dashboard() {
             + Host an event
           </Link>
         </div>
+      </div>
+
+      <div className="mt-10">
+        <PerksWidget />
       </div>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-2">

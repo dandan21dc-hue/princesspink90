@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -74,6 +75,11 @@ import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authent
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
 import { Route as AuthenticatedEventsIdCheckinPrintRouteImport } from './routes/_authenticated/events.$id.checkin.print'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StoreRoute = StoreRouteImport.update({
   id: '/store',
   path: '/store',
@@ -441,6 +447,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
+  '/terms': typeof TermsRoute
   '/account': typeof AuthenticatedAccountRouteWithChildren
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
@@ -506,6 +513,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
+  '/terms': typeof TermsRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -572,6 +580,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
+  '/terms': typeof TermsRoute
   '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/_authenticated/content': typeof AuthenticatedContentRouteWithChildren
@@ -639,6 +648,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
+    | '/terms'
     | '/account'
     | '/cohost-apply'
     | '/content'
@@ -704,6 +714,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
+    | '/terms'
     | '/cohost-apply'
     | '/content'
     | '/dashboard'
@@ -769,6 +780,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
+    | '/terms'
     | '/_authenticated/account'
     | '/_authenticated/cohost-apply'
     | '/_authenticated/content'
@@ -836,6 +848,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
+  TermsRoute: typeof TermsRoute
   ApiChatRoute: typeof ApiChatRoute
   CheckoutCartRoute: typeof CheckoutCartRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
@@ -857,6 +870,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/store': {
       id: '/store'
       path: '/store'
@@ -1450,6 +1470,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
+  TermsRoute: TermsRoute,
   ApiChatRoute: ApiChatRoute,
   CheckoutCartRoute: CheckoutCartRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,

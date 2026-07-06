@@ -221,7 +221,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
       </p>
 
       {/* Monthly & term passes */}
-      <div className="mt-8 grid gap-4 md:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <PassCard
           label="Monthly"
           price={priceLabel(prices, "all_access_monthly_aud", "A$10")}
@@ -292,9 +292,9 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
         <button
           onClick={() => onBuy("lifetime_onetime_aud")}
           disabled={disabled}
-          className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-8 min-h-12 w-full rounded-md bg-primary px-6 py-3.5 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {busy("lifetime_onetime_aud") ? "Opening checkout…" : "Buy lifetime"}
+          {busy("lifetime_onetime_aud") ? "Processing…" : "Buy lifetime"}
         </button>
 
       </div>
@@ -435,9 +435,9 @@ function PassCard({
       <button
         onClick={onClick}
         disabled={disabled || loading}
-        className="mt-5 w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-5 min-h-11 w-full rounded-md bg-primary px-4 py-3 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? "Opening checkout…" : cta}
+        {loading ? "Processing…" : cta}
       </button>
       {onAddToCart && (
 

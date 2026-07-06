@@ -9,6 +9,7 @@ import {
   updateReminderJobConfig,
 } from "@/lib/reminder-job-config.functions";
 import { syncMissingStripePrices, convertTermPassesToOneTime } from "@/lib/stripeMaintenance.functions";
+import { refreshUserSubscriptionStatus } from "@/lib/admin.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
@@ -123,7 +124,65 @@ function AdminSettings() {
 
       <ReminderJobConfigSection />
       <StripeCatalogueSyncSection />
+      <ManualSubscriptionRefreshSection />
     </Shell>
+  );
+}
+
+function ManualSubscriptionRefreshSection() {
+  const refreshFn = useServerFn(refreshUserSubscriptionStatus);
+  const [query, setQuery] = useState("");
+  const run = useMutation({
+    mutationFn: (q: string) =>
+      refreshFn({ data: { userIdOrEmail: q, environment: getStripeEnvironment() } }),
+  });
+
+  const data = run.data;
+  const summary =
+    data && "ok" in data && data.ok
+      ? `Synced ${data.updated} / ${data.subscriptionsFound} subscription${
+          data.subscriptionsFound === 1 ? "" : "s"
+        } for ${data.email ?? data.userId}`
+      : null;
+  const errorMsg =
+    data && "ok" in data && !data.ok ? data.error : run.error ? (run.error as Error).message : null;
+
+  return (
+    <section className="mt-12 border-t border-border pt-8">
+      <h2 className="font-display text-xl font-bold">Manually refresh subscription status</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Force-syncs a user's subscription rows from Stripe in the current
+        environment ({getStripeEnvironment()}). Use this when a
+        <code className="mx-1 rounded bg-muted px-1 py-0.5 text-[11px]">customer.subscription.*</code>
+        webhook was missed. One-time purchases and term-pass memberships are
+        provisioned at checkout and are not affected by this action.
+      </p>
+      <form
+        className="mt-4 flex flex-wrap items-center gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!query.trim()) return;
+          run.mutate(query.trim());
+        }}
+      >
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="User id (uuid) or email"
+          className="min-w-[280px] flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={run.isPending || !query.trim()}
+          className="min-h-10 rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+        >
+          {run.isPending ? "Refreshing…" : "Refresh status"}
+        </button>
+      </form>
+      {summary && <p className="mt-3 text-sm text-primary">{summary}</p>}
+      {errorMsg && <p className="mt-3 text-sm text-destructive">{errorMsg}</p>}
+    </section>
   );
 }
 

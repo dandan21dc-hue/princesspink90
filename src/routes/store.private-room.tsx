@@ -43,6 +43,7 @@ function PrivateRoomPage() {
   const [duration, setDuration] = useState<Duration>(60);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -102,11 +103,13 @@ function PrivateRoomPage() {
   }
 
   function confirm() {
+    if (pending) return;
     if (!selectedSlot) return;
     if (!user) {
       navigate({ to: "/auth" });
       return;
     }
+    setPending(true);
     const priceId = duration === 30 ? "private_room_30min_aud" : "private_room_60min_aud";
     openCheckout({
       priceId,
@@ -116,6 +119,13 @@ function PrivateRoomPage() {
       returnUrl: `${window.location.origin}/checkout/return?next=%2Fdashboard`,
     });
   }
+
+  useEffect(() => {
+    // Re-enable the confirm button if the user dismisses the embedded
+    // checkout without paying — otherwise it would stay stuck as
+    // "Processing…" until a full reload.
+    if (!isOpen && pending) setPending(false);
+  }, [isOpen, pending]);
 
   return (
     <>
@@ -234,10 +244,10 @@ function PrivateRoomPage() {
                   </div>
                   <button
                     onClick={confirm}
-                    disabled={!selectedSlot}
-                    className="rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={!selectedSlot || pending}
+                    className="min-h-11 rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Book · A${duration === 30 ? "150" : "275"}
+                    {pending ? "Processing…" : `Book · A$${duration === 30 ? "150" : "275"}`}
                   </button>
                 </div>
 

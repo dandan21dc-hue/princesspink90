@@ -84,6 +84,7 @@ export function CartButton() {
 
 function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckoutStart?: () => void }) {
   const { items, subtotalCents, hasPanty, currency, setQty, remove, clear } = useCart();
+  const [checkingOut, setCheckingOut] = useState(false);
   const navigate = useNavigate();
 
   if (items.length === 0) {
@@ -177,7 +178,10 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
         )}
         <button
           type="button"
+          disabled={checkingOut || items.length === 0}
           onClick={() => {
+            if (checkingOut) return;
+            setCheckingOut(true);
             // Correlation id links the pre-checkout analytics event to the
             // Stripe session that the /checkout/cart page will create, so
             // pending/confirmed/incomplete return-page events can be joined
@@ -217,10 +221,10 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
             navigate({ to: "/checkout/cart" });
           }}
           className={cn(
-            "mt-4 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110",
+            "mt-4 min-h-11 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70",
           )}
         >
-          Checkout · {formatMoney(subtotalCents, currency)}
+          {checkingOut ? "Processing…" : `Checkout · ${formatMoney(subtotalCents, currency)}`}
         </button>
         <button
           type="button"

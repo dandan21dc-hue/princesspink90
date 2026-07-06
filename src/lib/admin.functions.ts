@@ -1,5 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  type StripeEnv,
+  createStripeClient,
+  getStripeErrorMessage,
+} from "@/lib/stripe.server";
 
 const env = () => (process.env.NODE_ENV === "production" ? "live" : "sandbox");
 
@@ -188,4 +193,130 @@ export const adminListEventsCompliance = createServerFn({ method: "GET" })
     };
 
     return { rows, summary };
+  });
+
+/**
+ * Admin: manually resync a user's Stripe subscription state into our
+ * `subscriptions` table. Useful when a `customer.subscription.*` webhook
+ * failed to deliver — this fetches the source of truth from Stripe and
+ * upserts the matching row so the app UI catches back up. Term-pass
+ * memberships and one-time purchases are unaffected (those are provisioned
+ * from `checkout.session.completed` at time of purchase).
+ */
+export const refreshUserSubscriptionStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userIdOrEmail: string; environment: StripeEnv }) => {
+    const q = data.userIdOrEmail?.trim();
+    if (!q) throw new Error("Enter a user id or email");
+    return { userIdOrEmail: q, environment: data.environment };
+  })
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const stripe = createStripeClient(data.environment);
+
+    // Resolve to a Supabase user id — accept either the uuid or the email.
+    let userId = data.userIdOrEmail;
+    let email: string | null = null;
+    const isUuid = /^[0-9a-f-]{36}$/i.test(data.userIdOrEmail);
+    if (isUuid) {
+      const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
+      email = u.user?.email ?? null;
+    } else {
+      // Look up by email.
+      const { data: list } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 200,
+      });
+      const match = list.users.find(
+        (u) => u.email?.toLowerCase() === data.userIdOrEmail.toLowerCase(),
+      );
+      if (!match) return { ok: false as const, error: "No user found with that email" };
+      userId = match.id;
+      email = match.email ?? null;
+    }
+
+    // Find the user's Stripe customer. Metadata search first (set by
+    // resolveOrCreateCustomer at checkout), then fall back to email.
+    let customerId: string | null = null;
+    try {
+      if (/^[a-zA-Z0-9_-]+$/.test(userId)) {
+        const found = await stripe.customers.search({
+          query: `metadata['userId']:'${userId}'`,
+          limit: 1,
+        });
+        if (found.data.length) customerId = found.data[0].id;
+      }
+      if (!customerId && email) {
+        const list = await stripe.customers.list({ email, limit: 1 });
+        if (list.data.length) customerId = list.data[0].id;
+      }
+    } catch (error) {
+      return { ok: false as const, error: getStripeErrorMessage(error) };
+    }
+
+    if (!customerId) {
+      return {
+        ok: false as const,
+        error: "No Stripe customer found for this user in " + data.environment,
+      };
+    }
+
+    // Pull ALL subscriptions for the customer (active + canceled) so a
+    // stale local row gets updated too.
+    let subs: any[] = [];
+    try {
+      const list = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "all",
+        limit: 20,
+      });
+      subs = list.data;
+    } catch (error) {
+      return { ok: false as const, error: getStripeErrorMessage(error) };
+    }
+
+    let updated = 0;
+    for (const s of subs) {
+      const item = s.items?.data?.[0];
+      const priceId =
+        (item?.price as any)?.lookup_key ||
+        (item?.price as any)?.metadata?.lovable_external_id ||
+        item?.price?.id;
+      const productId = item?.price?.product as string | undefined;
+      const periodStart =
+        (item as any)?.current_period_start ?? (s as any).current_period_start;
+      const periodEnd =
+        (item as any)?.current_period_end ?? (s as any).current_period_end;
+      const { error } = await supabaseAdmin.from("subscriptions").upsert(
+        {
+          user_id: userId,
+          stripe_subscription_id: s.id,
+          stripe_customer_id: customerId,
+          product_id: productId ?? "",
+          price_id: priceId ?? "",
+          status: s.status,
+          current_period_start: periodStart
+            ? new Date(periodStart * 1000).toISOString()
+            : null,
+          current_period_end: periodEnd
+            ? new Date(periodEnd * 1000).toISOString()
+            : null,
+          cancel_at_period_end: !!(s as any).cancel_at_period_end,
+          environment: data.environment,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "stripe_subscription_id" },
+      );
+      if (!error) updated += 1;
+    }
+
+    return {
+      ok: true as const,
+      userId,
+      email,
+      customerId,
+      subscriptionsFound: subs.length,
+      updated,
+    };
   });
