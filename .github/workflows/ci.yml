@@ -132,13 +132,24 @@ jobs:
           mkdir -p /tmp/security-lint
           cp security/lint-baseline.json /tmp/security-lint/lint-baseline.json 2>/dev/null || true
 
+      - name: Cap artifact file sizes
+        if: always()
+        run: |
+          find /tmp/security-lint -type f -size +2M -print0 2>/dev/null \
+            | while IFS= read -r -d '' f; do
+              echo "::warning::Truncating oversized artifact file: $f"
+              tail -c 2097152 "$f" > "$f.tail" && mv "$f.tail" "$f"
+            done
+
       - name: Upload security lint report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: supabase-security-lint-report
           path: /tmp/security-lint/
-          retention-days: 7
+          retention-days: ${{ job.status == 'success' && 3 || 14 }}
+          compression-level: 9
+          if-no-files-found: warn
 
 
   supabase_migrations:
