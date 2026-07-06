@@ -206,8 +206,10 @@ function priceLabel(prices: Record<string, SubscribePrice>, key: PriceId, fallba
   return formatMoney(p.unit_amount, p.currency);
 }
 
-function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
+function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: PriceId | null }) {
   const { data: prices } = useSuspenseQuery(pricesQuery());
+  const busy = (id: PriceId) => pending === id;
+  const disabled = pending !== null;
 
   return (
     <>
@@ -227,6 +229,8 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           perks={["Full library streaming", "Billed monthly · cancel anytime"]}
           cta="Subscribe"
           onClick={() => onBuy("all_access_monthly_aud")}
+          loading={busy("all_access_monthly_aud")}
+          disabled={disabled}
         />
         <PassCard
           label="3-Month Plan"
@@ -235,6 +239,8 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           perks={["Full library streaming", "Billed monthly for 3 months"]}
           cta="Start 3-month"
           onClick={() => onBuy("all_access_3mo_monthly_aud")}
+          loading={busy("all_access_3mo_monthly_aud")}
+          disabled={disabled}
         />
         <PassCard
           label="6-Month Plan"
@@ -243,6 +249,8 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           perks={["Full library streaming", "Billed monthly for 6 months"]}
           cta="Start 6-month"
           onClick={() => onBuy("all_access_6mo_monthly_aud")}
+          loading={busy("all_access_6mo_monthly_aud")}
+          disabled={disabled}
         />
         <PassCard
           label="12-Month Plan"
@@ -256,8 +264,11 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           ]}
           cta="Start 12-month"
           onClick={() => onBuy("all_access_12mo_monthly_aud")}
+          loading={busy("all_access_12mo_monthly_aud")}
+          disabled={disabled}
         />
       </div>
+
 
       {/* Lifetime */}
       <div className="mt-8 relative overflow-hidden rounded-3xl border-2 border-primary bg-gradient-to-br from-primary/25 via-background to-background p-8 shadow-[var(--shadow-glow-pink)]">
