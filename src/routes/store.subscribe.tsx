@@ -395,6 +395,8 @@ function PassCard({
   onClick,
   onAddToCart,
   highlight,
+  loading = false,
+  disabled = false,
 }: {
   label: string;
   price: string;
@@ -404,6 +406,8 @@ function PassCard({
   onClick: () => void;
   onAddToCart?: () => void;
   highlight?: string;
+  loading?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <div className="relative flex flex-col rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)]">
@@ -424,11 +428,13 @@ function PassCard({
       </ul>
       <button
         onClick={onClick}
-        className="mt-5 w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+        disabled={disabled || loading}
+        className="mt-5 w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {cta}
+        {loading ? "Opening checkout…" : cta}
       </button>
       {onAddToCart && (
+
         <button
           onClick={onAddToCart}
           className="mt-2 w-full rounded-md border border-primary/60 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
