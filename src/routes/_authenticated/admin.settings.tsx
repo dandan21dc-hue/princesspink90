@@ -8,7 +8,7 @@ import {
   getReminderJobConfig,
   updateReminderJobConfig,
 } from "@/lib/reminder-job-config.functions";
-import { syncMissingStripePrices } from "@/lib/stripeMaintenance.functions";
+import { syncMissingStripePrices, convertTermPassesToOneTime } from "@/lib/stripeMaintenance.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
@@ -193,7 +193,75 @@ function StripeCatalogueSyncSection() {
           })}
         </ul>
       )}
+      <ConvertTermPassesSection />
     </section>
+  );
+}
+
+function ConvertTermPassesSection() {
+  const convertFn = useServerFn(convertTermPassesToOneTime);
+  const run = useMutation({
+    mutationFn: () => convertFn({ data: { environment: getStripeEnvironment() } }),
+  });
+  const data = run.data;
+  const summary =
+    data && "results" in data
+      ? `${data.converted} converted · ${data.results.filter((r) => r.status === "already_one_time").length} already one-time · ${data.results.filter((r) => r.status === "error").length} error(s)`
+      : null;
+
+  return (
+    <div className="mt-8 border-t border-border/60 pt-6">
+      <h3 className="font-display text-lg font-semibold">Convert term passes to one-time</h3>
+      <p className="mt-1 text-sm text-muted-foreground">
+        The 3/6/12-month term passes are lump-sum upfront purchases (A$27 / A$48 / A$84).
+        If they still exist as recurring monthly prices in Stripe, this action archives the
+        legacy price and creates a one-time replacement, transferring the same lookup_key.
+        Safe to re-run — already-converted plans are skipped.
+      </p>
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => run.mutate()}
+          disabled={run.isPending}
+          className="rounded-md border border-primary/60 bg-primary/10 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary disabled:opacity-50"
+        >
+          {run.isPending ? "Converting…" : "Convert term passes"}
+        </button>
+        {summary && <span className="text-sm text-muted-foreground">{summary}</span>}
+        {run.error && (
+          <span className="text-sm text-destructive">{(run.error as Error).message}</span>
+        )}
+      </div>
+      {data && "error" in data && (
+        <p className="mt-3 text-sm text-destructive">{data.error}</p>
+      )}
+      {data && "results" in data && data.results.length > 0 && (
+        <ul className="mt-3 space-y-1 text-xs font-mono">
+          {data.results.map((r) => {
+            const tone =
+              r.status === "converted"
+                ? "text-primary"
+                : r.status === "error"
+                ? "text-destructive"
+                : "text-muted-foreground";
+            const detail =
+              r.status === "converted"
+                ? `converted ${r.oldPriceId} → ${r.newPriceId}`
+                : r.status === "already_one_time"
+                ? `already one-time (${r.priceId})`
+                : r.status === "missing"
+                ? "no active price in Stripe — run sync first"
+                : `error — ${r.message}`;
+            return (
+              <li key={r.lookupKey} className={tone}>
+                <span className="mr-2">•</span>
+                {r.lookupKey}: {detail}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }
 
