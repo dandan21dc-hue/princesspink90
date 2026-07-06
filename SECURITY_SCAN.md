@@ -145,6 +145,21 @@ Run these in order. Passing all three means CI's `Supabase / Gate
 (required)` will pass for the same working tree — nothing in the gate
 runs anything you can't run here.
 
+**Shortcut:** to run all three steps end-to-end and get a per-step
+PASS/FAIL summary that names which step failed and which CI job it
+mirrors, use:
+
+```bash
+SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... \
+  bun run security:gate:local
+```
+
+Flags: `-- --skip-migrations` to skip step 3 when you only touched
+policy/allowlist config. On failure the script exits non-zero, prints
+the failing step, the matching CI job, and the log path. The manual
+steps below still document what each step actually does.
+
+
 ### Prerequisites (once)
 
 ```bash
