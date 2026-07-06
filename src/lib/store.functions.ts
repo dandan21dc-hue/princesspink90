@@ -480,6 +480,15 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
         quantity: number;
       }>;
 
+      // Members-only gate: any panty item in the cart requires an active
+      // subscription/membership. Verified against the authenticated user's
+      // RLS-scoped client, never trusting the frontend cart contents.
+      if (pantyItems.length > 0) {
+        await assertPantyAccess(context.supabase, userId, data.environment);
+      }
+
+
+
       // Fetch content items in one query
       let contentRows: Array<{
         id: string;
