@@ -85,6 +85,7 @@ import { Route as ApiPublicCronDunningEscalationRouteImport } from './routes/api
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
+import { Route as AuthenticatedAdminPartnershipsIdRouteImport } from './routes/_authenticated/admin.partnerships.$id'
 import { Route as AuthenticatedEventsIdCheckinPrintRouteImport } from './routes/_authenticated/events.$id.checkin.print'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
@@ -507,6 +508,12 @@ const AuthenticatedEventsIdCheckinRoute =
     path: '/events/$id/checkin',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminPartnershipsIdRoute =
+  AuthenticatedAdminPartnershipsIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AuthenticatedAdminPartnershipsRoute,
+  } as any)
 const AuthenticatedEventsIdCheckinPrintRoute =
   AuthenticatedEventsIdCheckinPrintRouteImport.update({
     id: '/print',
@@ -556,7 +563,7 @@ export interface FileRoutesByFullPath {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
-  '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRoute
+  '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -572,6 +579,7 @@ export interface FileRoutesByFullPath {
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
+  '/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
@@ -633,7 +641,7 @@ export interface FileRoutesByTo {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
-  '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRoute
+  '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -649,6 +657,7 @@ export interface FileRoutesByTo {
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account': typeof AuthenticatedAccountIndexRoute
+  '/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
@@ -713,7 +722,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
-  '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRoute
+  '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -729,6 +738,7 @@ export interface FileRoutesById {
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
+  '/_authenticated/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
@@ -809,6 +819,7 @@ export interface FileRouteTypes {
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/account/'
+    | '/admin/partnerships/$id'
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
@@ -886,6 +897,7 @@ export interface FileRouteTypes {
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/account'
+    | '/admin/partnerships/$id'
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
@@ -965,6 +977,7 @@ export interface FileRouteTypes {
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/_authenticated/account/'
+    | '/_authenticated/admin/partnerships/$id'
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
     | '/_authenticated/events/$id/waivers'
@@ -1559,6 +1572,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEventsIdCheckinRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/partnerships/$id': {
+      id: '/_authenticated/admin/partnerships/$id'
+      path: '/$id'
+      fullPath: '/admin/partnerships/$id'
+      preLoaderRoute: typeof AuthenticatedAdminPartnershipsIdRouteImport
+      parentRoute: typeof AuthenticatedAdminPartnershipsRoute
+    }
     '/_authenticated/events/$id/checkin/print': {
       id: '/_authenticated/events/$id/checkin/print'
       path: '/print'
@@ -1592,6 +1612,21 @@ const AuthenticatedContentRouteChildren: AuthenticatedContentRouteChildren = {
 
 const AuthenticatedContentRouteWithChildren =
   AuthenticatedContentRoute._addFileChildren(AuthenticatedContentRouteChildren)
+
+interface AuthenticatedAdminPartnershipsRouteChildren {
+  AuthenticatedAdminPartnershipsIdRoute: typeof AuthenticatedAdminPartnershipsIdRoute
+}
+
+const AuthenticatedAdminPartnershipsRouteChildren: AuthenticatedAdminPartnershipsRouteChildren =
+  {
+    AuthenticatedAdminPartnershipsIdRoute:
+      AuthenticatedAdminPartnershipsIdRoute,
+  }
+
+const AuthenticatedAdminPartnershipsRouteWithChildren =
+  AuthenticatedAdminPartnershipsRoute._addFileChildren(
+    AuthenticatedAdminPartnershipsRouteChildren,
+  )
 
 interface AuthenticatedEventsIdCheckinRouteChildren {
   AuthenticatedEventsIdCheckinPrintRoute: typeof AuthenticatedEventsIdCheckinPrintRoute
@@ -1629,7 +1664,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
-  AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRoute
+  AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRouteWithChildren
   AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -1672,7 +1707,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminHealthRemindersRoute:
     AuthenticatedAdminHealthRemindersRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
-  AuthenticatedAdminPartnershipsRoute: AuthenticatedAdminPartnershipsRoute,
+  AuthenticatedAdminPartnershipsRoute:
+    AuthenticatedAdminPartnershipsRouteWithChildren,
   AuthenticatedAdminPerksRoute: AuthenticatedAdminPerksRoute,
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
