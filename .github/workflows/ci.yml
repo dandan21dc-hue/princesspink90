@@ -71,7 +71,7 @@ jobs:
 
 
   supabase_migrations:
-    name: Supabase Migrations (fresh DB)
+    name: Supabase / Migrations
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
