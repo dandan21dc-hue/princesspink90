@@ -237,10 +237,10 @@ function Hero() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
-              href="#events"
+              href="#partnerships"
               className="rounded-md bg-primary px-6 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
             >
-              See the marquee
+              Submit an inquiry
             </a>
             <a
               href="#host"
@@ -249,6 +249,7 @@ function Hero() {
               Meet the host
             </a>
           </div>
+
         </div>
       </div>
       <div id="events" />
