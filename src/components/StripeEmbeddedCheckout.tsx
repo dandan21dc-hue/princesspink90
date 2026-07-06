@@ -78,6 +78,7 @@ export function StripeEmbeddedCheckout(props: Props) {
   // Re-rendering hands EmbeddedCheckoutProvider a new `options.fetchClientSecret`,
   // which Stripe rejects ("You cannot change fetchClientSecret after setting it"),
   // and the checkout form never mounts.
+  const [countryReady, setCountryReady] = useState(false);
   const countryRef = useRef<string | undefined>(undefined);
   useEffect(() => {
     logLifecycle("mount_started");
@@ -97,6 +98,9 @@ export function StripeEmbeddedCheckout(props: Props) {
           message: (e as Error)?.message?.slice(0, 200),
           duration_ms: Date.now() - started,
         });
+      })
+      .finally(() => {
+        setCountryReady(true);
       });
     return () => {
       logLifecycle("unmounted");
@@ -115,7 +119,9 @@ export function StripeEmbeddedCheckout(props: Props) {
   const [error, setError] = useState<string | null>(null);
   // Bumping this key remounts the provider with a fresh fetcher so retry works.
   const [attempt, setAttempt] = useState(0);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
 
   const fetchClientSecret = useCallback(async (): Promise<string> => {
     const p = propsRef.current;
