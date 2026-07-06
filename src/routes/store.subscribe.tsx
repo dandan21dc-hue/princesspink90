@@ -12,9 +12,9 @@ import { track } from "@/lib/track";
 
 type PriceId =
   | "all_access_monthly_aud"
-  | "all_access_3mo_onetime_aud"
-  | "all_access_6mo_onetime_aud"
-  | "all_access_12mo_onetime_aud"
+  | "all_access_3mo_monthly_aud"
+  | "all_access_6mo_monthly_aud"
+  | "all_access_12mo_monthly_aud"
   | "lifetime_onetime_aud"
   | "panty_24hr_aud"
   | "panty_48hr_aud"
@@ -52,9 +52,9 @@ function pricesQuery() {
 
 const PRESELECTABLE_PLANS: readonly PriceId[] = [
   "all_access_monthly_aud",
-  "all_access_3mo_onetime_aud",
-  "all_access_6mo_onetime_aud",
-  "all_access_12mo_onetime_aud",
+  "all_access_3mo_monthly_aud",
+  "all_access_6mo_monthly_aud",
+  "all_access_12mo_monthly_aud",
   "lifetime_onetime_aud",
 ];
 
@@ -194,33 +194,33 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           onClick={() => onBuy("all_access_monthly_aud")}
         />
         <PassCard
-          label="3-Month Pass"
-          price={priceLabel(prices, "all_access_3mo_onetime_aud", "A$27")}
-          cadence="one-time"
-          perks={["Full library for 3 months", "No auto-renew"]}
-          cta="Buy 3-month"
-          onClick={() => onBuy("all_access_3mo_onetime_aud")}
+          label="3-Month Plan"
+          price={priceLabel(prices, "all_access_3mo_monthly_aud", "A$9")}
+          cadence="/month · 3mo"
+          perks={["Full library streaming", "Auto-renews monthly"]}
+          cta="Start 3-month"
+          onClick={() => onBuy("all_access_3mo_monthly_aud")}
         />
         <PassCard
-          label="6-Month Pass"
-          price={priceLabel(prices, "all_access_6mo_onetime_aud", "A$48")}
-          cadence="one-time"
-          perks={["Full library for 6 months", "No auto-renew"]}
-          cta="Buy 6-month"
-          onClick={() => onBuy("all_access_6mo_onetime_aud")}
+          label="6-Month Plan"
+          price={priceLabel(prices, "all_access_6mo_monthly_aud", "A$8")}
+          cadence="/month · 6mo"
+          perks={["Full library streaming", "Auto-renews monthly"]}
+          cta="Start 6-month"
+          onClick={() => onBuy("all_access_6mo_monthly_aud")}
         />
         <PassCard
-          label="12-Month Pass"
-          price={priceLabel(prices, "all_access_12mo_onetime_aud", "A$84")}
-          cadence="one-time"
+          label="12-Month Plan"
+          price={priceLabel(prices, "all_access_12mo_monthly_aud", "A$7")}
+          cadence="/month · 12mo"
           highlight="Includes free entry"
           perks={[
-            "Full library for 12 months",
+            "Full library streaming",
             "1 free event entry during the term",
-            "No auto-renew",
+            "Auto-renews monthly",
           ]}
-          cta="Buy 12-month"
-          onClick={() => onBuy("all_access_12mo_onetime_aud")}
+          cta="Start 12-month"
+          onClick={() => onBuy("all_access_12mo_monthly_aud")}
         />
       </div>
 

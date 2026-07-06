@@ -4,10 +4,18 @@ import { getStripeEnvironment } from "@/lib/stripe";
 
 export type PlanId =
   | "all_access_monthly_aud"
-  | "all_access_3mo_onetime_aud"
-  | "all_access_6mo_onetime_aud"
-  | "all_access_12mo_onetime_aud"
+  | "all_access_3mo_monthly_aud"
+  | "all_access_6mo_monthly_aud"
+  | "all_access_12mo_monthly_aud"
   | "lifetime_onetime_aud";
+
+/** Subscription price_ids treated as monthly-recurring All-Access tiers. */
+const SUBSCRIPTION_TIER_PRICE_IDS: readonly PlanId[] = [
+  "all_access_monthly_aud",
+  "all_access_3mo_monthly_aud",
+  "all_access_6mo_monthly_aud",
+  "all_access_12mo_monthly_aud",
+];
 
 export interface MyTiersState {
   loading: boolean;
@@ -19,9 +27,9 @@ export interface MyTiersState {
 
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
   all_access_monthly_aud: false,
-  all_access_3mo_onetime_aud: false,
-  all_access_6mo_onetime_aud: false,
-  all_access_12mo_onetime_aud: false,
+  all_access_3mo_monthly_aud: false,
+  all_access_6mo_monthly_aud: false,
+  all_access_12mo_monthly_aud: false,
   lifetime_onetime_aud: false,
 };
 
@@ -46,9 +54,10 @@ export function useMyTiers(): MyTiersState {
       const [subsRes, memRes] = await Promise.all([
         supabase
           .from("subscriptions")
-          .select("status,current_period_end")
+          .select("status,current_period_end,price_id")
           .eq("user_id", userId)
           .eq("environment", env)
+          .in("price_id", SUBSCRIPTION_TIER_PRICE_IDS as unknown as string[])
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
@@ -62,39 +71,40 @@ export function useMyTiers(): MyTiersState {
       const now = Date.now();
       const sub = subsRes.data;
       const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end).getTime() : null;
-      const monthlyActive =
+      const subActive =
         !!sub &&
         (
           (["active", "trialing", "past_due"].includes(sub.status) && (!periodEnd || periodEnd > now)) ||
           (sub.status === "canceled" && !!periodEnd && periodEnd > now)
         );
+      const activePlan = subActive
+        ? (SUBSCRIPTION_TIER_PRICE_IDS.includes(sub!.price_id as PlanId)
+            ? (sub!.price_id as PlanId)
+            : null)
+        : null;
 
       const mems = memRes.data ?? [];
-      const activeTerm = (m: number) =>
-        mems.find(
-          (r: any) =>
-            r.kind === `term_pass_${m}` && r.expires_at && new Date(r.expires_at).getTime() > now,
-        );
-      const t3 = activeTerm(3);
-      const t6 = activeTerm(6);
-      const t12 = activeTerm(12);
       const lifetime = mems.find((r: any) => r.kind === "lifetime");
 
       setState({
         loading: false,
         signedIn: true,
         active: {
-          all_access_monthly_aud: monthlyActive,
-          all_access_3mo_onetime_aud: !!t3,
-          all_access_6mo_onetime_aud: !!t6,
-          all_access_12mo_onetime_aud: !!t12,
+          all_access_monthly_aud: activePlan === "all_access_monthly_aud",
+          all_access_3mo_monthly_aud: activePlan === "all_access_3mo_monthly_aud",
+          all_access_6mo_monthly_aud: activePlan === "all_access_6mo_monthly_aud",
+          all_access_12mo_monthly_aud: activePlan === "all_access_12mo_monthly_aud",
           lifetime_onetime_aud: !!lifetime,
         },
         expires: {
-          all_access_monthly_aud: sub?.current_period_end ?? null,
-          all_access_3mo_onetime_aud: t3?.expires_at ?? null,
-          all_access_6mo_onetime_aud: t6?.expires_at ?? null,
-          all_access_12mo_onetime_aud: t12?.expires_at ?? null,
+          all_access_monthly_aud:
+            activePlan === "all_access_monthly_aud" ? sub?.current_period_end ?? null : null,
+          all_access_3mo_monthly_aud:
+            activePlan === "all_access_3mo_monthly_aud" ? sub?.current_period_end ?? null : null,
+          all_access_6mo_monthly_aud:
+            activePlan === "all_access_6mo_monthly_aud" ? sub?.current_period_end ?? null : null,
+          all_access_12mo_monthly_aud:
+            activePlan === "all_access_12mo_monthly_aud" ? sub?.current_period_end ?? null : null,
         },
       });
     }

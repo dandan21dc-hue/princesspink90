@@ -23,9 +23,9 @@ type PlanExpectation = { label: string; priceId: string; fallback: string }
 // Source of truth for label → priceId. Update this table when plans change.
 const EXPECTED_PLANS: PlanExpectation[] = [
   { label: 'Monthly',        priceId: 'all_access_monthly_aud',       fallback: 'A$10' },
-  { label: '3-Month Pass',   priceId: 'all_access_3mo_onetime_aud',   fallback: 'A$27' },
-  { label: '6-Month Pass',   priceId: 'all_access_6mo_onetime_aud',   fallback: 'A$48' },
-  { label: '12-Month Pass',  priceId: 'all_access_12mo_onetime_aud',  fallback: 'A$84' },
+  { label: '3-Month Plan',   priceId: 'all_access_3mo_monthly_aud',   fallback: 'A$9'  },
+  { label: '6-Month Plan',   priceId: 'all_access_6mo_monthly_aud',   fallback: 'A$8'  },
+  { label: '12-Month Plan',  priceId: 'all_access_12mo_monthly_aud',  fallback: 'A$7'  },
   { label: '24 Hours Worn',  priceId: 'panty_24hr_aud',               fallback: 'A$60' },
   { label: '48 Hours Worn',  priceId: 'panty_48hr_aud',               fallback: 'A$90' },
   { label: '72 Hours Worn',  priceId: 'panty_72hr_aud',               fallback: 'A$120' },
