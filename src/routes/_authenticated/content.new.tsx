@@ -27,6 +27,8 @@ function NewContentPage() {
   const [priceDollars, setPriceDollars] = useState("");
   const [subscribersOnly, setSubscribersOnly] = useState(false);
   const [media, setMedia] = useState<MediaRow[]>([]);
+  const [uploadErrors, setUploadErrors] = useState<UploadError[]>([]);
+  const [coverError, setCoverError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
