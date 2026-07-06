@@ -608,6 +608,7 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
           ...(cartPantyMeta && { cart_panty_items: cartPantyMeta }),
           managed_payments: useManagedPayments ? "true" : "false",
           ...(customerCountry && { customer_country: customerCountry }),
+          ...(data.clientOrderRef && { client_order_ref: data.clientOrderRef }),
         },
       };
 
