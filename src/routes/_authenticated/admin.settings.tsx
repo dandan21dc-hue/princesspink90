@@ -8,6 +8,8 @@ import {
   getReminderJobConfig,
   updateReminderJobConfig,
 } from "@/lib/reminder-job-config.functions";
+import { syncMissingStripePrices } from "@/lib/stripeMaintenance.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Site settings · Admin" }] }),
