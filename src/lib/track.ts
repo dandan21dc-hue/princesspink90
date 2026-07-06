@@ -24,6 +24,15 @@ const PERSISTED_EVENTS = new Set([
   "boutique_tier_click",
   "all_access_tier_click",
   "checkout_completed",
+  // Panty checkout funnel — persisted so the admin reconciliation page
+  // can rebuild the start → confirmed/pending/cancelled trail per
+  // client_order_ref.
+  "panty_checkout_start",
+  "panty_checkout_started",
+  "panty_checkout_confirmed",
+  "panty_checkout_pending",
+  "panty_checkout_cancelled",
+  "stripe_checkout_return_failed",
 ]);
 
 export function track(event: string, props: TrackProps = {}): void {
