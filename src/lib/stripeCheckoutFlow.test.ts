@@ -162,26 +162,27 @@ vi.mock('@supabase/supabase-js', () => ({
 
 // getMyLibrary uses the auth-middleware context (context.supabase, userId).
 // Force that same mocked supabase into the handler's context.
+// Fake the auth middleware with a real createMiddleware so
+// flattenMiddlewares walks it cleanly. Injects the test USER_ID into
+// context so store.functions.ts's `data.userId = context.userId` line
+// resolves to the expected user without needing a real session token.
+const TEST_USER_ID_FOR_AUTH = 'user_test_abc123'
 vi.mock('@/integrations/supabase/auth-middleware', async () => {
   const { createMiddleware } = await import('@tanstack/react-start')
   return {
-    // Real createMiddleware so createServerFn's flattenMiddlewares walks
-    // a proper `.options.middleware` chain. The stub reads userId from
-    // the incoming data payload — mirroring what the real Supabase auth
-    // middleware would do after decoding the session token.
     requireSupabaseAuth: createMiddleware({ type: 'function' }).server(
-      async ({ next, data }: { next: any; data: any }) => {
-        return next({
+      async ({ next }: { next: any }) =>
+        next({
           context: {
             supabase: makeSupabase(),
-            userId: data?.userId,
-            claims: { sub: data?.userId },
+            userId: TEST_USER_ID_FOR_AUTH,
+            claims: { sub: TEST_USER_ID_FOR_AUTH },
           },
-        })
-      },
+        }),
     ),
   }
 })
+
 
 
 
