@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { listStoreItems } from "@/lib/store.functions";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { track } from "@/lib/track";
+import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
+import { cn } from "@/lib/utils";
 
 const storeQuery = queryOptions({
   queryKey: ["store-items"],
