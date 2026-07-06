@@ -98,8 +98,71 @@ jobs:
       # asserts the check-in / waiver / entry code / ticket code fields
       # cannot be forged by attendees. A failing assertion inside a test
       # raises, `pg_prove`/`supabase db test` exits non-zero, CI fails.
+      #
+      # We tee both stdout and stderr (NOTICE lines land on stderr in
+      # psql, which is where the PASS/FAIL messages surface) into a log
+      # file so the "diagnose failure" step below can dump the full
+      # transcript, and also re-run the SQL directly against the local
+      # DB with -a -e for verbose output on the failing assertion.
       - name: Run database RLS + trigger tests
-        run: supabase db test
+        id: db_test
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/db-test
+          supabase db test 2>&1 | tee /tmp/db-test/db-test.log
+
+      # Failure diagnostics ---------------------------------------------
+      # Runs only when db_test failed. Prints (in order):
+      #   1. Full tee'd transcript from `supabase db test`
+      #   2. Verbose re-run of each *.test.sql via psql so the exact
+      #      failing statement + SQLSTATE + line number is visible
+      #   3. Postgres server log (contains RAISE EXCEPTION context)
+      #   4. Dump of relevant policy + trigger definitions so we can
+      #      tell whether the trigger/policy under test drifted
+      - name: Diagnose failing db test
+        if: failure() && steps.db_test.outcome == 'failure'
+        run: |
+          echo "===== supabase db test transcript ====="
+          cat /tmp/db-test/db-test.log || echo "(no transcript captured)"
+
+          echo ""
+          echo "===== Verbose re-run of each supabase/tests/*.test.sql ====="
+          DB_URL="$(supabase status -o env 2>/dev/null | awk -F= '/^DB_URL=/{gsub(/"/,"",$2); print $2}')"
+          if [ -z "$DB_URL" ]; then
+            echo "(could not resolve local DB_URL from \`supabase status\`)"
+          else
+            for f in supabase/tests/*.test.sql; do
+              [ -e "$f" ] || continue
+              echo ""
+              echo "--- $f ---"
+              # -a echoes every statement, -e echoes queries as sent,
+              # -v ON_ERROR_STOP=1 exits at the first failing assertion
+              # with the exact line + SQLSTATE.
+              psql "$DB_URL" -v ON_ERROR_STOP=1 -a -e -f "$f" 2>&1 || true
+            done
+          fi
+
+          echo ""
+          echo "===== Postgres server log (last 400 lines) ====="
+          supabase logs db --tail 400 2>&1 || \
+            supabase logs --experimental 2>&1 || \
+            echo "(no supabase logs available)"
+
+          echo ""
+          echo "===== rsvps policies & trigger definition ====="
+          if [ -n "$DB_URL" ]; then
+            psql "$DB_URL" -c "SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename='rsvps' ORDER BY cmd, policyname;" || true
+            psql "$DB_URL" -c "SELECT tgname, pg_get_triggerdef(oid) FROM pg_trigger WHERE tgrelid='public.rsvps'::regclass AND NOT tgisinternal;" || true
+            psql "$DB_URL" -c "SELECT pg_get_functiondef('public.rsvps_block_user_field_tamper'::regproc);" || true
+          fi
+
+      - name: Upload db test artifacts
+        if: failure() && steps.db_test.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-db-test-logs
+          path: /tmp/db-test/
+          retention-days: 7
 
       # Regenerate the client TS types from the freshly migrated schema
       # and diff against the committed src/integrations/supabase/types.ts.
@@ -144,6 +207,7 @@ jobs:
       - name: Tear down
         if: always()
         run: supabase stop --no-backup || true
+
 
 
 
