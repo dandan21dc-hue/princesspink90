@@ -33,6 +33,32 @@ jobs:
       - name: Run tests
         run: bun run test
 
+  supabase_security_lint:
+    name: Supabase Security Linter
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Hits the same database-lint endpoint that powers the in-editor
+      # security panel and fails CI on any WARN/ERROR finding, so
+      # regressions (RLS off, over-permissive policies, exposed
+      # sensitive columns, unsafe SECURITY DEFINER functions, etc.)
+      # block the merge instead of shipping.
+      - name: Run Supabase security linter
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_LINT_ALLOWLIST: ${{ vars.SUPABASE_LINT_ALLOWLIST }}
+        run: bun run lint:supabase
+
+
   checkout_verification:
     name: Checkout Verification (AUD + USD)
     runs-on: ubuntu-latest
