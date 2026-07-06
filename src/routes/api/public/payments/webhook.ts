@@ -147,6 +147,159 @@ async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
 }
 
 /**
+ * Multi-item cart fulfillment. Parses the packed metadata written by
+ * `createCartCheckoutSession` and inserts one row per line item:
+ *   - `cart_content_items = "uuid:qty,uuid:qty,..."`
+ *   - `cart_panty_items   = "panty_24hr_aud:qty,panty_48hr_aud:qty,..."`
+ * Amounts for content purchases come from Stripe's line-items API so the
+ * ledger stays accurate even with taxes / discounts.
+ */
+async function handleCartSession(session: any, env: StripeEnv) {
+  const userId = session.metadata?.userId;
+  if (!userId) return;
+
+  const parseMeta = (raw: string | undefined): Array<{ id: string; qty: number }> => {
+    if (!raw) return [];
+    return raw
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const [id, qtyRaw] = part.split(":");
+        const qty = Math.max(1, Number(qtyRaw) || 1);
+        return { id, qty };
+      })
+      .filter((x) => x.id);
+  };
+
+  const contentEntries = parseMeta(session.metadata?.cart_content_items);
+  const pantyEntries = parseMeta(session.metadata?.cart_panty_items);
+
+  // Pull line items so we can attribute paid amounts back to each row.
+  let lineItems: any[] = [];
+  try {
+    const stripe = createStripeClient(env);
+    const list = await stripe.checkout.sessions.listLineItems(session.id, {
+      limit: 100,
+      expand: ["data.price"],
+    });
+    lineItems = list.data ?? [];
+  } catch (e) {
+    console.error("cart fulfillment: listLineItems failed", e);
+  }
+
+  // Match content items by product name (price_data.product_data.name = title)
+  const remainingLines = [...lineItems];
+  const takeLineByPredicate = (pred: (li: any) => boolean) => {
+    const idx = remainingLines.findIndex(pred);
+    if (idx < 0) return null;
+    const [li] = remainingLines.splice(idx, 1);
+    return li;
+  };
+
+  // Content purchases
+  for (const entry of contentEntries) {
+    const { data: item } = await getSupabase()
+      .from("content_items")
+      .select("id, title, creator_id")
+      .eq("id", entry.id)
+      .maybeSingle();
+    if (!item) continue;
+
+    const li = takeLineByPredicate(
+      (l) => (l.description ?? l.price?.product_data?.name) === item.title,
+    );
+    const amountCents = li?.amount_total ?? 0;
+
+    await getSupabase()
+      .from("content_purchases")
+      .upsert(
+        {
+          user_id: userId,
+          content_item_id: item.id,
+          stripe_session_id: session.id,
+          amount_cents: amountCents,
+          environment: env,
+        },
+        { onConflict: "user_id,content_item_id,environment" },
+      );
+
+    if (item.creator_id) {
+      const amountLabel = (amountCents / 100).toFixed(2);
+      await getSupabase().from("notifications").insert({
+        user_id: item.creator_id,
+        kind: "sale",
+        title: `New sale — $${amountLabel}`,
+        body: `Someone unlocked "${item.title ?? "your content"}" (via cart).`,
+        link_url: "/dashboard",
+        metadata: {
+          content_item_id: item.id,
+          session_id: session.id,
+          env,
+          via: "cart",
+        } as any,
+      });
+    }
+  }
+
+  // Panty orders — one row per (variant, session). Qty > 1 becomes qty on the row.
+  const ship =
+    session.collected_information?.shipping_details ??
+    session.shipping_details ??
+    null;
+  const addr = ship?.address ?? null;
+
+  for (const entry of pantyEntries) {
+    const match = /^panty_(24|48|72)hr_aud$/.exec(entry.id);
+    if (!match) continue;
+    const hours = Number(match[1]);
+    const li = takeLineByPredicate((l) => l.price?.lookup_key === entry.id);
+    const amountCents = li?.amount_total ?? 0;
+
+    await (getSupabase() as any)
+      .from("panty_orders")
+      .upsert(
+        {
+          user_id: userId,
+          variant: entry.id,
+          hours,
+          quantity: entry.qty,
+          stripe_session_id: session.id,
+          amount_cents: amountCents,
+          currency: (session.currency ?? "aud").toLowerCase(),
+          environment: env,
+          status: "paid",
+          customer_email: session.customer_details?.email ?? null,
+          shipping_name: ship?.name ?? session.customer_details?.name ?? null,
+          shipping_line1: addr?.line1 ?? null,
+          shipping_line2: addr?.line2 ?? null,
+          shipping_city: addr?.city ?? null,
+          shipping_state: addr?.state ?? null,
+          shipping_postal_code: addr?.postal_code ?? null,
+          shipping_country: addr?.country ?? null,
+        },
+        { onConflict: "stripe_session_id,variant" },
+      );
+
+    const amountLabel = (amountCents / 100).toFixed(2);
+    await notifyAllCreators({
+      kind: "panty_order",
+      title: `New ${hours}h panty order — $${amountLabel} 🩲`,
+      body: `Cart order, quantity ${entry.qty}. Ship discreetly to the address on file.`,
+      link_url: "/dashboard",
+      metadata: {
+        session_id: session.id,
+        env,
+        hours,
+        variant: entry.id,
+        quantity: entry.qty,
+        via: "cart",
+      } as any,
+    });
+  }
+}
+
+
  * Grant entitlements only after Stripe confirms funds have settled.
  *
  * `checkout.session.completed` fires as soon as the customer finishes the
