@@ -8,7 +8,11 @@
 
 import { logAnalyticsEvent } from "@/lib/analytics.functions";
 
-type TrackProps = Record<string, string | number | boolean | undefined>;
+// Accept `null` alongside `undefined` so call sites can pass optional values
+// (e.g. `currentPlan ?? null`) without a type error; both are stripped from
+// the emitted payload so downstream consumers only see defined scalars.
+export type TrackProps = Record<string, string | number | boolean | null | undefined>;
+type EmittedProps = Record<string, string | number | boolean>;
 
 declare global {
   interface Window {
