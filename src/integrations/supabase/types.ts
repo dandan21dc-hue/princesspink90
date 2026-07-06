@@ -1093,6 +1093,80 @@ export type Database = {
         }
         Relationships: []
       }
+      partnership_inquiries: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          inquiry_type: string | null
+          message: string
+          name: string
+          notes: string | null
+          organization: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          inquiry_type?: string | null
+          message: string
+          name: string
+          notes?: string | null
+          organization?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          inquiry_type?: string | null
+          message?: string
+          name?: string
+          notes?: string | null
+          organization?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      partnership_replies: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          inquiry_id: string
+          sent_by: string | null
+          subject: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          inquiry_id: string
+          sent_by?: string | null
+          subject: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          inquiry_id?: string
+          sent_by?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partnership_replies_inquiry_id_fkey"
+            columns: ["inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "partnership_inquiries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_room_bookings: {
         Row: {
           amount_cents: number | null

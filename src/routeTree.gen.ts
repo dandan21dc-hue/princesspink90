@@ -9,10 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PartnershipsRouteImport } from './routes/partnerships'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
@@ -24,6 +26,7 @@ import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
 import { Route as StorePrivateRoomRouteImport } from './routes/store.private-room'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
+import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as CheckoutCartRouteImport } from './routes/checkout.cart'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
@@ -35,6 +38,8 @@ import { Route as AuthenticatedContentRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCohostApplyRouteImport } from './routes/_authenticated/cohost-apply'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
+import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
+import { Route as ApiPublicPartnershipRouteImport } from './routes/api/public/partnership'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
 import { Route as AuthenticatedAdminWebhookEventsRouteImport } from './routes/_authenticated/admin.webhook-events'
@@ -46,6 +51,7 @@ import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminPerksRouteImport } from './routes/_authenticated/admin.perks'
+import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_authenticated/admin.partnerships'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
@@ -60,6 +66,8 @@ import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminCheckoutReconciliationRouteImport } from './routes/_authenticated/admin.checkout-reconciliation'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
+import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -78,6 +86,11 @@ import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authent
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
 import { Route as AuthenticatedEventsIdCheckinPrintRouteImport } from './routes/_authenticated/events.$id.checkin.print'
 
+const UnsubscribeRoute = UnsubscribeRouteImport.update({
+  id: '/unsubscribe',
+  path: '/unsubscribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -96,6 +109,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartnershipsRoute = PartnershipsRouteImport.update({
+  id: '/partnerships',
+  path: '/partnerships',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegalRoute = LegalRouteImport.update({
@@ -150,6 +168,11 @@ const StoreIdRoute = StoreIdRouteImport.update({
 const EventsIdRoute = EventsIdRouteImport.update({
   id: '/events/$id',
   path: '/events/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmailUnsubscribeRoute = EmailUnsubscribeRouteImport.update({
+  id: '/email/unsubscribe',
+  path: '/email/unsubscribe',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
@@ -209,6 +232,16 @@ const AuthenticatedAccountIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedAccountRoute,
   } as any)
+const LovableEmailSuppressionRoute = LovableEmailSuppressionRouteImport.update({
+  id: '/lovable/email/suppression',
+  path: '/lovable/email/suppression',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicPartnershipRoute = ApiPublicPartnershipRouteImport.update({
+  id: '/api/public/partnership',
+  path: '/api/public/partnership',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedEventsNewRoute = AuthenticatedEventsNewRouteImport.update({
   id: '/events/new',
   path: '/events/new',
@@ -272,6 +305,12 @@ const AuthenticatedAdminPerksRoute = AuthenticatedAdminPerksRouteImport.update({
   path: '/admin/perks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminPartnershipsRoute =
+  AuthenticatedAdminPartnershipsRouteImport.update({
+    id: '/admin/partnerships',
+    path: '/admin/partnerships',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminLifetimeRoute =
   AuthenticatedAdminLifetimeRouteImport.update({
     id: '/admin/lifetime',
@@ -355,6 +394,18 @@ const AuthenticatedAccountBillingRoute =
     id: '/billing',
     path: '/billing',
     getParentRoute: () => AuthenticatedAccountRoute,
+  } as any)
+const LovableEmailTransactionalSendRoute =
+  LovableEmailTransactionalSendRouteImport.update({
+    id: '/lovable/email/transactional/send',
+    path: '/lovable/email/transactional/send',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
   } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
@@ -464,10 +515,12 @@ export interface FileRoutesByFullPath {
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/account': typeof AuthenticatedAccountRouteWithChildren
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
@@ -478,6 +531,7 @@ export interface FileRoutesByFullPath {
   '/api/chat': typeof ApiChatRoute
   '/checkout/cart': typeof CheckoutCartRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
@@ -496,6 +550,7 @@ export interface FileRoutesByFullPath {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRoute
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -507,6 +562,8 @@ export interface FileRoutesByFullPath {
   '/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/public/partnership': typeof ApiPublicPartnershipRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -524,6 +581,8 @@ export interface FileRoutesByFullPath {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRoutesByTo {
@@ -533,10 +592,12 @@ export interface FileRoutesByTo {
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -546,6 +607,7 @@ export interface FileRoutesByTo {
   '/api/chat': typeof ApiChatRoute
   '/checkout/cart': typeof CheckoutCartRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
@@ -564,6 +626,7 @@ export interface FileRoutesByTo {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRoute
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -575,6 +638,8 @@ export interface FileRoutesByTo {
   '/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/public/partnership': typeof ApiPublicPartnershipRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account': typeof AuthenticatedAccountIndexRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -592,6 +657,8 @@ export interface FileRoutesByTo {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRoutesById {
@@ -603,10 +670,12 @@ export interface FileRoutesById {
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
+  '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/_authenticated/content': typeof AuthenticatedContentRouteWithChildren
@@ -617,6 +686,7 @@ export interface FileRoutesById {
   '/api/chat': typeof ApiChatRoute
   '/checkout/cart': typeof CheckoutCartRoute
   '/checkout/return': typeof CheckoutReturnRoute
+  '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
@@ -635,6 +705,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRoute
   '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -646,6 +717,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/public/partnership': typeof ApiPublicPartnershipRoute
+  '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -663,6 +736,8 @@ export interface FileRoutesById {
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
+  '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
 }
 export interface FileRouteTypes {
@@ -674,10 +749,12 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/partnerships'
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
+    | '/unsubscribe'
     | '/account'
     | '/cohost-apply'
     | '/content'
@@ -688,6 +765,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/checkout/cart'
     | '/checkout/return'
+    | '/email/unsubscribe'
     | '/events/$id'
     | '/store/$id'
     | '/store/private-room'
@@ -706,6 +784,7 @@ export interface FileRouteTypes {
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
+    | '/admin/partnerships'
     | '/admin/perks'
     | '/admin/safety-incidents'
     | '/admin/settings'
@@ -717,6 +796,8 @@ export interface FileRouteTypes {
     | '/admin/webhook-events'
     | '/content/new'
     | '/events/new'
+    | '/api/public/partnership'
+    | '/lovable/email/suppression'
     | '/account/'
     | '/events/$id/checkin'
     | '/events/$id/edit'
@@ -734,6 +815,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/events/$id/checkin/print'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -743,10 +826,12 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/partnerships'
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
+    | '/unsubscribe'
     | '/cohost-apply'
     | '/content'
     | '/dashboard'
@@ -756,6 +841,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/checkout/cart'
     | '/checkout/return'
+    | '/email/unsubscribe'
     | '/events/$id'
     | '/store/$id'
     | '/store/private-room'
@@ -774,6 +860,7 @@ export interface FileRouteTypes {
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
+    | '/admin/partnerships'
     | '/admin/perks'
     | '/admin/safety-incidents'
     | '/admin/settings'
@@ -785,6 +872,8 @@ export interface FileRouteTypes {
     | '/admin/webhook-events'
     | '/content/new'
     | '/events/new'
+    | '/api/public/partnership'
+    | '/lovable/email/suppression'
     | '/account'
     | '/events/$id/checkin'
     | '/events/$id/edit'
@@ -802,6 +891,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/events/$id/checkin/print'
   id:
     | '__root__'
@@ -812,10 +903,12 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/partnerships'
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
+    | '/unsubscribe'
     | '/_authenticated/account'
     | '/_authenticated/cohost-apply'
     | '/_authenticated/content'
@@ -826,6 +919,7 @@ export interface FileRouteTypes {
     | '/api/chat'
     | '/checkout/cart'
     | '/checkout/return'
+    | '/email/unsubscribe'
     | '/events/$id'
     | '/store/$id'
     | '/store/private-room'
@@ -844,6 +938,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/health-purge'
     | '/_authenticated/admin/health-reminders'
     | '/_authenticated/admin/lifetime'
+    | '/_authenticated/admin/partnerships'
     | '/_authenticated/admin/perks'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/settings'
@@ -855,6 +950,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/webhook-events'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
+    | '/api/public/partnership'
+    | '/lovable/email/suppression'
     | '/_authenticated/account/'
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
@@ -872,6 +969,8 @@ export interface FileRouteTypes {
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
+    | '/lovable/email/transactional/preview'
+    | '/lovable/email/transactional/send'
     | '/_authenticated/events/$id/checkin/print'
   fileRoutesById: FileRoutesById
 }
@@ -883,14 +982,19 @@ export interface RootRouteChildren {
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
   LegalRoute: typeof LegalRoute
+  PartnershipsRoute: typeof PartnershipsRoute
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
   TermsRoute: typeof TermsRoute
+  UnsubscribeRoute: typeof UnsubscribeRoute
   ApiChatRoute: typeof ApiChatRoute
   CheckoutCartRoute: typeof CheckoutCartRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
+  EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventsIdRoute: typeof EventsIdRoute
+  ApiPublicPartnershipRoute: typeof ApiPublicPartnershipRoute
+  LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicCronDunningEscalationRoute: typeof ApiPublicCronDunningEscalationRoute
   ApiPublicCronPurgeDeletedAccountsRoute: typeof ApiPublicCronPurgeDeletedAccountsRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
@@ -904,10 +1008,19 @@ export interface RootRouteChildren {
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
+  LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/unsubscribe': {
+      id: '/unsubscribe'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe'
+      preLoaderRoute: typeof UnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -934,6 +1047,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partnerships': {
+      id: '/partnerships'
+      path: '/partnerships'
+      fullPath: '/partnerships'
+      preLoaderRoute: typeof PartnershipsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legal': {
@@ -1013,6 +1133,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/email/unsubscribe': {
+      id: '/email/unsubscribe'
+      path: '/email/unsubscribe'
+      fullPath: '/email/unsubscribe'
+      preLoaderRoute: typeof EmailUnsubscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout/return': {
       id: '/checkout/return'
       path: '/checkout/return'
@@ -1090,6 +1217,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountIndexRouteImport
       parentRoute: typeof AuthenticatedAccountRoute
     }
+    '/lovable/email/suppression': {
+      id: '/lovable/email/suppression'
+      path: '/lovable/email/suppression'
+      fullPath: '/lovable/email/suppression'
+      preLoaderRoute: typeof LovableEmailSuppressionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/partnership': {
+      id: '/api/public/partnership'
+      path: '/api/public/partnership'
+      fullPath: '/api/public/partnership'
+      preLoaderRoute: typeof ApiPublicPartnershipRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/events/new': {
       id: '/_authenticated/events/new'
       path: '/events/new'
@@ -1165,6 +1306,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/perks'
       fullPath: '/admin/perks'
       preLoaderRoute: typeof AuthenticatedAdminPerksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/partnerships': {
+      id: '/_authenticated/admin/partnerships'
+      path: '/admin/partnerships'
+      fullPath: '/admin/partnerships'
+      preLoaderRoute: typeof AuthenticatedAdminPartnershipsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/lifetime': {
@@ -1264,6 +1412,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/account/billing'
       preLoaderRoute: typeof AuthenticatedAccountBillingRouteImport
       parentRoute: typeof AuthenticatedAccountRoute
+    }
+    '/lovable/email/transactional/send': {
+      id: '/lovable/email/transactional/send'
+      path: '/lovable/email/transactional/send'
+      fullPath: '/lovable/email/transactional/send'
+      preLoaderRoute: typeof LovableEmailTransactionalSendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -1447,6 +1609,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
+  AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRoute
   AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -1489,6 +1652,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminHealthRemindersRoute:
     AuthenticatedAdminHealthRemindersRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
+  AuthenticatedAdminPartnershipsRoute: AuthenticatedAdminPartnershipsRoute,
   AuthenticatedAdminPerksRoute: AuthenticatedAdminPerksRoute,
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
@@ -1533,14 +1697,19 @@ const rootRouteChildren: RootRouteChildren = {
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
   LegalRoute: LegalRoute,
+  PartnershipsRoute: PartnershipsRoute,
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
   TermsRoute: TermsRoute,
+  UnsubscribeRoute: UnsubscribeRoute,
   ApiChatRoute: ApiChatRoute,
   CheckoutCartRoute: CheckoutCartRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
+  EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventsIdRoute: EventsIdRoute,
+  ApiPublicPartnershipRoute: ApiPublicPartnershipRoute,
+  LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
   ApiPublicCronDunningEscalationRoute: ApiPublicCronDunningEscalationRoute,
   ApiPublicCronPurgeDeletedAccountsRoute:
     ApiPublicCronPurgeDeletedAccountsRoute,
@@ -1558,17 +1727,9 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
+  LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
