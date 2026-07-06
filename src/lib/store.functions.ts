@@ -446,7 +446,7 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
       }
 
       // Build Stripe line_items
-      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+      const lineItems: NonNullable<Stripe.Checkout.SessionCreateParams["line_items"]> = [];
       for (const it of data.items) {
         if (it.kind === "content") {
           const row = contentMap.get(it.id);
