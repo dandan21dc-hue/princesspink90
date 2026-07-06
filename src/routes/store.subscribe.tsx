@@ -221,7 +221,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
       </p>
 
       {/* Monthly & term passes */}
-      <div className="mt-8 grid gap-4 md:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 md:grid-cols-4">
         <PassCard
           label="Monthly"
           price={priceLabel(prices, "all_access_monthly_aud", "A$10")}
