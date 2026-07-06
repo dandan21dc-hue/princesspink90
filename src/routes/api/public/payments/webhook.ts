@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
-import { type StripeEnv, verifyWebhook, createStripeClient } from "@/lib/stripe.server";
+import {
+  type StripeEnv,
+  verifyWebhookBody,
+  createStripeClient,
+} from "@/lib/stripe.server";
 
 let _supabase: ReturnType<typeof createClient<Database>> | null = null;
 function getSupabase() {
