@@ -121,7 +121,14 @@
   },
   "pnpm": {
     "overrides": {
-      "entities": "4.5.0"
+      "entities": "4.5.0",
+      "js-yaml": "^4.2.0"
     }
+  },
+  "overrides": {
+    "js-yaml": "^4.2.0"
+  },
+  "resolutions": {
+    "js-yaml": "^4.2.0"
   }
 }
