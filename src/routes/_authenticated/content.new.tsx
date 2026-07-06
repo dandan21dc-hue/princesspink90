@@ -171,6 +171,11 @@ function NewContentPage() {
 
         <Field label="Cover image">
           <input type="file" accept="image/*" onChange={(e) => handleCover(e.target.files?.[0] ?? null)} className="text-sm" />
+          {coverError && (
+            <div role="alert" className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Cover upload failed: {coverError}
+            </div>
+          )}
           {coverUrl && <img src={coverUrl} alt="" className="mt-3 h-40 w-40 rounded-md object-cover" />}
         </Field>
 
