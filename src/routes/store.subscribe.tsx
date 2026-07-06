@@ -212,6 +212,27 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
   const busy = (id: PriceId) => pending === id;
   const disabled = pending !== null;
 
+  // Subscriber-only Panty Drawer discount. Server-side is source of truth
+  // (Stripe coupon applied at checkout for gated buyers); this query only
+  // drives the UI label + badge so subscribers see the reduced price up front.
+  const subStatus = useQuery({
+    queryKey: ["subscriber-status", getStripeEnvironment()],
+    queryFn: () => getSubscriberStatus({ data: { environment: getStripeEnvironment() } }),
+    staleTime: 30_000,
+  });
+  const isSubscriber = subStatus.data?.isSubscriber === true;
+  const discountPercent = subStatus.data?.discountPercent ?? SUBSCRIBER_DISCOUNT_PERCENT;
+
+  function pantyPriceDisplay(fallbackCents: number, priceObj?: SubscribePrice) {
+    const currency = (priceObj?.currency ?? "aud").toLowerCase();
+    const unitCents = priceObj?.unit_amount ?? fallbackCents;
+    const original = formatMoney(unitCents, currency);
+    if (!isSubscriber) return { display: original, original: null as string | null };
+    const discounted = Math.round(unitCents * (100 - discountPercent) / 100);
+    return { display: formatMoney(discounted, currency), original };
+  }
+
+
   return (
     <>
       <h1 className="mt-4 font-display text-4xl font-extrabold sm:text-5xl">
