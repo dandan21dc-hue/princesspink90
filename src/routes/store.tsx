@@ -70,41 +70,56 @@ function StorePage() {
 }
 
 function AllAccessCard() {
-  const passes: Array<{ label: string; price: string; cadence: string; perk?: string; hash?: "panty-drawer" }> = [
-    { label: "Monthly", price: "A$10", cadence: "/month" },
-    { label: "3-Month Pass", price: "A$27", cadence: "one-time" },
-    { label: "6-Month Pass", price: "A$48", cadence: "one-time" },
-    { label: "12-Month Pass", price: "A$84", cadence: "one-time", perk: "+ 1 free ticketed event" },
-    { label: "Lifetime", price: "A$500", cadence: "one-time", perk: "+ 1 free ticketed event & 1 free private room session" },
+  const passes: Array<{
+    label: string;
+    price: string;
+    cadence: string;
+    perk?: string;
+    plan:
+      | "all_access_monthly_aud"
+      | "all_access_3mo_onetime_aud"
+      | "all_access_6mo_onetime_aud"
+      | "all_access_12mo_onetime_aud"
+      | "lifetime_onetime_aud";
+  }> = [
+    { label: "Monthly", price: "A$10", cadence: "/month", plan: "all_access_monthly_aud" },
+    { label: "3-Month Pass", price: "A$27", cadence: "one-time", plan: "all_access_3mo_onetime_aud" },
+    { label: "6-Month Pass", price: "A$48", cadence: "one-time", plan: "all_access_6mo_onetime_aud" },
+    { label: "12-Month Pass", price: "A$84", cadence: "one-time", perk: "+ 1 free ticketed event", plan: "all_access_12mo_onetime_aud" },
+    { label: "Lifetime", price: "A$500", cadence: "one-time", perk: "+ 1 free ticketed event & 1 free private room session", plan: "lifetime_onetime_aud" },
   ];
 
   return (
     <div className="flex flex-col gap-3 w-full md:w-[280px]">
-      <Link
-        to="/store/subscribe"
-        className="group rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-      >
+      <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
         <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
-        <ul className="mt-2 space-y-1.5 text-sm">
+        <ul className="mt-2 space-y-1 text-sm">
           {passes.map((p) => (
-            <li key={p.label} className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-foreground">{p.label}</span>
-                <span className="font-display font-bold">
-                  {p.price}
-                  <span className="ml-1 text-[10px] font-normal text-muted-foreground">{p.cadence}</span>
-                </span>
-              </div>
-              {p.perk && (
-                <span className="text-[10px] text-primary/90">{p.perk}</span>
-              )}
+            <li key={p.plan}>
+              <Link
+                to="/store/subscribe"
+                search={{ plan: p.plan }}
+                onClick={() => track("all_access_tier_click", { plan: p.plan })}
+                className="group -mx-2 flex flex-col gap-0.5 rounded-lg px-2 py-1.5 hover:bg-primary/15 focus:bg-primary/15 focus:outline-none"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground group-hover:text-primary">{p.label}</span>
+                  <span className="font-display font-bold">
+                    {p.price}
+                    <span className="ml-1 text-[10px] font-normal text-muted-foreground">{p.cadence}</span>
+                  </span>
+                </div>
+                {p.perk && (
+                  <span className="text-[10px] text-primary/90">{p.perk}</span>
+                )}
+              </Link>
             </li>
           ))}
         </ul>
         <div className="mt-3 text-[11px] text-muted-foreground">
           Everything in the library — pick your term.
         </div>
-      </Link>
+      </div>
       <Link
         to="/store/private-room"
         className="group rounded-2xl border border-primary/50 bg-background/40 p-5 hover:border-primary hover:bg-primary/5"
