@@ -173,9 +173,16 @@ export function useMyTiers(): MyTiersState {
     }
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let currentUid: string | null = null;
+
+    const refresh = () => {
+      void load(currentUid);
+    };
+    loadRef.current = refresh;
 
     supabase.auth.getUser().then(({ data }) => {
       const uid = data.user?.id ?? null;
+      currentUid = uid;
       load(uid);
       if (uid) {
         channel = supabase
@@ -188,16 +195,36 @@ export function useMyTiers(): MyTiersState {
 
     const { data: authSub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        load(session?.user?.id ?? null);
+        currentUid = session?.user?.id ?? null;
+        load(currentUid);
       }
     });
+
+    // Re-check tier state whenever the tab regains focus. This covers the
+    // return-from-Stripe case (user tabs back after checkout) plus any time
+    // realtime disconnects while the tab was hidden.
+    const onFocus = () => {
+      if (currentUid) load(currentUid);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && currentUid) load(currentUid);
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       cancelled = true;
       if (channel) supabase.removeChannel(channel);
       authSub.subscription.unsubscribe();
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      loadRef.current = null;
     };
   }, []);
 
-  return state;
+  const refresh = useCallback(() => {
+    loadRef.current?.();
+  }, []);
+
+  return { ...state, refresh };
 }
