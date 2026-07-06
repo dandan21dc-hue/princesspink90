@@ -261,3 +261,30 @@ export const finaliseSetupSession = createServerFn({ method: "POST" })
       return { error: getStripeErrorMessage(error) };
     }
   });
+
+/**
+ * Creates a Stripe Billing Portal session so the customer can manage their
+ * subscription and payment methods. Returns a URL the client opens in a new tab.
+ */
+export const createBillingPortalSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { environment: StripeEnv; returnUrl?: string }) => data)
+  .handler(async ({ data, context }): Promise<Result<{ url: string }>> => {
+    try {
+      const stripe = createStripeClient(data.environment);
+      const customerId = await resolveStripeCustomerId(
+        context.supabase,
+        stripe,
+        context.userId,
+        data.environment,
+      );
+      if (!customerId) throw new Error("No Stripe customer on file");
+      const portal = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        ...(data.returnUrl && { return_url: data.returnUrl }),
+      });
+      return { url: portal.url };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
