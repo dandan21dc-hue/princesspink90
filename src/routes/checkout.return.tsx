@@ -154,6 +154,11 @@ function CheckoutReturn() {
     // in the header resets and the user isn't offered a re-purchase.
     if (session?.metadata?.cart_mode === "1") {
       cartStore.clear();
+      try {
+        sessionStorage.removeItem("pp_cart_client_order_ref");
+      } catch {
+        // ignore
+      }
     }
     const t = setTimeout(() => {
       navigate({ to: destination });
