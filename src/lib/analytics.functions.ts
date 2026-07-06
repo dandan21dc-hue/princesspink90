@@ -159,12 +159,20 @@ export const getTierAnalytics = createServerFn({ method: "GET" })
 // see at a glance whether the funnel completed, stalled at pending, or
 // bounced through a cancelled / error path.
 
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
 export type ReconciliationEventRow = {
   id: string;
   event: string;
   created_at: string;
   session_id: string | null;
-  props: Record<string, unknown>;
+  props: { [key: string]: JsonValue };
 };
 
 export type ReconciliationStatus = {
