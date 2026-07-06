@@ -272,17 +272,20 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
 
 
       {/* Lifetime */}
-      <div className="mt-8 relative overflow-hidden rounded-3xl border-2 border-primary bg-gradient-to-br from-primary/25 via-background to-background p-8 shadow-[var(--shadow-glow-pink)]">
-        <div className="absolute right-4 top-4 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-          Best value
+      <div className="mt-8 relative overflow-hidden rounded-3xl border-2 border-primary bg-gradient-to-br from-primary/25 via-background to-background p-6 shadow-[var(--shadow-glow-pink)] sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-xs uppercase tracking-[0.3em] text-primary">
+            Lifetime Membership
+          </div>
+          <span className="shrink-0 rounded-full bg-primary px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+            Best value
+          </span>
         </div>
-        <div className="text-xs uppercase tracking-[0.3em] text-primary">
-          Lifetime Membership
-        </div>
-        <h2 className="mt-2 font-display text-5xl font-extrabold">
-          {priceLabel(prices, "lifetime_onetime_aud", "A$500")}
-          <span className="text-lg text-muted-foreground"> one-time payment</span>
+        <h2 className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1 font-display text-4xl font-extrabold sm:text-5xl">
+          <span>{priceLabel(prices, "lifetime_onetime_aud", "A$500")}</span>
+          <span className="text-base font-normal text-muted-foreground sm:text-lg">one-time payment</span>
         </h2>
+
         <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
           <li>· <span className="text-foreground">Forever access</span> to all photos &amp; videos</li>
           <li>· <span className="text-foreground">1 free ticket</span> to any event I host (no expiry)</li>
