@@ -115,6 +115,80 @@ export function ensureSessionIdInReturnUrl(rawUrl: string): string {
   return hash ? `${withTemplate}#${hash}` : withTemplate;
 }
 
+/**
+ * Server-side gate: Panty Drawer purchases require an active all-access
+ * subscription, an active term pass, or a lifetime membership in the same
+ * environment. Frontend UI is never trusted for this — every panty checkout
+ * path (single-item + cart) MUST call this before creating a Stripe session.
+ * Uses the request-scoped supabase client (RLS as the caller).
+ */
+async function assertPantyAccess(
+  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  userId: string,
+  env: StripeEnv,
+): Promise<void> {
+  // Active subscription (active/trialing/past_due, or canceled with time left)
+  const nowIso = new Date().toISOString();
+  const sub = await (supabase as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (c: string, v: unknown) => {
+          eq: (c: string, v: unknown) => {
+            order: (c: string, o: { ascending: boolean }) => {
+              limit: (n: number) => {
+                maybeSingle: () => Promise<{ data: { status: string; current_period_end: string | null } | null; error: { message: string } | null }>;
+              };
+            };
+          };
+        };
+      };
+    };
+  })
+    .from("subscriptions")
+    .select("status,current_period_end")
+    .eq("user_id", userId)
+    .eq("environment", env)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (sub.error) throw new Error(sub.error.message);
+  const s = sub.data;
+  const subActive = s && (
+    (["active", "trialing", "past_due"].includes(s.status)
+      && (!s.current_period_end || s.current_period_end > nowIso))
+    || (s.status === "canceled" && s.current_period_end && s.current_period_end > nowIso)
+  );
+
+  if (subActive) return;
+
+  // Fallback: term pass or lifetime membership
+  const mem = await (supabase as unknown as {
+    from: (t: string) => {
+      select: (c: string) => {
+        eq: (c: string, v: unknown) => {
+          eq: (c: string, v: unknown) => Promise<{ data: Array<{ kind: string; expires_at: string | null }> | null; error: { message: string } | null }>;
+        };
+      };
+    };
+  })
+    .from("memberships")
+    .select("kind,expires_at")
+    .eq("user_id", userId)
+    .eq("environment", env);
+
+  if (mem.error) throw new Error(mem.error.message);
+  const memActive = (mem.data ?? []).some((m) =>
+    m.kind === "lifetime"
+    || (m.kind.startsWith("term_pass_") && m.expires_at && m.expires_at > nowIso),
+  );
+
+  if (!memActive) {
+    throw new Error(
+      "The Panty Drawer is a members-only perk — grab an all-access pass or lifetime membership first.",
+    );
+  }
+
 export const createStoreCheckoutSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
