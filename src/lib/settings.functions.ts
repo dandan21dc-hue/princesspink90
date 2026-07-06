@@ -18,12 +18,12 @@ const DEFAULTS: SiteSettings = {
 
 export const getSiteSettings = createServerFn({ method: "GET" }).handler(
   async (): Promise<SiteSettings> => {
-    const sb = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { storage: undefined, persistSession: false, autoRefreshToken: false } },
-    );
-    const { data } = await sb
+    // Reads through supabaseAdmin because the site_settings SELECT policy
+    // is restricted to authenticated users (host contact email is PII and
+    // must not be exposed via the anon Data API). This server fn is the
+    // sanctioned way to project the safe public contact info.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
       .from("site_settings")
       .select("email, fetlife_handle, reddit_handle")
       .eq("id", "host")
