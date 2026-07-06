@@ -62,13 +62,29 @@ jobs:
           bun run validate:security-config 2>&1 \
             | tee /tmp/security-config/validate.log
 
+      # Cap any single file at 2 MiB (keep the tail — the failing
+      # assertion is at the end) so a runaway log can't blow the
+      # per-artifact size budget or slow the upload step.
+      - name: Cap artifact file sizes
+        if: always()
+        run: |
+          find /tmp/security-config -type f -size +2M -print0 2>/dev/null \
+            | while IFS= read -r -d '' f; do
+              echo "::warning::Truncating oversized artifact file: $f"
+              tail -c 2097152 "$f" > "$f.tail" && mv "$f.tail" "$f"
+            done
+
       - name: Upload config validator report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: supabase-config-validate-report
           path: /tmp/security-config/
-          retention-days: 7
+          # Success: 3-day retention keeps quota lean on green PRs.
+          # Failure: 14 days so a stale PR can still be diagnosed.
+          retention-days: ${{ job.status == 'success' && 3 || 14 }}
+          compression-level: 9
+          if-no-files-found: warn
 
   supabase_security_lint:
     name: Supabase / Lint
