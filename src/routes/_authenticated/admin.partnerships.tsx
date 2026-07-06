@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useServerFn } from '@tanstack/react-start'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
   listPartnershipEmailEvents,
@@ -88,26 +88,43 @@ function AdminPartnerships() {
   const [filter, setFilter] = useState<'all' | Inquiry['status']>('all')
   const [dateFrom, setDateFrom] = useState<string>('')
   const [dateTo, setDateTo] = useState<string>('')
+  const [search, setSearch] = useState<string>('')
+  const [page, setPage] = useState<number>(1)
+  const PAGE_SIZE = 20
 
   const inquiries = (q.data?.inquiries ?? []) as Inquiry[]
 
   const fromTs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null
   const toTs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null
+  const searchNorm = search.trim().toLowerCase()
 
-  const filtered = inquiries.filter((i) => {
+  const filtered = useMemo(() => inquiries.filter((i) => {
     if (filter !== 'all' && i.status !== filter) return false
     const t = new Date(i.created_at).getTime()
     if (fromTs !== null && t < fromTs) return false
     if (toTs !== null && t > toTs) return false
+    if (searchNorm) {
+      const hay = `${i.name} ${i.email} ${i.organization ?? ''}`.toLowerCase()
+      if (!hay.includes(searchNorm)) return false
+    }
     return true
-  })
+  }), [inquiries, filter, fromTs, toTs, searchNorm])
 
-  const dateFiltered = inquiries.filter((i) => {
+  const dateFiltered = useMemo(() => inquiries.filter((i) => {
     const t = new Date(i.created_at).getTime()
     if (fromTs !== null && t < fromTs) return false
     if (toTs !== null && t > toTs) return false
     return true
-  })
+  }), [inquiries, fromTs, toTs])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageStart = (currentPage - 1) * PAGE_SIZE
+  const paged = filtered.slice(pageStart, pageStart + PAGE_SIZE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter, dateFrom, dateTo, searchNorm])
 
   const setPreset = (days: number) => {
     const to = new Date()
@@ -121,9 +138,11 @@ function AdminPartnerships() {
     setFilter('all')
     setDateFrom('')
     setDateTo('')
+    setSearch('')
   }
 
-  const hasFilters = filter !== 'all' || dateFrom !== '' || dateTo !== ''
+  const hasFilters = filter !== 'all' || dateFrom !== '' || dateTo !== '' || search !== ''
+
 
   const ids = inquiries.map((i) => i.id)
   const summaryQ = useQuery({
@@ -159,6 +178,16 @@ function AdminPartnerships() {
       </div>
 
       <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border/60 bg-card/30 p-3">
+        <label className="flex flex-1 min-w-[200px] flex-col gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+          Search
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Name, email, or organization"
+            className="rounded-md border border-border/60 bg-background/60 px-2 py-1 text-xs text-foreground outline-none focus:border-neon"
+          />
+        </label>
         <label className="flex flex-col gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
           From
           <input
@@ -220,54 +249,83 @@ function AdminPartnerships() {
 
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <ul className="space-y-2">
-          {filtered.map((i) => (
-            <li key={i.id}>
-              <div
-                className={`rounded-xl border p-4 transition ${
-                  selected?.id === i.id
-                    ? 'border-neon bg-neon/5'
-                    : 'border-border/60 bg-card/40 hover:border-neon/40'
-                }`}
-              >
-                <button onClick={() => setSelected(i)} className="w-full text-left">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-display text-sm font-semibold">{i.name}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest ${
-                        i.status === 'new'
-                          ? 'bg-neon/20 text-neon'
-                          : i.status === 'contacted'
-                            ? 'bg-primary/20 text-primary'
-                            : 'bg-muted text-muted-foreground'
-                      }`}
+        <div>
+          <ul className="space-y-2">
+            {paged.map((i) => (
+              <li key={i.id}>
+                <div
+                  className={`rounded-xl border p-4 transition ${
+                    selected?.id === i.id
+                      ? 'border-neon bg-neon/5'
+                      : 'border-border/60 bg-card/40 hover:border-neon/40'
+                  }`}
+                >
+                  <button onClick={() => setSelected(i)} className="w-full text-left">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-display text-sm font-semibold">{i.name}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest ${
+                          i.status === 'new'
+                            ? 'bg-neon/20 text-neon'
+                            : i.status === 'contacted'
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {STATUS_LABEL[i.status]}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {i.organization ? `${i.organization} · ` : ''}{i.email}
+                    </div>
+                    <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{i.message}</div>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
+                      <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
+                    </div>
+                  </button>
+                  <div className="mt-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
+                    <span>{new Date(i.created_at).toLocaleString()}</span>
+                    <Link
+                      to="/admin/partnerships/$id"
+                      params={{ id: i.id }}
+                      className="text-neon hover:brightness-125"
                     >
-                      {STATUS_LABEL[i.status]}
-                    </span>
+                      Open detail →
+                    </Link>
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {i.organization ? `${i.organization} · ` : ''}{i.email}
-                  </div>
-                  <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{i.message}</div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
-                    <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
-                  </div>
-                </button>
-                <div className="mt-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                  <span>{new Date(i.created_at).toLocaleString()}</span>
-                  <Link
-                    to="/admin/partnerships/$id"
-                    params={{ id: i.id }}
-                    className="text-neon hover:brightness-125"
-                  >
-                    Open detail →
-                  </Link>
                 </div>
+              </li>
+            ))}
+          </ul>
+
+          {filtered.length > PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+              <span>
+                {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="rounded-full border border-border/60 px-3 py-1 hover:border-neon/40 hover:text-neon disabled:opacity-40 disabled:hover:border-border/60 disabled:hover:text-muted-foreground"
+                >
+                  Prev
+                </button>
+                <span>
+                  Page {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="rounded-full border border-border/60 px-3 py-1 hover:border-neon/40 hover:text-neon disabled:opacity-40 disabled:hover:border-border/60 disabled:hover:text-muted-foreground"
+                >
+                  Next
+                </button>
               </div>
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        </div>
 
         <div className="min-h-[300px]">
           {selected ? <InquiryDetail inquiry={selected} onClose={() => setSelected(null)} /> : (
