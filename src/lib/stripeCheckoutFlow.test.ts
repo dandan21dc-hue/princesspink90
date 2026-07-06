@@ -165,13 +165,13 @@ vi.mock('@supabase/supabase-js', () => ({
 vi.mock('@/integrations/supabase/auth-middleware', () => ({
   requireSupabaseAuth: {
     _tag: 'test-noop',
-    // TanStack's createServerFn flattenMiddlewares walks .middleware on
-    // every array entry; give it a stub so the chain resolves without
-    // touching real Supabase auth.
+    // TanStack createServerFn walks m.options.middleware — supply an
+    // empty options bag so recursion terminates cleanly.
+    options: { middleware: [] },
     middleware: [],
-    _types: {},
   },
 }))
+
 
 
 // ---- 3. Test setup ---------------------------------------------------------
