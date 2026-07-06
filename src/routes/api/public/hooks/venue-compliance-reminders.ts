@@ -1,21 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@supabase/supabase-js'
+import { checkHooksCronAuth } from '@/lib/hooks-auth.server'
 
 // Daily job: finds venue compliance documents (insurance certs, permits)
 // expiring within the next 30 days and sends exactly one reminder per document.
 //
-// Idempotency (defense in depth):
-//   1. Deterministic idempotency_key = "expiry_30_day:<document_id>:<expires_on>"
-//   2. UNIQUE constraint on venue_compliance_reminder_log.idempotency_key
-//      rejects any duplicate insert (Postgres error 23505).
-//   3. Log insert happens FIRST — only then do we notify admins and flip
-//      the document's expiry_reminder_sent_at marker.
-//   4. Retries, concurrent runs, and replays all safely skip duplicates.
-//
-// Email: when a verified sender domain is configured, the notification
-// step is extended to also enqueue a branded email via the app email
-// pipeline. Until then, admins get an in-app notification and the log
-// records channels: ["in_app"].
+// Auth: `Authorization: Bearer <HOOKS_CRON_SECRET>` (server-only secret).
 
 const KIND_LABEL: Record<string, string> = {
   public_liability_insurance: 'Public liability insurance',
@@ -27,16 +17,8 @@ export const Route = createFileRoute('/api/public/hooks/venue-compliance-reminde
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apikey =
-          request.headers.get('apikey') ??
-          request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY
-        if (!apikey || !expected || apikey !== expected) {
-          return new Response(JSON.stringify({ error: 'unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        }
+        const unauth = checkHooksCronAuth(request)
+        if (unauth) return unauth
 
         const supabase = createClient(
           process.env.SUPABASE_URL!,
