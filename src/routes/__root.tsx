@@ -149,6 +149,8 @@ function RootComponent() {
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <Link to="/conduct" className="hover:text-foreground transition">Our Standards</Link>
             <span aria-hidden="true" className="opacity-40">·</span>
+            <Link to="/partnerships" className="hover:text-foreground transition">Partnerships</Link>
+            <span aria-hidden="true" className="opacity-40">·</span>
             <Link to="/privacy" className="hover:text-foreground transition">Privacy</Link>
             <span aria-hidden="true" className="opacity-40">·</span>
             <Link to="/terms" className="hover:text-foreground transition">Terms of Service</Link>
