@@ -170,10 +170,13 @@ function PrivacyPage() {
             Delete a pending screening yourself before it has been reviewed.
           </li>
           <li>
-            Request full deletion of your account and associated data by contacting the
-            platform operator via the channels listed in the site footer. We will action
-            deletion requests within a reasonable time subject to any overriding legal
-            retention obligations (e.g. financial records required by law).
+          Request full deletion of your account and associated data by emailing{" "}
+            <a href="mailto:support@princesspink90.com" className="text-primary hover:underline">
+              support@princesspink90.com
+            </a>{" "}
+            or via the channels listed in the site footer. We will action deletion
+            requests within a reasonable time subject to any overriding legal retention
+            obligations (e.g. financial records required by law).
           </li>
         </ul>
       </Section>
