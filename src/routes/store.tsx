@@ -88,14 +88,29 @@ function AllAccessCard() {
 
   const tiers = useMyTiers();
   const hasLifetime = tiers.active.lifetime_onetime_aud;
-  const currentLabel = (() => {
-    if (hasLifetime) return "Lifetime";
-    if (tiers.active.all_access_12mo_monthly_aud) return "12-Month Plan";
-    if (tiers.active.all_access_6mo_monthly_aud) return "6-Month Plan";
-    if (tiers.active.all_access_3mo_monthly_aud) return "3-Month Plan";
-    if (tiers.active.all_access_monthly_aud) return "Monthly";
-    return null;
-  })();
+  // Rank tiers so we can label other cards as Upgrade / Downgrade relative
+  // to the user's current plan. Lifetime is the top rank.
+  const TIER_RANK: Record<PlanId, number> = {
+    all_access_monthly_aud: 1,
+    all_access_3mo_monthly_aud: 2,
+    all_access_6mo_monthly_aud: 3,
+    all_access_12mo_monthly_aud: 4,
+    lifetime_onetime_aud: 5,
+  };
+  const currentPlan: PlanId | null = hasLifetime
+    ? "lifetime_onetime_aud"
+    : tiers.active.all_access_12mo_monthly_aud
+      ? "all_access_12mo_monthly_aud"
+      : tiers.active.all_access_6mo_monthly_aud
+        ? "all_access_6mo_monthly_aud"
+        : tiers.active.all_access_3mo_monthly_aud
+          ? "all_access_3mo_monthly_aud"
+          : tiers.active.all_access_monthly_aud
+            ? "all_access_monthly_aud"
+            : null;
+  const currentLabel = currentPlan
+    ? passes.find((p) => p.plan === currentPlan)?.label ?? null
+    : null;
   const fmtExpiry = (iso?: string | null) => {
     if (!iso) return null;
     try {
@@ -125,13 +140,20 @@ function AllAccessCard() {
             const expiry = fmtExpiry(tiers.expires[p.plan]);
             const start = fmtExpiry(tiers.starts[p.plan]);
             const willCancel = !!tiers.cancelAtPeriodEnd[p.plan];
+            // Upgrade / Downgrade / Switch labels for non-owned cards when
+            // the user already has a plan. Lifetime is always an upgrade.
+            let changeLabel: "Upgrade" | "Downgrade" | "Switch" | null = null;
+            if (currentPlan && !owned && !supersededByLifetime) {
+              const delta = TIER_RANK[p.plan] - TIER_RANK[currentPlan];
+              changeLabel = delta > 0 ? "Upgrade" : delta < 0 ? "Downgrade" : "Switch";
+            }
             const badge = owned
               ? p.plan === "lifetime_onetime_aud"
                 ? "Owned"
                 : "Active"
               : supersededByLifetime
                 ? "Included"
-                : null;
+                : changeLabel;
 
             const row = (
               <div className="flex flex-col gap-0.5">
@@ -142,7 +164,7 @@ function AllAccessCard() {
                     <span className="ml-1 text-[10px] font-normal text-muted-foreground">{p.cadence}</span>
                   </span>
                 </div>
-                {p.perk && !disabled && (
+                {p.perk && !disabled && !changeLabel && (
                   <span className="text-[10px] text-primary/90">{p.perk}</span>
                 )}
                 {badge && (
@@ -170,7 +192,8 @@ function AllAccessCard() {
               cadence: p.cadence,
               owned,
               superseded_by_lifetime: supersededByLifetime,
-              current_plan: currentLabel ?? "none",
+              current_plan: currentPlan ?? "none",
+              change: changeLabel ?? "new",
             };
 
             return (
@@ -192,7 +215,7 @@ function AllAccessCard() {
                     to="/store/subscribe"
                     search={{ plan: p.plan }}
                     onClick={() => {
-                      track("all_access_tier_click", { plan: p.plan });
+                      track("all_access_tier_click", { plan: p.plan, change: changeLabel ?? "new" });
                       track("boutique_tier_click", { ...trackPayload, action: "navigate" });
                     }}
                     className="group -mx-2 flex flex-col gap-0.5 rounded-lg px-2 py-1.5 hover:bg-primary/15 focus:bg-primary/15 focus:outline-none"
@@ -205,10 +228,10 @@ function AllAccessCard() {
           })}
         </ul>
         <div className="mt-3 text-[11px] text-muted-foreground">
-          {currentLabel
+          {currentPlan
             ? hasLifetime
               ? "You have Lifetime — everything's unlocked."
-              : "Upgrade any time; your current pass keeps running."
+              : "Change plan anytime — upgrades and downgrades take effect at your next renewal."
             : "Everything in the library — pick your term."}
         </div>
       </div>
