@@ -115,6 +115,62 @@ export function ensureSessionIdInReturnUrl(rawUrl: string): string {
   return hash ? `${withTemplate}#${hash}` : withTemplate;
 }
 
+/**
+ * Server-side gate: Panty Drawer purchases require an active all-access
+ * subscription, an active term pass, or a lifetime membership in the same
+ * environment. Frontend UI is never trusted for this — every panty checkout
+ * path (single-item + cart) MUST call this before creating a Stripe session.
+ * Uses the request-scoped supabase client (RLS as the caller).
+ */
+async function assertPantyAccess(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  env: StripeEnv,
+): Promise<void> {
+  const nowIso = new Date().toISOString();
+
+  const sub = await supabase
+    .from("subscriptions")
+    .select("status,current_period_end")
+    .eq("user_id", userId)
+    .eq("environment", env)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (sub.error) throw new Error(sub.error.message);
+  const s = sub.data as { status: string; current_period_end: string | null } | null;
+  const subActive = !!s && (
+    (["active", "trialing", "past_due"].includes(s.status)
+      && (!s.current_period_end || s.current_period_end > nowIso))
+    || (s.status === "canceled" && !!s.current_period_end && s.current_period_end > nowIso)
+  );
+
+  if (subActive) return;
+
+  const mem = await supabase
+    .from("memberships")
+    .select("kind,expires_at")
+    .eq("user_id", userId)
+    .eq("environment", env);
+
+  if (mem.error) throw new Error(mem.error.message);
+  const rows = (mem.data ?? []) as Array<{ kind: string; expires_at: string | null }>;
+  const memActive = rows.some((m) =>
+    m.kind === "lifetime"
+    || (m.kind.startsWith("term_pass_") && !!m.expires_at && m.expires_at > nowIso),
+  );
+
+  if (!memActive) {
+    throw new Error(
+      "The Panty Drawer is a members-only perk — grab an all-access pass or lifetime membership first.",
+    );
+  }
+}
+
+
+
 export const createStoreCheckoutSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -173,6 +229,12 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const isPanty = /^panty_(24|48|72)hr_aud$/.test(data.priceId);
         const privateRoomMatch = /^private_room_(30|60)min_aud$/.exec(data.priceId);
         const privateRoomMinutes = privateRoomMatch ? Number(privateRoomMatch[1]) : null;
+
+        // Members-only gate for the Panty Drawer. Never trust the client —
+        // enforce active subscription/membership before creating the session.
+        if (isPanty) {
+          await assertPantyAccess(context.supabase, context.userId, data.environment);
+        }
 
         // Tax codes are set once via scripts/sync-stripe-tax-codes.mjs.
         // We no longer patch them per checkout — that hid API failures and
@@ -417,6 +479,15 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
         id: PantyLookup;
         quantity: number;
       }>;
+
+      // Members-only gate: any panty item in the cart requires an active
+      // subscription/membership. Verified against the authenticated user's
+      // RLS-scoped client, never trusting the frontend cart contents.
+      if (pantyItems.length > 0) {
+        await assertPantyAccess(context.supabase, userId, data.environment);
+      }
+
+
 
       // Fetch content items in one query
       let contentRows: Array<{
