@@ -33,6 +33,30 @@ jobs:
       - name: Run tests
         run: bun run test
 
+  supabase_security_config_validate:
+    name: Supabase / Config Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Pre-flight schema + shape check for the security gate config.
+      # Runs with NO secrets and NO network: it only inspects checked-in
+      # files (security/lint-baseline.json, scripts/supabase-security-lint.mjs,
+      # .github/workflows/ci.yml). Catches malformed baseline JSON, missing
+      # rationale, unsorted findings, and any SUPABASE_LINT_ALLOWLIST entry
+      # not present in APPROVED_ALLOWLIST — so those failures surface here
+      # with a precise message instead of a confusing failure downstream in
+      # the linter or gate job.
+      - name: Validate security config
+        run: bun run validate:security-config
+
   supabase_security_lint:
     name: Supabase / Lint
     runs-on: ubuntu-latest
