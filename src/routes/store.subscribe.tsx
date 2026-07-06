@@ -92,12 +92,13 @@ function formatMoney(cents: number, currency: string): string {
 
 function SubscribePage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const { plan } = Route.useSearch();
+  const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUser({ id: data.user.id, email: data.user.email ?? undefined });
+      setUser(data.user ? { id: data.user.id, email: data.user.email ?? undefined } : null);
     });
   }, []);
 
@@ -116,6 +117,19 @@ function SubscribePage() {
       returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
     });
   }
+
+  // Preselect: if the route arrived with ?plan=..., auto-open Stripe checkout
+  // for that tier once auth has resolved. Signed-out visitors are bounced
+  // to /auth by buy(); if they return to this URL after signing in, the
+  // effect re-fires and completes checkout.
+  const preselectedRef = useRef<PriceId | null>(null);
+  useEffect(() => {
+    if (!plan || user === undefined || isOpen) return;
+    if (preselectedRef.current === plan) return;
+    preselectedRef.current = plan;
+    buy(plan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan, user, isOpen]);
 
   return (
     <>
