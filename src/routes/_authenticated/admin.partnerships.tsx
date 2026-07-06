@@ -71,8 +71,13 @@ type Inquiry = {
 
 const STATUS_LABEL: Record<Inquiry['status'], string> = {
   new: 'New',
-  contacted: 'Contacted',
+  contacted: 'Replied',
   archived: 'Archived',
+}
+
+function toDateInputValue(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 function AdminPartnerships() {
@@ -81,9 +86,44 @@ function AdminPartnerships() {
   const q = useQuery({ queryKey: ['partnership-inquiries'], queryFn: () => listFn() })
   const [selected, setSelected] = useState<Inquiry | null>(null)
   const [filter, setFilter] = useState<'all' | Inquiry['status']>('all')
+  const [dateFrom, setDateFrom] = useState<string>('')
+  const [dateTo, setDateTo] = useState<string>('')
 
   const inquiries = (q.data?.inquiries ?? []) as Inquiry[]
-  const filtered = filter === 'all' ? inquiries : inquiries.filter((i) => i.status === filter)
+
+  const fromTs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null
+  const toTs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null
+
+  const filtered = inquiries.filter((i) => {
+    if (filter !== 'all' && i.status !== filter) return false
+    const t = new Date(i.created_at).getTime()
+    if (fromTs !== null && t < fromTs) return false
+    if (toTs !== null && t > toTs) return false
+    return true
+  })
+
+  const dateFiltered = inquiries.filter((i) => {
+    const t = new Date(i.created_at).getTime()
+    if (fromTs !== null && t < fromTs) return false
+    if (toTs !== null && t > toTs) return false
+    return true
+  })
+
+  const setPreset = (days: number) => {
+    const to = new Date()
+    const from = new Date()
+    from.setDate(from.getDate() - (days - 1))
+    setDateFrom(toDateInputValue(from))
+    setDateTo(toDateInputValue(to))
+  }
+
+  const clearFilters = () => {
+    setFilter('all')
+    setDateFrom('')
+    setDateTo('')
+  }
+
+  const hasFilters = filter !== 'all' || dateFrom !== '' || dateTo !== ''
 
   const ids = inquiries.map((i) => i.id)
   const summaryQ = useQuery({
@@ -95,12 +135,12 @@ function AdminPartnerships() {
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
-      <div className="mb-6 flex items-end justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-[0.3em] text-neon">Admin</div>
           <h1 className="mt-1 font-display text-3xl font-bold">Partnership enquiries</h1>
         </div>
-        <div className="flex gap-2 text-xs">
+        <div className="flex flex-wrap gap-2 text-xs">
           {(['all', 'new', 'contacted', 'archived'] as const).map((f) => (
             <button
               key={f}
@@ -111,10 +151,61 @@ function AdminPartnerships() {
                   : 'border-border/60 text-muted-foreground hover:border-neon/40'
               }`}
             >
-              {f}
-              {f !== 'all' && ` (${inquiries.filter((i) => i.status === f).length})`}
+              {f === 'all' ? 'all' : STATUS_LABEL[f]}
+              {f !== 'all' && ` (${dateFiltered.filter((i) => i.status === f).length})`}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border/60 bg-card/30 p-3">
+        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+          From
+          <input
+            type="date"
+            value={dateFrom}
+            max={dateTo || undefined}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-md border border-border/60 bg-background/60 px-2 py-1 text-xs text-foreground outline-none focus:border-neon"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+          To
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-md border border-border/60 bg-background/60 px-2 py-1 text-xs text-foreground outline-none focus:border-neon"
+          />
+        </label>
+        <div className="flex flex-wrap gap-1">
+          {[
+            { label: '7d', days: 7 },
+            { label: '30d', days: 30 },
+            { label: '90d', days: 90 },
+          ].map((p) => (
+            <button
+              key={p.label}
+              onClick={() => setPreset(p.days)}
+              className="rounded-full border border-border/60 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground hover:border-neon/40 hover:text-neon"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center gap-3 text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span>
+            {filtered.length} of {inquiries.length}
+          </span>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="rounded-full border border-border/60 px-3 py-1 hover:border-neon/40 hover:text-neon"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -123,9 +214,10 @@ function AdminPartnerships() {
 
       {q.data && filtered.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border/60 p-16 text-center text-sm text-muted-foreground">
-          No enquiries {filter === 'all' ? 'yet' : `in “${filter}”`}.
+          No enquiries match the current filters.
         </div>
       )}
+
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <ul className="space-y-2">
