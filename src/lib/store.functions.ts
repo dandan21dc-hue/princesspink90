@@ -364,6 +364,9 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
                 },
               },
             ],
+            // Every panty checkout is gated to active subscribers/members,
+            // so unconditionally apply the subscriber thank-you discount.
+            discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
           }),
           metadata: {
             ...(data.userId && { userId: data.userId }),
