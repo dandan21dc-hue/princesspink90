@@ -12,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/content/new")({
 });
 
 type MediaRow = { url: string; type: "image" | "video" };
+type UploadError = { name: string; type: "image" | "video"; message: string };
 
 function NewContentPage() {
   const createFn = useServerFn(createContentItem);
@@ -26,6 +27,8 @@ function NewContentPage() {
   const [priceDollars, setPriceDollars] = useState("");
   const [subscribersOnly, setSubscribersOnly] = useState(false);
   const [media, setMedia] = useState<MediaRow[]>([]);
+  const [uploadErrors, setUploadErrors] = useState<UploadError[]>([]);
+  const [coverError, setCoverError] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
@@ -52,40 +55,70 @@ function NewContentPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  async function uploadFile(file: File, type: "image" | "video"): Promise<string | null> {
-    if (!userId) return null;
+  async function uploadFile(
+    file: File,
+    type: "image" | "video",
+  ): Promise<{ path: string } | { error: string }> {
+    if (!userId) return { error: "You must be signed in to upload." };
+    const expectedPrefix = type === "image" ? "image/" : "video/";
+    if (file.type && !file.type.startsWith(expectedPrefix)) {
+      return { error: `Not a ${type} file (detected ${file.type || "unknown type"}).` };
+    }
     const ext = file.name.split(".").pop() ?? "bin";
     const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("content-media").upload(path, file, {
-      contentType: file.type,
-    });
-    if (error) {
-      toast.error(error.message);
-      return null;
+    try {
+      const { error } = await supabase.storage.from("content-media").upload(path, file, {
+        contentType: file.type,
+      });
+      if (error) return { error: error.message };
+      return { path };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Upload failed" };
     }
-    return path;
   }
 
   async function handleFiles(files: FileList | null, type: "image" | "video") {
     if (!files?.length) return;
     setUploading(true);
+    // Clear previous errors for this input type so old messages don't linger.
+    setUploadErrors((errs) => errs.filter((e) => e.type !== type));
     const uploaded: MediaRow[] = [];
+    const errors: UploadError[] = [];
     for (const file of Array.from(files)) {
-      const path = await uploadFile(file, type);
-      if (path) uploaded.push({ url: path, type });
+      const result = await uploadFile(file, type);
+      if ("path" in result) {
+        uploaded.push({ url: result.path, type });
+      } else {
+        errors.push({ name: file.name, type, message: result.error });
+      }
     }
-    setMedia((m) => [...m, ...uploaded]);
+    if (uploaded.length) setMedia((m) => [...m, ...uploaded]);
+    if (errors.length) {
+      setUploadErrors((prev) => [...prev, ...errors]);
+      toast.error(
+        `${errors.length} ${type}${errors.length > 1 ? "s" : ""} failed to upload`,
+      );
+    }
     setUploading(false);
   }
 
   async function handleCover(file: File | null) {
     if (!file || !userId) return;
     setUploading(true);
-    const path = await uploadFile(file, "image");
-    if (path) {
-      // Generate a long-ish signed URL for cover display
-      const { data } = await supabase.storage.from("content-media").createSignedUrl(path, 60 * 60 * 24 * 365);
-      if (data?.signedUrl) setCoverUrl(data.signedUrl);
+    setCoverError(null);
+    const result = await uploadFile(file, "image");
+    if ("path" in result) {
+      const { data, error } = await supabase.storage
+        .from("content-media")
+        .createSignedUrl(result.path, 60 * 60 * 24 * 365);
+      if (error || !data?.signedUrl) {
+        setCoverError(error?.message ?? "Could not generate cover preview.");
+      } else {
+        setCoverUrl(data.signedUrl);
+      }
+    } else {
+      setCoverError(result.error);
+      toast.error(`Cover upload failed: ${result.error}`);
     }
     setUploading(false);
   }
@@ -138,6 +171,11 @@ function NewContentPage() {
 
         <Field label="Cover image">
           <input type="file" accept="image/*" onChange={(e) => handleCover(e.target.files?.[0] ?? null)} className="text-sm" />
+          {coverError && (
+            <div role="alert" className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Cover upload failed: {coverError}
+            </div>
+          )}
           {coverUrl && <img src={coverUrl} alt="" className="mt-3 h-40 w-40 rounded-md object-cover" />}
         </Field>
 
@@ -180,6 +218,27 @@ function NewContentPage() {
             {media.length > 0 && (
               <div className="text-xs text-muted-foreground">
                 {media.length} file(s) attached
+              </div>
+            )}
+            {uploadErrors.length > 0 && (
+              <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-xs text-destructive">
+                <div className="mb-1 font-semibold uppercase tracking-widest">
+                  {uploadErrors.length} file{uploadErrors.length > 1 ? "s" : ""} failed to upload
+                </div>
+                <ul className="space-y-1">
+                  {uploadErrors.map((e, i) => (
+                    <li key={i}>
+                      <span className="font-medium">{e.name}</span> ({e.type}): {e.message}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setUploadErrors([])}
+                  className="mt-2 text-[10px] uppercase tracking-widest underline"
+                >
+                  Dismiss
+                </button>
               </div>
             )}
           </div>
