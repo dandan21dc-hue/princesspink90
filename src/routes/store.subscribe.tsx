@@ -314,6 +314,8 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
                   onBuy(p.key);
                 }}
                 onAddToCart={() => {
+                  const existingPanty = cart.snapshot().find((it) => it.kind === "panty");
+                  const replacing = existingPanty && existingPanty.id !== p.key;
                   try {
                     cart.add({
                       kind: "panty",
@@ -323,7 +325,7 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
                       currency,
                     });
                     track("panty_add_to_cart", { variant: p.key, price_cents: unitCents, currency });
-                    toast.success("Added to cart");
+                    toast.success(replacing ? `Swapped for ${p.label}` : "Added to cart");
                   } catch (e) {
                     toast.error((e as Error).message);
                   }
