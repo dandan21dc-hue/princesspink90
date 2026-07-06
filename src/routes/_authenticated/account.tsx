@@ -8,6 +8,7 @@ import {
   cancelAccountDeletion,
 } from "@/lib/account.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { PerksWidget } from "@/components/PerksWidget";
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: AccountLayout,
@@ -70,6 +71,9 @@ export function AccountIndex() {
           {status?.display_name ? `Signed in as ${status.display_name}.` : "Manage your access and billing."}
         </p>
       </div>
+
+
+      <PerksWidget />
 
       <section className="rounded-lg border border-border p-5">
         <h2 className="font-display text-lg">Billing</h2>
