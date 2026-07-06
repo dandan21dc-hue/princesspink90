@@ -830,50 +830,151 @@ async function handleSetupIntentSucceeded(setupIntent: any, env: StripeEnv) {
 }
 
 
-async function handleWebhook(req: Request, env: StripeEnv) {
-  const event = await verifyWebhook(req, env);
+const HANDLED_EVENT_TYPES = new Set([
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+  "checkout.session.completed",
+  "checkout.session.async_payment_succeeded",
+  "checkout.session.async_payment_failed",
+  "invoice.payment_failed",
+  "invoice.payment_succeeded",
+  "invoice.paid",
+  "charge.refunded",
+  "charge.dispute.created",
+  "charge.dispute.closed",
+  "customer.subscription.trial_will_end",
+  "setup_intent.succeeded",
+]);
+
+async function dispatchEvent(
+  event: { type: string; data: { object: any } },
+  env: StripeEnv,
+): Promise<{ status: "succeeded" | "ignored"; note?: string }> {
   switch (event.type) {
     case "customer.subscription.created":
     case "customer.subscription.updated":
       await handleSubscriptionUpsert(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "customer.subscription.deleted":
       await handleSubscriptionDeleted(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "checkout.session.completed":
     case "checkout.session.async_payment_succeeded":
       await handleCheckoutCompleted(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "checkout.session.async_payment_failed":
       await handleAsyncPaymentFailed(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "invoice.payment_failed":
       await handleInvoicePaymentFailed(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "invoice.payment_succeeded":
     case "invoice.paid":
       await handleInvoicePaymentSucceeded(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "charge.refunded":
       await handleChargeRefunded(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "charge.dispute.created":
       await handleDisputeCreated(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "charge.dispute.closed":
       await handleDisputeClosed(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "customer.subscription.trial_will_end":
       await handleTrialWillEnd(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     case "setup_intent.succeeded":
       await handleSetupIntentSucceeded(event.data.object, env);
-      break;
+      return { status: "succeeded" };
     default:
       console.log("Unhandled event:", event.type);
+      return { status: "ignored", note: "no handler for event type" };
   }
 }
 
+/**
+ * Insert (or upsert on stripe_event_id) an audit row for this webhook.
+ * Errors here never break the webhook — we log and continue so Stripe
+ * still gets a well-formed response.
+ */
+async function logWebhookEvent(row: {
+  stripe_event_id?: string | null;
+  event_type: string;
+  environment: string;
+  status: "received" | "processing" | "succeeded" | "failed" | "ignored";
+  error_message?: string | null;
+  raw_payload: any;
+  processing_ms?: number | null;
+  processed_at?: string | null;
+}): Promise<string | null> {
+  try {
+    if (row.stripe_event_id) {
+      const { data, error } = await (getSupabase() as any)
+        .from("stripe_webhook_events")
+        .upsert(
+          {
+            stripe_event_id: row.stripe_event_id,
+            event_type: row.event_type,
+            environment: row.environment,
+            status: row.status,
+            error_message: row.error_message ?? null,
+            raw_payload: row.raw_payload,
+            processing_ms: row.processing_ms ?? null,
+            processed_at: row.processed_at ?? null,
+          },
+          { onConflict: "stripe_event_id,environment" },
+        )
+        .select("id")
+        .maybeSingle();
+      if (error) throw error;
+      return data?.id ?? null;
+    }
+    const { data, error } = await (getSupabase() as any)
+      .from("stripe_webhook_events")
+      .insert({
+        stripe_event_id: null,
+        event_type: row.event_type,
+        environment: row.environment,
+        status: row.status,
+        error_message: row.error_message ?? null,
+        raw_payload: row.raw_payload,
+        processing_ms: row.processing_ms ?? null,
+        processed_at: row.processed_at ?? null,
+      })
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    return data?.id ?? null;
+  } catch (e) {
+    console.error("stripe_webhook_events log failed:", e);
+    return null;
+  }
+}
+
+async function updateWebhookEvent(
+  id: string,
+  patch: {
+    status: "succeeded" | "failed" | "ignored";
+    error_message?: string | null;
+    processing_ms: number;
+  },
+) {
+  try {
+    await (getSupabase() as any)
+      .from("stripe_webhook_events")
+      .update({
+        status: patch.status,
+        error_message: patch.error_message ?? null,
+        processing_ms: patch.processing_ms,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+  } catch (e) {
+    console.error("stripe_webhook_events update failed:", e);
+  }
+}
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {
@@ -884,11 +985,85 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           console.error("Webhook: invalid env", rawEnv);
           return Response.json({ received: true, ignored: "invalid env" });
         }
+        const env: StripeEnv = rawEnv;
+        const signature = request.headers.get("stripe-signature");
+        const body = await request.text();
+
+        // Attempt to peek at type/id even before verification so a failed
+        // signature check still produces a useful audit row.
+        let peekedType = "unknown";
+        let peekedId: string | null = null;
+        let peekedPayload: any = { unverified_raw: body.slice(0, 20000) };
         try {
-          await handleWebhook(request, rawEnv as StripeEnv);
+          const parsed = JSON.parse(body);
+          if (parsed && typeof parsed === "object") {
+            peekedType = typeof parsed.type === "string" ? parsed.type : "unknown";
+            peekedId = typeof parsed.id === "string" ? parsed.id : null;
+            peekedPayload = parsed;
+          }
+        } catch {
+          /* body isn't JSON — keep raw text preview */
+        }
+
+        let event: { id?: string; type: string; data: { object: any } };
+        try {
+          event = await verifyWebhookBody(body, signature, env);
+        } catch (verifyErr) {
+          const msg =
+            verifyErr instanceof Error ? verifyErr.message : "verify failed";
+          await logWebhookEvent({
+            stripe_event_id: peekedId,
+            event_type: peekedType,
+            environment: env,
+            status: "failed",
+            error_message: `Signature verification failed: ${msg}`,
+            raw_payload: peekedPayload,
+            processing_ms: 0,
+            processed_at: new Date().toISOString(),
+          });
+          console.error("Webhook verify error:", verifyErr);
+          return new Response("Webhook error", { status: 400 });
+        }
+
+        const startedAt = Date.now();
+        const initialStatus: "processing" | "ignored" = HANDLED_EVENT_TYPES.has(
+          event.type,
+        )
+          ? "processing"
+          : "ignored";
+        const rowId = await logWebhookEvent({
+          stripe_event_id: event.id ?? null,
+          event_type: event.type,
+          environment: env,
+          status: initialStatus,
+          raw_payload: event,
+          processing_ms: initialStatus === "ignored" ? 0 : null,
+          processed_at:
+            initialStatus === "ignored" ? new Date().toISOString() : null,
+          error_message:
+            initialStatus === "ignored" ? "no handler for event type" : null,
+        });
+
+        try {
+          const result = await dispatchEvent(event, env);
+          if (rowId && initialStatus === "processing") {
+            await updateWebhookEvent(rowId, {
+              status: result.status,
+              error_message: result.note ?? null,
+              processing_ms: Date.now() - startedAt,
+            });
+          }
           return Response.json({ received: true });
         } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
           console.error("Webhook error:", e);
+          if (rowId) {
+            await updateWebhookEvent(rowId, {
+              status: "failed",
+              error_message: msg,
+              processing_ms: Date.now() - startedAt,
+            });
+          }
           return new Response("Webhook error", { status: 400 });
         }
       },
