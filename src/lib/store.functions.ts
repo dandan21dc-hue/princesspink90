@@ -169,6 +169,53 @@ async function assertPantyAccess(
   }
 }
 
+// ---------- Subscriber discount (Panty Drawer) ----------
+//
+// Active subscribers/members already gate through assertPantyAccess to buy
+// panties at all. As a thank-you, every panty checkout gets a persistent
+// 15% Stripe coupon applied. The coupon is created once per Stripe
+// environment on first use (idempotent by id) and re-used forever after.
+
+export const SUBSCRIBER_DISCOUNT_PERCENT = 15;
+const SUBSCRIBER_COUPON_ID = "subscriber_pantry_15";
+
+async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
+  try {
+    await stripe.coupons.retrieve(SUBSCRIBER_COUPON_ID);
+  } catch (err: unknown) {
+    const code = (err as { code?: string; statusCode?: number } | null)?.code
+      ?? (err as { raw?: { code?: string } } | null)?.raw?.code;
+    const status = (err as { statusCode?: number } | null)?.statusCode;
+    if (code === "resource_missing" || status === 404) {
+      await stripe.coupons.create({
+        id: SUBSCRIBER_COUPON_ID,
+        percent_off: SUBSCRIBER_DISCOUNT_PERCENT,
+        duration: "forever",
+        name: `Subscriber ${SUBSCRIBER_DISCOUNT_PERCENT}% off (Panty Drawer)`,
+      });
+    } else {
+      throw err;
+    }
+  }
+  return SUBSCRIBER_COUPON_ID;
+}
+
+/**
+ * Non-throwing subscriber check for UI use (mirrors assertPantyAccess).
+ */
+export const getSubscriberStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { environment: StripeEnv }) => data)
+  .handler(async ({ data, context }) => {
+    try {
+      await assertPantyAccess(context.supabase, context.userId, data.environment);
+      return { isSubscriber: true, discountPercent: SUBSCRIBER_DISCOUNT_PERCENT };
+    } catch {
+      return { isSubscriber: false, discountPercent: 0 };
+    }
+  });
+
+
 
 
 export const createStoreCheckoutSession = createServerFn({ method: "POST" })
@@ -317,6 +364,9 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
                 },
               },
             ],
+            // Every panty checkout is gated to active subscribers/members,
+            // so unconditionally apply the subscriber thank-you discount.
+            discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
           }),
           metadata: {
             ...(data.userId && { userId: data.userId }),
@@ -614,6 +664,9 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
               },
             },
           ],
+          // Panty items in the cart are gated to subscribers; apply the
+          // subscriber thank-you discount to the whole order.
+          discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
         }),
         metadata: {
           userId,
