@@ -180,6 +180,12 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     return;
   }
 
+  // Multi-item cart order: fan out into content_purchases + panty_orders.
+  if (session.metadata?.cart_mode === "1") {
+    await handleCartSession(session, env);
+    return;
+  }
+
   // Private room booking — confirm the pre-created pending booking.
   if (session.metadata?.booking === "private_room") {
     const bookingId = session.metadata?.private_room_booking_id;
