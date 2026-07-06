@@ -303,6 +303,7 @@ export type Database = {
           cover_url: string | null
           created_at: string
           creator_id: string
+          currency: string
           description: string | null
           id: string
           kind: string
@@ -317,6 +318,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           creator_id: string
+          currency?: string
           description?: string | null
           id?: string
           kind: string
@@ -331,6 +333,7 @@ export type Database = {
           cover_url?: string | null
           created_at?: string
           creator_id?: string
+          currency?: string
           description?: string | null
           id?: string
           kind?: string
@@ -1063,17 +1066,23 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          deleted_at: string | null
           display_name: string | null
+          pending_deletion_at: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
+          pending_deletion_at?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           display_name?: string | null
+          pending_deletion_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1728,6 +1737,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_accounts_to_purge: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
@@ -1737,6 +1752,7 @@ export type Database = {
         }
         Returns: number
       }
+      purge_account_rows: { Args: { _user_id: string }; Returns: undefined }
       purge_expired_health_screenings: { Args: never; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

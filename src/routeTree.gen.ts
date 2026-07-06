@@ -31,6 +31,8 @@ import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedCohostApplyRouteImport } from './routes/_authenticated/cohost-apply'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
@@ -51,6 +53,7 @@ import { Route as AuthenticatedAdminEmailDeliveryRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
+import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -62,6 +65,7 @@ import { Route as ApiPublicHooksPreviewReminderEmailRouteImport } from './routes
 import { Route as ApiPublicHooksPreviewPortalLinkRouteImport } from './routes/api/public/hooks/preview-portal-link'
 import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './routes/api/public/hooks/health-screening-reminders'
 import { Route as ApiPublicHooksCronHealthCheckRouteImport } from './routes/api/public/hooks/cron-health-check'
+import { Route as ApiPublicCronPurgeDeletedAccountsRouteImport } from './routes/api/public/cron/purge-deleted-accounts'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
@@ -176,6 +180,17 @@ const AuthenticatedCohostApplyRoute =
     id: '/cohost-apply',
     path: '/cohost-apply',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAccountIndexRoute =
+  AuthenticatedAccountIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAccountRoute,
   } as any)
 const AuthenticatedEventsNewRoute = AuthenticatedEventsNewRouteImport.update({
   id: '/events/new',
@@ -295,6 +310,12 @@ const AuthenticatedAdminCohostsRoute =
     path: '/admin/cohosts',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAccountBillingRoute =
+  AuthenticatedAccountBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedAccountRoute,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -359,6 +380,12 @@ const ApiPublicHooksCronHealthCheckRoute =
     path: '/api/public/hooks/cron-health-check',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronPurgeDeletedAccountsRoute =
+  ApiPublicCronPurgeDeletedAccountsRouteImport.update({
+    id: '/api/public/cron/purge-deleted-accounts',
+    path: '/api/public/cron/purge-deleted-accounts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedEventsIdWaiversRoute =
   AuthenticatedEventsIdWaiversRouteImport.update({
     id: '/events/$id/waivers',
@@ -394,6 +421,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/unlock': typeof UnlockRoute
+  '/account': typeof AuthenticatedAccountRouteWithChildren
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -406,6 +434,7 @@ export interface FileRoutesByFullPath {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
+  '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
@@ -426,9 +455,11 @@ export interface FileRoutesByFullPath {
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/account/': typeof AuthenticatedAccountIndexRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -464,6 +495,7 @@ export interface FileRoutesByTo {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
+  '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
@@ -484,9 +516,11 @@ export interface FileRoutesByTo {
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/account': typeof AuthenticatedAccountIndexRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -512,6 +546,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/unlock': typeof UnlockRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/_authenticated/content': typeof AuthenticatedContentRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -524,6 +559,7 @@ export interface FileRoutesById {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
+  '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
@@ -544,9 +580,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
+  '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -572,6 +610,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/store'
     | '/unlock'
+    | '/account'
     | '/cohost-apply'
     | '/content'
     | '/dashboard'
@@ -584,6 +623,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
+    | '/account/billing'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
@@ -604,9 +644,11 @@ export interface FileRouteTypes {
     | '/admin/verifications'
     | '/content/new'
     | '/events/new'
+    | '/account/'
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
+    | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -642,6 +684,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
+    | '/account/billing'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
@@ -662,9 +705,11 @@ export interface FileRouteTypes {
     | '/admin/verifications'
     | '/content/new'
     | '/events/new'
+    | '/account'
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
+    | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -689,6 +734,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/store'
     | '/unlock'
+    | '/_authenticated/account'
     | '/_authenticated/cohost-apply'
     | '/_authenticated/content'
     | '/_authenticated/dashboard'
@@ -701,6 +747,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
+    | '/_authenticated/account/billing'
     | '/_authenticated/admin/cohosts'
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
@@ -721,9 +768,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/verifications'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
+    | '/_authenticated/account/'
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
     | '/_authenticated/events/$id/waivers'
+    | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -752,6 +801,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EventsIdRoute: typeof EventsIdRoute
+  ApiPublicCronPurgeDeletedAccountsRoute: typeof ApiPublicCronPurgeDeletedAccountsRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
   ApiPublicHooksPreviewPortalLinkRoute: typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -921,6 +971,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCohostApplyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/account/': {
+      id: '/_authenticated/account/'
+      path: '/'
+      fullPath: '/account/'
+      preLoaderRoute: typeof AuthenticatedAccountIndexRouteImport
+      parentRoute: typeof AuthenticatedAccountRoute
+    }
     '/_authenticated/events/new': {
       id: '/_authenticated/events/new'
       path: '/events/new'
@@ -1061,6 +1125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCohostsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/account/billing': {
+      id: '/_authenticated/account/billing'
+      path: '/billing'
+      fullPath: '/account/billing'
+      preLoaderRoute: typeof AuthenticatedAccountBillingRouteImport
+      parentRoute: typeof AuthenticatedAccountRoute
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -1138,6 +1209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCronHealthCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/purge-deleted-accounts': {
+      id: '/api/public/cron/purge-deleted-accounts'
+      path: '/api/public/cron/purge-deleted-accounts'
+      fullPath: '/api/public/cron/purge-deleted-accounts'
+      preLoaderRoute: typeof ApiPublicCronPurgeDeletedAccountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/events/$id/waivers': {
       id: '/_authenticated/events/$id/waivers'
       path: '/events/$id/waivers'
@@ -1169,6 +1247,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedAccountRouteChildren {
+  AuthenticatedAccountBillingRoute: typeof AuthenticatedAccountBillingRoute
+  AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
+}
+
+const AuthenticatedAccountRouteChildren: AuthenticatedAccountRouteChildren = {
+  AuthenticatedAccountBillingRoute: AuthenticatedAccountBillingRoute,
+  AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
+}
+
+const AuthenticatedAccountRouteWithChildren =
+  AuthenticatedAccountRoute._addFileChildren(AuthenticatedAccountRouteChildren)
+
 interface AuthenticatedContentRouteChildren {
   AuthenticatedContentNewRoute: typeof AuthenticatedContentNewRoute
 }
@@ -1196,6 +1287,7 @@ const AuthenticatedEventsIdCheckinRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRouteWithChildren
   AuthenticatedCohostApplyRoute: typeof AuthenticatedCohostApplyRoute
   AuthenticatedContentRoute: typeof AuthenticatedContentRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -1227,6 +1319,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRouteWithChildren,
   AuthenticatedCohostApplyRoute: AuthenticatedCohostApplyRoute,
   AuthenticatedContentRoute: AuthenticatedContentRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
@@ -1297,6 +1390,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EventsIdRoute: EventsIdRoute,
+  ApiPublicCronPurgeDeletedAccountsRoute:
+    ApiPublicCronPurgeDeletedAccountsRoute,
   ApiPublicHooksCronHealthCheckRoute: ApiPublicHooksCronHealthCheckRoute,
   ApiPublicHooksHealthScreeningRemindersRoute:
     ApiPublicHooksHealthScreeningRemindersRoute,

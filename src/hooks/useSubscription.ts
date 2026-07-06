@@ -5,6 +5,7 @@ import { getStripeEnvironment } from "@/lib/stripe";
 export interface SubscriptionState {
   loading: boolean;
   isActive: boolean;
+  isPastDue: boolean;
   subscription: {
     status: string;
     current_period_end: string | null;
@@ -16,13 +17,14 @@ export function useSubscription(userId: string | null | undefined): Subscription
   const [state, setState] = useState<SubscriptionState>({
     loading: true,
     isActive: false,
+    isPastDue: false,
     subscription: null,
   });
 
   useEffect(() => {
     let cancelled = false;
     if (!userId) {
-      setState({ loading: false, isActive: false, subscription: null });
+      setState({ loading: false, isActive: false, isPastDue: false, subscription: null });
       return;
     }
     const env = getStripeEnvironment();
@@ -43,7 +45,8 @@ export function useSubscription(userId: string | null | undefined): Subscription
         (["active", "trialing", "past_due"].includes(data.status) && (!periodEnd || periodEnd > now))
         || (data.status === "canceled" && !!periodEnd && periodEnd > now)
       );
-      setState({ loading: false, isActive, subscription: data ?? null });
+      const isPastDue = data?.status === "past_due";
+      setState({ loading: false, isActive, isPastDue, subscription: data ?? null });
     }
     fetchIt();
 

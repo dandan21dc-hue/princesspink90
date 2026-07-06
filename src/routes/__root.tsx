@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AgeGate } from "@/components/AgeGate";
 import { SiteHeader } from "@/components/SiteHeader";
+import { AccountBanners } from "@/components/AccountBanners";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -134,6 +135,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-noir">
+        <AccountBanners />
         <SiteHeader />
         <Outlet />
         <footer className="border-t border-border/50 mt-24 py-10 text-center text-xs text-muted-foreground">

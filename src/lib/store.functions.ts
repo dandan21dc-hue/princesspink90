@@ -5,6 +5,8 @@ import {
   createStripeClient,
   getStripeErrorMessage,
 } from "@/lib/stripe.server";
+import { TAX_CODES, isEligibleForManagedPayments } from "@/lib/stripe-tax-codes";
+import type Stripe from "stripe";
 
 type CheckoutResult = { clientSecret: string } | { error: string };
 
@@ -19,7 +21,7 @@ export const listStoreItems = createServerFn({ method: "GET" }).handler(async ()
   );
   const { data, error } = await supabase
     .from("content_items")
-    .select("id,kind,title,description,cover_url,price_cents,subscribers_only,created_at")
+    .select("id,kind,title,description,cover_url,price_cents,currency,subscribers_only,created_at")
     .eq("published", true)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -37,7 +39,7 @@ export const getStoreItem = createServerFn({ method: "GET" })
     );
     const { data: row, error } = await supabase
       .from("content_items")
-      .select("id,kind,title,description,cover_url,price_cents,subscribers_only,created_at")
+      .select("id,kind,title,description,cover_url,price_cents,currency,subscribers_only,created_at")
       .eq("id", data.id)
       .eq("published", true)
       .maybeSingle();
@@ -101,27 +103,12 @@ async function resolveOrCreateCustomer(
   return created.id;
 }
 
-/**
- * Ensure the checkout `return_url` carries Stripe's `{CHECKOUT_SESSION_ID}`
- * template so the user is bounced back with a resolvable session id.
- *
- * Rules enforced:
- *  - Must be an absolute URL (Stripe rejects relative return_urls).
- *  - `session_id={CHECKOUT_SESSION_ID}` is appended when missing.
- *  - The literal `{` and `}` are preserved (the URL API percent-encodes
- *    them, so we append via string concatenation rather than
- *    `URLSearchParams`, otherwise Stripe would receive `%7B...%7D` and
- *    skip substitution — leaving `session_id` literally equal to the
- *    template string).
- *  - Idempotent: calling twice does not double-append.
- */
 export function ensureSessionIdInReturnUrl(rawUrl: string): string {
-  const parsed = new URL(rawUrl); // throws on relative / invalid
+  const parsed = new URL(rawUrl);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error("returnUrl must be http(s)");
   }
   if (rawUrl.includes("{CHECKOUT_SESSION_ID}")) return rawUrl;
-  // Preserve any existing query/hash; append the template literally.
   const [beforeHash, hash = ""] = rawUrl.split("#");
   const sep = beforeHash.includes("?") ? "&" : "?";
   const withTemplate = `${beforeHash}${sep}session_id={CHECKOUT_SESSION_ID}`;
@@ -139,7 +126,8 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       userId?: string;
       returnUrl: string;
       environment: StripeEnv;
-      bookingStartsAt?: string; // ISO timestamp for private-room bookings
+      bookingStartsAt?: string;
+      customerCountry?: string;
     }) => {
       if (!data.priceId && !data.contentItemId) throw new Error("priceId or contentItemId required");
       if (data.priceId && !/^[a-zA-Z0-9_-]+$/.test(data.priceId)) throw new Error("Invalid priceId");
@@ -147,7 +135,6 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       return data;
     },
   )
-
   .handler(async ({ data, context }): Promise<CheckoutResult> => {
     try {
       // SECURITY: never trust client-supplied userId. Bind checkout to the
@@ -163,21 +150,22 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             })
           : undefined;
 
+      const customerCountry = (data.customerCountry ?? "").toUpperCase() || undefined;
 
-      // Subscription checkout via priceId
+      // Subscription / lookup-key checkout
       if (data.priceId) {
         const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
         if (!prices.data.length) throw new Error("Price not found");
         const stripePrice = prices.data[0];
         const isRecurring = stripePrice.type === "recurring";
 
-        let productDescription: string | undefined;
-        if (!isRecurring) {
-          const productId =
-            typeof stripePrice.product === "string" ? stripePrice.product : stripePrice.product.id;
-          const product = await stripe.products.retrieve(productId);
-          productDescription = product.name;
-        }
+        // Retrieve product so we can (a) description one-time payments and
+        // (b) ensure the product carries the correct tax code for tax
+        // calculation / managed_payments eligibility.
+        const productId =
+          typeof stripePrice.product === "string" ? stripePrice.product : stripePrice.product.id;
+        const product = await stripe.products.retrieve(productId);
+        const productDescription = product.name;
 
         const isLifetime = data.priceId === "lifetime_onetime_aud" || data.priceId === "lifetime_onetime";
         const termPassMatch = /^all_access_(3|6|12)mo_onetime(?:_aud)?$/.exec(data.priceId);
@@ -186,8 +174,24 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const privateRoomMatch = /^private_room_(30|60)min_aud$/.exec(data.priceId);
         const privateRoomMinutes = privateRoomMatch ? Number(privateRoomMatch[1]) : null;
 
-        // Private room: create a pending booking BEFORE checkout so the slot is
-        // held. Verify no overlap with confirmed or recent-pending bookings.
+        // Ensure the product has the right tax code so Stripe classifies the
+        // sale correctly (idempotent — updating with the same value is fine).
+        const desiredTaxCode = isPanty
+          ? TAX_CODES.physical_goods
+          : privateRoomMinutes
+            ? TAX_CODES.services
+            : TAX_CODES.saas;
+        if (product.tax_code !== desiredTaxCode) {
+          try {
+            await stripe.products.update(productId, { tax_code: desiredTaxCode });
+          } catch (err) {
+            console.warn("Could not set product tax_code:", err);
+          }
+        }
+
+        // Private room: create a pending booking BEFORE checkout so the slot
+        // is held. Verify no overlap. Amount now comes from Stripe (source
+        // of truth) instead of a hardcoded switch.
         let privateRoomBookingId: string | null = null;
         if (privateRoomMinutes) {
           if (!data.userId) throw new Error("Sign in required to book the private room");
@@ -213,8 +217,8 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
               starts_at: startsAt.toISOString(),
               duration_minutes: privateRoomMinutes,
               status: "pending",
-              amount_cents: privateRoomMinutes === 30 ? 15000 : 27500,
-              currency: "aud",
+              amount_cents: stripePrice.unit_amount ?? 0,
+              currency: (stripePrice.currency ?? "aud").toLowerCase(),
               environment: env,
               customer_email: data.customerEmail ?? null,
             })
@@ -224,14 +228,19 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           privateRoomBookingId = booking.id as string;
         }
 
+        // Full tax compliance: use managed_payments for digital SKUs; panty
+        // orders fall back to automatic_tax so tax is still calculated.
+        const useManagedPayments = isEligibleForManagedPayments(data.priceId);
 
-        const session = await stripe.checkout.sessions.create({
+        const baseParams: Stripe.Checkout.SessionCreateParams = {
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
           ui_mode: "embedded_page",
           return_url: ensureSessionIdInReturnUrl(data.returnUrl),
           ...(customerId && { customer: customerId }),
-          ...(!isRecurring && { payment_intent_data: { description: productDescription } }),
+          ...(!isRecurring && !useManagedPayments && {
+            payment_intent_data: { description: productDescription },
+          }),
           ...(isPanty && {
             shipping_address_collection: { allowed_countries: ["AU"] },
             shipping_options: [
@@ -244,20 +253,30 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
               },
             ],
           }),
-          ...(data.userId && {
-            metadata: {
-              userId: data.userId,
-              ...(isLifetime && { membership: "lifetime" }),
-              ...(termMonths && { membership: "term_pass", term_months: String(termMonths) }),
-              ...(isPanty && { panty_order: data.priceId }),
-              ...(privateRoomBookingId && {
-                booking: "private_room",
-                private_room_booking_id: privateRoomBookingId,
-              }),
-            },
-            ...(isRecurring && { subscription_data: { metadata: { userId: data.userId } } }),
+          metadata: {
+            ...(data.userId && { userId: data.userId }),
+            ...(isLifetime && { membership: "lifetime" }),
+            ...(termMonths && { membership: "term_pass", term_months: String(termMonths) }),
+            ...(isPanty && { panty_order: data.priceId }),
+            ...(privateRoomBookingId && {
+              booking: "private_room",
+              private_room_booking_id: privateRoomBookingId,
+            }),
+            managed_payments: useManagedPayments ? "true" : "false",
+            ...(customerCountry && { customer_country: customerCountry }),
+          },
+          ...(isRecurring && data.userId && {
+            subscription_data: { metadata: { userId: data.userId } },
           }),
-        });
+        };
+
+        // Attach the tax handling that matches our compliance decision.
+        // managed_payments is dahlia-preview and not in the SDK types yet.
+        const paramsWithTax = useManagedPayments
+          ? ({ ...baseParams, managed_payments: { enabled: true } } as unknown as Stripe.Checkout.SessionCreateParams)
+          : { ...baseParams, automatic_tax: { enabled: true } };
+
+        const session = await stripe.checkout.sessions.create(paramsWithTax);
 
         // Save Stripe session id on the pending booking so the webhook can confirm it.
         if (privateRoomBookingId) {
@@ -269,12 +288,10 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         }
 
         return { clientSecret: session.client_secret ?? "" };
-
-
-
       }
 
-      // One-time item checkout via contentItemId + dynamic price_data
+      // One-time item checkout via contentItemId + dynamic price_data.
+      // Currency is read from the item, not hardcoded.
       const { createClient } = await import("@supabase/supabase-js");
       const supabase = createClient(
         process.env.SUPABASE_URL!,
@@ -283,7 +300,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       );
       const { data: item, error } = await supabase
         .from("content_items")
-        .select("id,title,description,price_cents,published")
+        .select("id,title,description,price_cents,currency,published")
         .eq("id", data.contentItemId!)
         .eq("published", true)
         .maybeSingle();
@@ -291,14 +308,17 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       if (!item) throw new Error("Item not found");
       if (!item.price_cents || item.price_cents < 50) throw new Error("Item is not for individual sale");
 
-      const session = await stripe.checkout.sessions.create({
+      const itemCurrency = (item.currency ?? "aud").toLowerCase();
+
+      const contentParams: Stripe.Checkout.SessionCreateParams = {
         line_items: [
           {
             price_data: {
-              currency: "usd",
+              currency: itemCurrency,
               product_data: {
                 name: item.title,
                 ...(item.description && { description: item.description.slice(0, 500) }),
+                tax_code: TAX_CODES.digital_goods,
               },
               unit_amount: item.price_cents,
             },
@@ -309,12 +329,20 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         ui_mode: "embedded_page",
         return_url: ensureSessionIdInReturnUrl(data.returnUrl),
         ...(customerId && { customer: customerId }),
-        payment_intent_data: { description: item.title },
         metadata: {
           ...(data.userId && { userId: data.userId }),
           content_item_id: item.id,
+          managed_payments: "true",
+          ...(customerCountry && { customer_country: customerCountry }),
         },
-      });
+      };
+
+      const paramsWithManaged = {
+        ...contentParams,
+        managed_payments: { enabled: true },
+      } as unknown as Stripe.Checkout.SessionCreateParams;
+
+      const session = await stripe.checkout.sessions.create(paramsWithManaged);
       return { clientSecret: session.client_secret ?? "" };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
@@ -328,7 +356,6 @@ export const getMyLibrary = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const env = process.env.NODE_ENV === "production" ? "live" : "sandbox";
-    // Determine subscription
     const { data: sub } = await supabase
       .from("subscriptions")
       .select("status,current_period_end")
@@ -344,7 +371,6 @@ export const getMyLibrary = createServerFn({ method: "GET" })
       || (sub.status === "canceled" && !!periodEnd && periodEnd > now)
     );
 
-    // Lifetime or active term-pass memberships also unlock the library
     const { data: memberships } = await supabase
       .from("memberships")
       .select("kind,expires_at")
@@ -360,7 +386,6 @@ export const getMyLibrary = createServerFn({ method: "GET" })
 
     const hasSubscription = hasRecurring || hasMembershipAccess;
 
-
     const { data: purchases } = await supabase
       .from("content_purchases")
       .select("content_item_id,created_at")
@@ -368,16 +393,17 @@ export const getMyLibrary = createServerFn({ method: "GET" })
       .eq("environment", env);
     const purchasedIds = new Set((purchases ?? []).map((p) => p.content_item_id));
 
-    // If subscribed, unlock all published items; else only purchased ones
     const query = supabase
       .from("content_items")
-      .select("id,kind,title,description,cover_url,media_urls,subscribers_only,price_cents,created_at")
+      .select("id,kind,title,description,cover_url,media_urls,subscribers_only,price_cents,currency,created_at")
       .eq("published", true)
       .order("created_at", { ascending: false });
     const { data: allItems } = await query;
 
+    // Simplified: subscribers see everything; non-subscribers see items
+    // they've bought individually.
     const unlocked = (allItems ?? []).filter(
-      (item) => hasSubscription || purchasedIds.has(item.id) || item.subscribers_only === false && purchasedIds.has(item.id),
+      (item) => hasSubscription || purchasedIds.has(item.id),
     );
 
     return { hasSubscription, items: unlocked };
@@ -394,12 +420,14 @@ export const createContentItem = createServerFn({ method: "POST" })
       description?: string;
       cover_url?: string;
       price_cents?: number | null;
+      currency?: "aud" | "usd";
       subscribers_only?: boolean;
       media_urls?: Array<{ url: string; type: "image" | "video" }>;
       published?: boolean;
     }) => {
       if (!data.title.trim() || data.title.length > 160) throw new Error("Title required (max 160 chars)");
       if (data.price_cents != null && (data.price_cents < 0 || data.price_cents > 1_000_00)) throw new Error("Price out of range");
+      if (data.currency && !["aud", "usd"].includes(data.currency)) throw new Error("Currency must be AUD or USD");
       return data;
     },
   )
@@ -414,10 +442,11 @@ export const createContentItem = createServerFn({ method: "POST" })
         description: data.description?.trim() || null,
         cover_url: data.cover_url || null,
         price_cents: data.price_cents ?? null,
+        currency: data.currency ?? "aud",
         subscribers_only: data.subscribers_only ?? false,
         media_urls: (data.media_urls ?? []) as any,
         published: data.published ?? true,
-      })
+      } as any)
       .select("id")
       .single();
     if (error) throw new Error(error.message);
@@ -430,7 +459,7 @@ export const listMyContent = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("content_items")
-      .select("id,kind,title,price_cents,subscribers_only,published,created_at")
+      .select("id,kind,title,price_cents,currency,subscribers_only,published,created_at")
       .eq("creator_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -451,69 +480,51 @@ export const deleteContentItem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
-// Generate a signed URL for a media path (bucket: content-media)
+// Signed URL for owned or accessible media
 export const signMediaUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { path: string; contentItemId: string }) => data)
+  .inputValidator((data: { itemId: string; path: string }) => data)
   .handler(async ({ data, context }) => {
-    const { userId } = context;
+    const { supabase, userId } = context;
     const env = process.env.NODE_ENV === "production" ? "live" : "sandbox";
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    // Check access
-    const { data: allowed } = await supabaseAdmin.rpc("user_can_access_content", {
+    const { data: allowed } = await supabase.rpc("user_can_access_content", {
       _user_id: userId,
-      _content_id: data.contentItemId,
+      _content_id: data.itemId,
       _env: env,
     });
-    if (!allowed) throw new Error("Not entitled to this content");
-
+    if (!allowed) throw new Error("Not allowed");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: signed, error } = await supabaseAdmin.storage
       .from("content-media")
-      .createSignedUrl(data.path, 60 * 60);
-    if (error) throw new Error(error.message);
+      .createSignedUrl(data.path, 60 * 10);
+    if (error || !signed) throw new Error(error?.message ?? "Sign failed");
     return { url: signed.signedUrl };
   });
 
 /**
- * Verify a completed checkout session on return. Called by the
- * `/checkout/return` route with the `session_id` Stripe substitutes into
- * `return_url`. Returns a compact, safe subset of the Stripe session so
- * the client can route the user based on what they bought without exposing
- * unrelated PII.
+ * Fetch a Checkout Session from Stripe by id, scoped to the signed-in user
+ * via the metadata.userId stamp. Used by the /checkout/return landing page
+ * to confirm status and route the user to the right destination.
  */
-export const getCheckoutSession = createServerFn({ method: "GET" })
+export const getCheckoutSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: { sessionId: string; environment: StripeEnv }) => {
-    if (!/^cs_(test_|live_)?[a-zA-Z0-9]+$/.test(data.sessionId)) {
-      throw new Error("Invalid sessionId");
-    }
-    if (data.environment !== "sandbox" && data.environment !== "live") {
-      throw new Error("Invalid environment");
-    }
+    if (!/^cs_[a-zA-Z0-9_]+$/.test(data.sessionId)) throw new Error("Invalid session id");
     return data;
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }): Promise<
+    | { status: string | null; metadata: Record<string, string> | null }
+    | { error: string }
+  > => {
     try {
       const stripe = createStripeClient(data.environment);
       const session = await stripe.checkout.sessions.retrieve(data.sessionId);
-      const meta = session.metadata ?? {};
-      return {
-        id: session.id,
-        status: session.status, // 'open' | 'complete' | 'expired'
-        paymentStatus: session.payment_status, // 'paid' | 'unpaid' | 'no_payment_required'
-        mode: session.mode,
-        amountTotal: session.amount_total,
-        currency: session.currency,
-        customerEmail: session.customer_details?.email ?? null,
-        metadata: {
-          userId: meta.userId ?? null,
-          membership: meta.membership ?? null,
-          term_months: meta.term_months ?? null,
-          content_item_id: meta.content_item_id ?? null,
-          booking: meta.booking ?? null,
-          private_room_booking_id: meta.private_room_booking_id ?? null,
-        },
-      };
+      const metadata = (session.metadata ?? {}) as Record<string, string>;
+      // Security: only expose the session to its owner.
+      if (metadata.userId && metadata.userId !== context.userId) {
+        throw new Error("Not allowed");
+      }
+      return { status: session.status ?? null, metadata };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }
