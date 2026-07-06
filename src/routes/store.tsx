@@ -161,7 +161,7 @@ function AllAccessCard() {
               cadence: p.cadence,
               owned,
               superseded_by_lifetime: supersededByLifetime,
-              current_plan: currentLabel,
+              current_plan: currentLabel ?? "none",
             };
 
             return (
