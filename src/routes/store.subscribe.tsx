@@ -223,31 +223,39 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <PassCard
-            label="24 Hours Worn"
-            price={priceLabel(prices, "panty_24hr_aud", "A$60")}
-            cadence="+ shipping"
-            perks={["Worn 24 hours", "Sealed pouch", "Signed thank-you note"]}
-            cta="Buy 24hr"
-            onClick={() => onBuy("panty_24hr_aud")}
-          />
-          <PassCard
-            label="48 Hours Worn"
-            price={priceLabel(prices, "panty_48hr_aud", "A$90")}
-            cadence="+ shipping"
-            perks={["Worn 48 hours", "Sealed pouch", "Signed thank-you note"]}
-            cta="Buy 48hr"
-            onClick={() => onBuy("panty_48hr_aud")}
-          />
-          <PassCard
-            label="72 Hours Worn"
-            price={priceLabel(prices, "panty_72hr_aud", "A$120")}
-            cadence="+ shipping"
-            highlight="Popular"
-            perks={["Worn 72 hours", "Sealed pouch", "Handwritten note + polaroid"]}
-            cta="Buy 72hr"
-            onClick={() => onBuy("panty_72hr_aud")}
-          />
+          {(
+            [
+              { key: "panty_24hr_aud", label: "24 Hours Worn", fallbackCents: 6000, perks: ["Worn 24 hours", "Sealed pouch", "Signed thank-you note"], cta: "Buy 24hr", highlight: undefined as string | undefined },
+              { key: "panty_48hr_aud", label: "48 Hours Worn", fallbackCents: 9000, perks: ["Worn 48 hours", "Sealed pouch", "Signed thank-you note"], cta: "Buy 48hr", highlight: undefined as string | undefined },
+              { key: "panty_72hr_aud", label: "72 Hours Worn", fallbackCents: 12000, perks: ["Worn 72 hours", "Sealed pouch", "Handwritten note + polaroid"], cta: "Buy 72hr", highlight: "Popular" as string | undefined },
+            ] as const
+          ).map((p) => {
+            const priceObj = prices[p.key];
+            const unitCents = priceObj?.unit_amount ?? p.fallbackCents;
+            const currency = (priceObj?.currency ?? "aud").toLowerCase();
+            return (
+              <PassCard
+                key={p.key}
+                label={p.label}
+                price={priceLabel(prices, p.key, `A$${(p.fallbackCents / 100).toFixed(0)}`)}
+                cadence="+ shipping"
+                highlight={p.highlight}
+                perks={[...p.perks]}
+                cta={p.cta}
+                onClick={() => onBuy(p.key)}
+                onAddToCart={() => {
+                  cart.add({
+                    kind: "panty",
+                    id: p.key,
+                    title: `${p.label} panty`,
+                    unit_amount_cents: unitCents,
+                    currency,
+                  });
+                  toast.success("Added to cart");
+                }}
+              />
+            );
+          })}
           <div className="relative flex flex-col rounded-2xl border border-dashed border-primary/40 bg-background/40 p-6">
             <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
               Custom Order
