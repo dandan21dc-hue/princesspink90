@@ -1,0 +1,12 @@
+{
+  "$schema": "./lint-baseline.schema.md",
+  "description": "Fingerprints of Supabase database-linter findings that are known and accepted. CI (scripts/supabase-security-lint.mjs) fails on any WARN/ERROR finding whose fingerprint is not present here. Regenerate with `node scripts/supabase-security-lint.mjs --update-baseline` and commit the diff via PR.",
+  "findings": [
+    {
+      "fingerprint": "authenticated_security_definer_function_executable|WARN|public.has_role",
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "note": "See SECURITY.md — public.has_role is intentionally SECURITY DEFINER for RLS policies."
+    }
+  ]
+}
