@@ -1,13 +1,56 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { checkAgeGate } from "@/lib/account.functions";
 
 const KEY = "age-gate-ok";
 
+/**
+ * Two-layer age gate:
+ * - Signed-in users: server-recorded confirmation. If missing, redirect to
+ *   the /age-gate page. `_authenticated` also runs this check server-side
+ *   before rendering; this component covers public routes (/store, /) when
+ *   the user happens to be signed in.
+ * - Anonymous visitors: localStorage prompt (marketing-page friendly).
+ */
 export function AgeGate() {
   const [ok, setOk] = useState(true);
+  const [signedInChecked, setSignedInChecked] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
   useEffect(() => {
-    setOk(typeof window !== "undefined" && localStorage.getItem(KEY) === "1");
-  }, []);
-  if (ok) return null;
+    let alive = true;
+    (async () => {
+      const { data: userRes } = await supabase.auth.getUser();
+      if (!alive) return;
+      if (userRes.user) {
+        // Signed in — defer to server-recorded confirmation.
+        try {
+          const gate = await checkAgeGate();
+          if (!alive) return;
+          if (!gate.confirmed && !location.pathname.startsWith("/age-gate") && !location.pathname.startsWith("/auth")) {
+            navigate({ to: "/age-gate", search: { next: location.href } });
+            return;
+          }
+          setOk(true);
+        } catch {
+          // If the check fails (network, etc.) don't hard-lock the user.
+          setOk(true);
+        } finally {
+          setSignedInChecked(true);
+        }
+      } else {
+        // Anonymous — localStorage prompt.
+        const stored = typeof window !== "undefined" && localStorage.getItem(KEY) === "1";
+        setOk(stored);
+        setSignedInChecked(true);
+      }
+    })();
+    return () => { alive = false; };
+  }, [location.pathname, navigate]);
+
+  if (ok || !signedInChecked) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 backdrop-blur-xl px-6">
       <div className="max-w-md w-full rounded-2xl border border-border/70 bg-card p-8 shadow-[var(--shadow-panel)]">

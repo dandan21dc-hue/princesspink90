@@ -50,6 +50,7 @@ const db: {
   content_items: Row[]
   content_purchases: Row[]
   notifications: Row[]
+  dunning_schedule: Row[]
 } = {
   subscriptions: [],
   memberships: [],
@@ -57,11 +58,13 @@ const db: {
   content_items: [],
   content_purchases: [],
   notifications: [],
+  dunning_schedule: [],
 }
 
 function resetDb() {
   for (const k of Object.keys(db) as Array<keyof typeof db>) db[k].length = 0
 }
+
 
 function makeChain(table: keyof typeof db) {
   const filters: Array<[string, unknown]> = []
@@ -821,18 +824,52 @@ describe('webhook event → database mapping', () => {
 
 
 
-  it('unhandled event types are accepted (200) without touching the database', async () => {
+  it('invoice.payment_failed flips subscription to past_due, notifies the user, and schedules dunning', async () => {
+    // Seed the subscription so we can look up the user_id
+    db.subscriptions.push({
+      user_id: 'user_dunning',
+      stripe_subscription_id: 'sub_dunning',
+      status: 'active',
+      environment: 'sandbox',
+    })
     const res = await postWebhook({
       body: {
         type: 'invoice.payment_failed',
-        data: { object: { id: 'in_test' } },
+        data: { object: { id: 'in_test_dunning', subscription: 'sub_dunning' } },
+      },
+    })
+    expect(res.status).toBe(200)
+    const sub = db.subscriptions.find((r) => r.stripe_subscription_id === 'sub_dunning')
+    expect(sub?.status).toBe('past_due')
+    expect(
+      db.notifications.some(
+        (n) => n.user_id === 'user_dunning' && n.kind === 'payment_failed',
+      ),
+    ).toBe(true)
+    expect(
+      db.dunning_schedule.some(
+        (d) =>
+          d.stripe_invoice_id === 'in_test_dunning' &&
+          d.stripe_subscription_id === 'sub_dunning' &&
+          d.stage === 'day_3',
+      ),
+    ).toBe(true)
+  })
+
+  it('genuinely unhandled event types are accepted (200) without touching the database', async () => {
+    const res = await postWebhook({
+      body: {
+        type: 'radar.early_fraud_warning.created',
+        data: { object: { id: 'issfr_test' } },
       },
     })
     expect(res.status).toBe(200)
     expect(db.subscriptions).toHaveLength(0)
     expect(db.memberships).toHaveLength(0)
     expect(db.content_purchases).toHaveLength(0)
+    expect(db.dunning_schedule).toHaveLength(0)
   })
+
 })
 
 // ---- 3. userId + plan metadata parsing ------------------------------------

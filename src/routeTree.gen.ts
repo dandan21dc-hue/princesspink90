@@ -17,6 +17,7 @@ import { Route as LegalRouteImport } from './routes/legal'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AgeGateRouteImport } from './routes/age-gate'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
@@ -66,6 +67,7 @@ import { Route as ApiPublicHooksPreviewPortalLinkRouteImport } from './routes/ap
 import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './routes/api/public/hooks/health-screening-reminders'
 import { Route as ApiPublicHooksCronHealthCheckRouteImport } from './routes/api/public/hooks/cron-health-check'
 import { Route as ApiPublicCronPurgeDeletedAccountsRouteImport } from './routes/api/public/cron/purge-deleted-accounts'
+import { Route as ApiPublicCronDunningEscalationRouteImport } from './routes/api/public/cron/dunning-escalation'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
@@ -109,6 +111,11 @@ const ComplianceRoute = ComplianceRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgeGateRoute = AgeGateRouteImport.update({
+  id: '/age-gate',
+  path: '/age-gate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -386,6 +393,12 @@ const ApiPublicCronPurgeDeletedAccountsRoute =
     path: '/api/public/cron/purge-deleted-accounts',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronDunningEscalationRoute =
+  ApiPublicCronDunningEscalationRouteImport.update({
+    id: '/api/public/cron/dunning-escalation',
+    path: '/api/public/cron/dunning-escalation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedEventsIdWaiversRoute =
   AuthenticatedEventsIdWaiversRouteImport.update({
     id: '/events/$id/waivers',
@@ -413,6 +426,7 @@ const AuthenticatedEventsIdCheckinPrintRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/age-gate': typeof AgeGateRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
@@ -459,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
@@ -475,6 +490,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/age-gate': typeof AgeGateRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
@@ -520,6 +536,7 @@ export interface FileRoutesByTo {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
@@ -538,6 +555,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/age-gate': typeof AgeGateRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
@@ -584,6 +602,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
+  '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
@@ -602,6 +621,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/age-gate'
     | '/auth'
     | '/compliance'
     | '/conduct'
@@ -648,6 +668,7 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
+    | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
@@ -664,6 +685,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/age-gate'
     | '/auth'
     | '/compliance'
     | '/conduct'
@@ -709,6 +731,7 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
+    | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
@@ -726,6 +749,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/age-gate'
     | '/auth'
     | '/compliance'
     | '/conduct'
@@ -772,6 +796,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
     | '/_authenticated/events/$id/waivers'
+    | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
@@ -790,6 +815,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AgeGateRoute: typeof AgeGateRoute
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
@@ -801,6 +827,7 @@ export interface RootRouteChildren {
   ApiChatRoute: typeof ApiChatRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EventsIdRoute: typeof EventsIdRoute
+  ApiPublicCronDunningEscalationRoute: typeof ApiPublicCronDunningEscalationRoute
   ApiPublicCronPurgeDeletedAccountsRoute: typeof ApiPublicCronPurgeDeletedAccountsRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
@@ -871,6 +898,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/age-gate': {
+      id: '/age-gate'
+      path: '/age-gate'
+      fullPath: '/age-gate'
+      preLoaderRoute: typeof AgeGateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -1216,6 +1250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronPurgeDeletedAccountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/dunning-escalation': {
+      id: '/api/public/cron/dunning-escalation'
+      path: '/api/public/cron/dunning-escalation'
+      fullPath: '/api/public/cron/dunning-escalation'
+      preLoaderRoute: typeof ApiPublicCronDunningEscalationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/events/$id/waivers': {
       id: '/_authenticated/events/$id/waivers'
       path: '/events/$id/waivers'
@@ -1379,6 +1420,7 @@ const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AgeGateRoute: AgeGateRoute,
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
@@ -1390,6 +1432,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiChatRoute: ApiChatRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EventsIdRoute: EventsIdRoute,
+  ApiPublicCronDunningEscalationRoute: ApiPublicCronDunningEscalationRoute,
   ApiPublicCronPurgeDeletedAccountsRoute:
     ApiPublicCronPurgeDeletedAccountsRoute,
   ApiPublicHooksCronHealthCheckRoute: ApiPublicHooksCronHealthCheckRoute,

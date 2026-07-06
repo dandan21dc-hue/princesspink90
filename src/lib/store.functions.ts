@@ -167,27 +167,18 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const product = await stripe.products.retrieve(productId);
         const productDescription = product.name;
 
-        const isLifetime = data.priceId === "lifetime_onetime_aud" || data.priceId === "lifetime_onetime";
-        const termPassMatch = /^all_access_(3|6|12)mo_onetime(?:_aud)?$/.exec(data.priceId);
+        const isLifetime = data.priceId === "lifetime_onetime_aud";
+        const termPassMatch = /^all_access_(3|6|12)mo_onetime_aud$/.exec(data.priceId);
         const termMonths = termPassMatch ? Number(termPassMatch[1]) : null;
         const isPanty = /^panty_(24|48|72)hr_aud$/.test(data.priceId);
         const privateRoomMatch = /^private_room_(30|60)min_aud$/.exec(data.priceId);
         const privateRoomMinutes = privateRoomMatch ? Number(privateRoomMatch[1]) : null;
 
-        // Ensure the product has the right tax code so Stripe classifies the
-        // sale correctly (idempotent — updating with the same value is fine).
-        const desiredTaxCode = isPanty
-          ? TAX_CODES.physical_goods
-          : privateRoomMinutes
-            ? TAX_CODES.services
-            : TAX_CODES.saas;
-        if (product.tax_code !== desiredTaxCode) {
-          try {
-            await stripe.products.update(productId, { tax_code: desiredTaxCode });
-          } catch (err) {
-            console.warn("Could not set product tax_code:", err);
-          }
-        }
+        // Tax codes are set once via scripts/sync-stripe-tax-codes.mjs.
+        // We no longer patch them per checkout — that hid API failures and
+        // added latency to every payment. If a product is misconfigured,
+        // re-run the sync script.
+
 
         // Private room: create a pending booking BEFORE checkout so the slot
         // is held. Verify no overlap. Amount now comes from Stripe (source

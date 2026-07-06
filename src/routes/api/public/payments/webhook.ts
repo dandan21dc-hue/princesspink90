@@ -537,7 +537,8 @@ async function handleDisputeClosed(dispute: any, env: StripeEnv) {
 
 /**
  * Renewal payment failed. Flip the row to `past_due` (access still granted
- * — Stripe will retry over the dunning window) and notify the subscriber.
+ * — Stripe will retry over the dunning window), notify the subscriber, and
+ * schedule day-3 / day-7 / day-14 escalation emails via the daily cron.
  */
 async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
   const subId = invoice.subscription;
@@ -562,30 +563,110 @@ async function handleInvoicePaymentFailed(invoice: any, env: StripeEnv) {
       link_url: "/account/billing",
       metadata: { subscription_id: subId, env } as any,
     });
+
+    // Schedule dunning escalation: day 3 → day 7 → day 14 (final).
+    const nextEmailAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    await (getSupabase() as any)
+      .from("dunning_schedule")
+      .upsert(
+        {
+          user_id: sub.user_id,
+          stripe_invoice_id: invoice.id,
+          stripe_subscription_id: subId,
+          environment: env,
+          stage: "day_3",
+          next_email_at: nextEmailAt.toISOString(),
+        },
+        { onConflict: "stripe_invoice_id" },
+      );
   }
 }
 
 /**
- * Renewal (or first) invoice paid. Clear any lingering past_due state so
- * the dunning banner disappears immediately.
+ * Renewal (or first) invoice paid. Clear any lingering past_due state,
+ * cancel dunning schedule for the paid invoice/subscription, and refresh
+ * the local `current_period_end` from the invoice's line item so the row
+ * stays fresh even when `customer.subscription.updated` lags.
  */
 async function handleInvoicePaymentSucceeded(invoice: any, env: StripeEnv) {
   const subId = invoice.subscription;
   if (!subId || typeof subId !== "string") return;
-  const { data: current } = await getSupabase()
-    .from("subscriptions")
-    .select("status")
+
+  // Cancel any queued dunning for this subscription — payment landed.
+  await (getSupabase() as any)
+    .from("dunning_schedule")
+    .update({ stage: "canceled", updated_at: new Date().toISOString() })
     .eq("stripe_subscription_id", subId)
     .eq("environment", env)
-    .maybeSingle();
-  if (current?.status === "past_due") {
-    await getSupabase()
-      .from("subscriptions")
-      .update({ status: "active", updated_at: new Date().toISOString() })
-      .eq("stripe_subscription_id", subId)
-      .eq("environment", env);
+    .not("stage", "in", "(done,canceled)");
+
+  const line = invoice.lines?.data?.[0];
+  const periodEnd = line?.period?.end ?? null;
+  const updates: any = { updated_at: new Date().toISOString(), status: "active" };
+  if (periodEnd) updates.current_period_end = new Date(periodEnd * 1000).toISOString();
+
+  await getSupabase()
+    .from("subscriptions")
+    .update(updates)
+    .eq("stripe_subscription_id", subId)
+    .eq("environment", env);
+}
+
+/**
+ * customer.subscription.trial_will_end — Stripe fires this ~3 days before
+ * a trial ends. Record a notification; the daily dunning cron picks it up
+ * and sends the `trial-ending` email once.
+ */
+async function handleTrialWillEnd(subscription: any, env: StripeEnv) {
+  const userId = subscription.metadata?.userId;
+  if (!userId) return;
+  await getSupabase().from("notifications").insert({
+    user_id: userId,
+    kind: "trial_ending",
+    title: "Your trial ends in 3 days",
+    body: "Add or update your card in Account → Billing to continue after your trial.",
+    link_url: "/account/billing",
+    metadata: { subscription_id: subscription.id, env } as any,
+  });
+}
+
+/**
+ * setup_intent.succeeded — safety net when the customer closes their tab
+ * before returning from the setup checkout. If the SetupIntent came from
+ * our `update_default_pm` flow, attach the new PM to the customer as
+ * default and update any active subscription. Idempotent — a no-op if the
+ * PM is already default.
+ */
+async function handleSetupIntentSucceeded(setupIntent: any, env: StripeEnv) {
+  const purpose = setupIntent.metadata?.purpose;
+  if (purpose !== "update_default_pm") return;
+  const customerId = typeof setupIntent.customer === "string" ? setupIntent.customer : setupIntent.customer?.id;
+  const pmId = typeof setupIntent.payment_method === "string" ? setupIntent.payment_method : setupIntent.payment_method?.id;
+  if (!customerId || !pmId) return;
+  const stripe = createStripeClient(env);
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    const currentDefault = !("deleted" in customer) || !customer.deleted
+      ? ((customer as any).invoice_settings?.default_payment_method ?? null)
+      : null;
+    const currentDefaultId = typeof currentDefault === "string" ? currentDefault : currentDefault?.id;
+    if (currentDefaultId === pmId) return; // already default — nothing to do
+
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: pmId },
+    });
+    // If the customer has any subscription, update its default PM too.
+    const subs = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 5 });
+    for (const s of subs.data) {
+      if (["active", "trialing", "past_due"].includes(s.status)) {
+        await stripe.subscriptions.update(s.id, { default_payment_method: pmId });
+      }
+    }
+  } catch (err) {
+    console.error("setup_intent.succeeded finalise failed:", err);
   }
 }
+
 
 async function handleWebhook(req: Request, env: StripeEnv) {
   const event = await verifyWebhook(req, env);
@@ -620,10 +701,17 @@ async function handleWebhook(req: Request, env: StripeEnv) {
     case "charge.dispute.closed":
       await handleDisputeClosed(event.data.object, env);
       break;
+    case "customer.subscription.trial_will_end":
+      await handleTrialWillEnd(event.data.object, env);
+      break;
+    case "setup_intent.succeeded":
+      await handleSetupIntentSucceeded(event.data.object, env);
+      break;
     default:
       console.log("Unhandled event:", event.type);
   }
 }
+
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {

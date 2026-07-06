@@ -75,3 +75,26 @@ export const cancelAccountDeletion = createServerFn({ method: "POST" })
     if (error) return { error: error.message };
     return { ok: true };
   });
+
+/** Server-recorded 18+ self-attestation for signed-in users. */
+export const confirmAgeGate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ ok: true } | { error: string }> => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ age_gate_confirmed_at: new Date().toISOString() } as any)
+      .eq("user_id", context.userId);
+    if (error) return { error: error.message };
+    return { ok: true };
+  });
+
+/** Cheap check used by _authenticated & /store beforeLoad. */
+export const checkAgeGate = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ confirmed: boolean }> => {
+    const { data } = await context.supabase.rpc("has_age_verification", {
+      _user_id: context.userId,
+    });
+    return { confirmed: !!data };
+  });
+
