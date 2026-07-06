@@ -6,6 +6,7 @@ import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createCartCheckoutSession } from "@/lib/store.functions";
 import { useCart, formatMoney, cart as cartStore } from "@/lib/cart";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { track } from "@/lib/track";
 
 export const Route = createFileRoute("/checkout/cart")({
   ssr: false,
