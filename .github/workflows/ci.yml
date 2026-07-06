@@ -65,4 +65,80 @@ jobs:
           LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
         run: bun run verify:checkout
 
+  checkout_tracking_e2e:
+    name: Checkout Tracking E2E (dataLayer / app:track)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Playwright's bundled Chromium is downloaded to a stable path so it
+      # can be cached between runs.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lockb', 'package.json') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: bunx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: bunx playwright install-deps chromium
+
+      - name: Start dev server
+        run: |
+          bun run dev > /tmp/dev-server.log 2>&1 &
+          echo $! > /tmp/dev-server.pid
+          # Wait up to 60s for the server to answer on :8080. Fail loudly
+          # rather than letting Playwright time out per-test.
+          for i in $(seq 1 60); do
+            if curl -sSf http://localhost:8080 > /dev/null 2>&1; then
+              echo "dev server ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "dev server never came up"
+          cat /tmp/dev-server.log
+          exit 1
+
+      # Runs e2e/checkout-return.spec.ts: confirmed / cart-confirmed /
+      # pending / cancelled / missing-session / server-error. Each test
+      # asserts the exact dataLayer + app:track payload for its event.
+      # A missing event or a mismatched reconciliation field fails the job.
+      - name: Run checkout tracking E2E suite
+        env:
+          # Skip Playwright's default browser path so it picks up the
+          # cached browsers under ~/.cache/ms-playwright.
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: ""
+        run: bun run test:e2e -- --project=chromium --reporter=list
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+      - name: Dump dev server log on failure
+        if: failure()
+        run: tail -n 200 /tmp/dev-server.log || true
+
+
 
