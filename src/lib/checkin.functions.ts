@@ -140,16 +140,17 @@ export const lookupCheckin = createServerFn({ method: "POST" })
         .from("profiles")
         .select("display_name")
         .eq("user_id", rsvp.user_id)
-        .maybeSingle() as Promise<PostgrestResult<{ display_name: string | null }>>,
+        .maybeSingle() as unknown as Promise<PostgrestResult<{ display_name: string | null }>>,
       supabaseAdmin
         .from("age_verifications")
         .select("status, date_of_birth, reviewed_at")
         .eq("user_id", rsvp.user_id)
-        .maybeSingle() as Promise<
+        .maybeSingle() as unknown as Promise<
           PostgrestResult<{ status: string; date_of_birth: string; reviewed_at: string | null }>
         >,
       supabaseAdmin.auth.admin.getUserById(rsvp.user_id),
     ]);
+
 
     const prof = unwrap(profRes, "load guest profile");
     const av = unwrap(avRes, "load age verification");
