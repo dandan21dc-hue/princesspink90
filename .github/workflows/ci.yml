@@ -55,12 +55,18 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-          # Allowlisted findings — intentionally accepted per the security
-          # memory. `has_role` is a SECURITY DEFINER helper called from RLS
-          # policies; signed-in EXECUTE is required for RLS to evaluate it.
-          # Repo-level `vars.SUPABASE_LINT_ALLOWLIST` (if set) is merged in
-          # so ops can extend the list without a code change.
-          SUPABASE_LINT_ALLOWLIST: "authenticated_security_definer_function_executable,0029_authenticated_security_definer_function_executable,${{ vars.SUPABASE_LINT_ALLOWLIST }}"
+          # Allowlisted findings — each entry MUST have a rationale in
+          # APPROVED_ALLOWLIST (scripts/supabase-security-lint.mjs) sourced
+          # from @security-memory. `has_role` is a SECURITY DEFINER helper
+          # called from RLS policies; signed-in EXECUTE is required for RLS
+          # to evaluate it. `PRIVILEGE_ESCALATION` covers the BEFORE UPDATE
+          # field-tamper triggers documented in @security-memory (they
+          # reject non-admin edits to privileged columns; they never grant
+          # roles). Repo-level `vars.SUPABASE_LINT_ALLOWLIST` (if set) is
+          # merged in so ops can extend the list without a code change —
+          # but every added name is still cross-checked against
+          # APPROVED_ALLOWLIST and rejected if it lacks a recorded rationale.
+          SUPABASE_LINT_ALLOWLIST: "authenticated_security_definer_function_executable,0029_authenticated_security_definer_function_executable,PRIVILEGE_ESCALATION,${{ vars.SUPABASE_LINT_ALLOWLIST }}"
         run: bun run lint:supabase
 
 

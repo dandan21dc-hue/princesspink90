@@ -38,22 +38,44 @@ const allowlist = new Set(
     .filter(Boolean),
 );
 
-// Any allowlist entry outside this set must go through a code review — it's
+// Any allowlist entry outside this map must go through a code review — it's
 // how we prevent someone widening the ignore list via repo `vars` or a stray
 // commit and silently accepting a new security finding. The baseline file is
-// the preferred mechanism; this env stays for backwards compatibility.
-const APPROVED_ALLOWLIST = new Set([
-  "authenticated_security_definer_function_executable",
-  "0029_authenticated_security_definer_function_executable",
+// the preferred mechanism; this env stays for backwards compatibility and for
+// category-level findings (e.g. PRIVILEGE_ESCALATION) that the database-linter
+// API doesn't fingerprint. Each entry MUST record the rationale from
+// @security-memory so reviewers can trace why the finding is accepted.
+const APPROVED_ALLOWLIST = new Map([
+  [
+    "authenticated_security_definer_function_executable",
+    "has_role() is SECURITY DEFINER and called from every RLS policy as has_role(auth.uid(),'admin'); signed-in EXECUTE is required for RLS to evaluate it. See @security-memory.",
+  ],
+  [
+    "0029_authenticated_security_definer_function_executable",
+    "Same finding as above under the numbered rule id. See @security-memory.",
+  ],
+  [
+    "PRIVILEGE_ESCALATION",
+    "Accepted for BEFORE UPDATE SECURITY DEFINER field-tamper triggers on rsvps, memberships, support_conversations, cohost_applications, safety_incident_reports. Each trigger only *rejects* privileged-column edits by non-admins/non-hosts (RAISE EXCEPTION); it never grants a role or elevates auth.uid(). Rationale + guarded columns recorded in @security-memory.",
+  ],
 ]);
-const unapproved = [...allowlist].filter((name) => !APPROVED_ALLOWLIST.has(name));
+// Case-insensitive lookup so scanners that upper-case category names
+// (PRIVILEGE_ESCALATION) match entries authored in either case.
+const approvedKeys = new Map(
+  [...APPROVED_ALLOWLIST.keys()].map((k) => [k.toLowerCase(), k]),
+);
+function approvedRationale(name) {
+  const key = approvedKeys.get(String(name ?? "").toLowerCase());
+  return key ? APPROVED_ALLOWLIST.get(key) : null;
+}
+const unapproved = [...allowlist].filter((name) => approvedRationale(name) === null);
 if (unapproved.length > 0) {
   console.error(
     `supabase-security-lint: SUPABASE_LINT_ALLOWLIST contains unapproved entries: ${unapproved.join(", ")}`,
   );
-  console.error(`  Approved entries: ${[...APPROVED_ALLOWLIST].join(", ")}`);
+  console.error(`  Approved entries: ${[...APPROVED_ALLOWLIST.keys()].join(", ")}`);
   console.error(
-    "  To widen the allowlist, update APPROVED_ALLOWLIST in scripts/supabase-security-lint.mjs via PR.",
+    "  To widen the allowlist, add the entry (with @security-memory rationale) to APPROVED_ALLOWLIST in scripts/supabase-security-lint.mjs via PR.",
   );
   process.exit(1);
 }
@@ -135,11 +157,31 @@ const baselineFingerprints = new Set(
 
 const currentFingerprints = new Set();
 const blocking = [];
+const suppressed = [];
 for (const f of warnOrError) {
-  if (allowlist.has(f.name)) continue;
+  // A finding is allowlisted if either its rule `name` or its `category`
+  // (e.g. PRIVILEGE_ESCALATION) is present in the SUPABASE_LINT_ALLOWLIST
+  // AND has an APPROVED_ALLOWLIST rationale.
+  const matchKey = [f.name, f.category].find(
+    (k) => k && allowlist.has(k) && approvedRationale(k) !== null,
+  );
+  if (matchKey) {
+    suppressed.push({ finding: f, key: matchKey, rationale: approvedRationale(matchKey) });
+    continue;
+  }
   const fp = fingerprintOf(f);
   currentFingerprints.add(fp);
   if (!baselineFingerprints.has(fp)) blocking.push({ ...f, __fp: fp });
+}
+
+if (suppressed.length > 0) {
+  console.log(
+    `supabase-security-lint: ${suppressed.length} finding(s) suppressed by allowlist:`,
+  );
+  for (const { finding, key, rationale } of suppressed) {
+    console.log(`  - [${finding.level}] ${finding.name} (matched: ${key})`);
+    console.log(`      rationale: ${rationale}`);
+  }
 }
 
 // Warn (don't fail) on stale baseline entries so we can prune them in a PR
