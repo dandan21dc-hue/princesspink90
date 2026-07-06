@@ -204,7 +204,7 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
       </div>
 
       {/* Panty Drawer */}
-      <div className="mt-12">
+      <div id="panty-drawer" className="mt-12 scroll-mt-24">
         <div className="flex items-end justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-primary">
