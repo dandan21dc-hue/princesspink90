@@ -251,6 +251,12 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const privateRoomMatch = /^private_room_(30|60)min_aud$/.exec(data.priceId);
         const privateRoomMinutes = privateRoomMatch ? Number(privateRoomMatch[1]) : null;
 
+        // Members-only gate for the Panty Drawer. Never trust the client —
+        // enforce active subscription/membership before creating the session.
+        if (isPanty) {
+          await assertPantyAccess(context.supabase, context.userId, data.environment);
+        }
+
         // Tax codes are set once via scripts/sync-stripe-tax-codes.mjs.
         // We no longer patch them per checkout — that hid API failures and
         // added latency to every payment. If a product is misconfigured,
