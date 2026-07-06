@@ -102,9 +102,31 @@ function SubscribePage() {
     });
   }, []);
 
-  function buy(priceId: PriceId) {
+  async function buy(priceId: PriceId) {
     if (!user) {
       navigate({ to: "/auth" });
+      return;
+    }
+    // Preflight: confirm the selected lookup_key actually exists in
+    // Stripe before opening embedded checkout, so a missing/renamed
+    // price shows a clear error instead of a generic checkout failure.
+    try {
+      const result = await checkPricesExist({
+        data: { environment: getStripeEnvironment(), lookupKeys: [priceId] },
+      });
+      if ("error" in result) {
+        toast.error(`Couldn't verify pricing: ${result.error}`);
+        return;
+      }
+      if (result.missing.length > 0) {
+        track("stripe_price_missing", { priceId, missing: result.missing });
+        toast.error(
+          `This plan (${priceId}) is temporarily unavailable. Please try another option or contact support.`,
+        );
+        return;
+      }
+    } catch (e) {
+      toast.error(`Couldn't verify pricing: ${(e as Error).message}`);
       return;
     }
     if (priceId.startsWith("panty_")) {
