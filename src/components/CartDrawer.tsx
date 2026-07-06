@@ -178,11 +178,27 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
         <button
           type="button"
           onClick={() => {
+            // Correlation id links the pre-checkout analytics event to the
+            // Stripe session that the /checkout/cart page will create, so
+            // pending/confirmed/incomplete return-page events can be joined
+            // back to the original click with no PII.
+            const clientOrderRef =
+              typeof crypto !== "undefined" && "randomUUID" in crypto
+                ? crypto.randomUUID()
+                : `co_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+            try {
+              sessionStorage.setItem("pp_cart_client_order_ref", clientOrderRef);
+            } catch {
+              // sessionStorage disabled — event still fires, correlation just
+              // won't round-trip through Stripe metadata.
+            }
             track("panty_checkout_start", {
               source: "cart",
+              client_order_ref: clientOrderRef,
               item_count: items.length,
               unit_count: items.reduce((n, it) => n + it.quantity, 0),
               subtotal_cents: subtotalCents,
+              total_amount_cents: subtotalCents,
               currency,
               has_panty: hasPanty,
               items: JSON.stringify(
