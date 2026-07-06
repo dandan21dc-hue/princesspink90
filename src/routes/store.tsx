@@ -80,9 +80,9 @@ function AllAccessCard() {
     plan: PlanId;
   }> = [
     { label: "Monthly", price: "A$10", cadence: "/month", plan: "all_access_monthly_aud" },
-    { label: "3-Month Pass", price: "A$27", cadence: "one-time", plan: "all_access_3mo_onetime_aud" },
-    { label: "6-Month Pass", price: "A$48", cadence: "one-time", plan: "all_access_6mo_onetime_aud" },
-    { label: "12-Month Pass", price: "A$84", cadence: "one-time", perk: "+ 1 free ticketed event", plan: "all_access_12mo_onetime_aud" },
+    { label: "3-Month Plan", price: "A$9", cadence: "/month · 3mo", plan: "all_access_3mo_monthly_aud" },
+    { label: "6-Month Plan", price: "A$8", cadence: "/month · 6mo", plan: "all_access_6mo_monthly_aud" },
+    { label: "12-Month Plan", price: "A$7", cadence: "/month · 12mo", perk: "+ 1 free ticketed event", plan: "all_access_12mo_monthly_aud" },
     { label: "Lifetime", price: "A$500", cadence: "one-time", perk: "+ 1 free ticketed event & 1 free private room session", plan: "lifetime_onetime_aud" },
   ];
 
@@ -90,9 +90,9 @@ function AllAccessCard() {
   const hasLifetime = tiers.active.lifetime_onetime_aud;
   const currentLabel = (() => {
     if (hasLifetime) return "Lifetime";
-    if (tiers.active.all_access_12mo_onetime_aud) return "12-Month Pass";
-    if (tiers.active.all_access_6mo_onetime_aud) return "6-Month Pass";
-    if (tiers.active.all_access_3mo_onetime_aud) return "3-Month Pass";
+    if (tiers.active.all_access_12mo_monthly_aud) return "12-Month Plan";
+    if (tiers.active.all_access_6mo_monthly_aud) return "6-Month Plan";
+    if (tiers.active.all_access_3mo_monthly_aud) return "3-Month Plan";
     if (tiers.active.all_access_monthly_aud) return "Monthly";
     return null;
   })();
