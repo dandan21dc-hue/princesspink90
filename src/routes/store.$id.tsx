@@ -160,33 +160,50 @@ function ItemPage() {
                   <div className="grid gap-2 sm:grid-cols-2">
                     <button
                       onClick={buyThis}
-                      className="rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+                      disabled={busy}
+                      className="min-h-11 rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      Buy · ${(item.price_cents! / 100).toFixed(2)}
+                      {pending === "buy"
+                        ? "Processing…"
+                        : `Buy · $${(item.price_cents! / 100).toFixed(2)}`}
                     </button>
                     <button
                       onClick={() => {
-                        cart.add({
-                          kind: "content",
-                          id: item!.id,
-                          title: item!.title,
-                          unit_amount_cents: item!.price_cents!,
-                          currency: (item!.currency ?? "aud").toLowerCase(),
-                          cover_url: item!.cover_url,
-                        });
-                        toast.success("Added to cart");
+                        if (busy) return;
+                        setPending("cart");
+                        try {
+                          cart.add({
+                            kind: "content",
+                            id: item!.id,
+                            title: item!.title,
+                            unit_amount_cents: item!.price_cents!,
+                            currency: (item!.currency ?? "aud").toLowerCase(),
+                            cover_url: item!.cover_url,
+                          });
+                          toast.success("Added to cart");
+                        } finally {
+                          // Debounce briefly so the button visibly toggles and
+                          // absorbs an accidental double-click.
+                          setTimeout(() => setPending(null), 600);
+                        }
                       }}
-                      className="rounded-md border border-primary/60 px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+                      disabled={busy}
+                      className="min-h-11 rounded-md border border-primary/60 px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-70"
                     >
-                      Add to cart
+                      {pending === "cart" ? "Adding…" : "Add to cart"}
                     </button>
                   </div>
                 )}
                 <button
                   onClick={subscribe}
-                  className="w-full rounded-md border border-primary/40 bg-primary/10 px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
+                  disabled={busy}
+                  className="min-h-11 w-full rounded-md border border-primary/40 bg-primary/10 px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {item.subscribers_only ? "Subscribe to unlock ($10/mo)" : "Or get All-Access ($10/mo)"}
+                  {pending === "subscribe"
+                    ? "Processing…"
+                    : item.subscribers_only
+                      ? "Subscribe to unlock ($10/mo)"
+                      : "Or get All-Access ($10/mo)"}
                 </button>
                 <p className="text-[11px] text-muted-foreground text-center">
                   After payment you'll unlock it in <Link to="/library" className="underline">your library</Link>.
