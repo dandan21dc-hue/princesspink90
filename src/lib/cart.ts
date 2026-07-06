@@ -102,10 +102,18 @@ export const cart = {
     const idx = cache.findIndex((it) => it.kind === item.kind && it.id === item.id);
     if (idx >= 0) {
       const next = [...cache];
-      next[idx] = { ...next[idx], quantity: next[idx].quantity + qty } as CartItem;
+      // Panty variants are unique per Stripe session — cap at 1.
+      const capped =
+        item.kind === "panty" ? 1 : next[idx].quantity + qty;
+      next[idx] = { ...next[idx], quantity: capped } as CartItem;
       setItems(next);
     } else {
-      setItems([...cache, { ...item, quantity: qty } as CartItem]);
+      // If a panty variant is already in cart, block a second one for a
+      // *different* variant (Stripe session can only hold one panty row).
+      if (item.kind === "panty" && cache.some((it) => it.kind === "panty" && it.id !== item.id)) {
+        throw new Error("Only one panty variant per order — check out first, then add another.");
+      }
+      setItems([...cache, { ...item, quantity: item.kind === "panty" ? 1 : qty } as CartItem]);
     }
   },
   remove(kind: CartItem["kind"], id: string) {
@@ -113,6 +121,7 @@ export const cart = {
   },
   setQty(kind: CartItem["kind"], id: string, quantity: number) {
     if (quantity <= 0) return cart.remove(kind, id);
+    if (kind === "panty") quantity = 1;
     setItems(
       cache.map((it) =>
         it.kind === kind && it.id === id ? ({ ...it, quantity } as CartItem) : it,
