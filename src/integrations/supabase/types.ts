@@ -417,6 +417,48 @@ export type Database = {
         }
         Relationships: []
       }
+      dunning_schedule: {
+        Row: {
+          created_at: string
+          environment: string
+          id: string
+          last_sent_at: string | null
+          last_sent_stage: string | null
+          next_email_at: string
+          stage: string
+          stripe_invoice_id: string
+          stripe_subscription_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          id?: string
+          last_sent_at?: string | null
+          last_sent_stage?: string | null
+          next_email_at: string
+          stage?: string
+          stripe_invoice_id: string
+          stripe_subscription_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          id?: string
+          last_sent_at?: string | null
+          last_sent_stage?: string | null
+          next_email_at?: string
+          stage?: string
+          stripe_invoice_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1730,6 +1772,7 @@ export type Database = {
         }[]
       }
       go_live_status: { Args: never; Returns: Json }
+      has_age_verification: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
