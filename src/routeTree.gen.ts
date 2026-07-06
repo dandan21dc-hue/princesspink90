@@ -17,6 +17,7 @@ import { Route as LegalRouteImport } from './routes/legal'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AgeGateRouteImport } from './routes/age-gate'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
@@ -109,6 +110,11 @@ const ComplianceRoute = ComplianceRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgeGateRoute = AgeGateRouteImport.update({
+  id: '/age-gate',
+  path: '/age-gate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -413,6 +419,7 @@ const AuthenticatedEventsIdCheckinPrintRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/age-gate': typeof AgeGateRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
@@ -475,6 +482,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/age-gate': typeof AgeGateRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
@@ -538,6 +546,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/age-gate': typeof AgeGateRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
@@ -602,6 +611,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/age-gate'
     | '/auth'
     | '/compliance'
     | '/conduct'
@@ -664,6 +674,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/age-gate'
     | '/auth'
     | '/compliance'
     | '/conduct'
@@ -726,6 +737,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/age-gate'
     | '/auth'
     | '/compliance'
     | '/conduct'
@@ -790,6 +802,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AgeGateRoute: typeof AgeGateRoute
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
@@ -871,6 +884,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/age-gate': {
+      id: '/age-gate'
+      path: '/age-gate'
+      fullPath: '/age-gate'
+      preLoaderRoute: typeof AgeGateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -1379,6 +1399,7 @@ const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AgeGateRoute: AgeGateRoute,
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
