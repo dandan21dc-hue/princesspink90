@@ -42,20 +42,3 @@ export const getPublicEventById = createServerFn({ method: "GET" })
     return row;
   });
 
-export const unlockEventByCode = createServerFn({ method: "POST" })
-  .inputValidator((data: { code: string }) =>
-    z.object({ code: z.string().trim().min(3).max(64) }).parse(data),
-  )
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: accessRow, error } = await supabaseAdmin
-      .from("event_access_codes")
-      .select("event_id, events(*)")
-      .eq("code", data.code)
-      .maybeSingle();
-    if (error) throw error;
-    if (!accessRow || !accessRow.events) return { ok: false as const };
-    // Only return if event is still published
-    if (!accessRow.events.published) return { ok: false as const };
-    return { ok: true as const, event: accessRow.events };
-  });

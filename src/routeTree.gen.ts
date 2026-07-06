@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UnlockRouteImport } from './routes/unlock'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -73,11 +72,6 @@ import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authent
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
 import { Route as AuthenticatedEventsIdCheckinPrintRouteImport } from './routes/_authenticated/events.$id.checkin.print'
 
-const UnlockRoute = UnlockRouteImport.update({
-  id: '/unlock',
-  path: '/unlock',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const StoreRoute = StoreRouteImport.update({
   id: '/store',
   path: '/store',
@@ -434,7 +428,6 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
-  '/unlock': typeof UnlockRoute
   '/account': typeof AuthenticatedAccountRouteWithChildren
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
@@ -498,7 +491,6 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
-  '/unlock': typeof UnlockRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -563,7 +555,6 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
-  '/unlock': typeof UnlockRoute
   '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/_authenticated/content': typeof AuthenticatedContentRouteWithChildren
@@ -629,7 +620,6 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
-    | '/unlock'
     | '/account'
     | '/cohost-apply'
     | '/content'
@@ -693,7 +683,6 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
-    | '/unlock'
     | '/cohost-apply'
     | '/content'
     | '/dashboard'
@@ -757,7 +746,6 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
-    | '/unlock'
     | '/_authenticated/account'
     | '/_authenticated/cohost-apply'
     | '/_authenticated/content'
@@ -823,7 +811,6 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
-  UnlockRoute: typeof UnlockRoute
   ApiChatRoute: typeof ApiChatRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EventsIdRoute: typeof EventsIdRoute
@@ -844,13 +831,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/unlock': {
-      id: '/unlock'
-      path: '/unlock'
-      fullPath: '/unlock'
-      preLoaderRoute: typeof UnlockRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/store': {
       id: '/store'
       path: '/store'
@@ -1428,7 +1408,6 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
-  UnlockRoute: UnlockRoute,
   ApiChatRoute: ApiChatRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EventsIdRoute: EventsIdRoute,
@@ -1453,13 +1432,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
