@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { TermsAgreementGate } from "@/components/TermsAgreementGate";
 
 interface CheckoutOptions {
   priceId?: string;
