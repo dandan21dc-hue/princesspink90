@@ -305,11 +305,11 @@ async function assertOwnsEvent(supabase: any, userId: string, eventId: string) {
 
 export const getCurrentPolicyVersion = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await sb
+    // supabaseAdmin because compliance_policy_versions SELECT is restricted
+    // to authenticated users; this fn is used from public signup/RSVP flows
+    // so bypasses RLS to project only safe, non-PII policy fields.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
       .from("compliance_policy_versions")
       .select("id, version, effective_at, summary, body")
       .eq("is_current", true)
@@ -320,11 +320,8 @@ export const getCurrentPolicyVersion = createServerFn({ method: "GET" })
 
 export const listPolicyVersions = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
-      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
-    });
-    const { data, error } = await sb
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
       .from("compliance_policy_versions")
       .select("id, version, effective_at, summary, is_current")
       .order("effective_at", { ascending: false });

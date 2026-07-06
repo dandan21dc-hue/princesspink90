@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { resolveAppOrigin } from '@/lib/app-origin.server'
+import { checkHooksCronAuth } from '@/lib/hooks-auth.server'
 
 // Preview-only endpoint: echoes what resolveAppOrigin + the reminder email's
 // buildPortalUrl would produce for a given set of request headers. Handy for
@@ -73,17 +74,7 @@ function summarize(request: Request, origin: string, portalUrl: string) {
 }
 
 function checkApikey(request: Request): Response | null {
-  const apikey =
-    request.headers.get('apikey') ??
-    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-  const expected = process.env.SUPABASE_PUBLISHABLE_KEY
-  if (!apikey || !expected || apikey !== expected) {
-    return new Response(JSON.stringify({ error: 'unauthorized' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
-  return null
+  return checkHooksCronAuth(request)
 }
 
 export const Route = createFileRoute('/api/public/hooks/preview-portal-link')({

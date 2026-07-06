@@ -1,27 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createClient } from '@supabase/supabase-js'
+import { checkHooksCronAuth } from '@/lib/hooks-auth.server'
 
 // Cron health monitor.
 //
 // Called by pg_cron every 15 minutes. Reads a snapshot of scheduled-job state
-// and email activity via the admin-only `cron_health_snapshot` RPC, evaluates
-// staleness / silence rules, and emits ONE structured JSON log line per alert
-// plus a summary line. Alerts are also inserted into `cron_health_alerts` so
-// admins can review them without tailing worker logs.
+// and email activity, evaluates staleness / silence rules, and emits ONE
+// structured JSON log line per alert plus a summary line. Alerts are also
+// inserted into `cron_health_alerts` so admins can review them without
+// tailing worker logs.
 //
-// Alert rules
-//   job_missing            expected pg_cron job is not present at all
-//   job_inactive           job exists but is set to active = false
-//   job_stale              job.last_run_at is older than its tolerance
-//   job_never_ran          active job has no run history yet, past first-run window
-//   job_last_failed        most recent run status is not "succeeded"
-//   email_queue_stalled    a pgmq queue has messages but nothing has been sent recently
-//   email_activity_silent  no email_send_log rows in the last 24h
-//
-// Auth: /api/public/* bypasses gateway auth; the handler still requires the
-// project anon key in the `apikey` header (the standard pg_cron pattern).
-
-const ANON_KEY = 'sb_publishable_ooJ1WmDfZzwdSel-TNlX1A_9a3AZzjp'
+// Auth: `Authorization: Bearer <HOOKS_CRON_SECRET>` (server-only secret).
 
 type ExpectedJob = {
   name: string
@@ -190,13 +179,10 @@ export const Route = createFileRoute('/api/public/hooks/cron-health-check')({
         const runId = crypto.randomUUID()
         const startedAt = new Date().toISOString()
 
-        const apiKey = request.headers.get('apikey') ?? request.headers.get('x-api-key')
-        if (!apiKey || apiKey !== ANON_KEY) {
+        const unauth = checkHooksCronAuth(request)
+        if (unauth) {
           logJson('cron_health_check_unauthorized', { run_id: runId })
-          return new Response(JSON.stringify({ error: 'unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          })
+          return unauth
         }
 
         const url = process.env.SUPABASE_URL!

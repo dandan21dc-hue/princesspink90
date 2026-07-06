@@ -2,24 +2,21 @@ import { createFileRoute } from '@tanstack/react-router'
 import { sendResendEmail } from '@/lib/resend.server'
 import { renderHealthScreeningReminder } from '@/lib/email-templates-resend/health-screening-reminder'
 import { resolveAppOrigin } from '@/lib/app-origin.server'
+import { checkHooksCronAuth } from '@/lib/hooks-auth.server'
 
 // Admin-only test endpoint: renders the 7-day reminder template and sends via
 // Resend so you can verify branding, layout, and the portal link.
 //
-// Auth: pass the Supabase publishable/anon key as `apikey` header (same pattern
-// as the other public hook routes). This keeps casual traffic out; only the
-// project owner has that key.
+// Auth (defense in depth against email abuse):
+//   1. `Authorization: Bearer <HOOKS_CRON_SECRET>` — server-only secret.
+//   2. `to` MUST match an email whose auth.users row has the `admin` role.
+//      This closes off open-relay abuse even if the cron secret leaks.
 export const Route = createFileRoute('/api/public/hooks/test-reminder-email')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apikey =
-          request.headers.get('apikey') ??
-          request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY
-        if (!apikey || !expected || apikey !== expected) {
-          return json({ error: 'unauthorized' }, 401)
-        }
+        const unauth = checkHooksCronAuth(request)
+        if (unauth) return unauth
 
         let body: {
           to?: string
@@ -38,6 +35,29 @@ export const Route = createFileRoute('/api/public/hooks/test-reminder-email')({
         }
         const to = body.to?.trim()
         if (!to) return json({ error: 'missing "to" in body' }, 400)
+
+        // Recipient allowlist: only send test emails to verified admin
+        // accounts. Prevents the endpoint from being used as an email relay
+        // even if the cron secret is compromised.
+        const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+        const { data: admins, error: adminErr } = await supabaseAdmin
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'admin')
+        if (adminErr) return json({ error: 'admin_lookup_failed' }, 500)
+        const adminIds = (admins ?? []).map((r) => r.user_id as string)
+        let allowed = false
+        for (const uid of adminIds) {
+          const { data: userRow } = await supabaseAdmin.auth.admin.getUserById(uid)
+          if (userRow?.user?.email?.toLowerCase() === to.toLowerCase()) {
+            allowed = true
+            break
+          }
+        }
+        if (!allowed) {
+          return json({ error: 'recipient_not_admin' }, 403)
+        }
+
 
         const origin = resolveAppOrigin(request)
         // Portal destination precedence:
