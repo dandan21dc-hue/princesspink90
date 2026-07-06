@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
@@ -50,8 +50,23 @@ function pricesQuery() {
   });
 }
 
+const PRESELECTABLE_PLANS: readonly PriceId[] = [
+  "all_access_monthly_aud",
+  "all_access_3mo_onetime_aud",
+  "all_access_6mo_onetime_aud",
+  "all_access_12mo_onetime_aud",
+  "lifetime_onetime_aud",
+];
+
 export const Route = createFileRoute("/store/subscribe")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>): { plan?: PriceId } => {
+    const raw = search.plan;
+    if (typeof raw === "string" && (PRESELECTABLE_PLANS as readonly string[]).includes(raw)) {
+      return { plan: raw as PriceId };
+    }
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "All-Access Pass — Princess Pink" },
@@ -77,12 +92,13 @@ function formatMoney(cents: number, currency: string): string {
 
 function SubscribePage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const { plan } = Route.useSearch();
+  const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUser({ id: data.user.id, email: data.user.email ?? undefined });
+      setUser(data.user ? { id: data.user.id, email: data.user.email ?? undefined } : null);
     });
   }, []);
 
@@ -101,6 +117,19 @@ function SubscribePage() {
       returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
     });
   }
+
+  // Preselect: if the route arrived with ?plan=..., auto-open Stripe checkout
+  // for that tier once auth has resolved. Signed-out visitors are bounced
+  // to /auth by buy(); if they return to this URL after signing in, the
+  // effect re-fires and completes checkout.
+  const preselectedRef = useRef<PriceId | null>(null);
+  useEffect(() => {
+    if (!plan || user === undefined || isOpen) return;
+    if (preselectedRef.current === plan) return;
+    preselectedRef.current = plan;
+    buy(plan);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan, user, isOpen]);
 
   return (
     <>
