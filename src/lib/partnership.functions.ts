@@ -106,7 +106,7 @@ export const updatePartnershipInquiry = createServerFn({ method: 'POST' })
   .inputValidator((data: z.infer<typeof updateSchema>) => updateSchema.parse(data))
   .handler(async ({ data, context }) => {
     await ensureAdmin(context)
-    const patch: Record<string, any> = {}
+    const patch: { status?: 'new' | 'contacted' | 'archived'; notes?: string | null } = {}
     if (data.status !== undefined) patch.status = data.status
     if (data.notes !== undefined) patch.notes = data.notes
     if (Object.keys(patch).length === 0) return { success: true }
