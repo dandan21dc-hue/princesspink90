@@ -24,6 +24,7 @@ function Auth() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const go = () => router.navigate({ to: (search.next as string) || "/" });
 
