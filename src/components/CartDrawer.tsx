@@ -84,6 +84,7 @@ export function CartButton() {
 
 function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckoutStart?: () => void }) {
   const { items, subtotalCents, hasPanty, currency, setQty, remove, clear } = useCart();
+  const [checkingOut, setCheckingOut] = useState(false);
   const navigate = useNavigate();
 
   if (items.length === 0) {
