@@ -162,15 +162,27 @@ vi.mock('@supabase/supabase-js', () => ({
 
 // getMyLibrary uses the auth-middleware context (context.supabase, userId).
 // Force that same mocked supabase into the handler's context.
-vi.mock('@/integrations/supabase/auth-middleware', () => ({
-  requireSupabaseAuth: {
-    _tag: 'test-noop',
-    // TanStack createServerFn walks m.options.middleware — supply an
-    // empty options bag so recursion terminates cleanly.
-    options: { middleware: [] },
-    middleware: [],
-  },
-}))
+vi.mock('@/integrations/supabase/auth-middleware', async () => {
+  const { createMiddleware } = await import('@tanstack/react-start')
+  return {
+    // Real createMiddleware so createServerFn's flattenMiddlewares walks
+    // a proper `.options.middleware` chain. The stub reads userId from
+    // the incoming data payload — mirroring what the real Supabase auth
+    // middleware would do after decoding the session token.
+    requireSupabaseAuth: createMiddleware({ type: 'function' }).server(
+      async ({ next, data }: { next: any; data: any }) => {
+        return next({
+          context: {
+            supabase: makeSupabase(),
+            userId: data?.userId,
+            claims: { sub: data?.userId },
+          },
+        })
+      },
+    ),
+  }
+})
+
 
 
 
