@@ -45,6 +45,7 @@ import { Route as AuthenticatedAdminSystemLogsRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
+import { Route as AuthenticatedAdminPerksRouteImport } from './routes/_authenticated/admin.perks'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
@@ -266,6 +267,11 @@ const AuthenticatedAdminSafetyIncidentsRoute =
     path: '/admin/safety-incidents',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminPerksRoute = AuthenticatedAdminPerksRouteImport.update({
+  id: '/admin/perks',
+  path: '/admin/perks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminLifetimeRoute =
   AuthenticatedAdminLifetimeRouteImport.update({
     id: '/admin/lifetime',
@@ -490,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -557,6 +564,7 @@ export interface FileRoutesByTo {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -627,6 +635,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
@@ -697,6 +706,7 @@ export interface FileRouteTypes {
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
+    | '/admin/perks'
     | '/admin/safety-incidents'
     | '/admin/settings'
     | '/admin/support'
@@ -764,6 +774,7 @@ export interface FileRouteTypes {
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
+    | '/admin/perks'
     | '/admin/safety-incidents'
     | '/admin/settings'
     | '/admin/support'
@@ -833,6 +844,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/health-purge'
     | '/_authenticated/admin/health-reminders'
     | '/_authenticated/admin/lifetime'
+    | '/_authenticated/admin/perks'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
@@ -1148,6 +1160,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSafetyIncidentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/perks': {
+      id: '/_authenticated/admin/perks'
+      path: '/admin/perks'
+      fullPath: '/admin/perks'
+      preLoaderRoute: typeof AuthenticatedAdminPerksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/lifetime': {
       id: '/_authenticated/admin/lifetime'
       path: '/admin/lifetime'
@@ -1428,6 +1447,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
+  AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
@@ -1469,6 +1489,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminHealthRemindersRoute:
     AuthenticatedAdminHealthRemindersRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
+  AuthenticatedAdminPerksRoute: AuthenticatedAdminPerksRoute,
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
