@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createStoreCheckoutSession } from "@/lib/store.functions";
+import { track } from "@/lib/track";
 
 interface Props {
   priceId?: string;
