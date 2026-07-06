@@ -263,7 +263,6 @@ async function handleCartSession(session: any, env: StripeEnv) {
           user_id: userId,
           variant: entry.id,
           hours,
-          quantity: entry.qty,
           stripe_session_id: session.id,
           amount_cents: amountCents,
           currency: (session.currency ?? "aud").toLowerCase(),
@@ -278,7 +277,7 @@ async function handleCartSession(session: any, env: StripeEnv) {
           shipping_postal_code: addr?.postal_code ?? null,
           shipping_country: addr?.country ?? null,
         },
-        { onConflict: "stripe_session_id,variant" },
+        { onConflict: "stripe_session_id" },
       );
 
     const amountLabel = (amountCents / 100).toFixed(2);
