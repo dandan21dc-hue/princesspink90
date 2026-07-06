@@ -89,16 +89,26 @@ function CheckoutReturn() {
         ? "panty_checkout_confirmed"
         : status === "open"
           ? "panty_checkout_pending"
-          : "panty_checkout_incomplete";
+          : "panty_checkout_cancelled";
     const key = `${sessionId}:${eventName}`;
     if (trackedRef.current === key) return;
     trackedRef.current = key;
-    track(eventName, {
+    const basePayload = {
       variant: pantyVariant,
       session_id: sessionId,
       status,
       cart_mode: md.cart_mode === "1",
-    });
+    };
+    if (eventName === "panty_checkout_cancelled") {
+      track(eventName, {
+        ...basePayload,
+        source: "checkout_return",
+        reason: "return_incomplete",
+        stage: "post_return",
+      });
+    } else {
+      track(eventName, basePayload);
+    }
   }, [sessionId, session]);
 
   // Track return-page load failures (session retrieve errored, or Stripe
@@ -110,6 +120,11 @@ function CheckoutReturn() {
       if (errorTrackedRef.current === "template") return;
       errorTrackedRef.current = "template";
       track("stripe_checkout_return_failed", { reason: "missing_session_id" });
+      track("panty_checkout_cancelled", {
+        source: "checkout_return",
+        reason: "missing_session_id",
+        stage: "post_return",
+      });
       return;
     }
     if (!query.isError || !sessionId) return;
@@ -120,6 +135,12 @@ function CheckoutReturn() {
       reason: "session_fetch_error",
       session_id: sessionId,
       message: (query.error as Error)?.message?.slice(0, 200),
+    });
+    track("panty_checkout_cancelled", {
+      source: "checkout_return",
+      reason: "session_fetch_error",
+      stage: "post_return",
+      session_id: sessionId,
     });
   }, [templateNotSubstituted, query.isError, query.error, sessionId]);
 
