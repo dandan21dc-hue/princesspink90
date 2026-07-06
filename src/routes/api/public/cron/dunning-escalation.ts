@@ -106,9 +106,12 @@ export const Route = createFileRoute("/api/public/cron/dunning-escalation")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apikey = request.headers.get("apikey") ?? request.headers.get("Apikey");
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY;
-        if (!expected || apikey !== expected) {
+        // Shared secret pattern (same as purge-deleted-accounts) — the
+        // publishable key is public bundle content and is NOT sufficient
+        // auth for cron endpoints.
+        const auth = request.headers.get("authorization") ?? "";
+        const secret = process.env.ACCOUNT_PURGE_CRON_SECRET;
+        if (!secret || auth !== `Bearer ${secret}`) {
           return new Response("Unauthorized", { status: 401 });
         }
         try {
@@ -122,3 +125,4 @@ export const Route = createFileRoute("/api/public/cron/dunning-escalation")({
     },
   },
 });
+
