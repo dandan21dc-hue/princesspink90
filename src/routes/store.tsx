@@ -63,15 +63,35 @@ function StorePage() {
 }
 
 function AllAccessCard() {
+  const passes: Array<{ label: string; price: string; cadence: string; hash?: "panty-drawer" }> = [
+    { label: "Monthly", price: "A$10", cadence: "/month" },
+    { label: "3-Month Pass", price: "A$27", cadence: "one-time" },
+    { label: "6-Month Pass", price: "A$48", cadence: "one-time" },
+    { label: "12-Month Pass", price: "A$84", cadence: "one-time" },
+    { label: "Lifetime", price: "A$500", cadence: "one-time" },
+  ];
+
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 w-full md:w-[280px]">
       <Link
         to="/store/subscribe"
-        className="group rounded-2xl border border-primary/50 bg-primary/10 p-5 shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+        className="group rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)] hover:brightness-110"
       >
-        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Pass</div>
-        <div className="mt-1 font-display text-2xl font-bold">$10<span className="text-sm text-muted-foreground">/mo</span></div>
-        <div className="mt-1 text-xs text-muted-foreground">Everything in the library, streaming in-app.</div>
+        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
+        <ul className="mt-2 space-y-1 text-sm">
+          {passes.map((p) => (
+            <li key={p.label} className="flex items-center justify-between gap-3">
+              <span className="text-foreground">{p.label}</span>
+              <span className="font-display font-bold">
+                {p.price}
+                <span className="ml-1 text-[10px] font-normal text-muted-foreground">{p.cadence}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-3 text-[11px] text-muted-foreground">
+          Everything in the library — pick your term.
+        </div>
       </Link>
       <Link
         to="/store/private-room"
