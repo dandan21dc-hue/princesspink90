@@ -58,6 +58,8 @@ export function useMyTiers(): MyTiersState {
     starts: {},
     cancelAtPeriodEnd: {},
   });
+  const loadRef = useRef<(() => void) | null>(null);
+
 
   useEffect(() => {
     let cancelled = false;
