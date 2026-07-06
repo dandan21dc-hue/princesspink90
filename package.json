@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:checkout": "vitest run src/lib/stripeCheckoutFlow.test.ts src/lib/usdCheckoutFlow.test.ts src/routes/store.subscribe.test.ts src/routes/api/public/payments/webhook.test.ts",
+    "test:checkout": "vitest run src/lib/stripeCheckoutFlow.test.ts src/routes/store.subscribe.test.ts src/routes/api/public/payments/webhook.test.ts",
     "verify:checkout": "node scripts/verify-multi-currency-checkout.mjs",
     "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
   },
