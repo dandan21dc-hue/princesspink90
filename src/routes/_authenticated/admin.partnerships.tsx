@@ -345,6 +345,5 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
         </ul>
       </div>
     </div>
-    </div>
   )
 }
