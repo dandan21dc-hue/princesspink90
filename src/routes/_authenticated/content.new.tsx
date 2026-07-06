@@ -55,40 +55,70 @@ function NewContentPage() {
     onError: (e) => toast.error(e.message),
   });
 
-  async function uploadFile(file: File, type: "image" | "video"): Promise<string | null> {
-    if (!userId) return null;
+  async function uploadFile(
+    file: File,
+    type: "image" | "video",
+  ): Promise<{ path: string } | { error: string }> {
+    if (!userId) return { error: "You must be signed in to upload." };
+    const expectedPrefix = type === "image" ? "image/" : "video/";
+    if (file.type && !file.type.startsWith(expectedPrefix)) {
+      return { error: `Not a ${type} file (detected ${file.type || "unknown type"}).` };
+    }
     const ext = file.name.split(".").pop() ?? "bin";
     const path = `${userId}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("content-media").upload(path, file, {
-      contentType: file.type,
-    });
-    if (error) {
-      toast.error(error.message);
-      return null;
+    try {
+      const { error } = await supabase.storage.from("content-media").upload(path, file, {
+        contentType: file.type,
+      });
+      if (error) return { error: error.message };
+      return { path };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Upload failed" };
     }
-    return path;
   }
 
   async function handleFiles(files: FileList | null, type: "image" | "video") {
     if (!files?.length) return;
     setUploading(true);
+    // Clear previous errors for this input type so old messages don't linger.
+    setUploadErrors((errs) => errs.filter((e) => e.type !== type));
     const uploaded: MediaRow[] = [];
+    const errors: UploadError[] = [];
     for (const file of Array.from(files)) {
-      const path = await uploadFile(file, type);
-      if (path) uploaded.push({ url: path, type });
+      const result = await uploadFile(file, type);
+      if ("path" in result) {
+        uploaded.push({ url: result.path, type });
+      } else {
+        errors.push({ name: file.name, type, message: result.error });
+      }
     }
-    setMedia((m) => [...m, ...uploaded]);
+    if (uploaded.length) setMedia((m) => [...m, ...uploaded]);
+    if (errors.length) {
+      setUploadErrors((prev) => [...prev, ...errors]);
+      toast.error(
+        `${errors.length} ${type}${errors.length > 1 ? "s" : ""} failed to upload`,
+      );
+    }
     setUploading(false);
   }
 
   async function handleCover(file: File | null) {
     if (!file || !userId) return;
     setUploading(true);
-    const path = await uploadFile(file, "image");
-    if (path) {
-      // Generate a long-ish signed URL for cover display
-      const { data } = await supabase.storage.from("content-media").createSignedUrl(path, 60 * 60 * 24 * 365);
-      if (data?.signedUrl) setCoverUrl(data.signedUrl);
+    setCoverError(null);
+    const result = await uploadFile(file, "image");
+    if ("path" in result) {
+      const { data, error } = await supabase.storage
+        .from("content-media")
+        .createSignedUrl(result.path, 60 * 60 * 24 * 365);
+      if (error || !data?.signedUrl) {
+        setCoverError(error?.message ?? "Could not generate cover preview.");
+      } else {
+        setCoverUrl(data.signedUrl);
+      }
+    } else {
+      setCoverError(result.error);
+      toast.error(`Cover upload failed: ${result.error}`);
     }
     setUploading(false);
   }
