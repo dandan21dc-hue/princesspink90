@@ -448,6 +448,8 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
 function PassCard({
   label,
   price,
+  originalPrice,
+  subscriberBadge = false,
   cadence,
   perks,
   cta,
@@ -459,6 +461,8 @@ function PassCard({
 }: {
   label: string;
   price: string;
+  originalPrice?: string;
+  subscriberBadge?: boolean;
   cadence: string;
   perks: string[];
   cta: string;
@@ -468,6 +472,7 @@ function PassCard({
   loading?: boolean;
   disabled?: boolean;
 }) {
+  const [adding, setAdding] = useState(false);
   return (
     <div className="relative flex flex-col rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)]">
       {highlight ? (
@@ -475,11 +480,29 @@ function PassCard({
           {highlight}
         </div>
       ) : null}
-      <div className="text-[10px] uppercase tracking-[0.3em] text-primary">{label}</div>
+      <div className="flex items-center gap-2">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">{label}</div>
+        {subscriberBadge && (
+          <span
+            className="rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-black"
+            style={{
+              background: "linear-gradient(135deg, #ffe27a 0%, #f5c542 45%, #d4a017 100%)",
+              boxShadow: "0 0 8px rgba(245,197,66,0.6)",
+            }}
+          >
+            Subscriber Price
+          </span>
+        )}
+      </div>
       <div className="mt-2 font-display text-3xl font-extrabold">
         {price}
         <span className="ml-1 text-xs font-normal text-muted-foreground">{cadence}</span>
       </div>
+      {originalPrice && (
+        <div className="mt-0.5 text-xs text-muted-foreground line-through">
+          {originalPrice}
+        </div>
+      )}
       <ul className="mt-4 flex-1 space-y-1.5 text-xs text-muted-foreground">
         {perks.map((p) => (
           <li key={p}>· {p}</li>
@@ -493,15 +516,25 @@ function PassCard({
         {loading ? "Processing…" : cta}
       </button>
       {onAddToCart && (
-
         <button
-          onClick={onAddToCart}
-          className="mt-2 w-full rounded-md border border-primary/60 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+          onClick={() => {
+            if (adding) return;
+            setAdding(true);
+            try {
+              onAddToCart();
+            } finally {
+              // Brief lockout to prevent double-taps racing the cart mutation.
+              setTimeout(() => setAdding(false), 600);
+            }
+          }}
+          disabled={adding}
+          className="mt-2 w-full rounded-md border border-primary/60 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Add to cart
+          {adding ? "Adding…" : "Add to cart"}
         </button>
       )}
     </div>
   );
 }
+
 
