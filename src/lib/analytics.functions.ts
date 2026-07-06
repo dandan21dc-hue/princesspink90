@@ -298,7 +298,7 @@ export const getCheckoutReconciliation = createServerFn({ method: "GET" })
         event: e.event,
         created_at: e.created_at,
         session_id: e.session_id,
-        props: (e.props ?? {}) as Record<string, unknown>,
+        props: (e.props ?? {}) as { [key: string]: JsonValue },
       })),
     };
   });
