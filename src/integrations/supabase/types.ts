@@ -62,6 +62,42 @@ export type Database = {
         }
         Relationships: []
       }
+      analytics_events: {
+        Row: {
+          action: string | null
+          created_at: string
+          event: string
+          id: string
+          plan: string | null
+          props: Json
+          session_id: string | null
+          tier_kind: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          plan?: string | null
+          props?: Json
+          session_id?: string | null
+          tier_kind?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          plan?: string | null
+          props?: Json
+          session_id?: string | null
+          tier_kind?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cohost_application_reviews: {
         Row: {
           application_id: string
