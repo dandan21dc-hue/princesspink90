@@ -26,7 +26,7 @@ function Terms() {
   return (
     <section className="mx-auto max-w-3xl px-5 py-14 text-sm leading-relaxed text-muted-foreground">
       <div className="text-xs uppercase tracking-[0.3em] text-primary">Legal</div>
-      <h1 className="mt-2 font-display text-4xl font-extrabold text-foreground">
+      <h1 className="mt-2 font-display text-4xl font-semibold text-foreground sm:text-5xl">
         Terms of Service
       </h1>
       <p className="mt-2 text-xs">Last updated: 2026-07-06</p>
