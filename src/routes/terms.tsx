@@ -128,16 +128,16 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">8. Changes</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">9. Changes</h2>
           <p className="mt-2">
-            We may update these terms from time to time. Continued use of the
-            Service after changes take effect constitutes acceptance of the
-            revised terms.
+            We may update these terms as our platform evolves. Continued use of the
+            Service after changes take effect constitutes acceptance of the revised
+            terms.
           </p>
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">9. Contact</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">10. Contact</h2>
           <p className="mt-2">
             Questions? Reach us through the{" "}
             <Link to="/support" className="text-primary underline">support chat</Link>{" "}
