@@ -23,8 +23,8 @@ DECLARE
   v_rsvp     uuid;
 BEGIN
   -- Seed a host-owned event and an attendee RSVP as the service role.
-  INSERT INTO public.events (id, host_id, title, starts_at, status)
-  VALUES (gen_random_uuid(), v_host, 'tamper-test event', now() + interval '1 day', 'published')
+  INSERT INTO public.events (id, host_id, title, venue_name, starts_at, published)
+  VALUES (gen_random_uuid(), v_host, 'tamper-test event', 'test venue', now() + interval '1 day', true)
   RETURNING id INTO v_event;
 
   INSERT INTO public.rsvps (id, event_id, user_id, status)
