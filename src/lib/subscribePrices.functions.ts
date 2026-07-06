@@ -51,3 +51,40 @@ export const getSubscribePrices = createServerFn({ method: "GET" })
       return { error: getStripeErrorMessage(error) };
     }
   });
+
+/**
+ * Preflight: given a list of Stripe lookup_keys, returns which ones do
+ * NOT resolve to an active price. Called from the client before opening
+ * Stripe checkout so we can surface a clear error instead of letting the
+ * checkout session fail with a generic "Price not found".
+ */
+export const checkPricesExist = createServerFn({ method: "POST" })
+  .inputValidator((data: { environment: StripeEnv; lookupKeys: string[] }) => {
+    if (!Array.isArray(data.lookupKeys) || data.lookupKeys.length === 0) {
+      throw new Error("lookupKeys required");
+    }
+    for (const key of data.lookupKeys) {
+      if (typeof key !== "string" || !/^[a-zA-Z0-9_-]+$/.test(key)) {
+        throw new Error("Invalid lookup key");
+      }
+    }
+    return data;
+  })
+  .handler(async ({ data }): Promise<{ missing: string[] } | { error: string }> => {
+    try {
+      const stripe = createStripeClient(data.environment);
+      const result = await stripe.prices.list({
+        lookup_keys: data.lookupKeys,
+        active: true,
+        limit: 100,
+      });
+      const found = new Set(result.data.map((p) => p.lookup_key).filter(Boolean) as string[]);
+      const missing = data.lookupKeys.filter((k) => !found.has(k));
+      if (missing.length > 0) {
+        console.error("[plan-price-validation] preflight missing", { missing });
+      }
+      return { missing };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
