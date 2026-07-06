@@ -11,6 +11,44 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
 import { TAX_CODES } from "@/lib/stripe-tax-codes";
+import { EXPECTED_PLAN_PRICES } from "@/lib/planPriceValidation.server";
+
+/**
+ * Catalogue metadata for lookup_keys we expect to exist in Stripe. Used by
+ * syncMissingStripePrices to create any missing product/price pair. Keys
+ * MUST match EXPECTED_PLAN_PRICES; product_name/description drive what shows
+ * on the Stripe dashboard and receipts.
+ */
+const PLAN_PRODUCT_CATALOGUE: Record<
+  string,
+  { product_id: string; product_name: string; product_description: string; tax_code: string }
+> = {
+  all_access_3mo_monthly_aud: {
+    product_id: "all_access_3mo",
+    product_name: "All-Access Pass · 3-Month Plan",
+    product_description: "Monthly billing for 3 months — full members-only library.",
+    tax_code: TAX_CODES.saas,
+  },
+  all_access_6mo_monthly_aud: {
+    product_id: "all_access_6mo",
+    product_name: "All-Access Pass · 6-Month Plan",
+    product_description: "Monthly billing for 6 months — full members-only library.",
+    tax_code: TAX_CODES.saas,
+  },
+  all_access_12mo_monthly_aud: {
+    product_id: "all_access_12mo",
+    product_name: "All-Access Pass · 12-Month Plan",
+    product_description: "Monthly billing for 12 months — full members-only library + free event entry.",
+    tax_code: TAX_CODES.saas,
+  },
+  lifetime_onetime_aud: {
+    product_id: "lifetime",
+    product_name: "Lifetime Membership",
+    product_description: "One-time payment for forever access + a free event ticket and private session bundle.",
+    tax_code: TAX_CODES.saas,
+  },
+};
+
 
 const USD_LOOKUP_KEYS = [
   "all_access_monthly",
