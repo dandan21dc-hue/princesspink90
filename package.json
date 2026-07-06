@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:checkout": "vitest run src/lib/stripeCheckoutFlow.test.ts src/routes/store.subscribe.test.ts src/routes/api/public/payments/webhook.test.ts",
+    "test:e2e": "playwright test",
     "verify:checkout": "node scripts/verify-multi-currency-checkout.mjs",
     "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
   },
@@ -98,6 +99,7 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.7.0",
+    "@playwright/test": "^1.61.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.16.5",
