@@ -378,6 +378,18 @@ export function StripeEmbeddedCheckout(props: Props) {
           <p className="mt-1 text-center text-xs text-muted-foreground">{skeletonLabel}</p>
         </div>
       )}
+      {dedupedHits > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="checkout-dedupe-status"
+          className="pointer-events-none absolute inset-x-0 top-2 z-20 mx-auto w-fit rounded-full border border-border/60 bg-background/90 px-3 py-1 text-[11px] text-muted-foreground shadow-sm"
+        >
+          Reusing the existing checkout session (avoided {dedupedHits} duplicate{" "}
+          {dedupedHits === 1 ? "request" : "requests"}).
+        </div>
+      )}
+
       <div id="checkout" ref={containerRef} key={attempt}>
         <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
           <EmbeddedCheckout />
