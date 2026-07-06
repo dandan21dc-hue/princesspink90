@@ -327,7 +327,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
         <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
           <li>· <span className="text-foreground">Forever access</span> to all photos &amp; videos</li>
           <li>· <span className="text-foreground">1 free ticket</span> to any event I host (no expiry)</li>
-          <li>· <span className="text-foreground">1 private 30-min session</span> with me (no anal) + a picture &amp; video bundle delivered after</li>
+          <li>· <span className="text-foreground">1 private 60-min session</span> with me (no anal)&nbsp;</li>
           <li>· No recurring charges, ever</li>
         </ul>
         <button
