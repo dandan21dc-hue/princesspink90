@@ -272,7 +272,7 @@ jobs:
 
 
   checkout_verification:
-    name: Checkout Verification (AUD + USD)
+    name: Checkout / Verify (AUD + USD)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
