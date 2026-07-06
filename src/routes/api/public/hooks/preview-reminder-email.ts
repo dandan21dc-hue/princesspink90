@@ -36,13 +36,8 @@ type PreviewInput = {
 }
 
 async function handle(request: Request, source: 'query' | 'body'): Promise<Response> {
-  const apikey =
-    request.headers.get('apikey') ??
-    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-  const expected = process.env.SUPABASE_PUBLISHABLE_KEY
-  if (!apikey || !expected || apikey !== expected) {
-    return json({ error: 'unauthorized' }, 401)
-  }
+  const unauth = checkHooksCronAuth(request)
+  if (unauth) return unauth
 
   let input: PreviewInput = {}
   if (source === 'body') {
