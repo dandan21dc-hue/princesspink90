@@ -1,9 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAgeGate } from "@/lib/account.functions";
 
 const KEY = "age-gate-ok";
+
+function logAgeGateEvent(outcome: "viewed" | "confirmed" | "declined", context: "anonymous" | "authenticated") {
+  try {
+    const body = JSON.stringify({
+      outcome,
+      context,
+      path: typeof window !== "undefined" ? window.location.pathname : undefined,
+    });
+    const url = "/api/public/age-gate-event";
+    if (typeof navigator !== "undefined" && "sendBeacon" in navigator) {
+      const blob = new Blob([body], { type: "application/json" });
+      if (navigator.sendBeacon(url, blob)) return;
+    }
+    void fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    /* best-effort audit log */
+  }
+}
+
 
 /**
  * Two-layer age gate:
