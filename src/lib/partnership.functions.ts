@@ -118,6 +118,65 @@ export const updatePartnershipInquiry = createServerFn({ method: 'POST' })
     return { success: true }
   })
 
+const retrySchema = z.object({
+  inquiryId: z.string().uuid(),
+  kind: z.enum(['confirmation', 'notification']),
+})
+
+/**
+ * Re-enqueue an auto-confirmation or internal notification email for an
+ * inquiry. Creates a new email_send_log row (fresh message_id) so the
+ * delivery history shows every attempt.
+ */
+export const retryPartnershipNotification = createServerFn({ method: 'POST' })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: z.infer<typeof retrySchema>) => retrySchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await ensureAdmin(context)
+
+    const { data: inquiry, error: loadErr } = await context.supabase
+      .from('partnership_inquiries')
+      .select('id, name, email, organization, inquiry_type, message')
+      .eq('id', data.inquiryId)
+      .maybeSingle()
+    if (loadErr) throw loadErr
+    if (!inquiry) throw new Error('Inquiry not found')
+
+    const { enqueueTemplateEmail } = await import('@/lib/email/enqueue.server')
+
+    const stamp = Date.now()
+    const result =
+      data.kind === 'confirmation'
+        ? await enqueueTemplateEmail({
+            templateName: 'partnership-confirmation',
+            recipientEmail: inquiry.email,
+            idempotencyKey: `partnership-confirmation-${inquiry.id}-retry-${stamp}`,
+            templateData: {
+              name: inquiry.name,
+              inquiryType: inquiry.inquiry_type ?? undefined,
+              message: inquiry.message,
+            },
+          })
+        : await enqueueTemplateEmail({
+            templateName: 'partnership-notification',
+            idempotencyKey: `partnership-notification-${inquiry.id}-retry-${stamp}`,
+            templateData: {
+              name: inquiry.name,
+              email: inquiry.email,
+              organization: inquiry.organization ?? undefined,
+              inquiryType: inquiry.inquiry_type ?? undefined,
+              message: inquiry.message,
+              inquiryId: inquiry.id,
+            },
+          })
+
+    if (!result.success) {
+      throw new Error(`Retry failed: ${result.reason}`)
+    }
+    return { success: true, messageId: result.messageId }
+  })
+
+
 type EmailLogRow = {
   message_id: string | null
   status: string | null

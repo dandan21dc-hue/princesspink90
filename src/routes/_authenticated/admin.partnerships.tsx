@@ -8,6 +8,7 @@ import {
   listPartnershipEmailSummary,
   listPartnershipInquiries,
   listPartnershipReplies,
+  retryPartnershipNotification,
   sendPartnershipReply,
   updatePartnershipInquiry,
 } from '@/lib/partnership.functions'
@@ -346,6 +347,18 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
   const sendReplyFn = useServerFn(sendPartnershipReply)
   const updateFn = useServerFn(updatePartnershipInquiry)
   const emailEventsFn = useServerFn(listPartnershipEmailEvents)
+  const retryFn = useServerFn(retryPartnershipNotification)
+
+  const retryMut = useMutation({
+    mutationFn: (kind: 'confirmation' | 'notification') =>
+      retryFn({ data: { inquiryId: inquiry.id, kind } }),
+    onSuccess: (_res, kind) => {
+      toast.success(`Re-queued ${kind} email.`)
+      qc.invalidateQueries({ queryKey: ['partnership-email-events', inquiry.id] })
+      qc.invalidateQueries({ queryKey: ['partnership-email-summary'] })
+    },
+    onError: (e: any) => toast.error(e?.message || 'Retry failed.'),
+  })
 
   const replies = useQuery({
     queryKey: ['partnership-replies', inquiry.id],
@@ -461,14 +474,30 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
       </div>
 
       <div className="mt-8">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Email delivery</span>
-          <button
-            onClick={() => emailEvents.refetch()}
-            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-neon"
-          >
-            {emailEvents.isFetching ? 'Refreshing…' : 'Refresh'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => retryMut.mutate('notification')}
+              disabled={retryMut.isPending}
+              className="rounded-full border border-border/60 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground hover:border-neon/40 hover:text-neon disabled:opacity-50"
+            >
+              {retryMut.isPending && retryMut.variables === 'notification' ? 'Retrying…' : 'Retry notification'}
+            </button>
+            <button
+              onClick={() => retryMut.mutate('confirmation')}
+              disabled={retryMut.isPending}
+              className="rounded-full border border-border/60 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground hover:border-neon/40 hover:text-neon disabled:opacity-50"
+            >
+              {retryMut.isPending && retryMut.variables === 'confirmation' ? 'Retrying…' : 'Retry confirmation'}
+            </button>
+            <button
+              onClick={() => emailEvents.refetch()}
+              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-neon"
+            >
+              {emailEvents.isFetching ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
         </div>
         {emailEvents.isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
         {emailEvents.error && (
@@ -493,6 +522,19 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
                 {e.recipientEmail ?? '—'}
                 {e.templateName && <> · <span className="uppercase tracking-widest">{e.templateName}</span></>}
               </div>
+              {(e.kind === 'notification' || e.kind === 'confirmation') &&
+                e.status &&
+                ['dlq', 'failed', 'bounced'].includes(e.status) && (
+                  <div className="mt-2">
+                    <button
+                      onClick={() => retryMut.mutate(e.kind as 'confirmation' | 'notification')}
+                      disabled={retryMut.isPending}
+                      className="rounded-full border border-red-500/40 px-3 py-1 text-[10px] uppercase tracking-widest text-red-300 hover:border-red-400 hover:text-red-200 disabled:opacity-50"
+                    >
+                      {retryMut.isPending && retryMut.variables === e.kind ? 'Retrying…' : 'Retry this delivery'}
+                    </button>
+                  </div>
+                )}
               {e.errorMessage && (
                 <p className="mt-2 whitespace-pre-wrap rounded border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300">
                   {e.errorMessage}
