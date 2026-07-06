@@ -22,6 +22,18 @@ DECLARE
   v_event    uuid;
   v_rsvp     uuid;
 BEGIN
+  -- Seed real auth.users rows so FK constraints on events/rsvps/user_roles hold.
+  -- Everything is rolled back at the end of the script.
+  INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password,
+                          email_confirmed_at, created_at, updated_at)
+  VALUES
+    (v_attendee, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+     v_attendee::text || '@test.local', '', now(), now(), now()),
+    (v_host,     '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+     v_host::text     || '@test.local', '', now(), now(), now()),
+    (v_admin,    '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+     v_admin::text    || '@test.local', '', now(), now(), now());
+
   -- Seed a host-owned event and an attendee RSVP as the service role.
   INSERT INTO public.events (id, host_id, title, venue_name, starts_at, published)
   VALUES (gen_random_uuid(), v_host, 'tamper-test event', 'test venue', now() + interval '1 day', true)
