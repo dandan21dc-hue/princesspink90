@@ -42,7 +42,7 @@ function Terms() {
         </p>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">1. Eligibility (18+)</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">1. Eligibility (18+)</h2>
           <p className="mt-2">
             You must be 18 years of age or older (or the age of majority where you live,
             if higher) and accessing this content must be legal in your jurisdiction. We
@@ -52,7 +52,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">2. Accounts</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">2. Accounts</h2>
           <p className="mt-2">
             You are responsible for keeping your login credentials secure and
             for all activity on your account. Do not share access to
@@ -61,7 +61,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">3. Subscription &amp; billing</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">3. Subscription &amp; billing</h2>
           <p className="mt-2">
             Subscription plans are upfront, lump-sum payments for the selected term
             (3, 6, or 12 months, or Lifetime). There are no recurring monthly charges;
@@ -76,7 +76,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">4. Perks</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">4. Perks</h2>
           <p className="mt-2">
             The "Free Event Entry" perk associated with 12-month and Lifetime tiers is
             valid for the duration of your active term. Unused credits do not carry
@@ -85,7 +85,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">5. Content licence</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">5. Content licence</h2>
           <p className="mt-2">
             All photos, videos, and other media are the property of the
             creator. Your membership grants a personal, non-transferable,
@@ -96,7 +96,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">6. Events &amp; private sessions</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">6. Events &amp; private sessions</h2>
           <p className="mt-2">
             Attendance at ticketed events and private-room bookings is subject
             to consent, safety, and conduct rules set out in our{" "}
@@ -107,7 +107,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">7. Platform responsibility</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">7. Platform responsibility</h2>
           <p className="mt-2">
             PRINCESS PINK curates events and acts as an intermediary. While we vet
             venues and guests, we are not liable for individual actions taken within
@@ -117,7 +117,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">8. Termination</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">8. Termination</h2>
           <p className="mt-2">
             We may suspend or terminate access at any time for breach of these
             terms, illegal activity, or conduct that puts other members or
@@ -128,7 +128,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">9. Changes</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">9. Changes</h2>
           <p className="mt-2">
             We may update these terms as our platform evolves. Continued use of the
             Service after changes take effect constitutes acceptance of the revised
@@ -137,7 +137,7 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">10. Contact</h2>
+          <h2 className="font-display text-2xl font-semibold text-foreground">10. Contact</h2>
           <p className="mt-2">
             Questions? Reach us through the{" "}
             <Link to="/support" className="text-primary underline">support chat</Link>{" "}
