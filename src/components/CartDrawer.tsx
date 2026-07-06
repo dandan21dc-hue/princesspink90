@@ -82,7 +82,7 @@ export function CartButton() {
   );
 }
 
-function CartBody({ onClose }: { onClose: () => void }) {
+function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckoutStart?: () => void }) {
   const { items, subtotalCents, hasPanty, currency, setQty, remove, clear } = useCart();
   const navigate = useNavigate();
 
