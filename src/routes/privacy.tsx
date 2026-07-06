@@ -170,10 +170,13 @@ function PrivacyPage() {
             Delete a pending screening yourself before it has been reviewed.
           </li>
           <li>
-            Request full deletion of your account and associated data by contacting the
-            platform operator via the channels listed in the site footer. We will action
-            deletion requests within a reasonable time subject to any overriding legal
-            retention obligations (e.g. financial records required by law).
+          Request full deletion of your account and associated data by emailing{" "}
+            <a href="mailto:support@princesspink90.com" className="text-primary hover:underline">
+              support@princesspink90.com
+            </a>{" "}
+            or via the channels listed in the site footer. We will action deletion
+            requests within a reasonable time subject to any overriding legal retention
+            obligations (e.g. financial records required by law).
           </li>
         </ul>
       </Section>
@@ -193,6 +196,16 @@ function PrivacyPage() {
           an eligible data breach involving your personal or sensitive information, we
           will notify you and the Office of the Australian Information Commissioner
           (OAIC) as required by the Notifiable Data Breaches scheme.
+        </p>
+      </Section>
+
+      <Section eyebrow="Discretion" title="Your participation stays private">
+        <p>
+          We understand the sensitive nature of adult theatre events. We act with total
+          discretion and never share your participation status, RSVPs, ticket history, or
+          membership tier with public-facing social media or third-party advertisers. We
+          do not sell, rent, or trade your personal information to third parties for
+          marketing purposes.
         </p>
       </Section>
 
