@@ -90,8 +90,23 @@ jobs:
       # order. Any migration that fails to compile (bad SQL, unknown
       # column, invalid policy expression, missing GRANT, etc.) exits
       # non-zero here and fails the job before the RLS tests run.
-      - name: Apply migrations to a fresh database
+      - name: Boot ephemeral Supabase stack
         run: supabase db start
+
+      # Explicitly re-apply every migration against the fresh DB right
+      # before the tests run. `db reset --local` drops the local DB and
+      # replays supabase/migrations/*.sql from scratch, guaranteeing the
+      # `supabase db test` step below always executes against a database
+      # whose schema exactly matches the current migration set on the PR
+      # (no drift from cached volumes, no leftover state from `db start`
+      # seed data, no partially-applied migration from a previous run).
+      # A failing migration here fails the job before any test runs.
+      - name: Apply migrations to a fresh database
+        id: db_migrate
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/db-test
+          supabase db reset --local 2>&1 | tee /tmp/db-test/db-reset.log
 
       # Runs every supabase/tests/*.test.sql against the freshly migrated
       # DB. Currently this includes rsvps_field_tamper.test.sql which
