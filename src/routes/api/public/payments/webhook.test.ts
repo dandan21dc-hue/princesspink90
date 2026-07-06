@@ -50,6 +50,7 @@ const db: {
   content_items: Row[]
   content_purchases: Row[]
   notifications: Row[]
+  dunning_schedule: Row[]
 } = {
   subscriptions: [],
   memberships: [],
@@ -57,11 +58,13 @@ const db: {
   content_items: [],
   content_purchases: [],
   notifications: [],
+  dunning_schedule: [],
 }
 
 function resetDb() {
   for (const k of Object.keys(db) as Array<keyof typeof db>) db[k].length = 0
 }
+
 
 function makeChain(table: keyof typeof db) {
   const filters: Array<[string, unknown]> = []
