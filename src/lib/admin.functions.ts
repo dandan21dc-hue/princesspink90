@@ -320,3 +320,56 @@ export const refreshUserSubscriptionStatus = createServerFn({ method: "POST" })
       updated,
     };
   });
+
+// ---------- Free event-entry perk (12-month term + lifetime members) ----------
+
+export const listFreeEntryPerkMembers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: memberships, error } = await supabaseAdmin
+      .from("memberships")
+      .select("id, user_id, kind, created_at, expires_at, event_ticket_used_at, event_ticket_event_id, events:event_ticket_event_id(id, title, starts_at)")
+      .in("kind", ["lifetime", "term_pass_12"])
+      .eq("environment", env())
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    const userIds = Array.from(new Set((memberships ?? []).map((m) => m.user_id)));
+    if (userIds.length === 0) return { members: [] };
+
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, display_name")
+      .in("user_id", userIds);
+
+    const emails: Record<string, string | null> = {};
+    for (const uid of userIds) {
+      const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
+      emails[uid] = u.user?.email ?? null;
+    }
+    const nameMap = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name]));
+
+    const members = (memberships ?? []).map((m) => ({
+      id: m.id,
+      user_id: m.user_id,
+      display_name: nameMap.get(m.user_id) ?? null,
+      email: emails[m.user_id] ?? null,
+      kind: m.kind as "lifetime" | "term_pass_12",
+      purchased_at: m.created_at,
+      expires_at: m.expires_at,
+      redeemed: Boolean(m.event_ticket_used_at),
+      redeemed_at: m.event_ticket_used_at,
+      redeemed_event: m.events ?? null,
+    }));
+
+    const totals = {
+      total: members.length,
+      redeemed: members.filter((m) => m.redeemed).length,
+      unused: members.filter((m) => !m.redeemed).length,
+    };
+    return { members, totals };
+  });
+
