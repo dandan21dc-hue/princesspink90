@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createStoreCheckoutSession } from "@/lib/store.functions";
@@ -31,18 +31,34 @@ async function detectCountry(): Promise<string | undefined> {
 }
 
 export function StripeEmbeddedCheckout(props: Props) {
-  const [country, setCountry] = useState<string | undefined>(undefined);
-  useEffect(() => { detectCountry().then(setCountry); }, []);
+  // Keep country in a ref so async detection does NOT trigger a re-render.
+  // Re-rendering hands EmbeddedCheckoutProvider a new `options.fetchClientSecret`,
+  // which Stripe rejects ("You cannot change fetchClientSecret after setting it"),
+  // and the checkout form never mounts.
+  const countryRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    detectCountry().then((c) => {
+      countryRef.current = c;
+    });
+  }, []);
 
-  const fetchClientSecret = async (): Promise<string> => {
-    const source = props.priceId ?? props.contentItemId ?? "unknown";
-    const kind = props.priceId?.startsWith("panty_")
+  // Latest props via ref so the memoized fetcher stays referentially stable
+  // while still seeing the newest values when Stripe eventually invokes it.
+  const propsRef = useRef(props);
+  useEffect(() => {
+    propsRef.current = props;
+  });
+
+  const fetchClientSecret = useCallback(async (): Promise<string> => {
+    const p = propsRef.current;
+    const source = p.priceId ?? p.contentItemId ?? "unknown";
+    const kind = p.priceId?.startsWith("panty_")
       ? "panty"
-      : props.priceId
+      : p.priceId
         ? "subscription"
-        : props.contentItemId
+        : p.contentItemId
           ? "content_item"
-          : props.bookingStartsAt
+          : p.bookingStartsAt
             ? "private_room"
             : "unknown";
     const fail = (reason: string, message?: string) => {
@@ -58,15 +74,15 @@ export function StripeEmbeddedCheckout(props: Props) {
     try {
       result = await createStoreCheckoutSession({
         data: {
-          priceId: props.priceId,
-          contentItemId: props.contentItemId,
-          userId: props.userId,
-          customerEmail: props.customerEmail,
-          returnUrl: props.returnUrl || window.location.href,
+          priceId: p.priceId,
+          contentItemId: p.contentItemId,
+          userId: p.userId,
+          customerEmail: p.customerEmail,
+          returnUrl: p.returnUrl || window.location.href,
           environment: getStripeEnvironment(),
-          bookingStartsAt: props.bookingStartsAt,
-          customerCountry: country,
-          autoRenew: props.autoRenew,
+          bookingStartsAt: p.bookingStartsAt,
+          customerCountry: countryRef.current,
+          autoRenew: p.autoRenew,
         },
       });
     } catch (e) {
@@ -82,13 +98,17 @@ export function StripeEmbeddedCheckout(props: Props) {
       throw new Error("Stripe did not return a client secret");
     }
     return result.clientSecret;
-  };
+  }, []);
+
+  const options = useMemo(() => ({ fetchClientSecret }), [fetchClientSecret]);
+  const stripePromise = useMemo(() => getStripe(), []);
 
   return (
     <div id="checkout">
-      <EmbeddedCheckoutProvider stripe={getStripe()} options={{ fetchClientSecret }}>
+      <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
         <EmbeddedCheckout />
       </EmbeddedCheckoutProvider>
     </div>
   );
 }
+
