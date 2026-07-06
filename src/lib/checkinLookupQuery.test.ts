@@ -163,8 +163,9 @@ describe("lookupCheckinQuery", () => {
     // Wildcards escaped, commas/dots preserved as literal chars, and the
     // whole payload arrives as a single value — not parsed as filter syntax.
     expect(ilikeCall!.args[1]).toBe(
-      "\\%,ticket_code.eq.OTHER,entry_phrase.ilike.\\%",
+      "\\%,ticket\\_code.eq.OTHER,entry\\_phrase.ilike.\\%",
     );
+
     // And critically no .or() call was ever made.
     expect(calls.some((c) => c.method === "or")).toBe(false);
   });
