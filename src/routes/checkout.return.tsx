@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { getCheckoutSession } from "@/lib/store.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { cart as cartStore } from "@/lib/cart";
 
 /**
  * Landing page for Stripe's `return_url`. Stripe substitutes
