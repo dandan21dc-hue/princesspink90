@@ -21,9 +21,15 @@ function pricesQuery() {
   return queryOptions({
     queryKey: ["subscribe-prices", getStripeEnvironment()],
     queryFn: async () => {
-      const result = await getSubscribePrices({ data: { environment: getStripeEnvironment() } });
-      if ("error" in result) throw new Error(result.error);
-      return result.prices;
+      try {
+        const result = await getSubscribePrices({ data: { environment: getStripeEnvironment() } });
+        if ("error" in result) return {} as Record<string, SubscribePrice>;
+        return result.prices;
+      } catch {
+        // Never blank the page if Stripe is unreachable or a price is missing;
+        // the UI falls back to hard-coded labels so every plan stays visible.
+        return {} as Record<string, SubscribePrice>;
+      }
     },
     staleTime: 60_000,
   });
@@ -198,7 +204,7 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
       </div>
 
       {/* Panty Drawer */}
-      <div className="mt-12">
+      <div id="panty-drawer" className="mt-12 scroll-mt-24">
         <div className="flex items-end justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.3em] text-primary">

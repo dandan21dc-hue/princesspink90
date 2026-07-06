@@ -82,6 +82,17 @@ function AllAccessCard() {
         </div>
         <div className="mt-1 text-xs text-muted-foreground">Book a 30-minute or 1-hour private session.</div>
       </Link>
+      <Link
+        to="/store/subscribe"
+        hash="panty-drawer"
+        className="group rounded-2xl border border-primary/50 bg-background/40 p-5 hover:border-primary hover:bg-primary/5"
+      >
+        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">The Panty Drawer</div>
+        <div className="mt-1 font-display text-2xl font-bold">
+          From A$60<span className="text-sm text-muted-foreground"> / pair</span>
+        </div>
+        <div className="mt-1 text-xs text-muted-foreground">Worn, sealed, shipped discreetly across Australia.</div>
+      </Link>
     </div>
   );
 }

@@ -188,7 +188,7 @@ function EditEvent() {
         <div className="mt-10 rounded-2xl border border-border/60 bg-card/60 p-6">
           <div className="text-[10px] uppercase tracking-[0.3em] text-primary mb-4">Access codes</div>
           <p className="text-xs text-muted-foreground mb-4">
-            Share a code so guests can unlock this private invitation via <span className="font-mono">/unlock</span>.
+            Share a code with guests for door check-in on the night.
           </p>
           <div className="flex flex-wrap gap-2">
             <input placeholder="PINK-XXXX" value={newCode} onChange={(e) => setNewCode(e.target.value)}

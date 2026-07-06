@@ -43,12 +43,6 @@ function Home() {
             <div className="text-xs uppercase tracking-[0.3em] text-primary">Upcoming</div>
             <h2 className="mt-2 font-display text-3xl font-semibold">Nights on the marquee</h2>
           </div>
-          <Link
-            to="/unlock"
-            className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-          >
-            Have a code? →
-          </Link>
         </div>
         <Suspense fallback={<div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{Array.from({length: 3}).map((_,i)=><div key={i} className="aspect-[4/5] rounded-2xl bg-card animate-pulse"/>)}</div>}>
           <EventList />
@@ -222,8 +216,7 @@ function Hero() {
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted-foreground leading-relaxed">
             Princess Pink curates discreet, consent-first nights at adult
-            theatres and private venues. Browse the public marquee, or enter a
-            code to unlock a private invitation.
+            theatres and private venues. Browse the public marquee below.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
