@@ -44,22 +44,35 @@ export const lookupCheckin = createServerFn({ method: "POST" })
 
     // Accept the scan-code (ticket_code), the entry_code, OR the secret entry
     // phrase (case-insensitive) so the door monitor can look a guest up by
-    // whichever value the guest offers.
-    const orClauses = [
-      `ticket_code.eq.${upper}`,
-      `entry_code.eq.${upper}`,
-      ...(phraseSearch ? [`entry_phrase.ilike.${phraseSearch}`] : []),
-    ].join(",");
-    const { data: rsvp, error } = await context.supabase
-      .from("rsvps")
-      .select(
-        "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at, door_notes",
-      )
-      .eq("event_id", data.event_id)
-      .or(orClauses)
-      .maybeSingle();
-    if (error) throw error;
+    // whichever value the guest offers. Run three parameterised queries
+    // instead of a raw .or() string so user input can never inject
+    // PostgREST filter syntax (commas, wildcards, extra clauses).
+    const base = () =>
+      context.supabase
+        .from("rsvps")
+        .select(
+          "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at, door_notes",
+        )
+        .eq("event_id", data.event_id);
+
+    const queries: Array<Promise<{ data: any; error: any }>> = [
+      base().eq("ticket_code", upper).maybeSingle(),
+      base().eq("entry_code", upper).maybeSingle(),
+    ];
+    if (phraseSearch) {
+      // Escape PostgREST ilike wildcards in the user-supplied phrase so
+      // callers can't match every row with '%' or '_'.
+      const escapedPhrase = phraseSearch.replace(/([\\%_])/g, "\\$1");
+      queries.push(base().ilike("entry_phrase", escapedPhrase).maybeSingle());
+    }
+
+    const results = await Promise.all(queries);
+    const firstError = results.find((r) => r.error)?.error;
+    if (firstError) throw firstError;
+    const rsvp = results.map((r) => r.data).find((r) => r);
     if (!rsvp) return { found: false as const };
+
+
 
 
     // Load profile + age verification via admin-scoped queries (host can't
