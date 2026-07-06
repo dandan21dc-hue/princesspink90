@@ -104,12 +104,12 @@ function SubscribePage() {
     });
   }, []);
 
-  async function buy(priceId: PriceId) {
+  async function buy(priceId: PriceId, autoRenew?: boolean) {
     if (pending) {
       console.log("[subscribe] click ignored — already pending", { pending, priceId });
       return;
     }
-    console.log("[subscribe] click", { priceId, hasUser: !!user });
+    console.log("[subscribe] click", { priceId, hasUser: !!user, autoRenew });
     if (!user) {
       navigate({ to: "/auth" });
       return;
@@ -138,12 +138,13 @@ function SubscribePage() {
       if (priceId.startsWith("panty_")) {
         track("panty_checkout_started", { variant: priceId });
       }
-      track("checkout_open", { priceId });
+      track("checkout_open", { priceId, autoRenew: autoRenew ? "1" : "0" });
       openCheckout({
         priceId,
         userId: user.id,
         customerEmail: user.email,
         returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
+        autoRenew,
       });
     } catch (e) {
       console.error("[subscribe] buy failed", e);
