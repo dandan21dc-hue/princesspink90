@@ -55,7 +55,20 @@ jobs:
       # with a precise message instead of a confusing failure downstream in
       # the linter or gate job.
       - name: Validate security config
-        run: bun run validate:security-config
+        id: validate
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/security-config
+          bun run validate:security-config 2>&1 \
+            | tee /tmp/security-config/validate.log
+
+      - name: Upload config validator report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-config-validate-report
+          path: /tmp/security-config/
+          retention-days: 7
 
   supabase_security_lint:
     name: Supabase / Lint
