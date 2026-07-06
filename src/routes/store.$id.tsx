@@ -151,12 +151,30 @@ function ItemPage() {
 
               <div className="mt-8 space-y-3">
                 {canBuyOneTime && (
-                  <button
-                    onClick={buyThis}
-                    className="w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-                  >
-                    Buy for ${(item.price_cents! / 100).toFixed(2)}
-                  </button>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button
+                      onClick={buyThis}
+                      className="rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+                    >
+                      Buy · ${(item.price_cents! / 100).toFixed(2)}
+                    </button>
+                    <button
+                      onClick={() => {
+                        cart.add({
+                          kind: "content",
+                          id: item!.id,
+                          title: item!.title,
+                          unit_amount_cents: item!.price_cents!,
+                          currency: (item!.currency ?? "aud").toLowerCase(),
+                          cover_url: item!.cover_url,
+                        });
+                        toast.success("Added to cart");
+                      }}
+                      className="rounded-md border border-primary/60 px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+                    >
+                      Add to cart
+                    </button>
+                  </div>
                 )}
                 <button
                   onClick={subscribe}
