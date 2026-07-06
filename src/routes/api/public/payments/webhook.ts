@@ -109,6 +109,23 @@ async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
       { onConflict: "stripe_subscription_id" },
     );
 
+  // Term-pass perk provisioning: 12-month subscribers get a `term_pass_12`
+  // membership row so the "1 free event entry during the term" perk is
+  // grantable. Kept idempotent — we only insert if no row exists for
+  // (user_id, kind, environment) linked to this subscription.
+  if (
+    priceId === "all_access_12mo_monthly_aud" &&
+    (subscription.status === "active" || subscription.status === "trialing")
+  ) {
+    await ensureTermPassMembership({
+      userId,
+      subscriptionId: subscription.id,
+      env,
+      termMonths: 12,
+      periodStartUnix: periodStart,
+    });
+  }
+
   // Notify creators on new subscription
   if (!existing && (subscription.status === "active" || subscription.status === "trialing")) {
     await notifyAllCreators({
@@ -134,6 +151,62 @@ async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
     });
   }
 }
+
+/**
+ * Idempotently create a term-pass membership row for a subscription-based
+ * plan (e.g. 12-month all-access). Distinct from the one-time term-pass
+ * flow, which is fulfilled from checkout.session.completed with
+ * metadata.membership="term_pass".
+ */
+async function ensureTermPassMembership(opts: {
+  userId: string;
+  subscriptionId: string;
+  env: StripeEnv;
+  termMonths: number;
+  periodStartUnix: number | null | undefined;
+}) {
+  const kind = `term_pass_${opts.termMonths}`;
+  const marker = `sub_${opts.subscriptionId}`;
+
+  const { data: existing } = await getSupabase()
+    .from("memberships")
+    .select("id")
+    .eq("user_id", opts.userId)
+    .eq("kind", kind)
+    .eq("environment", opts.env)
+    .eq("stripe_session_id", marker)
+    .maybeSingle();
+  if (existing) return;
+
+  const start = opts.periodStartUnix
+    ? new Date(opts.periodStartUnix * 1000)
+    : new Date();
+  const expires = new Date(start);
+  expires.setMonth(expires.getMonth() + opts.termMonths);
+
+  const { error } = await getSupabase().from("memberships").insert({
+    user_id: opts.userId,
+    kind,
+    term_months: opts.termMonths,
+    stripe_session_id: marker,
+    environment: opts.env,
+    expires_at: expires.toISOString(),
+  });
+  if (error) {
+    console.error("[webhook] ensureTermPassMembership failed", {
+      userId: opts.userId,
+      subscriptionId: opts.subscriptionId,
+      error: error.message,
+    });
+  } else {
+    console.log("[webhook] term-pass membership provisioned", {
+      userId: opts.userId,
+      kind,
+      subscriptionId: opts.subscriptionId,
+    });
+  }
+}
+
 
 async function handleSubscriptionDeleted(subscription: any, env: StripeEnv) {
   await getSupabase()
