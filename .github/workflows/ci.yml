@@ -310,6 +310,7 @@ jobs:
             done
 
       - name: Upload db test artifacts
+        id: upload_db_test
         if: failure() && steps.db_test.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
