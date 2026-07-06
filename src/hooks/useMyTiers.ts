@@ -50,7 +50,7 @@ const EMPTY_ACTIVE: Record<PlanId, boolean> = {
 };
 
 export function useMyTiers(): MyTiersState {
-  const [state, setState] = useState<MyTiersState>({
+  const [state, setState] = useState<TiersData>({
     loading: true,
     signedIn: false,
     active: { ...EMPTY_ACTIVE },
