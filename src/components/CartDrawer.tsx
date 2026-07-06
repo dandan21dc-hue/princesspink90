@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { useCart, formatMoney } from "@/lib/cart";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/track";
 
 export function CartButton() {
   const { count } = useCart();
