@@ -5,6 +5,8 @@ import { getCheckoutSession } from "@/lib/store.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart as cartStore } from "@/lib/cart";
 import { track } from "@/lib/track";
+import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
+
 
 /**
  * Landing page for Stripe's `return_url`. Stripe substitutes
