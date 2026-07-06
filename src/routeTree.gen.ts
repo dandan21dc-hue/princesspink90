@@ -36,6 +36,7 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
+import { Route as AuthenticatedAdminWebhookEventsRouteImport } from './routes/_authenticated/admin.webhook-events'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
 import { Route as AuthenticatedAdminVenueComplianceRemindersRouteImport } from './routes/_authenticated/admin.venue-compliance-reminders'
 import { Route as AuthenticatedAdminVenueComplianceRouteImport } from './routes/_authenticated/admin.venue-compliance'
@@ -209,6 +210,12 @@ const AuthenticatedContentNewRoute = AuthenticatedContentNewRouteImport.update({
   path: '/new',
   getParentRoute: () => AuthenticatedContentRoute,
 } as any)
+const AuthenticatedAdminWebhookEventsRoute =
+  AuthenticatedAdminWebhookEventsRouteImport.update({
+    id: '/admin/webhook-events',
+    path: '/admin/webhook-events',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminVerificationsRoute =
   AuthenticatedAdminVerificationsRouteImport.update({
     id: '/admin/verifications',
@@ -467,6 +474,7 @@ export interface FileRoutesByFullPath {
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
+  '/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
@@ -530,6 +538,7 @@ export interface FileRoutesByTo {
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
+  '/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/account': typeof AuthenticatedAccountIndexRoute
@@ -596,6 +605,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/_authenticated/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
+  '/_authenticated/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
@@ -662,6 +672,7 @@ export interface FileRouteTypes {
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
     | '/admin/verifications'
+    | '/admin/webhook-events'
     | '/content/new'
     | '/events/new'
     | '/account/'
@@ -725,6 +736,7 @@ export interface FileRouteTypes {
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
     | '/admin/verifications'
+    | '/admin/webhook-events'
     | '/content/new'
     | '/events/new'
     | '/account'
@@ -790,6 +802,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/venue-compliance'
     | '/_authenticated/admin/venue-compliance-reminders'
     | '/_authenticated/admin/verifications'
+    | '/_authenticated/admin/webhook-events'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
     | '/_authenticated/account/'
@@ -1032,6 +1045,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/content/new'
       preLoaderRoute: typeof AuthenticatedContentNewRouteImport
       parentRoute: typeof AuthenticatedContentRoute
+    }
+    '/_authenticated/admin/webhook-events': {
+      id: '/_authenticated/admin/webhook-events'
+      path: '/admin/webhook-events'
+      fullPath: '/admin/webhook-events'
+      preLoaderRoute: typeof AuthenticatedAdminWebhookEventsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/verifications': {
       id: '/_authenticated/admin/verifications'
@@ -1353,6 +1373,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminVenueComplianceRoute: typeof AuthenticatedAdminVenueComplianceRoute
   AuthenticatedAdminVenueComplianceRemindersRoute: typeof AuthenticatedAdminVenueComplianceRemindersRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
+  AuthenticatedAdminWebhookEventsRoute: typeof AuthenticatedAdminWebhookEventsRoute
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
   AuthenticatedEventsIdCheckinRoute: typeof AuthenticatedEventsIdCheckinRouteWithChildren
   AuthenticatedEventsIdEditRoute: typeof AuthenticatedEventsIdEditRoute
@@ -1393,6 +1414,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminVenueComplianceRemindersRoute:
     AuthenticatedAdminVenueComplianceRemindersRoute,
   AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
+  AuthenticatedAdminWebhookEventsRoute: AuthenticatedAdminWebhookEventsRoute,
   AuthenticatedEventsNewRoute: AuthenticatedEventsNewRoute,
   AuthenticatedEventsIdCheckinRoute:
     AuthenticatedEventsIdCheckinRouteWithChildren,
