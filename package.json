@@ -15,7 +15,9 @@
     "test:checkout": "vitest run src/lib/stripeCheckoutFlow.test.ts src/routes/store.subscribe.test.ts src/routes/api/public/payments/webhook.test.ts",
     "test:e2e": "playwright test",
     "verify:checkout": "node scripts/verify-multi-currency-checkout.mjs",
+    "lint:supabase": "node scripts/supabase-security-lint.mjs",
     "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
+
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.5",
