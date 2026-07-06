@@ -6,11 +6,14 @@ import { renderHealthScreeningReminder } from '@/lib/email-templates-resend/heal
 import { resolveAppOrigin } from '@/lib/app-origin.server'
 import { redactLogPayload } from '@/lib/log-redaction'
 import { maskEmail } from '@/lib/mask-email'
+import { checkHooksCronAuth } from '@/lib/hooks-auth.server'
 
 
 
 // Daily job: finds admin-approved health screenings expiring in exactly 7 days
 // and records exactly one reminder per screening.
+//
+// Auth: `Authorization: Bearer <HOOKS_CRON_SECRET>` (server-only secret).
 //
 // Idempotency strategy (defense in depth):
 //   1. Deterministic idempotency_key = "expiry_7_day:<screening_id>:<valid_until>"
@@ -24,16 +27,8 @@ export const Route = createFileRoute('/api/public/hooks/health-screening-reminde
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apikey =
-          request.headers.get('apikey') ??
-          request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY
-        if (!apikey || !expected || apikey !== expected) {
-          return new Response(JSON.stringify({ error: 'unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        }
+        const unauth = checkHooksCronAuth(request)
+        if (unauth) return unauth
 
         const supabase = createClient(
           process.env.SUPABASE_URL!,
