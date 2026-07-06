@@ -28,7 +28,7 @@ const PERSISTED_EVENTS = new Set([
 
 export function track(event: string, props: TrackProps = {}): void {
   if (typeof window === "undefined") return;
-  const payload = { event, ...props, ts: Date.now() };
+  
   const clean: EmittedProps = {};
   for (const [k, v] of Object.entries(props)) {
     if (v === null || v === undefined) continue;
