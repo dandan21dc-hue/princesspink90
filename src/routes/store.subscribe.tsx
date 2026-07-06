@@ -335,6 +335,8 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
                 highlight={p.highlight}
                 perks={[...p.perks]}
                 cta={p.cta}
+                loading={busy(p.key)}
+                disabled={disabled}
                 onClick={() => {
                   track("panty_buy_click", { variant: p.key, price_cents: unitCents, currency });
                   onBuy(p.key);
@@ -342,6 +344,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
                 onAddToCart={() => {
                   const existingPanty = cart.snapshot().find((it) => it.kind === "panty");
                   const replacing = existingPanty && existingPanty.id !== p.key;
+                  console.log("[cart] add panty", { variant: p.key, replacing });
                   try {
                     cart.add({
                       kind: "panty",
@@ -353,11 +356,13 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
                     track("panty_add_to_cart", { variant: p.key, price_cents: unitCents, currency });
                     toast.success(replacing ? `Swapped for ${p.label}` : "Added to cart");
                   } catch (e) {
+                    console.error("[cart] add failed", e);
                     toast.error((e as Error).message);
                   }
                 }}
               />
             );
+
           })}
           <div className="relative flex flex-col rounded-2xl border border-dashed border-primary/40 bg-background/40 p-6">
             <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
