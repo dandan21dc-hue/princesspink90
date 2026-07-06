@@ -24,6 +24,67 @@ async function assertEventHostOrAdmin(
   if (!isAdmin) throw new Error("Only the event host can run door check-in.");
 }
 
+export const CHECKIN_RSVP_COLUMNS =
+  "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at, door_notes";
+
+/**
+ * Escape user-supplied text before it is passed to a PostgREST `ilike`
+ * filter. PostgREST treats `%` and `_` as wildcards and `\` as the
+ * escape char, so unescaped input lets a caller match every row
+ * (`%`) or bypass intended narrowing. Exported for unit tests that
+ * assert the exact escape behaviour used by lookupCheckin.
+ */
+export function escapePostgrestLikePattern(value: string): string {
+  return value.replace(/([\\%_])/g, "\\$1");
+}
+
+/**
+ * Internal handler for `lookupCheckin`. Extracted from the server-fn
+ * wrapper so unit tests can drive it with a mocked Supabase client and
+ * assert that user input flows through parameterised `.eq()` / `.ilike()`
+ * builder methods — never interpolated into a raw `.or()` filter string.
+ */
+export async function lookupCheckinQuery(
+  supabase: any,
+  input: { event_id: string; ticket_code: string },
+): Promise<{ rsvp: any | null }> {
+  const raw = input.ticket_code.trim();
+  const upper = raw.toUpperCase();
+  // Only search entry_phrase when the input is a non-blank string —
+  // matches the DB trigger's normalization so ' ' or '' can't match
+  // rows whose phrase happens to contain a space.
+  const phraseSearch = normalizeEntryPhrase(raw);
+
+  // Accept the scan-code (ticket_code), the entry_code, OR the secret entry
+  // phrase (case-insensitive) so the door monitor can look a guest up by
+  // whichever value the guest offers. Run three parameterised queries
+  // instead of a raw .or() string so user input can never inject
+  // PostgREST filter syntax (commas, wildcards, extra clauses).
+  const base = () =>
+    supabase
+      .from("rsvps")
+      .select(CHECKIN_RSVP_COLUMNS)
+      .eq("event_id", input.event_id);
+
+  const queries: Array<PromiseLike<{ data: any; error: any }>> = [
+    base().eq("ticket_code", upper).maybeSingle(),
+    base().eq("entry_code", upper).maybeSingle(),
+  ];
+  if (phraseSearch) {
+    queries.push(
+      base()
+        .ilike("entry_phrase", escapePostgrestLikePattern(phraseSearch))
+        .maybeSingle(),
+    );
+  }
+
+  const results = await Promise.all(queries);
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+  const rsvp = results.map((r) => r.data).find((r) => r) ?? null;
+  return { rsvp };
+}
+
 /** Look up a guest by ticket code for a given event (host/admin only). */
 export const lookupCheckin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -35,43 +96,10 @@ export const lookupCheckin = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertEventHostOrAdmin(context.supabase, context.userId, data.event_id);
-    const raw = data.ticket_code.trim();
-    const upper = raw.toUpperCase();
-    // Only search entry_phrase when the input is a non-blank string —
-    // matches the DB trigger's normalization so ' ' or '' can't match
-    // rows whose phrase happens to contain a space.
-    const phraseSearch = normalizeEntryPhrase(raw);
-
-    // Accept the scan-code (ticket_code), the entry_code, OR the secret entry
-    // phrase (case-insensitive) so the door monitor can look a guest up by
-    // whichever value the guest offers. Run three parameterised queries
-    // instead of a raw .or() string so user input can never inject
-    // PostgREST filter syntax (commas, wildcards, extra clauses).
-    const base = () =>
-      context.supabase
-        .from("rsvps")
-        .select(
-          "id, user_id, ticket_code, entry_code, entry_phrase, guest_count, status, video_consent, checked_in_at, door_notes",
-        )
-        .eq("event_id", data.event_id);
-
-    const queries: Array<PromiseLike<{ data: any; error: any }>> = [
-      base().eq("ticket_code", upper).maybeSingle(),
-      base().eq("entry_code", upper).maybeSingle(),
-    ];
-    if (phraseSearch) {
-      // Escape PostgREST ilike wildcards in the user-supplied phrase so
-      // callers can't match every row with '%' or '_'.
-      const escapedPhrase = phraseSearch.replace(/([\\%_])/g, "\\$1");
-      queries.push(base().ilike("entry_phrase", escapedPhrase).maybeSingle());
-    }
-
-
-    const results = await Promise.all(queries);
-    const firstError = results.find((r) => r.error)?.error;
-    if (firstError) throw firstError;
-    const rsvp = results.map((r) => r.data).find((r) => r);
+    const { rsvp } = await lookupCheckinQuery(context.supabase, data);
     if (!rsvp) return { found: false as const };
+
+
 
 
 
