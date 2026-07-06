@@ -209,6 +209,8 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
       toast.success('Reply sent.')
       setBody('')
       qc.invalidateQueries({ queryKey: ['partnership-replies', inquiry.id] })
+      qc.invalidateQueries({ queryKey: ['partnership-email-events', inquiry.id] })
+      qc.invalidateQueries({ queryKey: ['partnership-email-summary'] })
       qc.invalidateQueries({ queryKey: ['partnership-inquiries'] })
       router.invalidate()
     },
