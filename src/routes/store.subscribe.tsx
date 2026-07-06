@@ -202,10 +202,10 @@ function SubscribePage() {
   );
 }
 
-function priceLabel(prices: Record<string, SubscribePrice>, key: PriceId, fallback: string) {
+function priceLabel(prices: Record<string, SubscribePrice>, key: PriceId, fallback: string, multiplier = 1) {
   const p = prices[key];
   if (!p) return fallback;
-  return formatMoney(p.unit_amount, p.currency);
+  return formatMoney(p.unit_amount * multiplier, p.currency);
 }
 
 function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) => void; pending: PriceId | null }) {
