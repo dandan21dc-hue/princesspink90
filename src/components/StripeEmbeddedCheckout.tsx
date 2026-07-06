@@ -122,8 +122,15 @@ export function StripeEmbeddedCheckout(props: Props) {
   const [sessionLoaded, setSessionLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Runtime guard: memoize the in-flight client-secret promise per attempt so
+  // that any accidental re-invocation of fetchClientSecret (React StrictMode
+  // double-invoke, provider re-render, upstream retry) returns the SAME
+  // promise instead of opening a second Stripe Checkout Session. Stripe also
+  // rejects fetcher swaps once the provider is initialized; this ref keeps the
+  // reference stable across renders even if useCallback identity changes.
+  const inFlightRef = useRef<{ attempt: number; promise: Promise<string> } | null>(null);
 
-  const fetchClientSecret = useCallback(async (): Promise<string> => {
+  const runFetchClientSecret = useCallback(async (): Promise<string> => {
     const p = propsRef.current;
     const requestStartedAt = Date.now();
     logLifecycle("session_request_started", {
@@ -186,10 +193,38 @@ export function StripeEmbeddedCheckout(props: Props) {
     });
     setSessionLoaded(true);
     return result.clientSecret;
-
     // attempt is intentionally in deps so each retry creates a fresh fetcher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt, logLifecycle]);
+  }, [attempt, kind, source, logLifecycle]);
+
+  const fetchClientSecret = useCallback((): Promise<string> => {
+    const cached = inFlightRef.current;
+    if (cached && cached.attempt === attempt) {
+      logLifecycle("session_request_deduped", { attempt });
+      return cached.promise;
+    }
+    const promise = runFetchClientSecret().catch((e) => {
+      // On failure, drop the cache so the next explicit retry (attempt++)
+      // starts fresh; keep it cached on success so the client secret is stable.
+      if (inFlightRef.current?.attempt === attempt) inFlightRef.current = null;
+      throw e;
+    });
+    inFlightRef.current = { attempt, promise };
+    return promise;
+  }, [attempt, logLifecycle, runFetchClientSecret]);
+
+  // Guarantee referentially-stable options per attempt. `useMemo` alone is
+  // best-effort (React may drop memos); a ref keyed by attempt makes the
+  // "one options object per checkout session" contract explicit.
+  const optionsRef = useRef<{
+    attempt: number;
+    value: { fetchClientSecret: () => Promise<string> };
+  } | null>(null);
+  if (!optionsRef.current || optionsRef.current.attempt !== attempt) {
+    optionsRef.current = { attempt, value: { fetchClientSecret } };
+  }
+  const options = optionsRef.current.value;
+
 
   // Fail loudly if Stripe.js itself doesn't load (blocked, offline, bad key).
   const stripePromise = useMemo(() => {
