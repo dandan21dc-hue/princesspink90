@@ -290,10 +290,12 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
         </ul>
         <button
           onClick={() => onBuy("lifetime_onetime_aud")}
-          className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto"
+          disabled={disabled}
+          className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Buy lifetime
+          {busy("lifetime_onetime_aud") ? "Opening checkout…" : "Buy lifetime"}
         </button>
+
       </div>
 
       {/* Panty Drawer */}
