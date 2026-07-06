@@ -54,13 +54,8 @@ export const listPrivateRoomBusy = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
-    const { data: rows, error } = await supabase.rpc("get_private_room_busy", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc("get_private_room_busy", {
       from_ts: data.from,
       to_ts: data.to,
     });
@@ -899,6 +894,20 @@ export const signMediaUrl = createServerFn({ method: "POST" })
     });
     if (!allowed) throw new Error("Not allowed");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Assert requested path actually belongs to this item; prevents an
+    // authenticated caller from signing arbitrary paths under content-media
+    // by piggybacking on an item they legitimately have access to.
+    const { data: item, error: itemErr } = await supabaseAdmin
+      .from("content_items")
+      .select("cover_url,media_urls")
+      .eq("id", data.itemId)
+      .maybeSingle();
+    if (itemErr || !item) throw new Error("Item not found");
+    const mediaUrls = (item.media_urls ?? []) as Array<{ url: string; type?: string }>;
+    const allowedPaths = new Set<string>();
+    if (item.cover_url) allowedPaths.add(item.cover_url as string);
+    for (const m of mediaUrls) if (m?.url) allowedPaths.add(m.url);
+    if (!allowedPaths.has(data.path)) throw new Error("Path not part of this item");
     const { data: signed, error } = await supabaseAdmin.storage
       .from("content-media")
       .createSignedUrl(data.path, 60 * 10);

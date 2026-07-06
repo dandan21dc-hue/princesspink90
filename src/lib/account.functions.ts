@@ -92,7 +92,8 @@ export const confirmAgeGate = createServerFn({ method: "POST" })
 export const checkAgeGate = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ confirmed: boolean }> => {
-    const { data } = await context.supabase.rpc("has_age_verification", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin.rpc("has_age_verification", {
       _user_id: context.userId,
     });
     return { confirmed: !!data };
