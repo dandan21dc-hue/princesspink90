@@ -73,14 +73,19 @@ rule). If you can name a specific fingerprint, use the baseline instead.
 3. Only if the finding is intentionally accepted:
    - Update `@security-memory` with the rationale (what the risk is, why
      it's accepted, who signed off).
-   - Regenerate the baseline locally:
+   - Regenerate the baseline, stage it, and commit it with one command:
      ```bash
      SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... \
-       node scripts/supabase-security-lint.mjs --update-baseline
+       bun run security:baseline:update
      ```
-   - Commit **only** the intended `security/lint-baseline.json` diff. Every
-     added fingerprint is a security acceptance — reviewers should read the
-     diff line by line.
+     Flags: `-- --dry-run` to preview the diff without staging;
+     `-- --no-commit` to stage without committing. Under the hood this
+     runs `scripts/update-security-baseline.sh`, which calls
+     `node scripts/supabase-security-lint.mjs --update-baseline`, prints
+     the diff of `security/lint-baseline.json`, then `git add` + `git commit`s
+     with a `chore(security): refresh supabase lint baseline` message.
+   - Every added fingerprint in the resulting diff is a security
+     acceptance — reviewers should read the diff line by line.
    - Get sign-off from the CODEOWNERS owner for `security/` (see
      `.github/CODEOWNERS`).
 
