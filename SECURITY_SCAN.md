@@ -235,6 +235,96 @@ files (skip step 3 unless you edited SQL or committed types).
 
 ---
 
+## Troubleshooting: Common Gate Failures
+
+The gate itself never fails on its own — it mirrors an upstream job. Find
+the red job in the Actions run, then match the symptom below.
+
+### 1. `Supabase / Config Validate` failed
+
+Fast failure (no network). The message names the exact file to edit.
+
+- **"baseline is not valid JSON" / "missing field X" / "level must be WARN or ERROR"**
+  → `security/lint-baseline.json` was hand-edited. Do not hand-edit. Fix:
+  ```bash
+  SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... bun run security:baseline:update
+  ```
+- **"duplicate fingerprint: …"** → two entries collapsed onto the same
+  offender. Regenerate the baseline as above; the writer dedupes.
+- **"baseline is not sorted by fingerprint"** → same fix — regeneration
+  sorts. Never re-sort by hand.
+- **"SUPABASE_LINT_ALLOWLIST entry 'X' not in APPROVED_ALLOWLIST"** →
+  someone added `X` to the workflow env (or repo `vars`) without adding
+  the rationale to `APPROVED_ALLOWLIST` in
+  `scripts/supabase-security-lint.mjs`. Either remove `X` from the env
+  or follow **Playbook C** to approve it (requires CODEOWNERS review).
+- **"empty rationale for 'X'"** → `APPROVED_ALLOWLIST` entry exists but
+  its value is blank. Add the `@security-memory` rationale string.
+
+### 2. `Supabase / Lint` failed
+
+- **"N new WARN/ERROR finding(s) not in baseline"** → the real case.
+  Follow **Playbook A**: fix the finding at the source first; only
+  regenerate the baseline if it's an accepted acceptance with
+  `@security-memory` sign-off.
+- **"missing SUPABASE_ACCESS_TOKEN or SUPABASE_PROJECT_REF; skipping"
+  on a PR from a fork** → expected. Fork PRs can't reach secrets; the
+  gate still requires this job on trusted branches. Merge from a branch
+  in this repo, not a fork.
+- **"API returned 401 / 403"** → `SUPABASE_ACCESS_TOKEN` secret is
+  expired or wrong scope. Rotate the repo secret, re-run the job.
+- **"API returned 5xx"** → Supabase API blip. Re-run the job before
+  debugging anything.
+- **"unapproved entries: …"** → same root cause as the Config Validate
+  message with the same name; fix as in §1.
+
+### 3. `Supabase / Migrations` failed
+
+Open the failed job and read the "Diagnose failing db test" step first —
+it dumps the exact SQLSTATE, failing line, Postgres log, and current
+policies/triggers. Then:
+
+- **`supabase db reset` failed** → a migration in `supabase/migrations/`
+  won't replay from scratch. Common causes: dependency ordering (a later
+  migration references an object dropped by an earlier one), missing
+  `GRANT` after `CREATE TABLE`, or a `CREATE POLICY` before
+  `ENABLE ROW LEVEL SECURITY`. Fix the migration; do not add a follow-up
+  migration to paper over it if the branch hasn't shipped yet.
+- **`supabase db test` failed** → a regression test caught a real
+  behavior change. Read the assertion; do NOT weaken the trigger or
+  policy to make the test pass. If the behavior change is intentional,
+  update the test in the same PR with a comment explaining why.
+- **"types diff is non-empty"** → the committed
+  `src/integrations/supabase/types.ts` is stale. Regenerate locally
+  (step 3 of "Reproducing the Gate Locally") and commit the result.
+- **`tsgo` typecheck failed on the regenerated types file** → a
+  migration renamed/dropped a column that TypeScript code still
+  references. Update the call sites in the same PR.
+- **`supabase db start` timed out or Docker not running** → local-only
+  issue; in CI, re-run the job.
+
+### 4. Gate is red but every upstream job is green
+
+- **Job was skipped or cancelled** → the aggregator treats skip/cancel
+  as failure on purpose. Re-run the workflow.
+- **Required check name mismatch in branch protection** → the exact
+  required name is `CI / Supabase / Gate (required)`. If someone
+  renamed the job, update branch protection to match (GitHub UI); the
+  workflow is the source of truth.
+
+### 5. Same failure in CI but not locally (or vice versa)
+
+- Stale local baseline: `git pull` and rerun.
+- Different allowlist env: CI sets `SUPABASE_LINT_ALLOWLIST` in
+  `.github/workflows/ci.yml`. Export the exact same value locally (see
+  "Reproducing the Gate Locally" prerequisites).
+- Different project ref: local `SUPABASE_PROJECT_REF` must match the
+  CI secret, otherwise you're linting a different database.
+
+---
+
+
+
 
 
 ## Where Things Live
