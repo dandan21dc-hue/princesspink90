@@ -8,6 +8,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { getSubscribePrices, type SubscribePrice } from "@/lib/subscribePrices.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart } from "@/lib/cart";
+import { track } from "@/lib/track";
 
 type PriceId =
   | "all_access_monthly_aud"
