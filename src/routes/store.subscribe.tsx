@@ -321,7 +321,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
             [
               { key: "panty_24hr_aud", label: "24 Hours Worn", fallbackCents: 6000, perks: ["Worn 24 hours", "Sealed pouch", "Signed thank-you note"], cta: "Buy 24hr", highlight: undefined as string | undefined },
               { key: "panty_48hr_aud", label: "48 Hours Worn", fallbackCents: 9000, perks: ["Worn 48 hours", "Sealed pouch", "Signed thank-you note"], cta: "Buy 48hr", highlight: undefined as string | undefined },
-              { key: "panty_72hr_aud", label: "72 Hours Worn", fallbackCents: 12000, perks: ["Worn 72 hours", "Sealed pouch", "Handwritten note + polaroid"], cta: "Buy 72hr", highlight: "Popular" as string | undefined },
+              { key: "panty_72hr_aud", label: "72 Hours Worn", fallbackCents: 12000, perks: ["Worn 72 hours", "Sealed pouch", "Handwritten note + Free picture of the panties worn"], cta: "Buy 72hr", highlight: "Popular" as string | undefined },
             ] as const
           ).map((p) => {
             const priceObj = prices[p.key];
