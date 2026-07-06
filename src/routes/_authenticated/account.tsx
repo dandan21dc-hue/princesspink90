@@ -8,6 +8,7 @@ import {
   cancelAccountDeletion,
 } from "@/lib/account.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { PerksWidget } from "@/components/PerksWidget";
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: AccountLayout,
