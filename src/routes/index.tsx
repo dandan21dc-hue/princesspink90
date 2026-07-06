@@ -69,25 +69,22 @@ function Home() {
       </section>
       <HostBlock />
       <CohostBlock />
-      <section className="mx-auto max-w-6xl px-5 pb-24">
-        <Link
-          to="/partnerships"
-          className="group flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-neon/40 bg-gradient-to-r from-neon/15 via-neon/5 to-transparent p-6 transition hover:brightness-110"
-        >
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.3em] text-neon">Partnerships</div>
-            <div className="mt-1 font-display text-2xl font-bold sm:text-3xl">
-              Venue, sponsor, or collaborator?
-            </div>
-            <div className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Pitch a takeover night, sponsorship, media feature, or collab. Every enquiry read personally.
-            </div>
+      <section id="partnerships" className="mx-auto max-w-3xl px-5 pb-24">
+        <div className="rounded-3xl border border-neon/30 bg-gradient-to-br from-neon/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)] sm:p-10">
+          <div className="text-xs uppercase tracking-[0.3em] text-neon">Partnerships</div>
+          <h2 className="mt-2 font-display text-3xl font-extrabold sm:text-4xl">
+            Venue, sponsor, or collaborator?
+          </h2>
+          <p className="mt-4 max-w-xl text-sm text-muted-foreground leading-relaxed">
+            Pitch a takeover night, sponsorship, media feature, or collab. Every
+            enquiry is read personally and answered from my Princess Pink address.
+          </p>
+          <div className="mt-8">
+            <PartnershipForm />
           </div>
-          <span className="shrink-0 rounded-md bg-neon px-4 py-2 text-xs font-semibold uppercase tracking-widest text-background shadow-[var(--shadow-glow-pink)]">
-            Get in touch →
-          </span>
-        </Link>
+        </div>
       </section>
+
     </>
   );
 }
