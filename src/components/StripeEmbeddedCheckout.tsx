@@ -252,7 +252,7 @@ export function StripeEmbeddedCheckout(props: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
 
-  const options = useMemo(() => ({ fetchClientSecret }), [fetchClientSecret]);
+
 
   // Watchdog: if no iframe appears in the checkout container within the timeout,
   // treat it as a mount failure so the user isn't stuck on a blank spinner.
