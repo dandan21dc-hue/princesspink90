@@ -47,6 +47,7 @@ export function SiteHeader() {
           >
             Privacy
           </Link>
+          <CartButton />
           {authed ? (
             <>
               <Link
