@@ -1,0 +1,162 @@
+import { useState } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ShoppingBag, Trash2, Minus, Plus } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { useCart, formatMoney } from "@/lib/cart";
+import { cn } from "@/lib/utils";
+
+export function CartButton() {
+  const { count } = useCart();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <button
+          aria-label={`Cart (${count} item${count === 1 ? "" : "s"})`}
+          className="relative inline-flex items-center justify-center rounded-md px-2.5 py-2 text-muted-foreground hover:text-foreground transition"
+        >
+          <ShoppingBag className="h-5 w-5" />
+          {count > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 py-0.5 text-[10px] font-bold text-primary-foreground shadow-[var(--shadow-glow-pink)]">
+              {count}
+            </span>
+          )}
+        </button>
+      </SheetTrigger>
+      <SheetContent side="right" className="flex w-full flex-col sm:max-w-md">
+        <SheetHeader>
+          <SheetTitle className="font-display text-2xl">Your cart</SheetTitle>
+          <SheetDescription>
+            One-time items only. Subscriptions and private-room bookings check out on their own page.
+          </SheetDescription>
+        </SheetHeader>
+        <CartBody onClose={() => setOpen(false)} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function CartBody({ onClose }: { onClose: () => void }) {
+  const { items, subtotalCents, hasPanty, currency, setQty, remove, clear } = useCart();
+  const navigate = useNavigate();
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+        <ShoppingBag className="h-8 w-8 text-muted-foreground/60" />
+        <p className="text-sm text-muted-foreground">Your cart is empty.</p>
+        <Link
+          to="/store"
+          onClick={onClose}
+          className="mt-2 rounded-md border border-primary/60 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+        >
+          Browse the boutique
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="flex-1 overflow-y-auto py-4">
+        <ul className="space-y-3">
+          {items.map((it) => (
+            <li
+              key={`${it.kind}:${it.id}`}
+              className="flex gap-3 rounded-xl border border-border/60 bg-card/60 p-3"
+            >
+              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-secondary/40">
+                {it.cover_url ? (
+                  <img src={it.cover_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-[10px] uppercase text-muted-foreground">
+                    {it.kind === "panty" ? "🩲" : "PP"}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{it.title}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {formatMoney(it.unit_amount_cents, it.currency)}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label="Decrease quantity"
+                    onClick={() => setQty(it.kind, it.id, it.quantity - 1)}
+                    className="rounded-md border border-border/60 p-1 hover:bg-secondary/50"
+                  >
+                    <Minus className="h-3 w-3" />
+                  </button>
+                  <span className="min-w-[1.5rem] text-center text-sm tabular-nums">
+                    {it.quantity}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Increase quantity"
+                    onClick={() => setQty(it.kind, it.id, it.quantity + 1)}
+                    className="rounded-md border border-border/60 p-1 hover:bg-secondary/50"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Remove"
+                    onClick={() => remove(it.kind, it.id)}
+                    className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="text-sm font-semibold tabular-nums">
+                {formatMoney(it.unit_amount_cents * it.quantity, it.currency)}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="border-t border-border/60 pt-4">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Subtotal</span>
+          <span className="font-semibold tabular-nums">
+            {formatMoney(subtotalCents, currency)}
+          </span>
+        </div>
+        {hasPanty && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Discreet AU shipping (A$15) will be added at checkout. Address collected on the next step.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            navigate({ to: "/checkout/cart" });
+          }}
+          className={cn(
+            "mt-4 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110",
+          )}
+        >
+          Checkout · {formatMoney(subtotalCents, currency)}
+        </button>
+        <button
+          type="button"
+          onClick={clear}
+          className="mt-2 w-full text-center text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
+          Clear cart
+        </button>
+      </div>
+    </>
+  );
+}

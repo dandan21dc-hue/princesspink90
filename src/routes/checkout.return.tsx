@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { getCheckoutSession } from "@/lib/store.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { cart as cartStore } from "@/lib/cart";
 
 /**
  * Landing page for Stripe's `return_url`. Stripe substitutes
@@ -75,11 +76,16 @@ function CheckoutReturn() {
 
   useEffect(() => {
     if (!isComplete) return;
+    // Cart mode: successful payment → wipe the local cart so the shopping bag
+    // in the header resets and the user isn't offered a re-purchase.
+    if (session?.metadata?.cart_mode === "1") {
+      cartStore.clear();
+    }
     const t = setTimeout(() => {
       navigate({ to: destination });
     }, 1500);
     return () => clearTimeout(t);
-  }, [isComplete, destination, navigate]);
+  }, [isComplete, destination, navigate, session?.metadata?.cart_mode]);
 
   return (
     <section className="mx-auto max-w-md px-5 py-24 text-center">
