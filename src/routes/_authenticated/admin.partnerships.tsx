@@ -4,11 +4,52 @@ import { useServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
+  listPartnershipEmailEvents,
+  listPartnershipEmailSummary,
   listPartnershipInquiries,
   listPartnershipReplies,
   sendPartnershipReply,
   updatePartnershipInquiry,
 } from '@/lib/partnership.functions'
+
+type EmailEvent = {
+  kind: 'confirmation' | 'notification' | 'reply'
+  messageId: string
+  status: string | null
+  errorMessage: string | null
+  createdAt: string
+  templateName: string | null
+  recipientEmail: string | null
+}
+
+const EMAIL_STATUS_STYLES: Record<string, string> = {
+  sent: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  pending: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  suppressed: 'bg-muted text-muted-foreground border-border/60',
+  dlq: 'bg-red-500/15 text-red-300 border-red-500/30',
+  failed: 'bg-red-500/15 text-red-300 border-red-500/30',
+  bounced: 'bg-red-500/15 text-red-300 border-red-500/30',
+  complained: 'bg-red-500/15 text-red-300 border-red-500/30',
+}
+
+function EmailStatusBadge({ status, label }: { status: string | null | undefined; label?: string }) {
+  const s = status ?? 'unknown'
+  const cls = EMAIL_STATUS_STYLES[s] ?? 'bg-muted text-muted-foreground border-border/60'
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest ${cls}`}>
+      {label ? `${label}: ${s}` : s}
+    </span>
+  )
+}
+
+function EmailKindLabel({ kind }: { kind: EmailEvent['kind'] }) {
+  const map: Record<EmailEvent['kind'], string> = {
+    confirmation: 'Auto-confirmation to sender',
+    notification: 'Internal notification',
+    reply: 'Admin reply',
+  }
+  return <span className="font-display text-sm font-semibold">{map[kind]}</span>
+}
 
 export const Route = createFileRoute('/_authenticated/admin/partnerships')({
   head: () => ({ meta: [{ title: 'Partnerships — Admin' }, { name: 'robots', content: 'noindex' }] }),
