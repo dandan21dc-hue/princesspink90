@@ -302,6 +302,50 @@ export function StripeEmbeddedCheckout(props: Props) {
     );
   }
 
+  // Runtime fallback: if the required provider inputs are unexpectedly
+  // missing (defensive — should never happen given the initialization above,
+  // but guards against future refactors, hot-reload glitches, or broken
+  // Stripe.js loads), show a fallback UI instead of handing invalid options
+  // to EmbeddedCheckoutProvider (which would throw during render).
+  const optionsInvalid =
+    !options ||
+    typeof options.fetchClientSecret !== "function" ||
+    !stripePromise;
+
+  if (optionsInvalid) {
+    // Log once per attempt so we can trace unexpected states in production.
+    logLifecycle("provider_options_invalid", {
+      attempt,
+      has_options: Boolean(options),
+      has_fetcher: typeof options?.fetchClientSecret === "function",
+      has_stripe_promise: Boolean(stripePromise),
+    });
+    return (
+      <div
+        role="alert"
+        className="flex flex-col items-start gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+      >
+        <div className="flex items-start gap-2">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <div>
+            <p className="font-medium">Checkout couldn't initialize.</p>
+            <p className="mt-1 text-destructive/80">
+              A required payment component is missing. Please try again.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleRetry}
+          className="inline-flex items-center gap-1.5 rounded-md border border-destructive/40 bg-background px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+        >
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   const showSkeleton = !countryReady || !sessionLoaded;
   const skeletonLabel = !countryReady
     ? "Preparing secure checkout…"
@@ -335,6 +379,7 @@ export function StripeEmbeddedCheckout(props: Props) {
       </div>
     </div>
   );
+
 }
 
 
