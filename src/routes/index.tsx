@@ -239,12 +239,20 @@ function Hero() {
             theatres and private venues. Browse the public marquee below.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href="#partnerships"
+            <button
+              type="button"
+              onClick={() => {
+                const section = document.getElementById("partnerships");
+                section?.scrollIntoView({ behavior: "smooth", block: "start" });
+                const field = document.getElementById("partnership-name") as HTMLInputElement | null;
+                if (field) {
+                  window.setTimeout(() => field.focus({ preventScroll: true }), 600);
+                }
+              }}
               className="rounded-md bg-primary px-6 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
             >
               Submit an inquiry
-            </a>
+            </button>
             <a
               href="#host"
               className="rounded-md border border-border bg-background/40 px-6 py-3 text-sm font-semibold uppercase tracking-widest backdrop-blur hover:bg-secondary/40 transition"

@@ -61,6 +61,7 @@ export function PartnershipForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Your name" required>
           <input
+            id="partnership-name"
             required maxLength={200}
             value={state.name}
             onChange={(e) => setState((s) => ({ ...s, name: e.target.value }))}
