@@ -235,7 +235,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const baseParams: Stripe.Checkout.SessionCreateParams = {
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
-          ui_mode: "embedded",
+          ui_mode: "embedded_page",
           return_url: ensureSessionIdInReturnUrl(data.returnUrl),
           ...(customerId && { customer: customerId }),
           ...(!isRecurring && !useManagedPayments && {
@@ -326,7 +326,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           },
         ],
         mode: "payment",
-        ui_mode: "embedded",
+        ui_mode: "embedded_page",
         return_url: ensureSessionIdInReturnUrl(data.returnUrl),
         ...(customerId && { customer: customerId }),
         metadata: {

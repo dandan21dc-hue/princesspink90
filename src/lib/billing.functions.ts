@@ -174,7 +174,7 @@ export const createSetupSession = createServerFn({ method: "POST" })
       const stripe = createStripeClient(data.environment);
       const session = await stripe.checkout.sessions.create({
         mode: "setup",
-        ui_mode: "embedded",
+        ui_mode: "embedded_page",
         customer: sub.stripe_customer_id,
         return_url: ensureSessionIdInReturnUrl(data.returnUrl),
         metadata: { userId: context.userId, purpose: "update_default_pm" },
