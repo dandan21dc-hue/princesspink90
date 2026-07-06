@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_private_room_busy(timestamp with time zone, timestamp with time zone) TO anon, authenticated;
