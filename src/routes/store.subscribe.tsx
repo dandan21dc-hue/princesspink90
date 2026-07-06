@@ -50,8 +50,23 @@ function pricesQuery() {
   });
 }
 
+const PRESELECTABLE_PLANS: readonly PriceId[] = [
+  "all_access_monthly_aud",
+  "all_access_3mo_onetime_aud",
+  "all_access_6mo_onetime_aud",
+  "all_access_12mo_onetime_aud",
+  "lifetime_onetime_aud",
+];
+
 export const Route = createFileRoute("/store/subscribe")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>): { plan?: PriceId } => {
+    const raw = search.plan;
+    if (typeof raw === "string" && (PRESELECTABLE_PLANS as readonly string[]).includes(raw)) {
+      return { plan: raw as PriceId };
+    }
+    return {};
+  },
   head: () => ({
     meta: [
       { title: "All-Access Pass — Princess Pink" },
