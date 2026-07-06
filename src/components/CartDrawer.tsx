@@ -196,6 +196,7 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
                 })),
               ),
             });
+            onCheckoutStart?.();
             onClose();
             navigate({ to: "/checkout/cart" });
           }}
