@@ -178,6 +178,16 @@ function AdminPartnerships() {
       </div>
 
       <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border/60 bg-card/30 p-3">
+        <label className="flex flex-1 min-w-[200px] flex-col gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+          Search
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Name, email, or organization"
+            className="rounded-md border border-border/60 bg-background/60 px-2 py-1 text-xs text-foreground outline-none focus:border-neon"
+          />
+        </label>
         <label className="flex flex-col gap-1 text-[10px] uppercase tracking-widest text-muted-foreground">
           From
           <input
