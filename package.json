@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "verify:checkout": "node scripts/verify-multi-currency-checkout.mjs",
     "lint:supabase": "node scripts/supabase-security-lint.mjs",
+    "validate:security-config": "node scripts/validate-security-config.mjs",
     "security:baseline:update": "bash scripts/update-security-baseline.sh",
     "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
 
