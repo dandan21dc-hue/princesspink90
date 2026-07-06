@@ -288,6 +288,7 @@ function AllAccessCard() {
             : "Everything in the library — pick your term."}
         </div>
       </div>
+      {currentPlan && <ManageBillingButton />}
       <Link
         to="/store/private-room"
         className="group rounded-2xl border border-primary/50 bg-background/40 p-5 hover:border-primary hover:bg-primary/5"
