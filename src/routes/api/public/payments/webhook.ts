@@ -109,22 +109,28 @@ async function handleSubscriptionUpsert(subscription: any, env: StripeEnv) {
       { onConflict: "stripe_subscription_id" },
     );
 
-  // Term-pass perk provisioning: 12-month subscribers get a `term_pass_12`
-  // membership row so the "1 free event entry during the term" perk is
-  // grantable. Kept idempotent — we only insert if no row exists for
-  // (user_id, kind, environment) linked to this subscription.
+  // Term-pass perk provisioning for recurring term plans (3/6/12 mo,
+  // one-time OR auto-renew). Derives termMonths from the price lookup_key
+  // and syncs the membership row's expires_at to Stripe's
+  // current_period_end so renewals extend access automatically.
+  const termLookup = typeof priceId === "string"
+    ? /^all_access_(3|6|12)mo_(monthly|renew|onetime)_aud$/.exec(priceId)
+    : null;
+  const subTermMonths = termLookup ? Number(termLookup[1]) : null;
   if (
-    priceId === "all_access_12mo_monthly_aud" &&
+    subTermMonths &&
     (subscription.status === "active" || subscription.status === "trialing")
   ) {
     await ensureTermPassMembership({
       userId,
       subscriptionId: subscription.id,
       env,
-      termMonths: 12,
+      termMonths: subTermMonths,
       periodStartUnix: periodStart,
+      periodEndUnix: periodEnd,
     });
   }
+
 
   // Notify creators on new subscription
   if (!existing && (subscription.status === "active" || subscription.status === "trialing")) {
