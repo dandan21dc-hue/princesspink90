@@ -150,6 +150,71 @@ function CheckoutReturn() {
     });
   }, [templateNotSubstituted, query.isError, query.error, sessionId]);
 
+  // Attribution: fire once per completed checkout with the tier the user
+  // originally clicked, so subscription / lifetime / term-pass purchases can
+  // be traced back to the boutique card that drove them. Deduplicated by
+  // sessionId so re-renders and the redirect delay don't double-count.
+  const attributionRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sessionId || !session || !isComplete) return;
+    if (attributionRef.current === sessionId) return;
+    const md = session.metadata ?? {};
+    // Derive the PlanId / tier the user bought from the checkout metadata.
+    // - subscription: metadata.subscription is the price lookup_key (== PlanId).
+    // - lifetime: fixed PlanId "lifetime_onetime_aud".
+    // - term_pass: map term_months back to the corresponding PlanId.
+    // - panty / cart / booking / other: report the raw kind so downstream
+    //   analytics can still attribute the conversion, without inventing a
+    //   plan_id we don't have.
+    let planId: PlanId | null = null;
+    let tierKind:
+      | "subscription"
+      | "lifetime"
+      | "term_pass"
+      | "panty"
+      | "cart"
+      | "private_room"
+      | "other" = "other";
+    if (md.subscription) {
+      planId = md.subscription as PlanId;
+      tierKind = "subscription";
+    } else if (md.membership === "lifetime") {
+      planId = "lifetime_onetime_aud";
+      tierKind = "lifetime";
+    } else if (md.membership === "term_pass") {
+      tierKind = "term_pass";
+      const months = md.term_months ? Number(md.term_months) : null;
+      planId =
+        months === 3
+          ? "all_access_3mo_monthly_aud"
+          : months === 6
+            ? "all_access_6mo_monthly_aud"
+            : months === 12
+              ? "all_access_12mo_monthly_aud"
+              : null;
+    } else if (md.panty_order) {
+      tierKind = "panty";
+    } else if (md.cart_mode === "1") {
+      tierKind = "cart";
+    } else if (md.booking === "private_room") {
+      tierKind = "private_room";
+    }
+    attributionRef.current = sessionId;
+    track("checkout_completed", {
+      session_id: sessionId,
+      tier_kind: tierKind,
+      plan_id: planId ?? undefined,
+      price_id: (md.subscription as string | undefined) ?? (md.panty_order as string | undefined) ?? undefined,
+      term_months: md.term_months ? Number(md.term_months) : undefined,
+      amount_total_cents: session.amount_total ?? undefined,
+      currency: session.currency ?? undefined,
+      payment_intent_id: session.payment_intent_id ?? undefined,
+      cart_mode: md.cart_mode === "1",
+      booking: md.booking ?? undefined,
+    });
+  }, [sessionId, session, isComplete]);
+
+
   // Auto-redirect only for panty/cart checkouts — subscription and lifetime
   // buyers see a confirmation summary with dates and click through manually.
   const isMembershipPurchase =
