@@ -426,6 +426,9 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
       environment: StripeEnv;
       customerEmail?: string;
       customerCountry?: string;
+      /** Client-generated correlation id (UUID) so pre-checkout analytics
+       *  events can be reconciled with the Stripe session created here. */
+      clientOrderRef?: string;
     }) => {
       if (!Array.isArray(data.items) || data.items.length === 0) {
         throw new Error("Cart is empty");
@@ -452,6 +455,14 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
       const pantyCount = data.items.filter((it) => it.kind === "panty").length;
       if (pantyCount > 1) {
         throw new Error("Only one panty variant per order — check out separately");
+      }
+      if (data.clientOrderRef !== undefined) {
+        if (typeof data.clientOrderRef !== "string" || data.clientOrderRef.length > 64) {
+          throw new Error("Invalid clientOrderRef");
+        }
+        if (!/^[a-zA-Z0-9_-]+$/.test(data.clientOrderRef)) {
+          throw new Error("Invalid clientOrderRef");
+        }
       }
       return data;
     },
