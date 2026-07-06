@@ -76,6 +76,10 @@ function CartCheckoutPage() {
     };
     let result;
     try {
+      const clientOrderRef =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("pp_cart_client_order_ref") ?? undefined
+          : undefined;
       result = await createCartCheckoutSession({
         data: {
           items: snapshot.map((it) => ({
@@ -87,6 +91,7 @@ function CartCheckoutPage() {
           returnUrl,
           environment: getStripeEnvironment(),
           customerCountry: country,
+          ...(clientOrderRef && { clientOrderRef }),
         },
       });
     } catch (e) {
