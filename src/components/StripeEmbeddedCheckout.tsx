@@ -284,11 +284,20 @@ export function StripeEmbeddedCheckout(props: Props) {
 
   const handleRetry = useCallback(() => {
     logLifecycle("retry_clicked", { attempt });
+    // Explicitly clear per-attempt refs so the next attempt allocates a
+    // fresh in-flight promise + options object. The `attempt` guard inside
+    // fetchClientSecret/optionsRef already handles this on read, but
+    // clearing here prevents any stale reference from lingering between the
+    // state update and the next render (e.g. a late-resolving promise from
+    // the failed attempt reattaching to the cache).
+    inFlightRef.current = null;
+    optionsRef.current = null;
     setError(null);
     setSessionLoaded(false);
     setDedupedHits(0);
     setAttempt((n) => n + 1);
   }, [attempt, logLifecycle]);
+
 
 
   if (error) {
