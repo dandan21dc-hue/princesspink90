@@ -293,8 +293,8 @@ export const refreshUserSubscriptionStatus = createServerFn({ method: "POST" })
           user_id: userId,
           stripe_subscription_id: s.id,
           stripe_customer_id: customerId,
-          product_id: productId ?? null,
-          price_id: priceId ?? null,
+          product_id: productId ?? "",
+          price_id: priceId ?? "",
           status: s.status,
           current_period_start: periodStart
             ? new Date(periodStart * 1000).toISOString()
