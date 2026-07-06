@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { listStoreItems } from "@/lib/store.functions";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { track } from "@/lib/track";
+import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
+import { cn } from "@/lib/utils";
 
 const storeQuery = queryOptions({
   queryKey: ["store-items"],
@@ -75,12 +77,7 @@ function AllAccessCard() {
     price: string;
     cadence: string;
     perk?: string;
-    plan:
-      | "all_access_monthly_aud"
-      | "all_access_3mo_onetime_aud"
-      | "all_access_6mo_onetime_aud"
-      | "all_access_12mo_onetime_aud"
-      | "lifetime_onetime_aud";
+    plan: PlanId;
   }> = [
     { label: "Monthly", price: "A$10", cadence: "/month", plan: "all_access_monthly_aud" },
     { label: "3-Month Pass", price: "A$27", cadence: "one-time", plan: "all_access_3mo_onetime_aud" },
@@ -89,35 +86,103 @@ function AllAccessCard() {
     { label: "Lifetime", price: "A$500", cadence: "one-time", perk: "+ 1 free ticketed event & 1 free private room session", plan: "lifetime_onetime_aud" },
   ];
 
+  const tiers = useMyTiers();
+  const hasLifetime = tiers.active.lifetime_onetime_aud;
+  const currentLabel = (() => {
+    if (hasLifetime) return "Lifetime";
+    if (tiers.active.all_access_12mo_onetime_aud) return "12-Month Pass";
+    if (tiers.active.all_access_6mo_onetime_aud) return "6-Month Pass";
+    if (tiers.active.all_access_3mo_onetime_aud) return "3-Month Pass";
+    if (tiers.active.all_access_monthly_aud) return "Monthly";
+    return null;
+  })();
+  const fmtExpiry = (iso?: string | null) => {
+    if (!iso) return null;
+    try {
+      return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+    } catch {
+      return null;
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3 w-full md:w-[280px]">
       <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
+        <div className="flex items-center justify-between">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
+          {currentLabel && (
+            <span className="rounded-full border border-primary/60 bg-primary/20 px-2 py-0.5 text-[9px] uppercase tracking-widest text-primary">
+              Your plan: {currentLabel}
+            </span>
+          )}
+        </div>
         <ul className="mt-2 space-y-1 text-sm">
-          {passes.map((p) => (
-            <li key={p.plan}>
-              <Link
-                to="/store/subscribe"
-                search={{ plan: p.plan }}
-                onClick={() => track("all_access_tier_click", { plan: p.plan })}
-                className="group -mx-2 flex flex-col gap-0.5 rounded-lg px-2 py-1.5 hover:bg-primary/15 focus:bg-primary/15 focus:outline-none"
-              >
+          {passes.map((p) => {
+            const owned = tiers.active[p.plan];
+            // Lifetime supersedes everything else; disable lower tiers.
+            const supersededByLifetime = hasLifetime && p.plan !== "lifetime_onetime_aud";
+            const disabled = owned || supersededByLifetime;
+            const expiry = fmtExpiry(tiers.expires[p.plan]);
+            const badge = owned
+              ? p.plan === "lifetime_onetime_aud"
+                ? "Owned"
+                : p.plan === "all_access_monthly_aud"
+                  ? "Active"
+                  : "Active"
+              : supersededByLifetime
+                ? "Included"
+                : null;
+
+            const row = (
+              <div className="flex flex-col gap-0.5">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-foreground group-hover:text-primary">{p.label}</span>
+                  <span className={cn("text-foreground", !disabled && "group-hover:text-primary")}>{p.label}</span>
                   <span className="font-display font-bold">
                     {p.price}
                     <span className="ml-1 text-[10px] font-normal text-muted-foreground">{p.cadence}</span>
                   </span>
                 </div>
-                {p.perk && (
+                {p.perk && !disabled && (
                   <span className="text-[10px] text-primary/90">{p.perk}</span>
                 )}
-              </Link>
-            </li>
-          ))}
+                {badge && (
+                  <span className="text-[10px] text-primary/90">
+                    {badge}
+                    {owned && expiry && p.plan !== "lifetime_onetime_aud" ? ` · renews/ends ${expiry}` : ""}
+                  </span>
+                )}
+              </div>
+            );
+
+            return (
+              <li key={p.plan}>
+                {disabled ? (
+                  <div
+                    aria-disabled="true"
+                    className="-mx-2 flex cursor-not-allowed flex-col gap-0.5 rounded-lg px-2 py-1.5 opacity-60"
+                  >
+                    {row}
+                  </div>
+                ) : (
+                  <Link
+                    to="/store/subscribe"
+                    search={{ plan: p.plan }}
+                    onClick={() => track("all_access_tier_click", { plan: p.plan })}
+                    className="group -mx-2 flex flex-col gap-0.5 rounded-lg px-2 py-1.5 hover:bg-primary/15 focus:bg-primary/15 focus:outline-none"
+                  >
+                    {row}
+                  </Link>
+                )}
+              </li>
+            );
+          })}
         </ul>
         <div className="mt-3 text-[11px] text-muted-foreground">
-          Everything in the library — pick your term.
+          {currentLabel
+            ? hasLifetime
+              ? "You have Lifetime — everything's unlocked."
+              : "Upgrade any time; your current pass keeps running."
+            : "Everything in the library — pick your term."}
         </div>
       </div>
       <Link
