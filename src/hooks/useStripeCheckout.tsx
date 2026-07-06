@@ -27,6 +27,11 @@ export function useStripeCheckout() {
     setOptions(null);
   }, []);
 
-  const checkoutElement = isOpen && options ? <StripeEmbeddedCheckout {...options} /> : null;
+  const checkoutElement =
+    isOpen && options ? (
+      <TermsAgreementGate>
+        <StripeEmbeddedCheckout {...options} />
+      </TermsAgreementGate>
+    ) : null;
   return { openCheckout, closeCheckout, isOpen, checkoutElement };
 }
