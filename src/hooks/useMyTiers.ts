@@ -23,6 +23,10 @@ export interface MyTiersState {
   active: Record<PlanId, boolean>;
   /** Expiry timestamps (ISO) for term/monthly if known. */
   expires: Partial<Record<PlanId, string | null>>;
+  /** Start timestamps (ISO) for the current period / lifetime purchase. */
+  starts: Partial<Record<PlanId, string | null>>;
+  /** Whether the current subscription is set to cancel at period end. */
+  cancelAtPeriodEnd: Partial<Record<PlanId, boolean>>;
 }
 
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
