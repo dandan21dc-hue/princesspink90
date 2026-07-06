@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ShoppingBag, Trash2, Minus, Plus } from "lucide-react";
 import {
@@ -9,7 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useCart, formatMoney } from "@/lib/cart";
+import { useCart, formatMoney, cart as cartStore } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/track";
 
