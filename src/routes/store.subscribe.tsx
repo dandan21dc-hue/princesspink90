@@ -277,7 +277,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
           label="12-Month Term"
           termMonths={12}
           priceId="all_access_12mo_monthly_aud"
-          priceText={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84")}
+          priceText={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84", 12)}
           highlight="Includes free entry"
           extraPerks={["1 free event entry during the term"]}
           onBuy={onBuy}
