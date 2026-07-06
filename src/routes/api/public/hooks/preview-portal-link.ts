@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { resolveAppOrigin } from '@/lib/app-origin.server'
+import { checkHooksCronAuth } from '@/lib/hooks-auth.server'
 
 // Preview-only endpoint: echoes what resolveAppOrigin + the reminder email's
 // buildPortalUrl would produce for a given set of request headers. Handy for
