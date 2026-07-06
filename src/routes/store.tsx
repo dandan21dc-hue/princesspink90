@@ -140,6 +140,7 @@ function AllAccessCard() {
             const expiry = fmtExpiry(tiers.expires[p.plan]);
             const start = fmtExpiry(tiers.starts[p.plan]);
             const willCancel = !!tiers.cancelAtPeriodEnd[p.plan];
+            const isLifetime = p.plan === "lifetime_onetime_aud";
             // Upgrade / Downgrade / Switch labels for non-owned cards when
             // the user already has a plan. Lifetime is always an upgrade.
             let changeLabel: "Upgrade" | "Downgrade" | "Switch" | null = null;
@@ -148,7 +149,7 @@ function AllAccessCard() {
               changeLabel = delta > 0 ? "Upgrade" : delta < 0 ? "Downgrade" : "Switch";
             }
             const badge = owned
-              ? p.plan === "lifetime_onetime_aud"
+              ? isLifetime
                 ? "Owned"
                 : "Active"
               : supersededByLifetime
@@ -158,28 +159,55 @@ function AllAccessCard() {
             const row = (
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center justify-between gap-3">
-                  <span className={cn("text-foreground", !disabled && "group-hover:text-primary")}>{p.label}</span>
-                  <span className="font-display font-bold">
+                  <span
+                    className={cn(
+                      "text-foreground",
+                      !disabled && !isLifetime && "group-hover:text-primary",
+                      isLifetime && "font-display font-bold tracking-wide text-gold",
+                    )}
+                  >
+                    {p.label}
+                  </span>
+                  <span className={cn("font-display font-bold", isLifetime && "text-base text-gold")}>
                     {p.price}
-                    <span className="ml-1 text-[10px] font-normal text-muted-foreground">{p.cadence}</span>
+                    <span
+                      className={cn(
+                        "ml-1 text-[10px] font-normal text-muted-foreground",
+                        isLifetime && "text-[11px] font-semibold text-gold",
+                      )}
+                    >
+                      {p.cadence}
+                    </span>
                   </span>
                 </div>
                 {p.perk && !disabled && !changeLabel && (
-                  <span className="text-[10px] text-primary/90">{p.perk}</span>
+                  <span
+                    className={cn(
+                      "text-[10px] text-primary/90",
+                      isLifetime && "text-[11px] font-medium text-gold",
+                    )}
+                  >
+                    {p.perk}
+                  </span>
                 )}
                 {badge && (
                   <span className="text-[10px] text-primary/90">{badge}</span>
                 )}
-                {owned && p.plan === "lifetime_onetime_aud" && start && (
+                {owned && isLifetime && start && (
                   <span className="text-[10px] text-muted-foreground">
                     Started {start} · never expires
                   </span>
                 )}
-                {owned && p.plan !== "lifetime_onetime_aud" && (start || expiry) && (
+                {owned && !isLifetime && (start || expiry) && (
                   <span className="text-[10px] text-muted-foreground">
                     {start ? `Started ${start}` : null}
                     {start && expiry ? " · " : ""}
                     {expiry ? `${willCancel ? "Ends" : "Renews"} ${expiry}` : null}
+                  </span>
+                )}
+                {isLifetime && !disabled && (
+                  <span className="mt-2 inline-flex items-center justify-center rounded-full bg-gold-gradient px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-black animate-cta-pulse">
+                    Buy Lifetime
                   </span>
                 )}
               </div>
@@ -196,32 +224,53 @@ function AllAccessCard() {
               change: changeLabel ?? "new",
             };
 
+            const lifetimeWrapClass = isLifetime
+              ? "relative mt-2 rounded-xl border-2 border-transparent bg-[oklch(0.18_0.05_60_/_0.35)] p-0.5 animate-lifetime-glow"
+              : "";
+
+            const inner = disabled ? (
+              <div
+                aria-disabled="true"
+                role="button"
+                tabIndex={0}
+                onClick={() =>
+                  track("boutique_tier_click", { ...trackPayload, action: "blocked" })
+                }
+                className={cn(
+                  "-mx-2 flex cursor-not-allowed flex-col gap-0.5 rounded-lg px-2 py-1.5 opacity-60",
+                  isLifetime && "mx-0 opacity-80",
+                )}
+              >
+                {row}
+              </div>
+            ) : (
+              <Link
+                to="/store/subscribe"
+                search={{ plan: p.plan }}
+                onClick={() => {
+                  track("all_access_tier_click", { plan: p.plan, change: changeLabel ?? "new" });
+                  track("boutique_tier_click", { ...trackPayload, action: "navigate" });
+                }}
+                className={cn(
+                  "group -mx-2 flex flex-col gap-0.5 rounded-lg px-2 py-1.5 hover:bg-primary/15 focus:bg-primary/15 focus:outline-none",
+                  isLifetime && "mx-0 rounded-lg px-3 py-2 hover:bg-[oklch(0.85_0.17_85_/_0.08)] focus:bg-[oklch(0.85_0.17_85_/_0.08)]",
+                )}
+              >
+                {row}
+              </Link>
+            );
+
             return (
-              <li key={p.plan}>
-                {disabled ? (
-                  <div
-                    aria-disabled="true"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() =>
-                      track("boutique_tier_click", { ...trackPayload, action: "blocked" })
-                    }
-                    className="-mx-2 flex cursor-not-allowed flex-col gap-0.5 rounded-lg px-2 py-1.5 opacity-60"
-                  >
-                    {row}
+              <li key={p.plan} className={isLifetime ? "pt-2" : ""}>
+                {isLifetime ? (
+                  <div className={lifetimeWrapClass}>
+                    <span className="animate-badge-shimmer absolute -top-2 -right-2 z-10 rounded-full bg-gold-gradient px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-black shadow-lg">
+                      ★ Best Value
+                    </span>
+                    {inner}
                   </div>
                 ) : (
-                  <Link
-                    to="/store/subscribe"
-                    search={{ plan: p.plan }}
-                    onClick={() => {
-                      track("all_access_tier_click", { plan: p.plan, change: changeLabel ?? "new" });
-                      track("boutique_tier_click", { ...trackPayload, action: "navigate" });
-                    }}
-                    className="group -mx-2 flex flex-col gap-0.5 rounded-lg px-2 py-1.5 hover:bg-primary/15 focus:bg-primary/15 focus:outline-none"
-                  >
-                    {row}
-                  </Link>
+                  inner
                 )}
               </li>
             );
