@@ -170,25 +170,58 @@ async function ensureTermPassMembership(opts: {
   env: StripeEnv;
   termMonths: number;
   periodStartUnix: number | null | undefined;
+  periodEndUnix?: number | null | undefined;
 }) {
   const kind = `term_pass_${opts.termMonths}`;
   const marker = `sub_${opts.subscriptionId}`;
 
+  const start = opts.periodStartUnix
+    ? new Date(opts.periodStartUnix * 1000)
+    : new Date();
+  // Prefer Stripe's period end so renewals extend the row automatically;
+  // fall back to periodStart + termMonths for one-time term passes.
+  const expires = opts.periodEndUnix
+    ? new Date(opts.periodEndUnix * 1000)
+    : (() => {
+        const d = new Date(start);
+        d.setMonth(d.getMonth() + opts.termMonths);
+        return d;
+      })();
+
   const { data: existing } = await getSupabase()
     .from("memberships")
-    .select("id")
+    .select("id, expires_at")
     .eq("user_id", opts.userId)
     .eq("kind", kind)
     .eq("environment", opts.env)
     .eq("stripe_session_id", marker)
     .maybeSingle();
-  if (existing) return;
 
-  const start = opts.periodStartUnix
-    ? new Date(opts.periodStartUnix * 1000)
-    : new Date();
-  const expires = new Date(start);
-  expires.setMonth(expires.getMonth() + opts.termMonths);
+  if (existing) {
+    // Renewal: bump expires_at to the new period end if it moved forward.
+    const currentExpiry = existing.expires_at ? new Date(existing.expires_at).getTime() : 0;
+    if (expires.getTime() > currentExpiry) {
+      const { error } = await getSupabase()
+        .from("memberships")
+        .update({ expires_at: expires.toISOString() })
+        .eq("id", (existing as { id: string }).id);
+      if (error) {
+        console.error("[webhook] term-pass renewal update failed", {
+          userId: opts.userId,
+          subscriptionId: opts.subscriptionId,
+          error: error.message,
+        });
+      } else {
+        console.log("[webhook] term-pass membership extended", {
+          userId: opts.userId,
+          kind,
+          subscriptionId: opts.subscriptionId,
+          expires_at: expires.toISOString(),
+        });
+      }
+    }
+    return;
+  }
 
   const { error } = await getSupabase().from("memberships").insert({
     user_id: opts.userId,
