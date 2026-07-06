@@ -52,9 +52,17 @@ export function getStripeErrorMessage(error: unknown): string {
 export async function verifyWebhook(
   req: Request,
   env: StripeEnv,
-): Promise<{ type: string; data: { object: any } }> {
+): Promise<{ id?: string; type: string; data: { object: any } }> {
   const signature = req.headers.get("stripe-signature");
   const body = await req.text();
+  return verifyWebhookBody(body, signature, env);
+}
+
+export async function verifyWebhookBody(
+  body: string,
+  signature: string | null,
+  env: StripeEnv,
+): Promise<{ id?: string; type: string; data: { object: any } }> {
   const secret =
     env === "sandbox"
       ? getEnv("PAYMENTS_SANDBOX_WEBHOOK_SECRET")
