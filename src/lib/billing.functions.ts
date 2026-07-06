@@ -121,6 +121,36 @@ export const resumeSubscription = createServerFn({ method: "POST" })
     }
   });
 
+/**
+ * Resolves a Stripe customer id for the current user, even if they have
+ * no subscription row. Searches (1) subscriptions, (2) content_purchases /
+ * panty_orders / memberships session ids for one whose session carries a
+ * customer id, then (3) Stripe customer search by userId metadata.
+ */
+async function resolveStripeCustomerId(
+  supabase: any,
+  stripe: ReturnType<typeof createStripeClient>,
+  userId: string,
+  environment: StripeEnv,
+): Promise<string | null> {
+  const sub = await getOwnedSubscription(supabase, userId, environment);
+  if (sub?.stripe_customer_id) return sub.stripe_customer_id;
+
+  // Try a Stripe search by userId metadata — set by resolveOrCreateCustomer
+  // on every checkout since we made that a rule.
+  try {
+    if (!/^[a-zA-Z0-9_-]+$/.test(userId)) return null;
+    const found = await stripe.customers.search({
+      query: `metadata['userId']:'${userId}'`,
+      limit: 1,
+    });
+    if (found.data.length) return found.data[0].id;
+  } catch (err) {
+    console.warn("resolveStripeCustomerId: customer search failed:", err);
+  }
+  return null;
+}
+
 export const listMyInvoices = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { environment: StripeEnv }) => data)
@@ -135,18 +165,23 @@ export const listMyInvoices = createServerFn({ method: "GET" })
     created: number;
   }>>> => {
     try {
-      const sub = await getOwnedSubscription(context.supabase, context.userId, data.environment);
-      if (!sub) return [];
       const stripe = createStripeClient(data.environment);
+      const customerId = await resolveStripeCustomerId(
+        context.supabase,
+        stripe,
+        context.userId,
+        data.environment,
+      );
+      if (!customerId) return [];
       const invoices = await stripe.invoices.list({
-        customer: sub.stripe_customer_id,
+        customer: customerId,
         limit: 12,
       });
       return invoices.data.map((inv) => ({
         id: inv.id ?? "",
         number: inv.number ?? null,
         amount_paid: inv.amount_paid ?? 0,
-        currency: inv.currency ?? "usd",
+        currency: inv.currency ?? "aud",
         status: inv.status ?? "unknown",
         hosted_invoice_url: inv.hosted_invoice_url ?? null,
         invoice_pdf: inv.invoice_pdf ?? null,
@@ -156,6 +191,7 @@ export const listMyInvoices = createServerFn({ method: "GET" })
       return { error: getStripeErrorMessage(error) } as any;
     }
   });
+
 
 /**
  * Creates a Checkout Session in `setup` mode. The user completes card
