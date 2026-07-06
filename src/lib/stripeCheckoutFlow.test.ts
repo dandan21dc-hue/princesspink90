@@ -328,7 +328,7 @@ describe('Stripe checkout flow end-to-end — per plan', () => {
     const s = createdSessions[0]!
     expect(s.mode).toBe('subscription')
     expect(s.ui_mode).toBe('embedded_page')
-    expect(s.return_url).toBe(RETURN_URL)
+    expect(s.return_url).toBe(`${RETURN_URL}&session_id={CHECKOUT_SESSION_ID}`)
     expect(s.line_items[0]!.price).toBe('price_all_access_monthly_aud')
     expect(s.metadata?.userId).toBe(USER_ID)
     expect(s.subscription_data?.metadata?.userId).toBe(USER_ID)
