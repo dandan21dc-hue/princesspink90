@@ -18,6 +18,7 @@
     "lint:supabase": "node scripts/supabase-security-lint.mjs",
     "validate:security-config": "node scripts/validate-security-config.mjs",
     "security:baseline:update": "bash scripts/update-security-baseline.sh",
+    "security:gate:local": "bash scripts/reproduce-security-gate.sh",
     "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
 
   },
