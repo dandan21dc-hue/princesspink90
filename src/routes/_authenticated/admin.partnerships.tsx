@@ -187,10 +187,16 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
   const listRepliesFn = useServerFn(listPartnershipReplies)
   const sendReplyFn = useServerFn(sendPartnershipReply)
   const updateFn = useServerFn(updatePartnershipInquiry)
+  const emailEventsFn = useServerFn(listPartnershipEmailEvents)
 
   const replies = useQuery({
     queryKey: ['partnership-replies', inquiry.id],
     queryFn: () => listRepliesFn({ data: { inquiryId: inquiry.id } }),
+  })
+
+  const emailEvents = useQuery({
+    queryKey: ['partnership-email-events', inquiry.id],
+    queryFn: () => emailEventsFn({ data: { inquiryId: inquiry.id } }),
   })
 
   const [subject, setSubject] = useState(`Re: your Princess Pink enquiry`)
