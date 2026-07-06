@@ -104,7 +104,15 @@ export function StripeEmbeddedCheckout(props: Props) {
       });
     return () => {
       logLifecycle("unmounted");
+      // Drop per-attempt caches so a fresh mount of this component doesn't
+      // reuse stale promises or options from the previous lifecycle. Refs
+      // themselves are per-instance, but the objects they held reference
+      // fetchers bound to the previous attempt state.
+      inFlightRef.current = null;
+      optionsRef.current = null;
+      countryRef.current = undefined;
     };
+
     // Mount-once instrumentation; logLifecycle is stable per kind/source.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
