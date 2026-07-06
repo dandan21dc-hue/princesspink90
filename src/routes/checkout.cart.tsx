@@ -128,6 +128,23 @@ function CartCheckoutPage() {
       <section className="mx-auto max-w-5xl px-5 pt-8 pb-16">
         <Link
           to="/store"
+          onClick={() => {
+            if (snapshot.length === 0) return;
+            const hasPantyNow = snapshot.some((it) => it.kind === "panty");
+            track("panty_checkout_cancelled", {
+              source: "checkout_page",
+              reason: "back_to_store",
+              stage: "pre_payment",
+              item_count: snapshot.length,
+              unit_count: snapshot.reduce((n, it) => n + it.quantity, 0),
+              subtotal_cents: snapshot.reduce(
+                (n, it) => n + it.unit_amount_cents * it.quantity,
+                0,
+              ),
+              currency: snapshot[0]?.currency ?? "aud",
+              has_panty: hasPantyNow,
+            });
+          }}
           className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
         >
           ← Store
