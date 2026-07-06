@@ -23,6 +23,10 @@ export interface MyTiersState {
   active: Record<PlanId, boolean>;
   /** Expiry timestamps (ISO) for term/monthly if known. */
   expires: Partial<Record<PlanId, string | null>>;
+  /** Start timestamps (ISO) for the current period / lifetime purchase. */
+  starts: Partial<Record<PlanId, string | null>>;
+  /** Whether the current subscription is set to cancel at period end. */
+  cancelAtPeriodEnd: Partial<Record<PlanId, boolean>>;
 }
 
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
@@ -39,6 +43,8 @@ export function useMyTiers(): MyTiersState {
     signedIn: false,
     active: { ...EMPTY_ACTIVE },
     expires: {},
+    starts: {},
+    cancelAtPeriodEnd: {},
   });
 
   useEffect(() => {
@@ -48,13 +54,20 @@ export function useMyTiers(): MyTiersState {
     async function load(userId: string | null) {
       if (!userId) {
         if (!cancelled)
-          setState({ loading: false, signedIn: false, active: { ...EMPTY_ACTIVE }, expires: {} });
+          setState({
+            loading: false,
+            signedIn: false,
+            active: { ...EMPTY_ACTIVE },
+            expires: {},
+            starts: {},
+            cancelAtPeriodEnd: {},
+          });
         return;
       }
       const [subsRes, memRes] = await Promise.all([
         supabase
           .from("subscriptions")
-          .select("status,current_period_end,price_id")
+          .select("status,current_period_start,current_period_end,price_id,cancel_at_period_end,created_at")
           .eq("user_id", userId)
           .eq("environment", env)
           .in("price_id", SUBSCRIPTION_TIER_PRICE_IDS as unknown as string[])
@@ -63,7 +76,7 @@ export function useMyTiers(): MyTiersState {
           .maybeSingle(),
         supabase
           .from("memberships")
-          .select("kind,expires_at")
+          .select("kind,expires_at,created_at")
           .eq("user_id", userId)
           .eq("environment", env),
       ]);
@@ -86,6 +99,11 @@ export function useMyTiers(): MyTiersState {
       const mems = memRes.data ?? [];
       const lifetime = mems.find((r: any) => r.kind === "lifetime");
 
+      const subStart = (sub?.current_period_start ?? sub?.created_at) ?? null;
+      const subEnd = sub?.current_period_end ?? null;
+      const subCancel = !!sub?.cancel_at_period_end;
+      const pick = <T,>(plan: PlanId, v: T): T | null => (activePlan === plan ? v : null);
+
       setState({
         loading: false,
         signedIn: true,
@@ -97,14 +115,23 @@ export function useMyTiers(): MyTiersState {
           lifetime_onetime_aud: !!lifetime,
         },
         expires: {
-          all_access_monthly_aud:
-            activePlan === "all_access_monthly_aud" ? sub?.current_period_end ?? null : null,
-          all_access_3mo_monthly_aud:
-            activePlan === "all_access_3mo_monthly_aud" ? sub?.current_period_end ?? null : null,
-          all_access_6mo_monthly_aud:
-            activePlan === "all_access_6mo_monthly_aud" ? sub?.current_period_end ?? null : null,
-          all_access_12mo_monthly_aud:
-            activePlan === "all_access_12mo_monthly_aud" ? sub?.current_period_end ?? null : null,
+          all_access_monthly_aud: pick("all_access_monthly_aud", subEnd),
+          all_access_3mo_monthly_aud: pick("all_access_3mo_monthly_aud", subEnd),
+          all_access_6mo_monthly_aud: pick("all_access_6mo_monthly_aud", subEnd),
+          all_access_12mo_monthly_aud: pick("all_access_12mo_monthly_aud", subEnd),
+        },
+        starts: {
+          all_access_monthly_aud: pick("all_access_monthly_aud", subStart),
+          all_access_3mo_monthly_aud: pick("all_access_3mo_monthly_aud", subStart),
+          all_access_6mo_monthly_aud: pick("all_access_6mo_monthly_aud", subStart),
+          all_access_12mo_monthly_aud: pick("all_access_12mo_monthly_aud", subStart),
+          lifetime_onetime_aud: lifetime?.created_at ?? null,
+        },
+        cancelAtPeriodEnd: {
+          all_access_monthly_aud: activePlan === "all_access_monthly_aud" ? subCancel : false,
+          all_access_3mo_monthly_aud: activePlan === "all_access_3mo_monthly_aud" ? subCancel : false,
+          all_access_6mo_monthly_aud: activePlan === "all_access_6mo_monthly_aud" ? subCancel : false,
+          all_access_12mo_monthly_aud: activePlan === "all_access_12mo_monthly_aud" ? subCancel : false,
         },
       });
     }

@@ -123,12 +123,12 @@ function AllAccessCard() {
             const supersededByLifetime = hasLifetime && p.plan !== "lifetime_onetime_aud";
             const disabled = owned || supersededByLifetime;
             const expiry = fmtExpiry(tiers.expires[p.plan]);
+            const start = fmtExpiry(tiers.starts[p.plan]);
+            const willCancel = !!tiers.cancelAtPeriodEnd[p.plan];
             const badge = owned
               ? p.plan === "lifetime_onetime_aud"
                 ? "Owned"
-                : p.plan === "all_access_monthly_aud"
-                  ? "Active"
-                  : "Active"
+                : "Active"
               : supersededByLifetime
                 ? "Included"
                 : null;
@@ -146,9 +146,18 @@ function AllAccessCard() {
                   <span className="text-[10px] text-primary/90">{p.perk}</span>
                 )}
                 {badge && (
-                  <span className="text-[10px] text-primary/90">
-                    {badge}
-                    {owned && expiry && p.plan !== "lifetime_onetime_aud" ? ` · renews/ends ${expiry}` : ""}
+                  <span className="text-[10px] text-primary/90">{badge}</span>
+                )}
+                {owned && p.plan === "lifetime_onetime_aud" && start && (
+                  <span className="text-[10px] text-muted-foreground">
+                    Started {start} · never expires
+                  </span>
+                )}
+                {owned && p.plan !== "lifetime_onetime_aud" && (start || expiry) && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {start ? `Started ${start}` : null}
+                    {start && expiry ? " · " : ""}
+                    {expiry ? `${willCancel ? "Ends" : "Renews"} ${expiry}` : null}
                   </span>
                 )}
               </div>
