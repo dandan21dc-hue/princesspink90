@@ -164,16 +164,8 @@ export const Route = createFileRoute('/api/public/hooks/reminder-retries')({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apikey =
-          request.headers.get('apikey') ??
-          request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
-        const expected = process.env.SUPABASE_PUBLISHABLE_KEY
-        if (!apikey || !expected || apikey !== expected) {
-          return new Response(JSON.stringify({ error: 'unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          })
-        }
+        const unauth = checkHooksCronAuth(request)
+        if (unauth) return unauth
 
         const supabase = createClient(
           process.env.SUPABASE_URL!,
