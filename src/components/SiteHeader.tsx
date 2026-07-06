@@ -1,6 +1,7 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { CartButton } from "@/components/CartDrawer";
 
 export function SiteHeader() {
   const [authed, setAuthed] = useState<boolean | null>(null);

@@ -24,6 +24,7 @@ import { Route as StorePrivateRoomRouteImport } from './routes/store.private-roo
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
+import { Route as CheckoutCartRouteImport } from './routes/checkout.cart'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
@@ -144,6 +145,11 @@ const EventsIdRoute = EventsIdRouteImport.update({
 const CheckoutReturnRoute = CheckoutReturnRouteImport.update({
   id: '/checkout/return',
   path: '/checkout/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutCartRoute = CheckoutCartRouteImport.update({
+  id: '/checkout/cart',
+  path: '/checkout/cart',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiChatRoute = ApiChatRouteImport.update({
@@ -436,6 +442,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
+  '/checkout/cart': typeof CheckoutCartRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
@@ -498,6 +505,7 @@ export interface FileRoutesByTo {
   '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
+  '/checkout/cart': typeof CheckoutCartRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
@@ -563,6 +571,7 @@ export interface FileRoutesById {
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
+  '/checkout/cart': typeof CheckoutCartRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/events/$id': typeof EventsIdRoute
   '/store/$id': typeof StoreIdRoute
@@ -628,6 +637,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/verify'
     | '/api/chat'
+    | '/checkout/cart'
     | '/checkout/return'
     | '/events/$id'
     | '/store/$id'
@@ -690,6 +700,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/verify'
     | '/api/chat'
+    | '/checkout/cart'
     | '/checkout/return'
     | '/events/$id'
     | '/store/$id'
@@ -754,6 +765,7 @@ export interface FileRouteTypes {
     | '/_authenticated/support'
     | '/_authenticated/verify'
     | '/api/chat'
+    | '/checkout/cart'
     | '/checkout/return'
     | '/events/$id'
     | '/store/$id'
@@ -812,6 +824,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
   ApiChatRoute: typeof ApiChatRoute
+  CheckoutCartRoute: typeof CheckoutCartRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EventsIdRoute: typeof EventsIdRoute
   ApiPublicCronDunningEscalationRoute: typeof ApiPublicCronDunningEscalationRoute
@@ -934,6 +947,13 @@ declare module '@tanstack/react-router' {
       path: '/checkout/return'
       fullPath: '/checkout/return'
       preLoaderRoute: typeof CheckoutReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/cart': {
+      id: '/checkout/cart'
+      path: '/checkout/cart'
+      fullPath: '/checkout/cart'
+      preLoaderRoute: typeof CheckoutCartRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/chat': {
@@ -1409,6 +1429,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
   ApiChatRoute: ApiChatRoute,
+  CheckoutCartRoute: CheckoutCartRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EventsIdRoute: EventsIdRoute,
   ApiPublicCronDunningEscalationRoute: ApiPublicCronDunningEscalationRoute,
