@@ -107,11 +107,23 @@ function Terms() {
         </section>
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">7. Termination</h2>
+          <h2 className="font-display text-lg font-semibold text-foreground">7. Platform responsibility</h2>
+          <p className="mt-2">
+            PRINCESS PINK curates events and acts as an intermediary. While we vet
+            venues and guests, we are not liable for individual actions taken within
+            private event spaces. Attendees are responsible for their own conduct and
+            for following venue-specific rules.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="font-display text-lg font-semibold text-foreground">8. Termination</h2>
           <p className="mt-2">
             We may suspend or terminate access at any time for breach of these
             terms, illegal activity, or conduct that puts other members or
-            performers at risk.
+            performers at risk. Harassment, non-consensual behavior, or violating
+            venue-specific rules will result in an immediate, permanent ban without
+            refund.
           </p>
         </section>
 
