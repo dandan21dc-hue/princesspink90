@@ -192,7 +192,7 @@ function SubscribePage() {
           </div>
         ) : (
           <Suspense fallback={<div className="mt-10 text-sm text-muted-foreground">Loading pricing…</div>}>
-            <Passes onBuy={buy} />
+            <Passes onBuy={buy} pending={pending} />
           </Suspense>
         )}
       </section>
