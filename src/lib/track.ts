@@ -8,7 +8,11 @@
 
 import { logAnalyticsEvent } from "@/lib/analytics.functions";
 
-type TrackProps = Record<string, string | number | boolean | undefined>;
+// Accept `null` alongside `undefined` so call sites can pass optional values
+// (e.g. `currentPlan ?? null`) without a type error; both are stripped from
+// the emitted payload so downstream consumers only see defined scalars.
+export type TrackProps = Record<string, string | number | boolean | null | undefined>;
+type EmittedProps = Record<string, string | number | boolean>;
 
 declare global {
   interface Window {
@@ -24,7 +28,13 @@ const PERSISTED_EVENTS = new Set([
 
 export function track(event: string, props: TrackProps = {}): void {
   if (typeof window === "undefined") return;
-  const payload = { event, ...props, ts: Date.now() };
+  
+  const clean: EmittedProps = {};
+  for (const [k, v] of Object.entries(props)) {
+    if (v === null || v === undefined) continue;
+    clean[k] = v;
+  }
+  const payload = { event, ...clean, ts: Date.now() };
   try {
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push(payload);
