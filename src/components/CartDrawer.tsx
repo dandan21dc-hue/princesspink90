@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ShoppingBag, Trash2, Minus, Plus } from "lucide-react";
 import {
@@ -9,16 +9,48 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useCart, formatMoney } from "@/lib/cart";
+import { useCart, formatMoney, cart as cartStore } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/track";
 
 export function CartButton() {
   const { count } = useCart();
   const [open, setOpen] = useState(false);
+  // Set true when the user clicks the Checkout button so the drawer's
+  // subsequent close doesn't get logged as an abandonment.
+  const checkoutStartedRef = useRef(false);
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => {
+        // Drawer transitioning from open → closed without the checkout button
+        // being clicked = the user closed the drawer with items still inside.
+        if (open && !next && !checkoutStartedRef.current) {
+          const snap = cartStore.snapshot();
+          if (snap.length > 0) {
+            const hasPantyNow = snap.some((it) => it.kind === "panty");
+            const unitCount = snap.reduce((n, it) => n + it.quantity, 0);
+            const subtotalCents = snap.reduce(
+              (n, it) => n + it.unit_amount_cents * it.quantity,
+              0,
+            );
+            track("panty_checkout_cancelled", {
+              source: "cart_drawer",
+              reason: "drawer_closed",
+              stage: "pre_checkout",
+              item_count: snap.length,
+              unit_count: unitCount,
+              subtotal_cents: subtotalCents,
+              currency: snap[0]?.currency ?? "aud",
+              has_panty: hasPantyNow,
+            });
+          }
+        }
+        if (next) checkoutStartedRef.current = false;
+        setOpen(next);
+      }}
+    >
       <SheetTrigger asChild>
         <button
           aria-label={`Cart (${count} item${count === 1 ? "" : "s"})`}
@@ -39,13 +71,18 @@ export function CartButton() {
             One-time items only. Subscriptions and private-room bookings check out on their own page.
           </SheetDescription>
         </SheetHeader>
-        <CartBody onClose={() => setOpen(false)} />
+        <CartBody
+          onClose={() => setOpen(false)}
+          onCheckoutStart={() => {
+            checkoutStartedRef.current = true;
+          }}
+        />
       </SheetContent>
     </Sheet>
   );
 }
 
-function CartBody({ onClose }: { onClose: () => void }) {
+function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckoutStart?: () => void }) {
   const { items, subtotalCents, hasPanty, currency, setQty, remove, clear } = useCart();
   const navigate = useNavigate();
 
@@ -159,6 +196,7 @@ function CartBody({ onClose }: { onClose: () => void }) {
                 })),
               ),
             });
+            onCheckoutStart?.();
             onClose();
             navigate({ to: "/checkout/cart" });
           }}
