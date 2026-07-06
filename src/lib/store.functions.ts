@@ -260,6 +260,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       environment: StripeEnv;
       bookingStartsAt?: string;
       customerCountry?: string;
+      autoRenew?: boolean;
     }) => {
       if (!data.priceId && !data.contentItemId) throw new Error("priceId or contentItemId required");
       if (data.priceId && !/^[a-zA-Z0-9_-]+$/.test(data.priceId)) throw new Error("Invalid priceId");
