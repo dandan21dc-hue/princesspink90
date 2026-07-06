@@ -1107,6 +1107,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          age_gate_confirmed_at: string | null
           created_at: string
           deleted_at: string | null
           display_name: string | null
@@ -1114,6 +1115,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          age_gate_confirmed_at?: string | null
           created_at?: string
           deleted_at?: string | null
           display_name?: string | null
@@ -1121,6 +1123,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          age_gate_confirmed_at?: string | null
           created_at?: string
           deleted_at?: string | null
           display_name?: string | null
