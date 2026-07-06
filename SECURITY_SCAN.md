@@ -290,6 +290,17 @@ before re-running anything:
 | `Supabase / Migrations` | `supabase-migrations-report` | `types.ts` (regenerated), `types.committed.ts` (what's in the PR), `types.diff` (apply with `git apply` locally), `tsgo.log` (typecheck output). |
 | `Supabase / Migrations` (db test failure only) | `supabase-db-test-logs` | `db-reset.log`, `db-test.log` — full transcripts from the migration replay and RLS tests. |
 
+**Retention & size limits** (tuned to stay under the GitHub Actions
+artifact quota):
+
+- **Retention:** 3 days on green runs, 14 days on failed runs (`supabase-db-test-logs` is failure-only, always 14 days). Old artifacts auto-expire — pull them locally within the window if you need them long-term.
+- **Compression:** all uploads use `compression-level: 9` (zip max) so log-heavy artifacts (`db-test.log`, `types.diff`, `tsgo.log`) shrink ~5–10×.
+- **Per-file size cap:** a pre-upload step truncates any single file over 2 MiB (4 MiB for `types.ts`) to the last 2 MiB — the tail is what matters for failing assertions. Truncated files emit a `::warning::` in the job log so you know the artifact is not the full log.
+
+To raise a limit for a specific job, edit the matching `retention-days`
+and size threshold in `.github/workflows/ci.yml`. Do not bump globally —
+green PRs churn multiple artifacts per push and dominate the quota.
+
 
 
 ### 1. `Supabase / Config Validate` failed
