@@ -230,7 +230,7 @@ function Hero() {
             Hosted by Princess Pink · 18+
           </div>
           <h1 className="mt-6 font-display text-5xl font-extrabold leading-[1.05] sm:text-7xl">
-            Glory holes, gang bangs,{" "}
+            Glory holes, private rooms,{" "}
             <span className="text-neon animate-neon">and the theatre after dark.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted-foreground leading-relaxed">
