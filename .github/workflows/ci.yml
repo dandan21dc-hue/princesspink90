@@ -259,13 +259,25 @@ jobs:
             psql "$DB_URL" -c "SELECT pg_get_functiondef('public.rsvps_block_user_field_tamper'::regproc);" || true
           fi
 
+      - name: Cap db-test artifact file sizes
+        if: failure() && steps.db_test.outcome == 'failure'
+        run: |
+          find /tmp/db-test -type f -size +2M -print0 2>/dev/null \
+            | while IFS= read -r -d '' f; do
+              echo "::warning::Truncating oversized artifact file: $f"
+              tail -c 2097152 "$f" > "$f.tail" && mv "$f.tail" "$f"
+            done
+
       - name: Upload db test artifacts
         if: failure() && steps.db_test.outcome == 'failure'
         uses: actions/upload-artifact@v4
         with:
           name: supabase-db-test-logs
           path: /tmp/db-test/
-          retention-days: 7
+          # Only uploaded on failure, so always keep the longer window.
+          retention-days: 14
+          compression-level: 9
+          if-no-files-found: warn
 
       # Regenerate the client TS types from the freshly migrated schema
       # and diff against the committed src/integrations/supabase/types.ts.
