@@ -21,9 +21,15 @@ function pricesQuery() {
   return queryOptions({
     queryKey: ["subscribe-prices", getStripeEnvironment()],
     queryFn: async () => {
-      const result = await getSubscribePrices({ data: { environment: getStripeEnvironment() } });
-      if ("error" in result) throw new Error(result.error);
-      return result.prices;
+      try {
+        const result = await getSubscribePrices({ data: { environment: getStripeEnvironment() } });
+        if ("error" in result) return {} as Record<string, SubscribePrice>;
+        return result.prices;
+      } catch {
+        // Never blank the page if Stripe is unreachable or a price is missing;
+        // the UI falls back to hard-coded labels so every plan stays visible.
+        return {} as Record<string, SubscribePrice>;
+      }
     },
     staleTime: 60_000,
   });
