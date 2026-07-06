@@ -184,7 +184,9 @@ export function StripeEmbeddedCheckout(props: Props) {
       attempt,
       duration_ms: Date.now() - requestStartedAt,
     });
+    setSessionLoaded(true);
     return result.clientSecret;
+
     // attempt is intentionally in deps so each retry creates a fresh fetcher.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt, logLifecycle]);
