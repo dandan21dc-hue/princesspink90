@@ -8,6 +8,7 @@ import {
   listPartnershipEmailSummary,
   listPartnershipInquiries,
   listPartnershipReplies,
+  retryPartnershipNotification,
   sendPartnershipReply,
   updatePartnershipInquiry,
 } from '@/lib/partnership.functions'
