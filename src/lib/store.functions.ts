@@ -500,3 +500,32 @@ export const signMediaUrl = createServerFn({ method: "POST" })
     if (error || !signed) throw new Error(error?.message ?? "Sign failed");
     return { url: signed.signedUrl };
   });
+
+/**
+ * Fetch a Checkout Session from Stripe by id, scoped to the signed-in user
+ * via the metadata.userId stamp. Used by the /checkout/return landing page
+ * to confirm status and route the user to the right destination.
+ */
+export const getCheckoutSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sessionId: string; environment: StripeEnv }) => {
+    if (!/^cs_[a-zA-Z0-9_]+$/.test(data.sessionId)) throw new Error("Invalid session id");
+    return data;
+  })
+  .handler(async ({ data, context }): Promise<
+    | { status: string | null; metadata: Record<string, string> | null }
+    | { error: string }
+  > => {
+    try {
+      const stripe = createStripeClient(data.environment);
+      const session = await stripe.checkout.sessions.retrieve(data.sessionId);
+      const metadata = (session.metadata ?? {}) as Record<string, string>;
+      // Security: only expose the session to its owner.
+      if (metadata.userId && metadata.userId !== context.userId) {
+        throw new Error("Not allowed");
+      }
+      return { status: session.status ?? null, metadata };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
