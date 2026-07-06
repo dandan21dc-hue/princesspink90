@@ -3,11 +3,17 @@
 -- Verifies that an authenticated attendee cannot mutate staff/door-only
 -- columns on their own RSVP, while admins and the event host can.
 --
--- Run:
---   psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/tests/rsvps_field_tamper.test.sql
+-- HOW TO RUN
+--   Local (recommended):    supabase db test
+--   Ad-hoc against a branch: psql "$DIRECT_DB_URL" -v ON_ERROR_STOP=1 \
+--                              -f supabase/tests/rsvps_field_tamper.test.sql
 --
--- The script is idempotent: everything runs inside a transaction that is
--- rolled back at the end, so it never leaves data behind.
+-- The connecting role MUST be able to INSERT into auth.users (postgres
+-- superuser in local dev, or the direct service-role DB URL on a branch).
+-- The whole run is wrapped in a transaction that ROLLBACKs at the end,
+-- so it never leaves fixtures behind.
+
+
 
 BEGIN;
 
