@@ -43,6 +43,8 @@ export function useMyTiers(): MyTiersState {
     signedIn: false,
     active: { ...EMPTY_ACTIVE },
     expires: {},
+    starts: {},
+    cancelAtPeriodEnd: {},
   });
 
   useEffect(() => {
