@@ -532,4 +532,85 @@ function PassCard({
   );
 }
 
+function TermPassCard({
+  label,
+  termMonths,
+  priceId,
+  priceText,
+  onBuy,
+  loading,
+  disabled,
+  highlight,
+  extraPerks = [],
+}: {
+  label: string;
+  termMonths: 3 | 6 | 12;
+  priceId: PriceId;
+  priceText: string;
+  onBuy: (id: PriceId, autoRenew?: boolean) => void;
+  loading: boolean;
+  disabled: boolean;
+  highlight?: string;
+  extraPerks?: string[];
+}) {
+  // Default to auto-renew ON so subscribers keep uninterrupted access.
+  // Toggle lets them opt into a one-time, non-renewing purchase instead.
+  const [autoRenew, setAutoRenew] = useState(true);
+
+  const perks = [
+    "Full library streaming",
+    autoRenew
+      ? `Auto-renews every ${termMonths} months at ${priceText} — cancel anytime`
+      : `One-time payment · ${termMonths} months of access · no renewal`,
+    ...extraPerks,
+  ];
+  const cadence = autoRenew ? `every ${termMonths} mo` : `for ${termMonths} months`;
+  const cta = autoRenew
+    ? `Subscribe · ${priceText}/${termMonths}mo`
+    : `Buy ${termMonths}-month term`;
+
+  return (
+    <div className="relative flex flex-col rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)]">
+      {highlight ? (
+        <div className="absolute right-3 top-3 rounded-full bg-primary/90 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-primary-foreground">
+          {highlight}
+        </div>
+      ) : null}
+      <div className="text-[10px] uppercase tracking-[0.3em] text-primary">{label}</div>
+      <div className="mt-2 font-display text-3xl font-extrabold">
+        {priceText}
+        <span className="ml-1 text-xs font-normal text-muted-foreground">{cadence}</span>
+      </div>
+      <ul className="mt-4 flex-1 space-y-1.5 text-xs text-muted-foreground">
+        {perks.map((p) => (
+          <li key={p}>· {p}</li>
+        ))}
+      </ul>
+
+      <label className="mt-4 flex cursor-pointer items-start gap-2 rounded-md border border-primary/30 bg-background/60 px-3 py-2 text-[11px] text-foreground/90 hover:bg-primary/5">
+        <input
+          type="checkbox"
+          className="mt-0.5 h-3.5 w-3.5 accent-primary"
+          checked={autoRenew}
+          onChange={(e) => setAutoRenew(e.target.checked)}
+          disabled={disabled || loading}
+        />
+        <span>
+          <span className="font-semibold">Auto-renew</span> at term end
+          <span className="ml-1 text-muted-foreground">(uncheck to pay once)</span>
+        </span>
+      </label>
+
+      <button
+        onClick={() => onBuy(priceId, autoRenew)}
+        disabled={disabled || loading}
+        className="mt-3 min-h-11 w-full rounded-md bg-primary px-4 py-3 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {loading ? "Processing…" : cta}
+      </button>
+    </div>
+  );
+}
+
+
 
