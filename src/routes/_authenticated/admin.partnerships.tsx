@@ -88,26 +88,43 @@ function AdminPartnerships() {
   const [filter, setFilter] = useState<'all' | Inquiry['status']>('all')
   const [dateFrom, setDateFrom] = useState<string>('')
   const [dateTo, setDateTo] = useState<string>('')
+  const [search, setSearch] = useState<string>('')
+  const [page, setPage] = useState<number>(1)
+  const PAGE_SIZE = 20
 
   const inquiries = (q.data?.inquiries ?? []) as Inquiry[]
 
   const fromTs = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null
   const toTs = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null
+  const searchNorm = search.trim().toLowerCase()
 
-  const filtered = inquiries.filter((i) => {
+  const filtered = useMemo(() => inquiries.filter((i) => {
     if (filter !== 'all' && i.status !== filter) return false
     const t = new Date(i.created_at).getTime()
     if (fromTs !== null && t < fromTs) return false
     if (toTs !== null && t > toTs) return false
+    if (searchNorm) {
+      const hay = `${i.name} ${i.email} ${i.organization ?? ''}`.toLowerCase()
+      if (!hay.includes(searchNorm)) return false
+    }
     return true
-  })
+  }), [inquiries, filter, fromTs, toTs, searchNorm])
 
-  const dateFiltered = inquiries.filter((i) => {
+  const dateFiltered = useMemo(() => inquiries.filter((i) => {
     const t = new Date(i.created_at).getTime()
     if (fromTs !== null && t < fromTs) return false
     if (toTs !== null && t > toTs) return false
     return true
-  })
+  }), [inquiries, fromTs, toTs])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageStart = (currentPage - 1) * PAGE_SIZE
+  const paged = filtered.slice(pageStart, pageStart + PAGE_SIZE)
+
+  useEffect(() => {
+    setPage(1)
+  }, [filter, dateFrom, dateTo, searchNorm])
 
   const setPreset = (days: number) => {
     const to = new Date()
@@ -121,9 +138,11 @@ function AdminPartnerships() {
     setFilter('all')
     setDateFrom('')
     setDateTo('')
+    setSearch('')
   }
 
-  const hasFilters = filter !== 'all' || dateFrom !== '' || dateTo !== ''
+  const hasFilters = filter !== 'all' || dateFrom !== '' || dateTo !== '' || search !== ''
+
 
   const ids = inquiries.map((i) => i.id)
   const summaryQ = useQuery({
