@@ -288,7 +288,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       // Subscription / lookup-key checkout
       if (data.priceId) {
         const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
-        const stripePrice = prices.data[0];
+        let stripePrice = prices.data[0];
         // Validate against the expected catalogue (interval + amount).
         // Logs a structured event when the plan is missing or misconfigured
         // in Stripe so drift is visible in server function logs.
@@ -300,6 +300,24 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             `Plan ${issue.lookupKey} is misconfigured in Stripe (${issue.fields.join(", ")}). Please contact support.`,
           );
         }
+
+        const isLifetime = data.priceId === "lifetime_onetime_aud";
+        // Accept both the newer `_onetime_aud` and legacy `_monthly_aud`
+        // naming — both are one-time upfront term passes unless auto-renew
+        // is opted into at checkout (see below).
+        const termPassMatch = /^all_access_(3|6|12)mo_(onetime|monthly)_aud$/.exec(data.priceId);
+        const termMonths = termPassMatch ? Number(termPassMatch[1]) : null;
+        const isPanty = /^panty_(24|48|72)hr_aud$/.test(data.priceId);
+        const privateRoomMatch = /^private_room_(30|60)min_aud$/.exec(data.priceId);
+        const privateRoomMinutes = privateRoomMatch ? Number(privateRoomMatch[1]) : null;
+
+        // Auto-renew opt-in: swap the one-time term-pass price for a
+        // recurring price with interval=month, interval_count=termMonths.
+        // Lifetime and non-term SKUs ignore the flag.
+        if (data.autoRenew && termMonths && !isLifetime) {
+          stripePrice = await ensureRenewalPrice(stripe, termMonths, stripePrice);
+        }
+
         const isRecurring = stripePrice.type === "recurring";
 
         // Retrieve product so we can (a) description one-time payments and
@@ -310,14 +328,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const product = await stripe.products.retrieve(productId);
         const productDescription = product.name;
 
-        const isLifetime = data.priceId === "lifetime_onetime_aud";
-        // Accept both the newer `_onetime_aud` and legacy `_monthly_aud`
-        // naming — both are now one-time upfront term passes.
-        const termPassMatch = /^all_access_(3|6|12)mo_(onetime|monthly)_aud$/.exec(data.priceId);
-        const termMonths = termPassMatch ? Number(termPassMatch[1]) : null;
-        const isPanty = /^panty_(24|48|72)hr_aud$/.test(data.priceId);
-        const privateRoomMatch = /^private_room_(30|60)min_aud$/.exec(data.priceId);
-        const privateRoomMinutes = privateRoomMatch ? Number(privateRoomMatch[1]) : null;
+
 
         // Members-only gate for the Panty Drawer. Never trust the client —
         // enforce active subscription/membership before creating the session.
