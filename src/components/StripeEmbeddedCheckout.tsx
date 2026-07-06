@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createStoreCheckoutSession } from "@/lib/store.functions";
+import { track } from "@/lib/track";
 
 interface Props {
   priceId?: string;
@@ -33,20 +34,51 @@ export function StripeEmbeddedCheckout(props: Props) {
   useEffect(() => { detectCountry().then(setCountry); }, []);
 
   const fetchClientSecret = async (): Promise<string> => {
-    const result = await createStoreCheckoutSession({
-      data: {
-        priceId: props.priceId,
-        contentItemId: props.contentItemId,
-        userId: props.userId,
-        customerEmail: props.customerEmail,
-        returnUrl: props.returnUrl || window.location.href,
+    const source = props.priceId ?? props.contentItemId ?? "unknown";
+    const kind = props.priceId?.startsWith("panty_")
+      ? "panty"
+      : props.priceId
+        ? "subscription"
+        : props.contentItemId
+          ? "content_item"
+          : props.bookingStartsAt
+            ? "private_room"
+            : "unknown";
+    const fail = (reason: string, message?: string) => {
+      track("stripe_checkout_session_failed", {
+        kind,
+        source,
         environment: getStripeEnvironment(),
-        bookingStartsAt: props.bookingStartsAt,
-        customerCountry: country,
-      },
-    });
-    if ("error" in result) throw new Error(result.error);
-    if (!result.clientSecret) throw new Error("Stripe did not return a client secret");
+        reason,
+        ...(message && { message: message.slice(0, 200) }),
+      });
+    };
+    let result;
+    try {
+      result = await createStoreCheckoutSession({
+        data: {
+          priceId: props.priceId,
+          contentItemId: props.contentItemId,
+          userId: props.userId,
+          customerEmail: props.customerEmail,
+          returnUrl: props.returnUrl || window.location.href,
+          environment: getStripeEnvironment(),
+          bookingStartsAt: props.bookingStartsAt,
+          customerCountry: country,
+        },
+      });
+    } catch (e) {
+      fail("exception", (e as Error)?.message);
+      throw e;
+    }
+    if ("error" in result) {
+      fail("server_error", String(result.error));
+      throw new Error(result.error);
+    }
+    if (!result.clientSecret) {
+      fail("no_client_secret");
+      throw new Error("Stripe did not return a client secret");
+    }
     return result.clientSecret;
   };
 

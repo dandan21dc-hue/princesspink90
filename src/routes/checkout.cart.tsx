@@ -6,6 +6,7 @@ import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createCartCheckoutSession } from "@/lib/store.functions";
 import { useCart, formatMoney, cart as cartStore } from "@/lib/cart";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { track } from "@/lib/track";
 
 export const Route = createFileRoute("/checkout/cart")({
   ssr: false,
@@ -62,21 +63,44 @@ function CartCheckoutPage() {
   const canCheckout = snapshot.length > 0 && !!user;
 
   const fetchClientSecret = async (): Promise<string> => {
-    const result = await createCartCheckoutSession({
-      data: {
-        items: snapshot.map((it) => ({
-          kind: it.kind,
-          id: it.id,
-          quantity: it.quantity,
-        })) as any,
-        customerEmail: user?.email,
-        returnUrl,
+    const fail = (reason: string, message?: string) => {
+      track("stripe_checkout_session_failed", {
+        kind: "cart",
+        source: "cart",
         environment: getStripeEnvironment(),
-        customerCountry: country,
-      },
-    });
-    if ("error" in result) throw new Error(result.error);
-    if (!result.clientSecret) throw new Error("Stripe did not return a client secret");
+        item_count: snapshot.length,
+        has_panty: snapshot.some((it) => it.kind === "panty"),
+        reason,
+        ...(message && { message: message.slice(0, 200) }),
+      });
+    };
+    let result;
+    try {
+      result = await createCartCheckoutSession({
+        data: {
+          items: snapshot.map((it) => ({
+            kind: it.kind,
+            id: it.id,
+            quantity: it.quantity,
+          })) as any,
+          customerEmail: user?.email,
+          returnUrl,
+          environment: getStripeEnvironment(),
+          customerCountry: country,
+        },
+      });
+    } catch (e) {
+      fail("exception", (e as Error)?.message);
+      throw e;
+    }
+    if ("error" in result) {
+      fail("server_error", String(result.error));
+      throw new Error(result.error);
+    }
+    if (!result.clientSecret) {
+      fail("no_client_secret");
+      throw new Error("Stripe did not return a client secret");
+    }
     return result.clientSecret;
   };
 

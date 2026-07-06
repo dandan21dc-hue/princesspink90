@@ -26,11 +26,23 @@ function pricesQuery() {
     queryFn: async () => {
       try {
         const result = await getSubscribePrices({ data: { environment: getStripeEnvironment() } });
-        if ("error" in result) return {} as Record<string, SubscribePrice>;
+        if ("error" in result) {
+          track("stripe_prices_fetch_failed", {
+            environment: getStripeEnvironment(),
+            reason: "server_error",
+            message: String(result.error).slice(0, 200),
+          });
+          return {} as Record<string, SubscribePrice>;
+        }
         return result.prices;
-      } catch {
+      } catch (e) {
         // Never blank the page if Stripe is unreachable or a price is missing;
         // the UI falls back to hard-coded labels so every plan stays visible.
+        track("stripe_prices_fetch_failed", {
+          environment: getStripeEnvironment(),
+          reason: "exception",
+          message: (e as Error)?.message?.slice(0, 200),
+        });
         return {} as Record<string, SubscribePrice>;
       }
     },

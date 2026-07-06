@@ -101,6 +101,28 @@ function CheckoutReturn() {
     });
   }, [sessionId, session]);
 
+  // Track return-page load failures (session retrieve errored, or Stripe
+  // shipped a placeholder session_id back). Separate ref so it can't clash
+  // with the panty status event above.
+  const errorTrackedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (templateNotSubstituted) {
+      if (errorTrackedRef.current === "template") return;
+      errorTrackedRef.current = "template";
+      track("stripe_checkout_return_failed", { reason: "missing_session_id" });
+      return;
+    }
+    if (!query.isError || !sessionId) return;
+    const key = `error:${sessionId}`;
+    if (errorTrackedRef.current === key) return;
+    errorTrackedRef.current = key;
+    track("stripe_checkout_return_failed", {
+      reason: "session_fetch_error",
+      session_id: sessionId,
+      message: (query.error as Error)?.message?.slice(0, 200),
+    });
+  }, [templateNotSubstituted, query.isError, query.error, sessionId]);
+
   useEffect(() => {
     if (!isComplete) return;
     // Cart mode: successful payment → wipe the local cart so the shopping bag
