@@ -9,13 +9,21 @@ export type PlanId =
   | "all_access_12mo_monthly_aud"
   | "lifetime_onetime_aud";
 
-/** Subscription price_ids treated as monthly-recurring All-Access tiers. */
+/**
+ * Recurring subscription lookup_keys. The monthly plan is the only
+ * remaining recurring tier — 3/6/12-month passes are now one-time upfront
+ * lump-sum payments that land as `memberships.kind = term_pass_{N}` rows.
+ */
 const SUBSCRIPTION_TIER_PRICE_IDS: readonly PlanId[] = [
   "all_access_monthly_aud",
-  "all_access_3mo_monthly_aud",
-  "all_access_6mo_monthly_aud",
-  "all_access_12mo_monthly_aud",
 ];
+
+/** Map term_pass_N kinds back to their PlanId. */
+const TERM_PASS_KIND_TO_PLAN: Record<string, PlanId> = {
+  term_pass_3: "all_access_3mo_monthly_aud",
+  term_pass_6: "all_access_6mo_monthly_aud",
+  term_pass_12: "all_access_12mo_monthly_aud",
+};
 
 export interface MyTiersState {
   loading: boolean;
