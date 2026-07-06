@@ -5,6 +5,10 @@ import { getCheckoutSession } from "@/lib/store.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart as cartStore } from "@/lib/cart";
 import { track } from "@/lib/track";
+import {
+  buildPantyReturnEvent,
+  buildPantyReturnErrorEvents,
+} from "@/lib/pantyCheckoutEvents";
 import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 
 
@@ -82,43 +86,12 @@ function CheckoutReturn() {
   const trackedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!sessionId || !session) return;
-    const md = session.metadata ?? {};
-    const pantyVariant = md.panty_order || (md.cart_panty_items ? "cart" : null);
-    if (!pantyVariant) return;
-    const status = session.status ?? "unknown";
-    const eventName =
-      status === "complete"
-        ? "panty_checkout_confirmed"
-        : status === "open"
-          ? "panty_checkout_pending"
-          : "panty_checkout_cancelled";
-    const key = `${sessionId}:${eventName}`;
+    const event = buildPantyReturnEvent(session, sessionId);
+    if (!event) return;
+    const key = `${sessionId}:${event.name}`;
     if (trackedRef.current === key) return;
     trackedRef.current = key;
-    const orderIds = session.order_ids ?? [];
-    const basePayload: Record<string, string | number | boolean | undefined> = {
-      variant: pantyVariant,
-      session_id: sessionId,
-      payment_intent_id: session.payment_intent_id ?? undefined,
-      client_order_ref: md.client_order_ref ?? undefined,
-      order_id: orderIds[0] ?? undefined,
-      order_ids: orderIds.length > 0 ? orderIds.join(",") : undefined,
-      order_count: orderIds.length,
-      total_amount_cents: session.amount_total ?? undefined,
-      currency: session.currency ?? undefined,
-      status,
-      cart_mode: md.cart_mode === "1",
-    };
-    if (eventName === "panty_checkout_cancelled") {
-      track(eventName, {
-        ...basePayload,
-        source: "checkout_return",
-        reason: "return_incomplete",
-        stage: "post_return",
-      });
-    } else {
-      track(eventName, basePayload);
-    }
+    track(event.name, event.payload);
   }, [sessionId, session]);
 
   // Track return-page load failures (session retrieve errored, or Stripe
@@ -129,29 +102,25 @@ function CheckoutReturn() {
     if (templateNotSubstituted) {
       if (errorTrackedRef.current === "template") return;
       errorTrackedRef.current = "template";
-      track("stripe_checkout_return_failed", { reason: "missing_session_id" });
-      track("panty_checkout_cancelled", {
-        source: "checkout_return",
-        reason: "missing_session_id",
-        stage: "post_return",
-      });
+      for (const e of buildPantyReturnErrorEvents({
+        templateNotSubstituted: true,
+        sessionId,
+      })) {
+        track(e.name, e.payload);
+      }
       return;
     }
     if (!query.isError || !sessionId) return;
     const key = `error:${sessionId}`;
     if (errorTrackedRef.current === key) return;
     errorTrackedRef.current = key;
-    track("stripe_checkout_return_failed", {
-      reason: "session_fetch_error",
-      session_id: sessionId,
-      message: (query.error as Error)?.message?.slice(0, 200),
-    });
-    track("panty_checkout_cancelled", {
-      source: "checkout_return",
-      reason: "session_fetch_error",
-      stage: "post_return",
-      session_id: sessionId,
-    });
+    for (const e of buildPantyReturnErrorEvents({
+      templateNotSubstituted: false,
+      sessionId,
+      errorMessage: (query.error as Error)?.message,
+    })) {
+      track(e.name, e.payload);
+    }
   }, [templateNotSubstituted, query.isError, query.error, sessionId]);
 
   // Attribution: fire once per completed checkout with the tier the user
