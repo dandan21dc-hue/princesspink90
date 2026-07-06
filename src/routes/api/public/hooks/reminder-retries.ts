@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { computeNextRetryAt, DEFAULT_MAX_ATTEMPTS } from '@/lib/reminder-retry'
+import { checkHooksCronAuth } from '@/lib/hooks-auth.server'
 
 // Retry runner for failed reminder deliveries.
 //
