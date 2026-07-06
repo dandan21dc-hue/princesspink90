@@ -247,34 +247,53 @@ jobs:
       # We also compile the regenerated file with tsc to catch any
       # TypeScript errors the generator might emit against strict mode.
       - name: Regenerate Supabase types and diff
+        id: types_diff
         run: |
-          set -euo pipefail
+          set -o pipefail
           mkdir -p /tmp/types-out
           supabase gen types typescript --local \
             > /tmp/types-out/types.ts
+          # Snapshot the committed file alongside so the artifact contains
+          # both sides plus the unified diff — reviewers can apply
+          # `types.diff` locally without re-running the CLI.
+          cp src/integrations/supabase/types.ts /tmp/types-out/types.committed.ts
           # Normalize trailing whitespace / final newline to avoid noise.
           diff -u \
-            <(sed -e 's/[[:space:]]*$//' src/integrations/supabase/types.ts) \
+            <(sed -e 's/[[:space:]]*$//' /tmp/types-out/types.committed.ts) \
             <(sed -e 's/[[:space:]]*$//' /tmp/types-out/types.ts) \
-            || {
-              echo ""
-              echo "❌ Supabase generated types are out of date."
-              echo "   Regenerate locally with:"
-              echo "     supabase gen types typescript --local > src/integrations/supabase/types.ts"
-              echo "   then commit the result."
-              exit 1
-            }
+            > /tmp/types-out/types.diff \
+            && DIFF_RC=0 || DIFF_RC=$?
+          cat /tmp/types-out/types.diff
+          if [ "$DIFF_RC" -ne 0 ]; then
+            echo ""
+            echo "❌ Supabase generated types are out of date."
+            echo "   Regenerate locally with:"
+            echo "     supabase gen types typescript --local > src/integrations/supabase/types.ts"
+            echo "   then commit the result. Full diff uploaded as artifact"
+            echo "   'supabase-migrations-report' (types.diff)."
+            exit 1
+          fi
 
       - name: Typecheck regenerated types in isolation
+        id: types_tsc
         run: |
-          set -euo pipefail
+          set -o pipefail
           # Compile the freshly generated types.ts as a standalone file
           # under the project's strict tsconfig so a schema change that
           # produces invalid TS (name collisions, reserved keywords in
           # column names, unresolvable enum refs) fails the build.
           cp /tmp/types-out/types.ts src/integrations/supabase/types.ts
           bunx --bun tsgo --noEmit \
-            src/integrations/supabase/types.ts
+            src/integrations/supabase/types.ts 2>&1 \
+            | tee /tmp/types-out/tsgo.log
+
+      - name: Upload migrations report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-migrations-report
+          path: /tmp/types-out/
+          retention-days: 7
 
       - name: Dump Supabase logs on failure
         if: failure()
