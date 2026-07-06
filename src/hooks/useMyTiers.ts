@@ -9,13 +9,21 @@ export type PlanId =
   | "all_access_12mo_monthly_aud"
   | "lifetime_onetime_aud";
 
-/** Subscription price_ids treated as monthly-recurring All-Access tiers. */
+/**
+ * Recurring subscription lookup_keys. The monthly plan is the only
+ * remaining recurring tier — 3/6/12-month passes are now one-time upfront
+ * lump-sum payments that land as `memberships.kind = term_pass_{N}` rows.
+ */
 const SUBSCRIPTION_TIER_PRICE_IDS: readonly PlanId[] = [
   "all_access_monthly_aud",
-  "all_access_3mo_monthly_aud",
-  "all_access_6mo_monthly_aud",
-  "all_access_12mo_monthly_aud",
 ];
+
+/** Map term_pass_N kinds back to their PlanId. */
+const TERM_PASS_KIND_TO_PLAN: Record<string, PlanId> = {
+  term_pass_3: "all_access_3mo_monthly_aud",
+  term_pass_6: "all_access_6mo_monthly_aud",
+  term_pass_12: "all_access_12mo_monthly_aud",
+};
 
 export interface MyTiersState {
   loading: boolean;
@@ -99,39 +107,63 @@ export function useMyTiers(): MyTiersState {
       const mems = memRes.data ?? [];
       const lifetime = mems.find((r: any) => r.kind === "lifetime");
 
+      // Pick the currently active term pass (latest non-expired row of each
+      // kind). Term passes are one-time purchases, so `expires_at` is the
+      // source of truth for "still active".
+      const nowIso = new Date().toISOString();
+      const activeTermPassByPlan: Partial<Record<PlanId, { starts: string | null; expires: string | null }>> = {};
+      for (const row of mems) {
+        const kind = String((row as any).kind ?? "");
+        const plan = TERM_PASS_KIND_TO_PLAN[kind];
+        if (!plan) continue;
+        const expiresAt = (row as any).expires_at as string | null;
+        if (!expiresAt || expiresAt <= nowIso) continue;
+        const existing = activeTermPassByPlan[plan];
+        // Prefer the latest-expiring row if user stacked purchases.
+        if (!existing || (existing.expires ?? "") < expiresAt) {
+          activeTermPassByPlan[plan] = {
+            starts: ((row as any).created_at as string | null) ?? null,
+            expires: expiresAt,
+          };
+        }
+      }
+
       const subStart = (sub?.current_period_start ?? sub?.created_at) ?? null;
       const subEnd = sub?.current_period_end ?? null;
       const subCancel = !!sub?.cancel_at_period_end;
       const pick = <T,>(plan: PlanId, v: T): T | null => (activePlan === plan ? v : null);
+      const termOr = <T,>(plan: PlanId, key: "starts" | "expires", fallback: T | null): T | null =>
+        (activeTermPassByPlan[plan]?.[key] as T | undefined) ?? fallback;
 
       setState({
         loading: false,
         signedIn: true,
         active: {
           all_access_monthly_aud: activePlan === "all_access_monthly_aud",
-          all_access_3mo_monthly_aud: activePlan === "all_access_3mo_monthly_aud",
-          all_access_6mo_monthly_aud: activePlan === "all_access_6mo_monthly_aud",
-          all_access_12mo_monthly_aud: activePlan === "all_access_12mo_monthly_aud",
+          all_access_3mo_monthly_aud: !!activeTermPassByPlan.all_access_3mo_monthly_aud,
+          all_access_6mo_monthly_aud: !!activeTermPassByPlan.all_access_6mo_monthly_aud,
+          all_access_12mo_monthly_aud: !!activeTermPassByPlan.all_access_12mo_monthly_aud,
           lifetime_onetime_aud: !!lifetime,
         },
         expires: {
           all_access_monthly_aud: pick("all_access_monthly_aud", subEnd),
-          all_access_3mo_monthly_aud: pick("all_access_3mo_monthly_aud", subEnd),
-          all_access_6mo_monthly_aud: pick("all_access_6mo_monthly_aud", subEnd),
-          all_access_12mo_monthly_aud: pick("all_access_12mo_monthly_aud", subEnd),
+          all_access_3mo_monthly_aud: termOr("all_access_3mo_monthly_aud", "expires", null),
+          all_access_6mo_monthly_aud: termOr("all_access_6mo_monthly_aud", "expires", null),
+          all_access_12mo_monthly_aud: termOr("all_access_12mo_monthly_aud", "expires", null),
         },
         starts: {
           all_access_monthly_aud: pick("all_access_monthly_aud", subStart),
-          all_access_3mo_monthly_aud: pick("all_access_3mo_monthly_aud", subStart),
-          all_access_6mo_monthly_aud: pick("all_access_6mo_monthly_aud", subStart),
-          all_access_12mo_monthly_aud: pick("all_access_12mo_monthly_aud", subStart),
+          all_access_3mo_monthly_aud: termOr("all_access_3mo_monthly_aud", "starts", null),
+          all_access_6mo_monthly_aud: termOr("all_access_6mo_monthly_aud", "starts", null),
+          all_access_12mo_monthly_aud: termOr("all_access_12mo_monthly_aud", "starts", null),
           lifetime_onetime_aud: lifetime?.created_at ?? null,
         },
         cancelAtPeriodEnd: {
           all_access_monthly_aud: activePlan === "all_access_monthly_aud" ? subCancel : false,
-          all_access_3mo_monthly_aud: activePlan === "all_access_3mo_monthly_aud" ? subCancel : false,
-          all_access_6mo_monthly_aud: activePlan === "all_access_6mo_monthly_aud" ? subCancel : false,
-          all_access_12mo_monthly_aud: activePlan === "all_access_12mo_monthly_aud" ? subCancel : false,
+          // Term passes never auto-renew — no cancel-at-period-end concept.
+          all_access_3mo_monthly_aud: false,
+          all_access_6mo_monthly_aud: false,
+          all_access_12mo_monthly_aud: false,
         },
       });
     }

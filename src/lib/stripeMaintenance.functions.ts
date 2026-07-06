@@ -25,20 +25,20 @@ const PLAN_PRODUCT_CATALOGUE: Record<
 > = {
   all_access_3mo_monthly_aud: {
     product_id: "all_access_3mo",
-    product_name: "All-Access Pass · 3-Month Plan",
-    product_description: "Monthly billing for 3 months — full members-only library.",
+    product_name: "All-Access Pass · 3-Month Term",
+    product_description: "A$27 upfront for 3 months of full members-only library access.",
     tax_code: TAX_CODES.saas,
   },
   all_access_6mo_monthly_aud: {
     product_id: "all_access_6mo",
-    product_name: "All-Access Pass · 6-Month Plan",
-    product_description: "Monthly billing for 6 months — full members-only library.",
+    product_name: "All-Access Pass · 6-Month Term",
+    product_description: "A$48 upfront for 6 months of full members-only library access.",
     tax_code: TAX_CODES.saas,
   },
   all_access_12mo_monthly_aud: {
     product_id: "all_access_12mo",
-    product_name: "All-Access Pass · 12-Month Plan",
-    product_description: "Monthly billing for 12 months — full members-only library + free event entry.",
+    product_name: "All-Access Pass · 12-Month Term",
+    product_description: "A$84 upfront for 12 months of full members-only library access + a free event ticket.",
     tax_code: TAX_CODES.saas,
   },
   lifetime_onetime_aud: {
@@ -240,6 +240,116 @@ export const syncMissingStripePrices = createServerFn({ method: "POST" })
       }
 
       return { results, created, existed, errors };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
+
+/**
+ * Term-pass plans that must be non-recurring one-time prices (lump sum
+ * upfront for the term). Used by convertTermPassesToOneTime below.
+ */
+const TERM_PASS_LOOKUP_KEYS = [
+  "all_access_3mo_monthly_aud",
+  "all_access_6mo_monthly_aud",
+  "all_access_12mo_monthly_aud",
+] as const;
+
+export type ConvertTermPassResult =
+  | {
+      results: Array<
+        | { lookupKey: string; status: "converted"; oldPriceId: string; newPriceId: string }
+        | { lookupKey: string; status: "already_one_time"; priceId: string }
+        | { lookupKey: string; status: "missing" }
+        | { lookupKey: string; status: "error"; message: string }
+      >;
+      converted: number;
+    }
+  | { error: string };
+
+/**
+ * Admin-only: for each 3/6/12-month term pass, if the active price in Stripe
+ * is still `recurring` (legacy monthly billing), archive it and create a new
+ * one-time price with `transfer_lookup_key: true` so the lookup_key follows.
+ * The unit_amount comes from EXPECTED_PLAN_PRICES (2700/4800/8400 AUD cents).
+ * Idempotent — a run after conversion returns `already_one_time`.
+ */
+export const convertTermPassesToOneTime = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { environment: StripeEnv }) => data)
+  .handler(async ({ data, context }): Promise<ConvertTermPassResult> => {
+    try {
+      await assertAdmin(context);
+      const stripe = createStripeClient(data.environment);
+
+      const results: Extract<ConvertTermPassResult, { results: unknown }>["results"] = [];
+      let converted = 0;
+
+      for (const lookupKey of TERM_PASS_LOOKUP_KEYS) {
+        try {
+          const expected = EXPECTED_PLAN_PRICES[lookupKey];
+          if (!expected) {
+            results.push({ lookupKey, status: "error", message: "no expected price entry" });
+            continue;
+          }
+
+          const found = await stripe.prices.list({
+            lookup_keys: [lookupKey],
+            active: true,
+            limit: 1,
+          });
+          const current = found.data[0];
+          if (!current) {
+            results.push({ lookupKey, status: "missing" });
+            continue;
+          }
+
+          // Already one-time with the correct amount — nothing to do.
+          const isRecurring = !!current.recurring;
+          if (!isRecurring && current.unit_amount === expected.unit_amount) {
+            results.push({ lookupKey, status: "already_one_time", priceId: current.id });
+            continue;
+          }
+
+          const productId =
+            typeof current.product === "string" ? current.product : current.product?.id;
+          if (!productId) {
+            results.push({ lookupKey, status: "error", message: "price has no product" });
+            continue;
+          }
+
+          // Create replacement first so lookup_key never points nowhere.
+          const meta = PLAN_PRODUCT_CATALOGUE[lookupKey];
+          const created = await stripe.prices.create({
+            product: productId,
+            currency: expected.currency,
+            unit_amount: expected.unit_amount,
+            lookup_key: lookupKey,
+            nickname: meta?.product_name ?? lookupKey,
+            transfer_lookup_key: true,
+            // No `recurring` field → one-time price.
+          });
+
+          // Archive the legacy price so nothing new can be sold on it.
+          await stripe.prices.update(current.id, { active: false });
+
+          results.push({
+            lookupKey,
+            status: "converted",
+            oldPriceId: current.id,
+            newPriceId: created.id,
+          });
+          converted++;
+        } catch (error) {
+          results.push({
+            lookupKey,
+            status: "error",
+            message: getStripeErrorMessage(error),
+          });
+        }
+      }
+
+      return { results, converted };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }

@@ -234,7 +234,9 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const productDescription = product.name;
 
         const isLifetime = data.priceId === "lifetime_onetime_aud";
-        const termPassMatch = /^all_access_(3|6|12)mo_onetime_aud$/.exec(data.priceId);
+        // Accept both the newer `_onetime_aud` and legacy `_monthly_aud`
+        // naming — both are now one-time upfront term passes.
+        const termPassMatch = /^all_access_(3|6|12)mo_(onetime|monthly)_aud$/.exec(data.priceId);
         const termMonths = termPassMatch ? Number(termPassMatch[1]) : null;
         const isPanty = /^panty_(24|48|72)hr_aud$/.test(data.priceId);
         const privateRoomMatch = /^private_room_(30|60)min_aud$/.exec(data.priceId);

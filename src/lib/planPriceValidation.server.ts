@@ -13,10 +13,13 @@ export interface ExpectedPlanPrice {
 }
 
 export const EXPECTED_PLAN_PRICES: Record<string, ExpectedPlanPrice> = {
-  all_access_3mo_monthly_aud:  { currency: "aud", unit_amount:  900, interval: "month" },
-  all_access_6mo_monthly_aud:  { currency: "aud", unit_amount:  800, interval: "month" },
-  all_access_12mo_monthly_aud: { currency: "aud", unit_amount:  700, interval: "month" },
-  lifetime_onetime_aud:        { currency: "aud", unit_amount: 50000, interval: null   },
+  all_access_monthly_aud:      { currency: "aud", unit_amount:  1000, interval: "month" },
+  // Term passes: single upfront lump-sum charge for the full term
+  // (3mo=A$27, 6mo=A$48, 12mo=A$84). One-time payment, no renewal.
+  all_access_3mo_monthly_aud:  { currency: "aud", unit_amount:  2700, interval: null    },
+  all_access_6mo_monthly_aud:  { currency: "aud", unit_amount:  4800, interval: null    },
+  all_access_12mo_monthly_aud: { currency: "aud", unit_amount:  8400, interval: null    },
+  lifetime_onetime_aud:        { currency: "aud", unit_amount: 50000, interval: null    },
 };
 
 export type PlanPriceIssue =
