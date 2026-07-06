@@ -167,7 +167,8 @@ export const listPartnershipEmailSummary = createServerFn({ method: 'POST' })
       keys.push(`partnership-confirmation-${id}`, `partnership-notification-${id}`)
     }
 
-    const { data: rows, error } = await context.supabase
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { data: rows, error } = await supabaseAdmin
       .from('email_send_log')
       .select('message_id, status, error_message, created_at, template_name, recipient_email')
       .in('message_id', keys)
@@ -208,7 +209,8 @@ export const listPartnershipEmailEvents = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     await ensureAdmin(context)
     const id = data.inquiryId
-    const { data: rows, error } = await context.supabase
+    const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
+    const { data: rows, error } = await supabaseAdmin
       .from('email_send_log')
       .select('message_id, status, error_message, created_at, template_name, recipient_email')
       .or(
