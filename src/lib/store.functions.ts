@@ -340,6 +340,197 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
     }
   });
 
+// ---------- Cart checkout (multi-item, one-time only) ----------
+
+const PANTY_LOOKUP = ["panty_24hr_aud", "panty_48hr_aud", "panty_72hr_aud"] as const;
+type PantyLookup = (typeof PANTY_LOOKUP)[number];
+
+type CartItemInput =
+  | { kind: "content"; id: string; quantity: number }
+  | { kind: "panty"; id: PantyLookup; quantity: number };
+
+/**
+ * Multi-item checkout: builds ONE Stripe Checkout Session with N line items.
+ * Only one-time SKUs are cartable (subscriptions and private-room bookings
+ * cannot share a session). Server-authoritative on prices — the client
+ * merely says "id + quantity", we look up the actual price/amount.
+ */
+export const createCartCheckoutSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: {
+      items: CartItemInput[];
+      returnUrl: string;
+      environment: StripeEnv;
+      customerEmail?: string;
+      customerCountry?: string;
+    }) => {
+      if (!Array.isArray(data.items) || data.items.length === 0) {
+        throw new Error("Cart is empty");
+      }
+      if (data.items.length > 20) throw new Error("Too many items in cart");
+      for (const it of data.items) {
+        if (it.kind === "content") {
+          if (!/^[a-f0-9-]+$/i.test(it.id)) throw new Error("Invalid content id");
+        } else if (it.kind === "panty") {
+          if (!PANTY_LOOKUP.includes(it.id)) throw new Error("Invalid panty variant");
+        } else {
+          throw new Error("Unsupported cart item");
+        }
+        if (!Number.isInteger(it.quantity) || it.quantity < 1 || it.quantity > 10) {
+          throw new Error("Invalid quantity");
+        }
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data, context }): Promise<CheckoutResult> => {
+    try {
+      const userId = context.userId;
+      const stripe = createStripeClient(data.environment);
+      const customerId = await resolveOrCreateCustomer(stripe, {
+        email: data.customerEmail,
+        userId,
+      });
+
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabase = createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_PUBLISHABLE_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      );
+
+      // Split for lookup
+      const contentIds = data.items.filter((it) => it.kind === "content").map((it) => it.id);
+      const pantyItems = data.items.filter((it) => it.kind === "panty") as Array<{
+        kind: "panty";
+        id: PantyLookup;
+        quantity: number;
+      }>;
+
+      // Fetch content items in one query
+      let contentRows: Array<{
+        id: string;
+        title: string;
+        description: string | null;
+        price_cents: number | null;
+        currency: string | null;
+        published: boolean;
+      }> = [];
+      if (contentIds.length) {
+        const { data: rows, error } = await supabase
+          .from("content_items")
+          .select("id,title,description,price_cents,currency,published")
+          .in("id", contentIds)
+          .eq("published", true);
+        if (error) throw new Error(error.message);
+        contentRows = rows ?? [];
+      }
+      const contentMap = new Map(contentRows.map((r) => [r.id, r]));
+
+      // Fetch panty prices in one call (lookup keys) so amounts stay
+      // Stripe-authoritative.
+      const pantyPriceMap = new Map<PantyLookup, Stripe.Price>();
+      if (pantyItems.length) {
+        const uniqueKeys = Array.from(new Set(pantyItems.map((it) => it.id)));
+        const prices = await stripe.prices.list({
+          lookup_keys: uniqueKeys,
+          active: true,
+          expand: ["data.product"],
+        });
+        for (const p of prices.data) {
+          if (p.lookup_key && PANTY_LOOKUP.includes(p.lookup_key as PantyLookup)) {
+            pantyPriceMap.set(p.lookup_key as PantyLookup, p);
+          }
+        }
+      }
+
+      // Build Stripe line_items
+      const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+      for (const it of data.items) {
+        if (it.kind === "content") {
+          const row = contentMap.get(it.id);
+          if (!row) throw new Error("An item in your cart is no longer available");
+          if (!row.price_cents || row.price_cents < 50) {
+            throw new Error(`"${row.title}" is not available for individual sale`);
+          }
+          lineItems.push({
+            price_data: {
+              currency: (row.currency ?? "aud").toLowerCase(),
+              product_data: {
+                name: row.title,
+                ...(row.description && { description: row.description.slice(0, 500) }),
+                tax_code: TAX_CODES.digital_goods,
+              },
+              unit_amount: row.price_cents,
+            },
+            quantity: it.quantity,
+          });
+        } else {
+          const price = pantyPriceMap.get(it.id);
+          if (!price) throw new Error(`Panty variant ${it.id} is not currently available`);
+          lineItems.push({ price: price.id, quantity: it.quantity });
+        }
+      }
+
+      const hasPanty = pantyItems.length > 0;
+      const customerCountry = (data.customerCountry ?? "").toUpperCase() || undefined;
+
+      // Pack cart layout into session metadata for webhook fulfillment.
+      // Metadata values cap at 500 chars — 20 items x ~40 chars fits.
+      const cartContentMeta = data.items
+        .filter((it) => it.kind === "content")
+        .map((it) => `${it.id}:${it.quantity}`)
+        .join(",");
+      const cartPantyMeta = pantyItems.map((it) => `${it.id}:${it.quantity}`).join(",");
+
+      // Full-compliance managed_payments only for digital-only carts. Panty
+      // present → automatic_tax so shipping tax is still calculated.
+      const useManagedPayments = !hasPanty;
+
+      const baseParams: Stripe.Checkout.SessionCreateParams = {
+        line_items: lineItems,
+        mode: "payment",
+        ui_mode: "embedded_page",
+        return_url: ensureSessionIdInReturnUrl(data.returnUrl),
+        customer: customerId,
+        ...(!useManagedPayments && {
+          payment_intent_data: { description: "Princess Pink cart order" },
+        }),
+        ...(hasPanty && {
+          shipping_address_collection: { allowed_countries: ["AU"] },
+          shipping_options: [
+            {
+              shipping_rate_data: {
+                type: "fixed_amount",
+                display_name: "Discreet AU shipping",
+                fixed_amount: { amount: 1500, currency: "aud" },
+              },
+            },
+          ],
+        }),
+        metadata: {
+          userId,
+          cart_mode: "1",
+          ...(cartContentMeta && { cart_content_items: cartContentMeta }),
+          ...(cartPantyMeta && { cart_panty_items: cartPantyMeta }),
+          managed_payments: useManagedPayments ? "true" : "false",
+          ...(customerCountry && { customer_country: customerCountry }),
+        },
+      };
+
+      const paramsWithTax = useManagedPayments
+        ? ({ ...baseParams, managed_payments: { enabled: true } } as unknown as Stripe.Checkout.SessionCreateParams)
+        : { ...baseParams, automatic_tax: { enabled: true } };
+
+      const session = await stripe.checkout.sessions.create(paramsWithTax);
+      return { clientSecret: session.client_secret ?? "" };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
+
+
 // ---------- Library (owned content) ----------
 
 export const getMyLibrary = createServerFn({ method: "GET" })
