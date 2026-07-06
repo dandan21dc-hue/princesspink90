@@ -203,8 +203,10 @@ export function StripeEmbeddedCheckout(props: Props) {
     const cached = inFlightRef.current;
     if (cached && cached.attempt === attempt) {
       logLifecycle("session_request_deduped", { attempt });
+      setDedupedHits((n) => n + 1);
       return cached.promise;
     }
+
     const promise = runFetchClientSecret().catch((e) => {
       // On failure, drop the cache so the next explicit retry (attempt++)
       // starts fresh; keep it cached on success so the client secret is stable.
