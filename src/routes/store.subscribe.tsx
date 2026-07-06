@@ -435,9 +435,9 @@ function PassCard({
       <button
         onClick={onClick}
         disabled={disabled || loading}
-        className="mt-5 w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-5 min-h-11 w-full rounded-md bg-primary px-4 py-3 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {loading ? "Opening checkout…" : cta}
+        {loading ? "Processing…" : cta}
       </button>
       {onAddToCart && (
 
