@@ -4,11 +4,52 @@ import { useServerFn } from '@tanstack/react-start'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import {
+  listPartnershipEmailEvents,
+  listPartnershipEmailSummary,
   listPartnershipInquiries,
   listPartnershipReplies,
   sendPartnershipReply,
   updatePartnershipInquiry,
 } from '@/lib/partnership.functions'
+
+type EmailEvent = {
+  kind: 'confirmation' | 'notification' | 'reply'
+  messageId: string
+  status: string | null
+  errorMessage: string | null
+  createdAt: string
+  templateName: string | null
+  recipientEmail: string | null
+}
+
+const EMAIL_STATUS_STYLES: Record<string, string> = {
+  sent: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  pending: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  suppressed: 'bg-muted text-muted-foreground border-border/60',
+  dlq: 'bg-red-500/15 text-red-300 border-red-500/30',
+  failed: 'bg-red-500/15 text-red-300 border-red-500/30',
+  bounced: 'bg-red-500/15 text-red-300 border-red-500/30',
+  complained: 'bg-red-500/15 text-red-300 border-red-500/30',
+}
+
+function EmailStatusBadge({ status, label }: { status: string | null | undefined; label?: string }) {
+  const s = status ?? 'unknown'
+  const cls = EMAIL_STATUS_STYLES[s] ?? 'bg-muted text-muted-foreground border-border/60'
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest ${cls}`}>
+      {label ? `${label}: ${s}` : s}
+    </span>
+  )
+}
+
+function EmailKindLabel({ kind }: { kind: EmailEvent['kind'] }) {
+  const map: Record<EmailEvent['kind'], string> = {
+    confirmation: 'Auto-confirmation to sender',
+    notification: 'Internal notification',
+    reply: 'Admin reply',
+  }
+  return <span className="font-display text-sm font-semibold">{map[kind]}</span>
+}
 
 export const Route = createFileRoute('/_authenticated/admin/partnerships')({
   head: () => ({ meta: [{ title: 'Partnerships — Admin' }, { name: 'robots', content: 'noindex' }] }),
@@ -36,12 +77,21 @@ const STATUS_LABEL: Record<Inquiry['status'], string> = {
 
 function AdminPartnerships() {
   const listFn = useServerFn(listPartnershipInquiries)
+  const summaryFn = useServerFn(listPartnershipEmailSummary)
   const q = useQuery({ queryKey: ['partnership-inquiries'], queryFn: () => listFn() })
   const [selected, setSelected] = useState<Inquiry | null>(null)
   const [filter, setFilter] = useState<'all' | Inquiry['status']>('all')
 
   const inquiries = (q.data?.inquiries ?? []) as Inquiry[]
   const filtered = filter === 'all' ? inquiries : inquiries.filter((i) => i.status === filter)
+
+  const ids = inquiries.map((i) => i.id)
+  const summaryQ = useQuery({
+    queryKey: ['partnership-email-summary', ids.join(',')],
+    queryFn: () => summaryFn({ data: { inquiryIds: ids } }),
+    enabled: ids.length > 0,
+  })
+  const summary = summaryQ.data?.summary ?? {}
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-10">
@@ -107,6 +157,10 @@ function AdminPartnerships() {
                   {i.organization ? `${i.organization} · ` : ''}{i.email}
                 </div>
                 <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{i.message}</div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
+                  <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
+                </div>
                 <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
                   {new Date(i.created_at).toLocaleString()}
                 </div>
@@ -133,10 +187,16 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
   const listRepliesFn = useServerFn(listPartnershipReplies)
   const sendReplyFn = useServerFn(sendPartnershipReply)
   const updateFn = useServerFn(updatePartnershipInquiry)
+  const emailEventsFn = useServerFn(listPartnershipEmailEvents)
 
   const replies = useQuery({
     queryKey: ['partnership-replies', inquiry.id],
     queryFn: () => listRepliesFn({ data: { inquiryId: inquiry.id } }),
+  })
+
+  const emailEvents = useQuery({
+    queryKey: ['partnership-email-events', inquiry.id],
+    queryFn: () => emailEventsFn({ data: { inquiryId: inquiry.id } }),
   })
 
   const [subject, setSubject] = useState(`Re: your Princess Pink enquiry`)
@@ -149,6 +209,8 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
       toast.success('Reply sent.')
       setBody('')
       qc.invalidateQueries({ queryKey: ['partnership-replies', inquiry.id] })
+      qc.invalidateQueries({ queryKey: ['partnership-email-events', inquiry.id] })
+      qc.invalidateQueries({ queryKey: ['partnership-email-summary'] })
       qc.invalidateQueries({ queryKey: ['partnership-inquiries'] })
       router.invalidate()
     },
@@ -235,6 +297,49 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
                 <span>{new Date(r.created_at).toLocaleString()}</span>
               </div>
               <p className="mt-1 whitespace-pre-wrap text-sm">{r.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-8">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs uppercase tracking-widest text-muted-foreground">Email delivery</span>
+          <button
+            onClick={() => emailEvents.refetch()}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-neon"
+          >
+            {emailEvents.isFetching ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+        {emailEvents.isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
+        {emailEvents.error && (
+          <p className="text-xs text-red-400">Failed to load email events: {String((emailEvents.error as Error).message)}</p>
+        )}
+        {emailEvents.data && emailEvents.data.events.length === 0 && (
+          <p className="text-xs text-muted-foreground">No email sends logged for this enquiry.</p>
+        )}
+        <ul className="space-y-2">
+          {(emailEvents.data?.events ?? []).map((e: EmailEvent) => (
+            <li key={e.messageId} className="rounded-lg border border-border/40 bg-background/40 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <EmailKindLabel kind={e.kind} />
+                  <EmailStatusBadge status={e.status} />
+                </div>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  {new Date(e.createdAt).toLocaleString()}
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {e.recipientEmail ?? '—'}
+                {e.templateName && <> · <span className="uppercase tracking-widest">{e.templateName}</span></>}
+              </div>
+              {e.errorMessage && (
+                <p className="mt-2 whitespace-pre-wrap rounded border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300">
+                  {e.errorMessage}
+                </p>
+              )}
             </li>
           ))}
         </ul>
