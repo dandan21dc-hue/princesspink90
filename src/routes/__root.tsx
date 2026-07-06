@@ -68,27 +68,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Princess Pink — Glory holes, gang bangs & theatre nights" },
+      { title: "Princess Pink — Glory holes, private rooms & theatre nights" },
       {
         name: "description",
         content:
-          "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only.",
+          "Princess Pink hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only.",
       },
-      { property: "og:title", content: "Princess Pink — Glory holes, gang bangs & theatre nights" },
+      { property: "og:title", content: "Princess Pink — Glory holes, private rooms & theatre nights" },
       {
         property: "og:description",
-        content: "Glory holes, gang bangs, and adult theatre takeovers hosted by Princess Pink. 18+ only.",
+        content: "Glory holes, private rooms, and adult theatre takeovers hosted by Princess Pink. 18+ only.",
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Princess Pink" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#0a0a0f" },
-      { name: "twitter:title", content: "Princess Pink — Glory holes, gang bangs & theatre nights" },
-      { name: "description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only." },
-      { property: "og:description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only." },
-      { name: "twitter:description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, gang bangs, and adult theatre takeovers. 18+ only." },
+      { name: "twitter:title", content: "Princess Pink — Glory holes, private rooms & theatre nights" },
+      { name: "twitter:description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only." },
       { property: "og:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
       { name: "twitter:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
+
     ],
     links: [
       { rel: "stylesheet", href: appCss },
