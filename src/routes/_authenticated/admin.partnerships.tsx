@@ -249,54 +249,83 @@ function AdminPartnerships() {
 
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <ul className="space-y-2">
-          {filtered.map((i) => (
-            <li key={i.id}>
-              <div
-                className={`rounded-xl border p-4 transition ${
-                  selected?.id === i.id
-                    ? 'border-neon bg-neon/5'
-                    : 'border-border/60 bg-card/40 hover:border-neon/40'
-                }`}
-              >
-                <button onClick={() => setSelected(i)} className="w-full text-left">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-display text-sm font-semibold">{i.name}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest ${
-                        i.status === 'new'
-                          ? 'bg-neon/20 text-neon'
-                          : i.status === 'contacted'
-                            ? 'bg-primary/20 text-primary'
-                            : 'bg-muted text-muted-foreground'
-                      }`}
+        <div>
+          <ul className="space-y-2">
+            {paged.map((i) => (
+              <li key={i.id}>
+                <div
+                  className={`rounded-xl border p-4 transition ${
+                    selected?.id === i.id
+                      ? 'border-neon bg-neon/5'
+                      : 'border-border/60 bg-card/40 hover:border-neon/40'
+                  }`}
+                >
+                  <button onClick={() => setSelected(i)} className="w-full text-left">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-display text-sm font-semibold">{i.name}</span>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest ${
+                          i.status === 'new'
+                            ? 'bg-neon/20 text-neon'
+                            : i.status === 'contacted'
+                              ? 'bg-primary/20 text-primary'
+                              : 'bg-muted text-muted-foreground'
+                        }`}
+                      >
+                        {STATUS_LABEL[i.status]}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {i.organization ? `${i.organization} · ` : ''}{i.email}
+                    </div>
+                    <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{i.message}</div>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
+                      <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
+                    </div>
+                  </button>
+                  <div className="mt-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
+                    <span>{new Date(i.created_at).toLocaleString()}</span>
+                    <Link
+                      to="/admin/partnerships/$id"
+                      params={{ id: i.id }}
+                      className="text-neon hover:brightness-125"
                     >
-                      {STATUS_LABEL[i.status]}
-                    </span>
+                      Open detail →
+                    </Link>
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {i.organization ? `${i.organization} · ` : ''}{i.email}
-                  </div>
-                  <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">{i.message}</div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <EmailStatusBadge label="Confirm" status={summary[i.id]?.confirmation?.status ?? 'not sent'} />
-                    <EmailStatusBadge label="Notify" status={summary[i.id]?.notification?.status ?? 'not sent'} />
-                  </div>
-                </button>
-                <div className="mt-2 flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                  <span>{new Date(i.created_at).toLocaleString()}</span>
-                  <Link
-                    to="/admin/partnerships/$id"
-                    params={{ id: i.id }}
-                    className="text-neon hover:brightness-125"
-                  >
-                    Open detail →
-                  </Link>
                 </div>
+              </li>
+            ))}
+          </ul>
+
+          {filtered.length > PAGE_SIZE && (
+            <div className="mt-4 flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+              <span>
+                {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)} of {filtered.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="rounded-full border border-border/60 px-3 py-1 hover:border-neon/40 hover:text-neon disabled:opacity-40 disabled:hover:border-border/60 disabled:hover:text-muted-foreground"
+                >
+                  Prev
+                </button>
+                <span>
+                  Page {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="rounded-full border border-border/60 px-3 py-1 hover:border-neon/40 hover:text-neon disabled:opacity-40 disabled:hover:border-border/60 disabled:hover:text-muted-foreground"
+                >
+                  Next
+                </button>
               </div>
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        </div>
 
         <div className="min-h-[300px]">
           {selected ? <InquiryDetail inquiry={selected} onClose={() => setSelected(null)} /> : (
