@@ -35,6 +35,8 @@ export interface MyTiersState {
   starts: Partial<Record<PlanId, string | null>>;
   /** Whether the current subscription is set to cancel at period end. */
   cancelAtPeriodEnd: Partial<Record<PlanId, boolean>>;
+  /** Force a refetch from the client (e.g. on focus, or after checkout). */
+  refresh: () => void;
 }
 
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
