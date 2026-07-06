@@ -1376,6 +1376,48 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string
+          environment: string
+          error_message: string | null
+          event_type: string
+          id: string
+          processed_at: string | null
+          processing_ms: number | null
+          raw_payload: Json
+          received_at: string
+          status: string
+          stripe_event_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          environment: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          processed_at?: string | null
+          processing_ms?: number | null
+          raw_payload: Json
+          received_at?: string
+          status?: string
+          stripe_event_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          processed_at?: string | null
+          processing_ms?: number | null
+          raw_payload?: Json
+          received_at?: string
+          status?: string
+          stripe_event_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
