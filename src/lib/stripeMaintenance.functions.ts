@@ -11,6 +11,44 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
 import { TAX_CODES } from "@/lib/stripe-tax-codes";
+import { EXPECTED_PLAN_PRICES } from "@/lib/planPriceValidation.server";
+
+/**
+ * Catalogue metadata for lookup_keys we expect to exist in Stripe. Used by
+ * syncMissingStripePrices to create any missing product/price pair. Keys
+ * MUST match EXPECTED_PLAN_PRICES; product_name/description drive what shows
+ * on the Stripe dashboard and receipts.
+ */
+const PLAN_PRODUCT_CATALOGUE: Record<
+  string,
+  { product_id: string; product_name: string; product_description: string; tax_code: string }
+> = {
+  all_access_3mo_monthly_aud: {
+    product_id: "all_access_3mo",
+    product_name: "All-Access Pass · 3-Month Plan",
+    product_description: "Monthly billing for 3 months — full members-only library.",
+    tax_code: TAX_CODES.saas,
+  },
+  all_access_6mo_monthly_aud: {
+    product_id: "all_access_6mo",
+    product_name: "All-Access Pass · 6-Month Plan",
+    product_description: "Monthly billing for 6 months — full members-only library.",
+    tax_code: TAX_CODES.saas,
+  },
+  all_access_12mo_monthly_aud: {
+    product_id: "all_access_12mo",
+    product_name: "All-Access Pass · 12-Month Plan",
+    product_description: "Monthly billing for 12 months — full members-only library + free event entry.",
+    tax_code: TAX_CODES.saas,
+  },
+  lifetime_onetime_aud: {
+    product_id: "lifetime",
+    product_name: "Lifetime Membership",
+    product_description: "One-time payment for forever access + a free event ticket and private session bundle.",
+    tax_code: TAX_CODES.saas,
+  },
+};
+
 
 const USD_LOOKUP_KEYS = [
   "all_access_monthly",
@@ -105,3 +143,105 @@ export const archiveUsdPrices = createServerFn({ method: "POST" })
       return { error: getStripeErrorMessage(error) };
     }
   });
+
+export type SyncMissingResult =
+  | {
+      results: Array<
+        | { lookupKey: string; status: "exists"; priceId: string }
+        | { lookupKey: string; status: "created"; priceId: string; productId: string }
+        | { lookupKey: string; status: "skipped"; reason: string }
+        | { lookupKey: string; status: "error"; message: string }
+      >;
+      created: number;
+      existed: number;
+      errors: number;
+    }
+  | { error: string };
+
+/**
+ * Admin-only: iterate the expected plan catalogue and create any Stripe
+ * product/price whose lookup_key doesn't already resolve to an active price.
+ * Idempotent — re-running only creates what's still missing. Never modifies
+ * existing prices (mismatches surface via validatePlanPrice; changing
+ * amount/interval requires a new price to preserve billing history).
+ */
+export const syncMissingStripePrices = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { environment: StripeEnv }) => data)
+  .handler(async ({ data, context }): Promise<SyncMissingResult> => {
+    try {
+      await assertAdmin(context);
+      const stripe = createStripeClient(data.environment);
+
+      const results: Extract<SyncMissingResult, { results: unknown }>["results"] = [];
+      let created = 0;
+      let existed = 0;
+      let errors = 0;
+
+      for (const [lookupKey, expected] of Object.entries(EXPECTED_PLAN_PRICES)) {
+        const meta = PLAN_PRODUCT_CATALOGUE[lookupKey];
+        if (!meta) {
+          results.push({
+            lookupKey,
+            status: "skipped",
+            reason: "No product metadata registered for this lookup_key",
+          });
+          continue;
+        }
+
+        try {
+          const existing = await stripe.prices.list({
+            lookup_keys: [lookupKey],
+            active: true,
+            limit: 1,
+          });
+          if (existing.data.length > 0) {
+            results.push({ lookupKey, status: "exists", priceId: existing.data[0].id });
+            existed++;
+            continue;
+          }
+
+          // Reuse the product if it already exists; only create when missing.
+          let productId: string | null = null;
+          try {
+            const product = await stripe.products.retrieve(meta.product_id);
+            productId = product.id;
+            if (product.tax_code !== meta.tax_code) {
+              await stripe.products.update(product.id, { tax_code: meta.tax_code });
+            }
+          } catch {
+            const product = await stripe.products.create({
+              id: meta.product_id,
+              name: meta.product_name,
+              description: meta.product_description,
+              tax_code: meta.tax_code,
+            });
+            productId = product.id;
+          }
+
+          const price = await stripe.prices.create({
+            product: productId,
+            currency: expected.currency,
+            unit_amount: expected.unit_amount,
+            lookup_key: lookupKey,
+            nickname: meta.product_name,
+            transfer_lookup_key: true,
+            ...(expected.interval && { recurring: { interval: expected.interval } }),
+          });
+
+          results.push({ lookupKey, status: "created", priceId: price.id, productId });
+          created++;
+        } catch (error) {
+          const message = getStripeErrorMessage(error);
+          console.error("[stripe-sync] failed", { lookupKey, message });
+          results.push({ lookupKey, status: "error", message });
+          errors++;
+        }
+      }
+
+      return { results, created, existed, errors };
+    } catch (error) {
+      return { error: getStripeErrorMessage(error) };
+    }
+  });
+
