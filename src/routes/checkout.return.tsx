@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getCheckoutSession } from "@/lib/store.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart as cartStore } from "@/lib/cart";
+import { track } from "@/lib/track";
 
 /**
  * Landing page for Stripe's `return_url`. Stripe substitutes
@@ -73,6 +74,32 @@ function CheckoutReturn() {
   const session = query.data;
   const isComplete = session?.status === "complete";
   const destination = normalizeNext(next, session?.metadata ?? null);
+
+  // Fire tracking events for panty checkouts as the return-page state resolves.
+  // De-duplicated so re-renders (and the redirect delay) don't double-fire.
+  const trackedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!sessionId || !session) return;
+    const md = session.metadata ?? {};
+    const pantyVariant = md.panty_order || (md.cart_panty_items ? "cart" : null);
+    if (!pantyVariant) return;
+    const status = session.status ?? "unknown";
+    const eventName =
+      status === "complete"
+        ? "panty_checkout_confirmed"
+        : status === "open"
+          ? "panty_checkout_pending"
+          : "panty_checkout_incomplete";
+    const key = `${sessionId}:${eventName}`;
+    if (trackedRef.current === key) return;
+    trackedRef.current = key;
+    track(eventName, {
+      variant: pantyVariant,
+      session_id: sessionId,
+      status,
+      cart_mode: md.cart_mode === "1",
+    });
+  }, [sessionId, session]);
 
   useEffect(() => {
     if (!isComplete) return;

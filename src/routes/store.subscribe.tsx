@@ -79,6 +79,9 @@ function SubscribePage() {
       navigate({ to: "/auth" });
       return;
     }
+    if (priceId.startsWith("panty_")) {
+      track("panty_checkout_started", { variant: priceId });
+    }
     openCheckout({
       priceId,
       userId: user.id,
