@@ -302,7 +302,22 @@ function MembershipConfirmation({
 
   // Access hasn't hit the tables yet — show a friendly waiting state and
   // let realtime bring the row in.
-  const stillWaiting = !isLifetime && !planId && !tiers.loading;
+  const stillWaiting =
+    (isLifetime && !tiers.active.lifetime_onetime_aud && !tiers.loading) ||
+    (!isLifetime && !planId && !tiers.loading);
+
+  // Poll as a safety net for the ~30s after payment: realtime should deliver
+  // the update the instant the webhook lands, but if it's slow or the
+  // websocket dropped, keep asking every 2s until the tier appears.
+  useEffect(() => {
+    if (!stillWaiting) return;
+    const id = window.setInterval(() => tiers.refresh(), 2000);
+    const stop = window.setTimeout(() => window.clearInterval(id), 30_000);
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(stop);
+    };
+  }, [stillWaiting, tiers]);
 
   return (
     <>
