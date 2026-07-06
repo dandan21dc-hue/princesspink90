@@ -80,15 +80,16 @@ describe('store.subscribe.tsx — PriceId regression', () => {
 
   it('wires the Lifetime block to the correct PriceId and includes its fallback price', () => {
     expect(SOURCE).toContain(LIFETIME.fallback)
-    expect(SOURCE).toMatch(
-      new RegExp(`onBuy\\("${LIFETIME.priceId}"\\)`),
-    )
+    expect(SOURCE).toMatch(new RegExp(`onBuy\\("${LIFETIME.priceId}"\\)`))
+    // Escape $ (regex meta) in the fallback literal
+    const escapedFallback = LIFETIME.fallback.replace(/[$]/g, '\\$')
     expect(SOURCE).toMatch(
       new RegExp(
-        `priceLabel\\(prices,\\s*"${LIFETIME.priceId}",\\s*"${LIFETIME.fallback}"\\)`,
+        `priceLabel\\(prices,\\s*"${LIFETIME.priceId}",\\s*"${escapedFallback}"\\)`,
       ),
     )
   })
+
 
   it('does not call onBuy() with any unknown PriceId', () => {
     const allowed = new Set<string>([
