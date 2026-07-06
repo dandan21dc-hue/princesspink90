@@ -196,6 +196,16 @@ function PrivacyPage() {
         </p>
       </Section>
 
+      <Section eyebrow="Discretion" title="Your participation stays private">
+        <p>
+          We understand the sensitive nature of adult theatre events. We act with total
+          discretion and never share your participation status, RSVPs, ticket history, or
+          membership tier with public-facing social media or third-party advertisers. We
+          do not sell, rent, or trade your personal information to third parties for
+          marketing purposes.
+        </p>
+      </Section>
+
       <Section eyebrow="Cookies & analytics" title="What runs in your browser">
         <p>
           We use a small number of first-party cookies and browser storage entries that
