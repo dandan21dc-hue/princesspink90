@@ -380,6 +380,16 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
         if (!Number.isInteger(it.quantity) || it.quantity < 1 || it.quantity > 10) {
           throw new Error("Invalid quantity");
         }
+        // Panty rows are unique per checkout session (schema constraint) and
+        // don't have a per-order quantity column — enforce single-pair.
+        if (it.kind === "panty" && it.quantity !== 1) {
+          throw new Error("Only one of each panty variant per order");
+        }
+      }
+      // Same reason — only one distinct panty variant per checkout session.
+      const pantyCount = data.items.filter((it) => it.kind === "panty").length;
+      if (pantyCount > 1) {
+        throw new Error("Only one panty variant per order — check out separately");
       }
       return data;
     },
