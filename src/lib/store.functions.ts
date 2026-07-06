@@ -123,27 +123,14 @@ export function ensureSessionIdInReturnUrl(rawUrl: string): string {
  * Uses the request-scoped supabase client (RLS as the caller).
  */
 async function assertPantyAccess(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
   userId: string,
   env: StripeEnv,
 ): Promise<void> {
-  // Active subscription (active/trialing/past_due, or canceled with time left)
   const nowIso = new Date().toISOString();
-  const sub = await (supabase as unknown as {
-    from: (t: string) => {
-      select: (c: string) => {
-        eq: (c: string, v: unknown) => {
-          eq: (c: string, v: unknown) => {
-            order: (c: string, o: { ascending: boolean }) => {
-              limit: (n: number) => {
-                maybeSingle: () => Promise<{ data: { status: string; current_period_end: string | null } | null; error: { message: string } | null }>;
-              };
-            };
-          };
-        };
-      };
-    };
-  })
+
+  const sub = await supabase
     .from("subscriptions")
     .select("status,current_period_end")
     .eq("user_id", userId)
@@ -153,34 +140,26 @@ async function assertPantyAccess(
     .maybeSingle();
 
   if (sub.error) throw new Error(sub.error.message);
-  const s = sub.data;
-  const subActive = s && (
+  const s = sub.data as { status: string; current_period_end: string | null } | null;
+  const subActive = !!s && (
     (["active", "trialing", "past_due"].includes(s.status)
       && (!s.current_period_end || s.current_period_end > nowIso))
-    || (s.status === "canceled" && s.current_period_end && s.current_period_end > nowIso)
+    || (s.status === "canceled" && !!s.current_period_end && s.current_period_end > nowIso)
   );
 
   if (subActive) return;
 
-  // Fallback: term pass or lifetime membership
-  const mem = await (supabase as unknown as {
-    from: (t: string) => {
-      select: (c: string) => {
-        eq: (c: string, v: unknown) => {
-          eq: (c: string, v: unknown) => Promise<{ data: Array<{ kind: string; expires_at: string | null }> | null; error: { message: string } | null }>;
-        };
-      };
-    };
-  })
+  const mem = await supabase
     .from("memberships")
     .select("kind,expires_at")
     .eq("user_id", userId)
     .eq("environment", env);
 
   if (mem.error) throw new Error(mem.error.message);
-  const memActive = (mem.data ?? []).some((m) =>
+  const rows = (mem.data ?? []) as Array<{ kind: string; expires_at: string | null }>;
+  const memActive = rows.some((m) =>
     m.kind === "lifetime"
-    || (m.kind.startsWith("term_pass_") && m.expires_at && m.expires_at > nowIso),
+    || (m.kind.startsWith("term_pass_") && !!m.expires_at && m.expires_at > nowIso),
   );
 
   if (!memActive) {
