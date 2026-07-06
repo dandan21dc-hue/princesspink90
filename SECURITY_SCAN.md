@@ -248,6 +248,30 @@ bun run validate:security-config && bun run lint:supabase
 Use this as a pre-push hook when you're only touching migration/policy
 files (skip step 3 unless you edited SQL or committed types).
 
+### Automatic pre-push hook
+
+The repo ships a versioned pre-push hook that runs the gate reproduction
+before every push and blocks the push on failure. Install once per
+clone:
+
+```bash
+bun run hooks:install
+```
+
+Under the hood this points `core.hooksPath` at `.githooks/`. The hook:
+
+- Runs only when the push touches security-relevant paths (`security/`,
+  the security scripts, `supabase/migrations/`, `supabase/tests/`,
+  `.github/workflows/ci.yml`, `SECURITY.md`, `SECURITY_SCAN.md`). Force
+  on any push with `GATE_HOOK_ALWAYS=1`.
+- Runs steps 1 + 2 (Config Validate + Lint). Include step 3 (Migrations,
+  requires Docker + `supabase` CLI) with `RUN_MIGRATIONS=1 git push`.
+- Requires `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_REF` for step 2
+  — export them in your shell rc (see Prerequisites above).
+- Bypass a single push with `git push --no-verify` or
+  `GATE_HOOK_SKIP=1 git push` (use sparingly — CI still enforces the
+  gate on the PR).
+
 ---
 
 ## Troubleshooting: Common Gate Failures
