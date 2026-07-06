@@ -12,9 +12,9 @@ import { track } from "@/lib/track";
 
 type PriceId =
   | "all_access_monthly_aud"
-  | "all_access_3mo_onetime_aud"
-  | "all_access_6mo_onetime_aud"
-  | "all_access_12mo_onetime_aud"
+  | "all_access_3mo_monthly_aud"
+  | "all_access_6mo_monthly_aud"
+  | "all_access_12mo_monthly_aud"
   | "lifetime_onetime_aud"
   | "panty_24hr_aud"
   | "panty_48hr_aud"
@@ -52,9 +52,9 @@ function pricesQuery() {
 
 const PRESELECTABLE_PLANS: readonly PriceId[] = [
   "all_access_monthly_aud",
-  "all_access_3mo_onetime_aud",
-  "all_access_6mo_onetime_aud",
-  "all_access_12mo_onetime_aud",
+  "all_access_3mo_monthly_aud",
+  "all_access_6mo_monthly_aud",
+  "all_access_12mo_monthly_aud",
   "lifetime_onetime_aud",
 ];
 
