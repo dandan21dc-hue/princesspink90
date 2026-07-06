@@ -209,8 +209,8 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
     try {
       // Read the caller's session lazily; signed-out visitors just get the
       // non-subscriber response instead of a 401 that blanks the store page.
-      const { getWebRequest } = await import("@tanstack/react-start/server");
-      const req = getWebRequest();
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const req = getRequest();
       const authHeader = req?.headers.get("authorization") ?? "";
       const token = authHeader.toLowerCase().startsWith("bearer ")
         ? authHeader.slice(7).trim()
