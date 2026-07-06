@@ -347,6 +347,18 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
   const sendReplyFn = useServerFn(sendPartnershipReply)
   const updateFn = useServerFn(updatePartnershipInquiry)
   const emailEventsFn = useServerFn(listPartnershipEmailEvents)
+  const retryFn = useServerFn(retryPartnershipNotification)
+
+  const retryMut = useMutation({
+    mutationFn: (kind: 'confirmation' | 'notification') =>
+      retryFn({ data: { inquiryId: inquiry.id, kind } }),
+    onSuccess: (_res, kind) => {
+      toast.success(`Re-queued ${kind} email.`)
+      qc.invalidateQueries({ queryKey: ['partnership-email-events', inquiry.id] })
+      qc.invalidateQueries({ queryKey: ['partnership-email-summary'] })
+    },
+    onError: (e: any) => toast.error(e?.message || 'Retry failed.'),
+  })
 
   const replies = useQuery({
     queryKey: ['partnership-replies', inquiry.id],
