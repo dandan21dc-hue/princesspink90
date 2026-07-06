@@ -279,6 +279,19 @@ Under the hood this points `core.hooksPath` at `.githooks/`. The hook:
 The gate itself never fails on its own — it mirrors an upstream job. Find
 the red job in the Actions run, then match the symptom below.
 
+**Every upstream job uploads an artifact on both success and failure** —
+download it from the run's "Artifacts" section for offline inspection
+before re-running anything:
+
+| Job | Artifact | Contents |
+| --- | --- | --- |
+| `Supabase / Config Validate` | `supabase-config-validate-report` | `validate.log` — full validator stdout/stderr, including the exact fix-it line. |
+| `Supabase / Lint` | `supabase-security-lint-report` | `lint.log` (full linter output with suppression rationales + blocking findings) and `lint-baseline.json` (baseline snapshot at run time). |
+| `Supabase / Migrations` | `supabase-migrations-report` | `types.ts` (regenerated), `types.committed.ts` (what's in the PR), `types.diff` (apply with `git apply` locally), `tsgo.log` (typecheck output). |
+| `Supabase / Migrations` (db test failure only) | `supabase-db-test-logs` | `db-reset.log`, `db-test.log` — full transcripts from the migration replay and RLS tests. |
+
+
+
 ### 1. `Supabase / Config Validate` failed
 
 Fast failure (no network). The message names the exact file to edit.
