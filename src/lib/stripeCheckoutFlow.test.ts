@@ -164,12 +164,15 @@ vi.mock('@supabase/supabase-js', () => ({
 // Force that same mocked supabase into the handler's context.
 vi.mock('@/integrations/supabase/auth-middleware', () => ({
   requireSupabaseAuth: {
-    // The real middleware attaches context; server functions in tests import
-    // the exported handler directly (see `invokeMyLibrary` below), so we
-    // only need this to be a valid array member.
     _tag: 'test-noop',
+    // TanStack's createServerFn flattenMiddlewares walks .middleware on
+    // every array entry; give it a stub so the chain resolves without
+    // touching real Supabase auth.
+    middleware: [],
+    _types: {},
   },
 }))
+
 
 // ---- 3. Test setup ---------------------------------------------------------
 
