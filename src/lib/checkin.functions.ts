@@ -55,7 +55,7 @@ export const lookupCheckin = createServerFn({ method: "POST" })
         )
         .eq("event_id", data.event_id);
 
-    const queries: Array<Promise<{ data: any; error: any }>> = [
+    const queries: Array<PromiseLike<{ data: any; error: any }>> = [
       base().eq("ticket_code", upper).maybeSingle(),
       base().eq("entry_code", upper).maybeSingle(),
     ];
@@ -65,6 +65,7 @@ export const lookupCheckin = createServerFn({ method: "POST" })
       const escapedPhrase = phraseSearch.replace(/([\\%_])/g, "\\$1");
       queries.push(base().ilike("entry_phrase", escapedPhrase).maybeSingle());
     }
+
 
     const results = await Promise.all(queries);
     const firstError = results.find((r) => r.error)?.error;
