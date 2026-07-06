@@ -788,7 +788,14 @@ export const getCheckoutSession = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data, context }): Promise<
-    | { status: string | null; metadata: Record<string, string> | null }
+    | {
+        status: string | null;
+        metadata: Record<string, string> | null;
+        session_id: string;
+        payment_intent_id: string | null;
+        amount_total: number | null;
+        currency: string | null;
+      }
     | { error: string }
   > => {
     try {
@@ -799,7 +806,18 @@ export const getCheckoutSession = createServerFn({ method: "POST" })
       if (metadata.userId && metadata.userId !== context.userId) {
         throw new Error("Not allowed");
       }
-      return { status: session.status ?? null, metadata };
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : (session.payment_intent?.id ?? null);
+      return {
+        status: session.status ?? null,
+        metadata,
+        session_id: session.id,
+        payment_intent_id: paymentIntentId,
+        amount_total: session.amount_total ?? null,
+        currency: session.currency ?? null,
+      };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }
