@@ -233,36 +233,37 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
           disabled={disabled}
         />
         <PassCard
-          label="3-Month Plan"
-          price={priceLabel(prices, "all_access_3mo_monthly_aud", "A$9")}
-          cadence="/month"
-          perks={["Full library streaming", "Billed monthly for 3 months"]}
-          cta="Start 3-month"
+          label="3-Month Term"
+          price={priceLabel(prices, "all_access_3mo_monthly_aud", "A$27")}
+          cadence="for 3 months"
+          perks={["Full library streaming", "One-time upfront payment", "3 months of access — no renewal"]}
+          cta="Buy 3-month term"
           onClick={() => onBuy("all_access_3mo_monthly_aud")}
           loading={busy("all_access_3mo_monthly_aud")}
           disabled={disabled}
         />
         <PassCard
-          label="6-Month Plan"
-          price={priceLabel(prices, "all_access_6mo_monthly_aud", "A$8")}
-          cadence="/month"
-          perks={["Full library streaming", "Billed monthly for 6 months"]}
-          cta="Start 6-month"
+          label="6-Month Term"
+          price={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48")}
+          cadence="for 6 months"
+          perks={["Full library streaming", "One-time upfront payment", "6 months of access — no renewal"]}
+          cta="Buy 6-month term"
           onClick={() => onBuy("all_access_6mo_monthly_aud")}
           loading={busy("all_access_6mo_monthly_aud")}
           disabled={disabled}
         />
         <PassCard
-          label="12-Month Plan"
-          price={priceLabel(prices, "all_access_12mo_monthly_aud", "A$7")}
-          cadence="/month"
+          label="12-Month Term"
+          price={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84")}
+          cadence="for 12 months"
           highlight="Includes free entry"
           perks={[
             "Full library streaming",
-            "Billed monthly for 12 months",
+            "One-time upfront payment",
+            "12 months of access — no renewal",
             "1 free event entry during the term",
           ]}
-          cta="Start 12-month"
+          cta="Buy 12-month term"
           onClick={() => onBuy("all_access_12mo_monthly_aud")}
           loading={busy("all_access_12mo_monthly_aud")}
           disabled={disabled}
