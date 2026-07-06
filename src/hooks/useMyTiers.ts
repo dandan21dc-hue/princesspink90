@@ -4,10 +4,18 @@ import { getStripeEnvironment } from "@/lib/stripe";
 
 export type PlanId =
   | "all_access_monthly_aud"
-  | "all_access_3mo_onetime_aud"
-  | "all_access_6mo_onetime_aud"
-  | "all_access_12mo_onetime_aud"
+  | "all_access_3mo_monthly_aud"
+  | "all_access_6mo_monthly_aud"
+  | "all_access_12mo_monthly_aud"
   | "lifetime_onetime_aud";
+
+/** Subscription price_ids treated as monthly-recurring All-Access tiers. */
+const SUBSCRIPTION_TIER_PRICE_IDS: readonly PlanId[] = [
+  "all_access_monthly_aud",
+  "all_access_3mo_monthly_aud",
+  "all_access_6mo_monthly_aud",
+  "all_access_12mo_monthly_aud",
+];
 
 export interface MyTiersState {
   loading: boolean;
@@ -19,9 +27,9 @@ export interface MyTiersState {
 
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
   all_access_monthly_aud: false,
-  all_access_3mo_onetime_aud: false,
-  all_access_6mo_onetime_aud: false,
-  all_access_12mo_onetime_aud: false,
+  all_access_3mo_monthly_aud: false,
+  all_access_6mo_monthly_aud: false,
+  all_access_12mo_monthly_aud: false,
   lifetime_onetime_aud: false,
 };
 
