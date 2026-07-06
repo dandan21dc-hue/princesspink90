@@ -120,7 +120,9 @@ export function StripeEmbeddedCheckout(props: Props) {
   // Bumping this key remounts the provider with a fresh fetcher so retry works.
   const [attempt, setAttempt] = useState(0);
   const [sessionLoaded, setSessionLoaded] = useState(false);
+  const [dedupedHits, setDedupedHits] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
 
   // Runtime guard: memoize the in-flight client-secret promise per attempt so
   // that any accidental re-invocation of fetchClientSecret (React StrictMode
@@ -201,8 +203,10 @@ export function StripeEmbeddedCheckout(props: Props) {
     const cached = inFlightRef.current;
     if (cached && cached.attempt === attempt) {
       logLifecycle("session_request_deduped", { attempt });
+      setDedupedHits((n) => n + 1);
       return cached.promise;
     }
+
     const promise = runFetchClientSecret().catch((e) => {
       // On failure, drop the cache so the next explicit retry (attempt++)
       // starts fresh; keep it cached on success so the client secret is stable.
@@ -274,8 +278,10 @@ export function StripeEmbeddedCheckout(props: Props) {
     logLifecycle("retry_clicked", { attempt });
     setError(null);
     setSessionLoaded(false);
+    setDedupedHits(0);
     setAttempt((n) => n + 1);
   }, [attempt, logLifecycle]);
+
 
   if (error) {
     return (
@@ -372,6 +378,18 @@ export function StripeEmbeddedCheckout(props: Props) {
           <p className="mt-1 text-center text-xs text-muted-foreground">{skeletonLabel}</p>
         </div>
       )}
+      {dedupedHits > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="checkout-dedupe-status"
+          className="pointer-events-none absolute inset-x-0 top-2 z-20 mx-auto w-fit rounded-full border border-border/60 bg-background/90 px-3 py-1 text-[11px] text-muted-foreground shadow-sm"
+        >
+          Reusing the existing checkout session (avoided {dedupedHits} duplicate{" "}
+          {dedupedHits === 1 ? "request" : "requests"}).
+        </div>
+      )}
+
       <div id="checkout" ref={containerRef} key={attempt}>
         <EmbeddedCheckoutProvider stripe={stripePromise} options={options}>
           <EmbeddedCheckout />
