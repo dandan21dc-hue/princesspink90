@@ -202,10 +202,10 @@ function SubscribePage() {
   );
 }
 
-function priceLabel(prices: Record<string, SubscribePrice>, key: PriceId, fallback: string) {
+function priceLabel(prices: Record<string, SubscribePrice>, key: PriceId, fallback: string, multiplier = 1) {
   const p = prices[key];
   if (!p) return fallback;
-  return formatMoney(p.unit_amount, p.currency);
+  return formatMoney(p.unit_amount * multiplier, p.currency);
 }
 
 function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) => void; pending: PriceId | null }) {
@@ -259,7 +259,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
           label="3-Month Term"
           termMonths={3}
           priceId="all_access_3mo_monthly_aud"
-          priceText={priceLabel(prices, "all_access_3mo_monthly_aud", "A$27")}
+          priceText={priceLabel(prices, "all_access_3mo_monthly_aud", "A$27", 3)}
           onBuy={onBuy}
           loading={busy("all_access_3mo_monthly_aud")}
           disabled={disabled}
@@ -268,7 +268,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
           label="6-Month Term"
           termMonths={6}
           priceId="all_access_6mo_monthly_aud"
-          priceText={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48")}
+          priceText={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48", 6)}
           onBuy={onBuy}
           loading={busy("all_access_6mo_monthly_aud")}
           disabled={disabled}
@@ -277,7 +277,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
           label="12-Month Term"
           termMonths={12}
           priceId="all_access_12mo_monthly_aud"
-          priceText={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84")}
+          priceText={priceLabel(prices, "all_access_12mo_monthly_aud", "A$84", 12)}
           highlight="Includes free entry"
           extraPerks={["1 free event entry during the term"]}
           onBuy={onBuy}
