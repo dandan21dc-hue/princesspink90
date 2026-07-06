@@ -189,35 +189,35 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           label="Monthly"
           price={priceLabel(prices, "all_access_monthly_aud", "A$10")}
           cadence="/month"
-          perks={["Full library streaming", "Cancel anytime"]}
+          perks={["Full library streaming", "Billed monthly · cancel anytime"]}
           cta="Subscribe"
           onClick={() => onBuy("all_access_monthly_aud")}
         />
         <PassCard
           label="3-Month Plan"
           price={priceLabel(prices, "all_access_3mo_monthly_aud", "A$9")}
-          cadence="/month · 3mo"
-          perks={["Full library streaming", "Auto-renews monthly"]}
+          cadence="/month"
+          perks={["Full library streaming", "Billed monthly for 3 months"]}
           cta="Start 3-month"
           onClick={() => onBuy("all_access_3mo_monthly_aud")}
         />
         <PassCard
           label="6-Month Plan"
           price={priceLabel(prices, "all_access_6mo_monthly_aud", "A$8")}
-          cadence="/month · 6mo"
-          perks={["Full library streaming", "Auto-renews monthly"]}
+          cadence="/month"
+          perks={["Full library streaming", "Billed monthly for 6 months"]}
           cta="Start 6-month"
           onClick={() => onBuy("all_access_6mo_monthly_aud")}
         />
         <PassCard
           label="12-Month Plan"
           price={priceLabel(prices, "all_access_12mo_monthly_aud", "A$7")}
-          cadence="/month · 12mo"
+          cadence="/month"
           highlight="Includes free entry"
           perks={[
             "Full library streaming",
+            "Billed monthly for 12 months",
             "1 free event entry during the term",
-            "Auto-renews monthly",
           ]}
           cta="Start 12-month"
           onClick={() => onBuy("all_access_12mo_monthly_aud")}
@@ -234,7 +234,7 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
         </div>
         <h2 className="mt-2 font-display text-5xl font-extrabold">
           {priceLabel(prices, "lifetime_onetime_aud", "A$500")}
-          <span className="text-lg text-muted-foreground"> one-time</span>
+          <span className="text-lg text-muted-foreground"> one-time payment</span>
         </h2>
         <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
           <li>· <span className="text-foreground">Forever access</span> to all photos &amp; videos</li>
