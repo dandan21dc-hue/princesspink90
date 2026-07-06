@@ -66,6 +66,7 @@ export function StripeEmbeddedCheckout(props: Props) {
           environment: getStripeEnvironment(),
           bookingStartsAt: props.bookingStartsAt,
           customerCountry: country,
+          autoRenew: props.autoRenew,
         },
       });
     } catch (e) {
