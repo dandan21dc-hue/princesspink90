@@ -103,11 +103,12 @@ export const listStripeWebhookEvents = createServerFn({ method: "GET" })
       .select("event_type")
       .order("event_type", { ascending: true })
       .limit(2000);
-    const eventTypes: string[] = Array.from(
-      new Set((typeRows ?? []).map((r: any) => String(r.event_type ?? ""))),
-    )
-      .filter(Boolean)
-      .sort();
+    const eventTypesSet = new Set<string>();
+    for (const r of typeRows ?? []) {
+      const v = (r as any)?.event_type;
+      if (typeof v === "string" && v) eventTypesSet.add(v);
+    }
+    const eventTypes: string[] = Array.from(eventTypesSet).sort();
 
     return {
       rows: (rows ?? []) as StripeWebhookEventRow[],
