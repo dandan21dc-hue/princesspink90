@@ -268,7 +268,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
           label="6-Month Term"
           termMonths={6}
           priceId="all_access_6mo_monthly_aud"
-          priceText={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48")}
+          priceText={priceLabel(prices, "all_access_6mo_monthly_aud", "A$48", 6)}
           onBuy={onBuy}
           loading={busy("all_access_6mo_monthly_aud")}
           disabled={disabled}
