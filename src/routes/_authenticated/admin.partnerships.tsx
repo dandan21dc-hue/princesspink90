@@ -474,14 +474,30 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
       </div>
 
       <div className="mt-8">
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs uppercase tracking-widest text-muted-foreground">Email delivery</span>
-          <button
-            onClick={() => emailEvents.refetch()}
-            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-neon"
-          >
-            {emailEvents.isFetching ? 'Refreshing…' : 'Refresh'}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => retryMut.mutate('notification')}
+              disabled={retryMut.isPending}
+              className="rounded-full border border-border/60 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground hover:border-neon/40 hover:text-neon disabled:opacity-50"
+            >
+              {retryMut.isPending && retryMut.variables === 'notification' ? 'Retrying…' : 'Retry notification'}
+            </button>
+            <button
+              onClick={() => retryMut.mutate('confirmation')}
+              disabled={retryMut.isPending}
+              className="rounded-full border border-border/60 px-3 py-1 text-[10px] uppercase tracking-widest text-muted-foreground hover:border-neon/40 hover:text-neon disabled:opacity-50"
+            >
+              {retryMut.isPending && retryMut.variables === 'confirmation' ? 'Retrying…' : 'Retry confirmation'}
+            </button>
+            <button
+              onClick={() => emailEvents.refetch()}
+              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-neon"
+            >
+              {emailEvents.isFetching ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
         </div>
         {emailEvents.isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
         {emailEvents.error && (
