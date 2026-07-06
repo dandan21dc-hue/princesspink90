@@ -179,13 +179,10 @@ export const Route = createFileRoute('/api/public/hooks/cron-health-check')({
         const runId = crypto.randomUUID()
         const startedAt = new Date().toISOString()
 
-        const apiKey = request.headers.get('apikey') ?? request.headers.get('x-api-key')
-        if (!apiKey || apiKey !== ANON_KEY) {
+        const unauth = checkHooksCronAuth(request)
+        if (unauth) {
           logJson('cron_health_check_unauthorized', { run_id: runId })
-          return new Response(JSON.stringify({ error: 'unauthorized' }), {
-            status: 401,
-            headers: { 'Content-Type': 'application/json' },
-          })
+          return unauth
         }
 
         const url = process.env.SUPABASE_URL!
