@@ -94,6 +94,7 @@ function SubscribePage() {
   const navigate = useNavigate();
   const { plan } = Route.useSearch();
   const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
+  const [pending, setPending] = useState<PriceId | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
 
   useEffect(() => {
@@ -103,42 +104,54 @@ function SubscribePage() {
   }, []);
 
   async function buy(priceId: PriceId) {
+    if (pending) {
+      console.log("[subscribe] click ignored — already pending", { pending, priceId });
+      return;
+    }
+    console.log("[subscribe] click", { priceId, hasUser: !!user });
     if (!user) {
       navigate({ to: "/auth" });
       return;
     }
-    // Preflight: confirm the selected lookup_key actually exists in
-    // Stripe before opening embedded checkout, so a missing/renamed
-    // price shows a clear error instead of a generic checkout failure.
+    setPending(priceId);
     try {
+      // Preflight: confirm the selected lookup_key actually exists in
+      // Stripe before opening embedded checkout, so a missing/renamed
+      // price shows a clear error instead of a generic checkout failure.
       const result = await checkPricesExist({
         data: { environment: getStripeEnvironment(), lookupKeys: [priceId] },
       });
       if ("error" in result) {
+        console.error("[subscribe] preflight failed", result.error);
         toast.error(`Couldn't verify pricing: ${result.error}`);
         return;
       }
       if (result.missing.length > 0) {
+        console.warn("[subscribe] price missing", { priceId, missing: result.missing });
         track("stripe_price_missing", { priceId, missing: result.missing.join(",") });
         toast.error(
           `This plan (${priceId}) is temporarily unavailable. Please try another option or contact support.`,
         );
         return;
       }
+      if (priceId.startsWith("panty_")) {
+        track("panty_checkout_started", { variant: priceId });
+      }
+      track("checkout_open", { priceId });
+      openCheckout({
+        priceId,
+        userId: user.id,
+        customerEmail: user.email,
+        returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
+      });
     } catch (e) {
-      toast.error(`Couldn't verify pricing: ${(e as Error).message}`);
-      return;
+      console.error("[subscribe] buy failed", e);
+      toast.error(`Couldn't start checkout: ${(e as Error).message}`);
+    } finally {
+      setPending(null);
     }
-    if (priceId.startsWith("panty_")) {
-      track("panty_checkout_started", { variant: priceId });
-    }
-    openCheckout({
-      priceId,
-      userId: user.id,
-      customerEmail: user.email,
-      returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
-    });
   }
+
 
   // Preselect: if the route arrived with ?plan=..., auto-open Stripe checkout
   // for that tier once auth has resolved. Signed-out visitors are bounced
@@ -179,7 +192,7 @@ function SubscribePage() {
           </div>
         ) : (
           <Suspense fallback={<div className="mt-10 text-sm text-muted-foreground">Loading pricing…</div>}>
-            <Passes onBuy={buy} />
+            <Passes onBuy={buy} pending={pending} />
           </Suspense>
         )}
       </section>
@@ -193,8 +206,10 @@ function priceLabel(prices: Record<string, SubscribePrice>, key: PriceId, fallba
   return formatMoney(p.unit_amount, p.currency);
 }
 
-function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
+function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: PriceId | null }) {
   const { data: prices } = useSuspenseQuery(pricesQuery());
+  const busy = (id: PriceId) => pending === id;
+  const disabled = pending !== null;
 
   return (
     <>
@@ -214,6 +229,8 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           perks={["Full library streaming", "Billed monthly · cancel anytime"]}
           cta="Subscribe"
           onClick={() => onBuy("all_access_monthly_aud")}
+          loading={busy("all_access_monthly_aud")}
+          disabled={disabled}
         />
         <PassCard
           label="3-Month Plan"
@@ -222,6 +239,8 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           perks={["Full library streaming", "Billed monthly for 3 months"]}
           cta="Start 3-month"
           onClick={() => onBuy("all_access_3mo_monthly_aud")}
+          loading={busy("all_access_3mo_monthly_aud")}
+          disabled={disabled}
         />
         <PassCard
           label="6-Month Plan"
@@ -230,6 +249,8 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           perks={["Full library streaming", "Billed monthly for 6 months"]}
           cta="Start 6-month"
           onClick={() => onBuy("all_access_6mo_monthly_aud")}
+          loading={busy("all_access_6mo_monthly_aud")}
+          disabled={disabled}
         />
         <PassCard
           label="12-Month Plan"
@@ -243,8 +264,11 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
           ]}
           cta="Start 12-month"
           onClick={() => onBuy("all_access_12mo_monthly_aud")}
+          loading={busy("all_access_12mo_monthly_aud")}
+          disabled={disabled}
         />
       </div>
+
 
       {/* Lifetime */}
       <div className="mt-8 relative overflow-hidden rounded-3xl border-2 border-primary bg-gradient-to-br from-primary/25 via-background to-background p-8 shadow-[var(--shadow-glow-pink)]">
@@ -266,10 +290,12 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
         </ul>
         <button
           onClick={() => onBuy("lifetime_onetime_aud")}
-          className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto"
+          disabled={disabled}
+          className="mt-8 w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 md:w-auto disabled:cursor-not-allowed disabled:opacity-70"
         >
-          Buy lifetime
+          {busy("lifetime_onetime_aud") ? "Opening checkout…" : "Buy lifetime"}
         </button>
+
       </div>
 
       {/* Panty Drawer */}
@@ -309,6 +335,8 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
                 highlight={p.highlight}
                 perks={[...p.perks]}
                 cta={p.cta}
+                loading={busy(p.key)}
+                disabled={disabled}
                 onClick={() => {
                   track("panty_buy_click", { variant: p.key, price_cents: unitCents, currency });
                   onBuy(p.key);
@@ -316,6 +344,7 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
                 onAddToCart={() => {
                   const existingPanty = cart.snapshot().find((it) => it.kind === "panty");
                   const replacing = existingPanty && existingPanty.id !== p.key;
+                  console.log("[cart] add panty", { variant: p.key, replacing });
                   try {
                     cart.add({
                       kind: "panty",
@@ -327,11 +356,13 @@ function Passes({ onBuy }: { onBuy: (id: PriceId) => void }) {
                     track("panty_add_to_cart", { variant: p.key, price_cents: unitCents, currency });
                     toast.success(replacing ? `Swapped for ${p.label}` : "Added to cart");
                   } catch (e) {
+                    console.error("[cart] add failed", e);
                     toast.error((e as Error).message);
                   }
                 }}
               />
             );
+
           })}
           <div className="relative flex flex-col rounded-2xl border border-dashed border-primary/40 bg-background/40 p-6">
             <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
@@ -369,6 +400,8 @@ function PassCard({
   onClick,
   onAddToCart,
   highlight,
+  loading = false,
+  disabled = false,
 }: {
   label: string;
   price: string;
@@ -378,6 +411,8 @@ function PassCard({
   onClick: () => void;
   onAddToCart?: () => void;
   highlight?: string;
+  loading?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <div className="relative flex flex-col rounded-2xl border border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)]">
@@ -398,11 +433,13 @@ function PassCard({
       </ul>
       <button
         onClick={onClick}
-        className="mt-5 w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+        disabled={disabled || loading}
+        className="mt-5 w-full rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {cta}
+        {loading ? "Opening checkout…" : cta}
       </button>
       {onAddToCart && (
+
         <button
           onClick={onAddToCart}
           className="mt-2 w-full rounded-md border border-primary/60 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
