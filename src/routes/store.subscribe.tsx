@@ -373,14 +373,20 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
             const priceObj = prices[p.key];
             const unitCents = priceObj?.unit_amount ?? p.fallbackCents;
             const currency = (priceObj?.currency ?? "aud").toLowerCase();
+            const { display, original } = pantyPriceDisplay(p.fallbackCents, priceObj);
             return (
               <PassCard
                 key={p.key}
                 label={p.label}
-                price={priceLabel(prices, p.key, `A$${(p.fallbackCents / 100).toFixed(0)}`)}
+                price={display}
+                originalPrice={original ?? undefined}
+                subscriberBadge={isSubscriber}
                 cadence="+ shipping"
                 highlight={p.highlight}
-                perks={[...p.perks]}
+                perks={[
+                  ...p.perks,
+                  ...(isSubscriber ? [`Subscriber ${discountPercent}% off applied at checkout`] : []),
+                ]}
                 cta={p.cta}
                 loading={busy(p.key)}
                 disabled={disabled}
@@ -411,6 +417,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId) => void; pending: Pri
             );
 
           })}
+
           <div className="relative flex flex-col rounded-2xl border border-dashed border-primary/40 bg-background/40 p-6">
             <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
               Custom Order
