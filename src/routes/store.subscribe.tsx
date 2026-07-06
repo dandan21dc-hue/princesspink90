@@ -119,7 +119,7 @@ function SubscribePage() {
         return;
       }
       if (result.missing.length > 0) {
-        track("stripe_price_missing", { priceId, missing: result.missing });
+        track("stripe_price_missing", { priceId, missing: result.missing.join(",") });
         toast.error(
           `This plan (${priceId}) is temporarily unavailable. Please try another option or contact support.`,
         );
