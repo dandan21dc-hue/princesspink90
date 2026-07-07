@@ -8,11 +8,20 @@ import { NotificationsBell } from "@/components/NotificationsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
 import { PerksWidget } from "@/components/PerksWidget";
 import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
+import { RoleGuard } from "@/components/RoleGuard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
-  component: Dashboard,
+  component: DashboardGuarded,
 });
+
+function DashboardGuarded() {
+  return (
+    <RoleGuard allowedRoles={["admin", "co_host"]}>
+      <Dashboard />
+    </RoleGuard>
+  );
+}
 
 function Dashboard() {
   const myEventsFn = useServerFn(listMyEvents);
