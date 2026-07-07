@@ -86,9 +86,9 @@ function BookingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
 
-  // Deep-link support: /bookings?booking=<id>&action=reschedule|cancel
-  // Opens the matching sheet once the booking list has loaded, then strips
-  // the params so refreshes/back-navigation don't re-trigger the action.
+  // Deep-link support: /bookings?booking=<id>&action=reschedule|cancel|view
+  // Opens the matching sheet/details once the booking list has loaded, then
+  // strips the params so refreshes/back-navigation don't re-trigger the action.
   const allBookings = bookings.data ?? [];
   useEffect(() => {
     if (!bookingParam || !actionParam) return;
@@ -100,6 +100,13 @@ function BookingsPage() {
     } else if (actionParam === "cancel") {
       setConfirmCancelId(bookingParam);
       setReschedulingId(null);
+    } else if (actionParam === "view") {
+      setDetailsId(bookingParam);
+    }
+    // Scroll the booking into view so the user lands directly on it.
+    if (typeof document !== "undefined") {
+      const el = document.getElementById(`booking-${bookingParam}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
     setError(null);
     setSuccess(null);
