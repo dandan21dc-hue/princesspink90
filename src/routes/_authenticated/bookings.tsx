@@ -304,6 +304,15 @@ function BookingCard(props: {
             >
               Cancel
             </button>
+            {b.status === "confirmed" && (
+              <a
+                href={`/api/public/bookings/${b.id}/ics`}
+                download={`booking-${b.id.slice(0, 8)}.ics`}
+                className="rounded-md border border-primary/40 bg-primary/5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/15"
+              >
+                Add to calendar
+              </a>
+            )}
             <button
               type="button"
               onClick={props.onOpenDetails}
