@@ -49,15 +49,12 @@ export const Route = createFileRoute("/store/$id")({
             description: loaderData.description ?? undefined,
             image: loaderData.cover_url ?? undefined,
             url,
-            offers: loaderData.price_cents
-              ? {
-                  "@type": "Offer",
-                  price: (loaderData.price_cents / 100).toFixed(2),
-                  priceCurrency: "AUD",
-                  availability: "https://schema.org/InStock",
-                  url,
-                }
-              : undefined,
+            offers: buildAudOffer({
+              cents: loaderData.price_cents,
+              url,
+              availability: "https://schema.org/InStock",
+              currency: (loaderData as { currency?: string | null }).currency ?? null,
+            }) ?? undefined,
           }),
         },
       ],
