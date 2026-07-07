@@ -48,6 +48,7 @@ function PrivateRoomPage() {
   const [pending, setPending] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [finding, setFinding] = useState(false);
+  const [noSlotsMessage, setNoSlotsMessage] = useState<string | null>(null);
   const jumpingToSlotRef = useRef<Date | null>(null);
   const pendingAutoReviewRef = useRef(false);
 
