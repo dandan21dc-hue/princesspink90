@@ -37,7 +37,16 @@ export const Route = createFileRoute("/store")({
     links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/store" }],
   }),
   component: StorePage,
+  errorComponent: ({ error }) => (
+    <div className="p-10 text-center text-sm text-muted-foreground">
+      Something went wrong loading the store. {error.message}
+    </div>
+  ),
+  notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
+});
+
 function StorePage() {
+
   // /store is both a leaf page AND a layout parent for /store/subscribe,
   // /store/$id. When a child route matches, render only the child so the
   // boutique landing content doesn't leak into every child.
