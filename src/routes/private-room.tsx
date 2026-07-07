@@ -65,12 +65,13 @@ function PrivateRoomPage() {
       selectedDate &&
       startOfDay(jumpingToSlot).getTime() === selectedDate.getTime()
     ) {
-      setSelectedSlot(jumpingToSlot);
+      setSelectedSlot(new Date(jumpingToSlot.getTime()));
       const el = document.getElementById(`slot-${jumpingToSlot.getTime()}`);
       el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       setJumpingToSlot(null);
       return;
     }
+
     setSelectedSlot(null);
   }, [selectedDate, duration, jumpingToSlot]);
 
