@@ -286,6 +286,7 @@ function AllAccessCard() {
               <div
                 aria-disabled="true"
                 role="button"
+                aria-label={ariaLabel}
                 tabIndex={0}
                 onClick={() =>
                   track("boutique_tier_click", { ...trackPayload, action: "blocked" })
