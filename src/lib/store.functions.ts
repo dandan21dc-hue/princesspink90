@@ -940,6 +940,7 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
         ui_mode: "embedded_page",
         return_url: ensureSessionIdInReturnUrl(data.returnUrl),
         customer: customerId,
+        customer_update: { address: "auto" },
         ...(!useManagedPayments && {
           payment_intent_data: { description: "Princess Pink cart order" },
         }),
