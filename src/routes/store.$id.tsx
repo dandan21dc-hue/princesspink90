@@ -8,6 +8,7 @@ import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cart } from "@/lib/cart";
 import { buildAudOffer } from "@/lib/aud";
+import { onImgError, resolveMediaUrl } from "@/lib/media-url";
 
 const itemQuery = (id: string) =>
   queryOptions({
@@ -223,7 +224,7 @@ function ItemPage() {
                       preload="metadata"
                     />
                   ) : (
-                    <img src={gallery[activeImage].url} alt={item.title} className="h-full w-full object-cover" />
+                    <img src={resolveMediaUrl(gallery[activeImage].url) ?? ""} alt={item.title} onError={onImgError} className="h-full w-full object-cover" />
                   )
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No image</div>
@@ -241,7 +242,7 @@ function ItemPage() {
                       {m.type === "video" ? (
                         <video src={m.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
                       ) : (
-                        <img src={m.url} alt="" className="h-full w-full object-cover" />
+                        <img src={resolveMediaUrl(m.url) ?? ""} alt="" onError={onImgError} className="h-full w-full object-cover" />
                       )}
                     </button>
                   ))}
