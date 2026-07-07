@@ -1065,12 +1065,8 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
         quantity: number;
       }>;
 
-      // Members-only gate: any panty item in the cart requires an active
-      // subscription/membership. Verified against the authenticated user's
-      // RLS-scoped client, never trusting the frontend cart contents.
-      if (pantyItems.length > 0) {
-        await assertPantyAccess(context.supabase, userId, data.environment);
-      }
+      // Panty Drawer is open to the public — no access gate here.
+
 
 
 
