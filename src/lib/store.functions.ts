@@ -221,10 +221,31 @@ async function resolveOrCreateCustomer(
   return created.id;
 }
 
+function allowedReturnOrigins(): string[] {
+  const origins: string[] = [];
+  for (const key of ["PUBLIC_APP_URL", "SITE_URL"] as const) {
+    const val = process.env[key];
+    if (!val) continue;
+    try {
+      origins.push(new URL(val).origin);
+    } catch {
+      // ignore malformed env values
+    }
+  }
+  return origins;
+}
+
 export function ensureSessionIdInReturnUrl(rawUrl: string): string {
   const parsed = new URL(rawUrl);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error("returnUrl must be http(s)");
+  }
+  // Enforce origin allowlist to prevent open redirect via Stripe return_url.
+  // Only the application's own configured origin(s) are accepted. If no
+  // PUBLIC_APP_URL/SITE_URL is configured (local dev), we fall through.
+  const allowed = allowedReturnOrigins();
+  if (allowed.length > 0 && !allowed.includes(parsed.origin)) {
+    throw new Error("returnUrl must use the application origin");
   }
   if (rawUrl.includes("{CHECKOUT_SESSION_ID}")) return rawUrl;
   const [beforeHash, hash = ""] = rawUrl.split("#");
