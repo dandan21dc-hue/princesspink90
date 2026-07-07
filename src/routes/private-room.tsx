@@ -385,3 +385,86 @@ function DurationCard({
     </button>
   );
 }
+
+function ReviewBookingCard({
+  selectedSlot,
+  duration,
+  partySize,
+  notes,
+  pending,
+  onEdit,
+  onConfirm,
+}: {
+  selectedSlot: Date;
+  duration: Duration;
+  partySize: number;
+  notes: string;
+  pending: boolean;
+  onEdit: () => void;
+  onConfirm: () => void;
+}) {
+  const priceLabel = duration === 30 ? "A$150" : "A$275";
+  const endsAt = new Date(selectedSlot.getTime() + duration * 60_000);
+  return (
+    <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-primary/40 bg-card p-6 shadow-[var(--shadow-glow-pink)]">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
+        Review your booking
+      </div>
+      <h2 className="mt-2 font-display text-2xl font-extrabold">
+        Confirm the details below
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        You'll be taken to secure checkout after you confirm. Your slot is held
+        for 15 minutes.
+      </p>
+
+      <dl className="mt-6 space-y-3 text-sm">
+        <Row label="Date">{format(selectedSlot, "EEEE, d MMMM yyyy")}</Row>
+        <Row label="Time">
+          {format(selectedSlot, "h:mm a")} – {format(endsAt, "h:mm a")}
+        </Row>
+        <Row label="Duration">{duration === 30 ? "30 minutes" : "1 hour"}</Row>
+        <Row label="Party size">
+          {partySize} {partySize === 1 ? "guest" : "guests"}
+        </Row>
+        <Row label="Price">{priceLabel}</Row>
+        {notes.trim() && (
+          <div>
+            <dt className="text-muted-foreground">Notes</dt>
+            <dd className="mt-1 whitespace-pre-wrap rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm">
+              {notes.trim()}
+            </dd>
+          </div>
+        )}
+      </dl>
+
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <button
+          onClick={onConfirm}
+          disabled={pending}
+          className="min-h-11 flex-1 rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {pending ? "Opening checkout…" : `Confirm & pay · ${priceLabel}`}
+        </button>
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={pending}
+          className="min-h-11 rounded-md border border-border/60 bg-background px-4 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground disabled:opacity-40"
+        >
+          Edit
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium text-right">{children}</dd>
+    </div>
+  );
+}
+
