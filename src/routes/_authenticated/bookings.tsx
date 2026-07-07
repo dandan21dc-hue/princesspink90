@@ -303,6 +303,13 @@ function BookingCard(props: {
             >
               Cancel
             </button>
+            <button
+              type="button"
+              onClick={props.onOpenDetails}
+              className="rounded-md border border-border/60 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+            >
+              View details
+            </button>
           </>
         )}
         {!canCancel && !props.isRescheduling && !props.confirmCancel && (
