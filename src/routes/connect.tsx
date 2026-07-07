@@ -46,6 +46,7 @@ function parseHeaderLines(raw: string): Record<string, string> {
 }
 
 function ConnectPage() {
+  const router = useRouter()
   const [defaultUrl, setDefaultUrl] = useState('')
   const [mcpUrl, setMcpUrl] = useState('')
   const [saved, setSaved] = useState(false)
@@ -54,6 +55,8 @@ function ConnectPage() {
   const [statusDetail, setStatusDetail] = useState<string>('')
   const [auth, setAuth] = useState<AuthConfig>({ bearer: '', headers: '' })
   const [authSaved, setAuthSaved] = useState(false)
+  const [authAction, setAuthAction] = useState<null | { kind: 'signin'; countdown: number }>(null)
+  const redirectTimer = useRef<number | null>(null)
 
   useEffect(() => {
     const derived = new URL('/mcp', window.location.origin).toString()
