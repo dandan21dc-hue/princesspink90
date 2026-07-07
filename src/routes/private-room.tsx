@@ -251,6 +251,35 @@ function PrivateRoomPage() {
                   })}
                 </div>
 
+                <div
+                  role="list"
+                  aria-label="Slot availability legend"
+                  className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground"
+                >
+                  <div role="listitem" className="flex items-center gap-2">
+                    <span
+                      aria-hidden
+                      className="inline-block h-3 w-4 rounded-sm border border-border/60 bg-background"
+                    />
+                    <span>Available — tap to select</span>
+                  </div>
+                  <div role="listitem" className="flex items-center gap-2">
+                    <span
+                      aria-hidden
+                      className="inline-block h-3 w-4 rounded-sm border border-dashed border-primary/40 bg-primary/10"
+                    />
+                    <span>Held — reserved during someone's checkout</span>
+                  </div>
+                  <div role="listitem" className="flex items-center gap-2">
+                    <span
+                      aria-hidden
+                      className="inline-block h-3 w-4 rounded-sm border border-border/40 bg-muted/40"
+                    />
+                    <span className="line-through decoration-muted-foreground/60">Booked</span>
+                  </div>
+                </div>
+
+
                 <div className="mt-8 grid gap-5 sm:grid-cols-2">
                   <div>
                     <label htmlFor="party-size" className="text-xs uppercase tracking-widest text-muted-foreground">
