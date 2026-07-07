@@ -405,12 +405,12 @@ function FilteredItemGrid() {
     return (data as StoreItem[]).filter((item) => {
       if (styles.length && !styles.includes(item.kind)) return false;
       if (sizes.length) {
-        const itemSizes = item.sizes ?? [];
-        if (!sizes.some((s) => itemSizes.includes(s))) return false;
+        const itemSizes = (item.sizes ?? []) as string[];
+        if (!sizes.some((s: string) => itemSizes.includes(s))) return false;
       }
       if (colors.length) {
-        const tokens = tokenize(item.materials).map((t) => t.toLowerCase());
-        if (!colors.some((c) => tokens.includes(c.toLowerCase()))) return false;
+        const tokens = tokenize(item.materials as string | null).map((t) => t.toLowerCase());
+        if (!colors.some((c: string) => tokens.includes(c.toLowerCase()))) return false;
       }
       return true;
     });
@@ -418,7 +418,7 @@ function FilteredItemGrid() {
 
   const toggle = (group: "sizes" | "colors" | "styles", value: string) => {
     navigate({
-      search: (prev) => {
+      search: (prev: z.infer<typeof storeSearchSchema>) => {
         const current = (prev[group] ?? []) as string[];
         const next = current.includes(value)
           ? current.filter((v) => v !== value)
