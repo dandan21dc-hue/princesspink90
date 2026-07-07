@@ -147,3 +147,12 @@
 @utility bg-gold-gradient {
   background: linear-gradient(120deg, oklch(0.92 0.15 95), oklch(0.78 0.19 70), oklch(0.65 0.2 45));
 }
+
+/* Store category card keyboard focus indicator */
+.store-card:focus { outline: none; }
+.store-card:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 4px;
+  border-color: var(--primary);
+}
+
