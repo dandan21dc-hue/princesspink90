@@ -42,6 +42,8 @@ function PrivateRoomPage() {
   );
   const [duration, setDuration] = useState<Duration>(60);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
+  const [partySize, setPartySize] = useState<number>(1);
+  const [notes, setNotes] = useState<string>("");
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState(false);
 
