@@ -10,6 +10,13 @@ import {
   listPrivateRoomBusy,
 } from "@/lib/store.functions";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/bookings")({
