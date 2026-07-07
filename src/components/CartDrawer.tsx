@@ -109,7 +109,7 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
         <ul className="space-y-3">
           {items.map((it) => (
             <li
-              key={`${it.kind}:${it.id}`}
+              key={cartLineKey(it)}
               className="flex gap-3 rounded-xl border border-border/60 bg-card/60 p-3"
             >
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-secondary/40">
@@ -123,6 +123,11 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{it.title}</div>
+                {it.size && (
+                  <div className="mt-0.5 text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                    Size: <span className="text-foreground/90">{it.size}</span>
+                  </div>
+                )}
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {formatMoney(it.unit_amount_cents, it.currency)}
                 </div>
@@ -130,7 +135,7 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
                   <button
                     type="button"
                     aria-label="Decrease quantity"
-                    onClick={() => setQty(it.kind, it.id, it.quantity - 1)}
+                    onClick={() => setQty(it.kind, it.id, it.quantity - 1, it.size)}
                     className="rounded-md border border-border/60 p-1 hover:bg-secondary/50"
                   >
                     <Minus className="h-3 w-3" />
@@ -141,7 +146,7 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
                   <button
                     type="button"
                     aria-label="Increase quantity"
-                    onClick={() => setQty(it.kind, it.id, it.quantity + 1)}
+                    onClick={() => setQty(it.kind, it.id, it.quantity + 1, it.size)}
                     className="rounded-md border border-border/60 p-1 hover:bg-secondary/50"
                   >
                     <Plus className="h-3 w-3" />
@@ -149,7 +154,7 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
                   <button
                     type="button"
                     aria-label="Remove"
-                    onClick={() => remove(it.kind, it.id)}
+                    onClick={() => remove(it.kind, it.id, it.size)}
                     className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
