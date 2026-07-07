@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
-const storeQuery = queryOptions({
+export const storeQuery = queryOptions({
   queryKey: ["store-items"],
   queryFn: () => listStoreItems(),
 });
