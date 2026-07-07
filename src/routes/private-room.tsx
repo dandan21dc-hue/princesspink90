@@ -49,6 +49,7 @@ function PrivateRoomPage() {
   const [reviewing, setReviewing] = useState(false);
   const [finding, setFinding] = useState(false);
   const [noSlotsMessage, setNoSlotsMessage] = useState<string | null>(null);
+  const [highlightedSlot, setHighlightedSlot] = useState<Date | null>(null);
   const jumpingToSlotRef = useRef<Date | null>(null);
   const pendingAutoReviewRef = useRef(false);
 
@@ -63,6 +64,7 @@ function PrivateRoomPage() {
   // jumping to a found "next available" slot.
   useEffect(() => {
     setNoSlotsMessage(null);
+    setHighlightedSlot(null);
     if (
       jumpingToSlotRef.current &&
       selectedDate &&
@@ -70,6 +72,7 @@ function PrivateRoomPage() {
     ) {
       const slot = jumpingToSlotRef.current;
       setSelectedSlot(new Date(slot.getTime()));
+      setHighlightedSlot(new Date(slot.getTime()));
       const el = document.getElementById(`slot-${slot.getTime()}`);
       el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       jumpingToSlotRef.current = null;
@@ -164,6 +167,7 @@ function PrivateRoomPage() {
 
   async function jumpToNextAvailable() {
     setNoSlotsMessage(null);
+    setHighlightedSlot(null);
     setFinding(true);
     try {
       const found = await findNextAvailableSlot();
@@ -180,6 +184,7 @@ function PrivateRoomPage() {
 
   async function bookNextAvailable() {
     setNoSlotsMessage(null);
+    setHighlightedSlot(null);
     setFinding(true);
     try {
       const found = await findNextAvailableSlot();
@@ -370,6 +375,7 @@ function PrivateRoomPage() {
                   {slots.map((s) => {
                     const disabled = slotConflicts(s);
                     const active = selectedSlot?.getTime() === s.getTime();
+                    const highlighted = highlightedSlot?.getTime() === s.getTime();
                     return (
                       <button
                         id={`slot-${s.getTime()}`}
@@ -378,15 +384,21 @@ function PrivateRoomPage() {
                         disabled={disabled}
 
                         className={cn(
-                          "rounded-md border px-3 py-2 text-sm font-medium transition",
+                          "relative rounded-md border px-3 py-2 text-sm font-medium transition",
                           disabled
                             ? "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground/50 line-through"
                             : active
                               ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow-pink)]"
                               : "border-border/60 bg-background hover:border-primary/60 hover:text-primary",
+                          highlighted && !disabled && "ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse",
                         )}
                       >
                         {format(s, "h:mm a")}
+                        {highlighted && !disabled && (
+                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-[var(--shadow-glow-pink)]">
+                            Soonest
+                          </span>
+                        )}
                       </button>
                     );
                   })}
