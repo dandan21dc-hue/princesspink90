@@ -21,7 +21,7 @@ export const listStoreItems = createServerFn({ method: "GET" }).handler(async ()
   );
   const { data, error } = await supabase
     .from("content_items")
-    .select("id,kind,title,description,cover_url,price_cents,currency,subscribers_only,created_at")
+    .select("id,kind,title,description,cover_url,media_urls,price_cents,currency,subscribers_only,sizes,materials,created_at")
     .eq("published", true)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -39,7 +39,7 @@ export const getStoreItem = createServerFn({ method: "GET" })
     );
     const { data: row, error } = await supabase
       .from("content_items")
-      .select("id,kind,title,description,cover_url,price_cents,currency,subscribers_only,created_at")
+      .select("id,kind,title,description,cover_url,media_urls,price_cents,currency,subscribers_only,sizes,materials,created_at")
       .eq("id", data.id)
       .eq("published", true)
       .maybeSingle();
