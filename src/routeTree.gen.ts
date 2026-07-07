@@ -71,6 +71,7 @@ import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
 import { Route as AuthenticatedAdminCheckoutReconciliationRouteImport } from './routes/_authenticated/admin.checkout-reconciliation'
+import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin.availability'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -430,6 +431,12 @@ const AuthenticatedAdminCheckoutReconciliationRoute =
     path: '/admin/checkout-reconciliation',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAvailabilityRoute =
+  AuthenticatedAdminAvailabilityRouteImport.update({
+    id: '/admin/availability',
+    path: '/admin/availability',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAnalyticsRoute =
   AuthenticatedAdminAnalyticsRouteImport.update({
     id: '/admin/analytics',
@@ -599,6 +606,7 @@ export interface FileRoutesByFullPath {
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -684,6 +692,7 @@ export interface FileRoutesByTo {
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -772,6 +781,7 @@ export interface FileRoutesById {
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
+  '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -860,6 +870,7 @@ export interface FileRouteTypes {
     | '/store/subscribe'
     | '/account/billing'
     | '/admin/analytics'
+    | '/admin/availability'
     | '/admin/checkout-reconciliation'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
@@ -945,6 +956,7 @@ export interface FileRouteTypes {
     | '/store/subscribe'
     | '/account/billing'
     | '/admin/analytics'
+    | '/admin/availability'
     | '/admin/checkout-reconciliation'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
@@ -1032,6 +1044,7 @@ export interface FileRouteTypes {
     | '/store/subscribe'
     | '/_authenticated/account/billing'
     | '/_authenticated/admin/analytics'
+    | '/_authenticated/admin/availability'
     | '/_authenticated/admin/checkout-reconciliation'
     | '/_authenticated/admin/cohosts'
     | '/_authenticated/admin/compliance-audit'
@@ -1566,6 +1579,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCheckoutReconciliationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/availability': {
+      id: '/_authenticated/admin/availability'
+      path: '/admin/availability'
+      fullPath: '/admin/availability'
+      preLoaderRoute: typeof AuthenticatedAdminAvailabilityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/analytics': {
       id: '/_authenticated/admin/analytics'
       path: '/admin/analytics'
@@ -1782,6 +1802,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
+  AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminCheckoutReconciliationRoute: typeof AuthenticatedAdminCheckoutReconciliationRoute
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
@@ -1823,6 +1844,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
+  AuthenticatedAdminAvailabilityRoute: AuthenticatedAdminAvailabilityRoute,
   AuthenticatedAdminCheckoutReconciliationRoute:
     AuthenticatedAdminCheckoutReconciliationRoute,
   AuthenticatedAdminCohostsRoute: AuthenticatedAdminCohostsRoute,
