@@ -12,6 +12,16 @@ import {
 } from "@/lib/pantyListings.functions";
 import { describePantyPhoto } from "@/lib/panty-ai.functions";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/admin/panty-listings")({
   head: () => ({ meta: [{ title: "Panty Listings · Admin" }] }),
@@ -51,6 +61,7 @@ function AdminPantyListings() {
     queryFn: () => listFn(),
   });
   const [edit, setEdit] = useState<EditState | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PantyListing | null>(null);
 
   const save = useMutation({
     mutationFn: async (v: EditState) => {
@@ -192,9 +203,7 @@ function AdminPantyListings() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(`Delete "${l.title}"?`)) remove.mutate(l.id);
-                  }}
+                  onClick={() => setPendingDelete(l)}
                   className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-destructive hover:bg-destructive/20"
                 >
                   Delete
@@ -214,6 +223,40 @@ function AdminPantyListings() {
           saving={save.isPending}
         />
       )}
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o && !remove.isPending) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this pair?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `"${pendingDelete.title}" will be permanently removed from the panty drawer. This cannot be undone.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={remove.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={remove.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!pendingDelete) return;
+                remove.mutate(pendingDelete.id, {
+                  onSettled: () => setPendingDelete(null),
+                });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {remove.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
