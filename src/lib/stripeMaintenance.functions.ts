@@ -9,7 +9,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
+import { type StripeEnv, createStripeClient, getStripeErrorMessage, assertAudCurrency } from "@/lib/stripe.server";
 import { TAX_CODES } from "@/lib/stripe-tax-codes";
 import { EXPECTED_PLAN_PRICES } from "@/lib/planPriceValidation.server";
 
@@ -221,7 +221,7 @@ export const syncMissingStripePrices = createServerFn({ method: "POST" })
 
           const price = await stripe.prices.create({
             product: productId,
-            currency: expected.currency,
+            currency: assertAudCurrency(expected.currency),
             unit_amount: expected.unit_amount,
             lookup_key: lookupKey,
             nickname: meta.product_name,
@@ -322,7 +322,7 @@ export const convertTermPassesToOneTime = createServerFn({ method: "POST" })
           const meta = PLAN_PRODUCT_CATALOGUE[lookupKey];
           const created = await stripe.prices.create({
             product: productId,
-            currency: expected.currency,
+            currency: assertAudCurrency(expected.currency),
             unit_amount: expected.unit_amount,
             lookup_key: lookupKey,
             nickname: meta?.product_name ?? lookupKey,

@@ -100,3 +100,21 @@ export async function verifyWebhookBody(
 
   return JSON.parse(body);
 }
+
+/**
+ * AUD-only currency guard. All Stripe price creations in this project MUST
+ * be denominated in AUD; any attempt to use another currency (notably "usd")
+ * — whether from an admin action, an API payload, or a copied source price —
+ * is rejected. Always call this helper immediately before passing `currency`
+ * to `stripe.prices.create` / `stripe.prices.update`.
+ */
+export const AUD_CURRENCY = "aud" as const;
+
+export function assertAudCurrency(input: unknown): "aud" {
+  const normalized = String(input ?? "").trim().toLowerCase();
+  if (normalized === "" || normalized === "aud") return AUD_CURRENCY;
+  if (normalized === "usd") {
+    throw new Error("USD is not supported — Stripe prices must be created in AUD");
+  }
+  throw new Error(`Unsupported currency "${normalized}" — Stripe prices must be created in AUD`);
+}
