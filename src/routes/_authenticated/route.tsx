@@ -35,7 +35,11 @@ export const Route = createFileRoute("/_authenticated")({
     // Staff-only paths: /dashboard and any sub-route require admin or co_host.
     // Kept in beforeLoad so unauthorized users redirect before render (no flash).
     const path = location.pathname;
-    const isStaffPath = path === "/dashboard" || path.startsWith("/dashboard/");
+    const isStaffPath =
+      path === "/dashboard" ||
+      path.startsWith("/dashboard/") ||
+      path === "/admin" ||
+      path.startsWith("/admin/");
     if (isStaffPath) {
       const { data: roleRows } = await supabase
         .from("user_roles")
