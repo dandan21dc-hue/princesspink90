@@ -1,7 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { getCheckoutSession } from "@/lib/store.functions";
+import {
+  getCheckoutSession,
+  getMyPrivateRoomBookingBySession,
+} from "@/lib/store.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart as cartStore } from "@/lib/cart";
 import { track } from "@/lib/track";
@@ -10,6 +13,7 @@ import {
   buildPantyReturnErrorEvents,
 } from "@/lib/pantyCheckoutEvents";
 import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
+import { format } from "date-fns";
 
 
 /**
