@@ -249,6 +249,61 @@ function ConnectPage() {
           )}
         </div>
 
+        <details
+          open={authSaved}
+          className="mt-6 rounded-2xl border border-border/60 bg-background/40 p-4"
+        >
+          <summary className="cursor-pointer text-xs uppercase tracking-[0.25em] text-muted-foreground">
+            Optional authentication {authSaved && <span className="text-neon">· configured</span>}
+          </summary>
+          <p className="mt-3 text-xs text-muted-foreground">
+            The Princess Pink server is public — leave these blank. Fill them in only if you
+            point the URL above at a private MCP server that expects a bearer token or custom
+            headers. Values are stored in this browser and sent with the Test connection
+            request.
+          </p>
+
+          <label className="mt-4 block text-xs uppercase tracking-wider text-muted-foreground">
+            Bearer token
+          </label>
+          <input
+            type="password"
+            value={auth.bearer}
+            onChange={(e) => updateAuth({ ...auth, bearer: e.target.value })}
+            placeholder="e.g. sk-..."
+            spellCheck={false}
+            autoComplete="off"
+            className="mt-1 w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-mono"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Sent as <code>Authorization: Bearer &lt;token&gt;</code>.
+          </p>
+
+          <label className="mt-4 block text-xs uppercase tracking-wider text-muted-foreground">
+            Custom headers
+          </label>
+          <textarea
+            value={auth.headers}
+            onChange={(e) => updateAuth({ ...auth, headers: e.target.value })}
+            placeholder={'X-Api-Key: abc123\nX-Tenant: princess-pink'}
+            spellCheck={false}
+            rows={3}
+            className="mt-1 w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-mono"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            One <code>Header-Name: value</code> per line.
+          </p>
+
+          {authSaved && (
+            <button
+              type="button"
+              onClick={clearAuth}
+              className="mt-3 rounded border border-border px-2 py-1 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
+            >
+              Clear auth
+            </button>
+          )}
+        </details>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
