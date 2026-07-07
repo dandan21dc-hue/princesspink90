@@ -22,7 +22,6 @@
     "hooks:install": "bash scripts/install-git-hooks.sh",
     "security:artifacts": "bash scripts/fetch-security-artifacts.sh",
     "report:reminder-cron": "node scripts/reminder-cron-activation-report.mjs"
-
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.5",
@@ -32,6 +31,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@lovable.dev/cloud-auth-js": "^1.1.2",
     "@lovable.dev/email-js": "^0.0.4",
+    "@lovable.dev/mcp-js": "^0.20.0",
     "@lovable.dev/webhooks-js": "^0.0.1",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -101,7 +101,7 @@
     "vaul": "^1.1.2",
     "vite-tsconfig-paths": "^6.0.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zod": "^3.24.2"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
