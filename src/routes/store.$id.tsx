@@ -152,10 +152,11 @@ function ItemPage() {
   if (!item) return <div className="p-10 text-center">Not found.</div>;
 
   const canBuyOneTime = !!item.price_cents && !item.subscribers_only;
-  const gallery: string[] = Array.isArray((item as any).media_urls) && (item as any).media_urls.length
-    ? ((item as any).media_urls as string[])
+  const rawMedia = (item as { media_urls?: unknown }).media_urls;
+  const gallery: Array<{ url: string; type: "image" | "video" }> = Array.isArray(rawMedia) && rawMedia.length
+    ? (rawMedia as Array<{ url: string; type: "image" | "video" }>)
     : item.cover_url
-      ? [item.cover_url]
+      ? [{ url: item.cover_url, type: "image" }]
       : [];
   const materials: string | null = (item as any).materials ?? null;
 
@@ -213,21 +214,35 @@ function ItemPage() {
             <div>
               <div className="overflow-hidden rounded-2xl border border-border/60 bg-secondary/20 aspect-[4/5]">
                 {gallery[activeImage] ? (
-                  <img src={gallery[activeImage]} alt={item.title} className="h-full w-full object-cover" />
+                  gallery[activeImage].type === "video" ? (
+                    <video
+                      src={gallery[activeImage].url}
+                      className="h-full w-full object-cover"
+                      controls
+                      playsInline
+                      preload="metadata"
+                    />
+                  ) : (
+                    <img src={gallery[activeImage].url} alt={item.title} className="h-full w-full object-cover" />
+                  )
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No image</div>
                 )}
               </div>
               {gallery.length > 1 && (
                 <div className="mt-3 grid grid-cols-5 gap-2">
-                  {gallery.map((src, i) => (
+                  {gallery.map((m, i) => (
                     <button
-                      key={src + i}
+                      key={m.url + i}
                       onClick={() => setActiveImage(i)}
-                      aria-label={`Show image ${i + 1}`}
+                      aria-label={`Show ${m.type} ${i + 1}`}
                       className={`overflow-hidden rounded-md border aspect-square ${i === activeImage ? "border-primary" : "border-border/60 opacity-70 hover:opacity-100"}`}
                     >
-                      <img src={src} alt="" className="h-full w-full object-cover" />
+                      {m.type === "video" ? (
+                        <video src={m.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
+                      ) : (
+                        <img src={m.url} alt="" className="h-full w-full object-cover" />
+                      )}
                     </button>
                   ))}
                 </div>
