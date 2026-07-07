@@ -531,6 +531,31 @@ function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
       )}
 
       <div className="mt-6 flex flex-col gap-2">
+        {b && starts && ends && (
+          <button
+            type="button"
+            onClick={() => {
+              const ics = buildIcs({
+                uid: `booking-${b.id}@princesspink90`,
+                title: `Princess Pink · Private room (${b.duration_minutes} min)`,
+                description: [
+                  `Party size: ${b.party_size ?? 1}`,
+                  b.notes ? `Notes: ${b.notes}` : null,
+                  `Booking ID: ${b.id}`,
+                ]
+                  .filter(Boolean)
+                  .join("\n"),
+                start: starts,
+                end: ends,
+                url: typeof window !== "undefined" ? window.location.origin + "/dashboard" : undefined,
+              });
+              downloadIcs(`princess-pink-booking-${b.id.slice(0, 8)}.ics`, ics);
+            }}
+            className="rounded-md border border-primary/50 bg-background px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+          >
+            Add to calendar (.ics)
+          </button>
+        )}
         <Link
           to="/dashboard"
           className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
