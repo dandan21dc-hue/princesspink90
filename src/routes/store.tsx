@@ -4,6 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { listStoreItems } from "@/lib/store.functions";
+import { track } from "@/lib/track";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cn } from "@/lib/utils";
 import { X, SlidersHorizontal } from "lucide-react";
@@ -141,6 +142,13 @@ function CategoryCards() {
         <Link
           key={c.to}
           to={c.to}
+          onClick={() =>
+            track("store_category_card_click", {
+              destination: c.to,
+              category: c.title,
+              position: cards.findIndex((x) => x.to === c.to) + 1,
+            })
+          }
           className="group relative flex flex-col overflow-hidden rounded-2xl border border-primary/40 bg-background/40 p-6 shadow-[var(--shadow-glow-pink)] transition hover:border-primary hover:bg-primary/5"
         >
           <div
