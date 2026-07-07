@@ -313,12 +313,19 @@ function NewContentPage() {
         <Field label="Cover image">
           <input
             type="file"
-            accept="image/*"
-            onChange={(e) => queueFiles(e.target.files, "image", "cover")}
+            accept={IMAGE_TYPES.join(",")}
+            onChange={(e) => {
+              queueFiles(e.target.files, "image", "cover");
+              e.target.value = "";
+            }}
             className="text-sm"
           />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            JPG, PNG, WEBP, GIF, or AVIF · up to 15 MB.
+          </p>
           {coverUrl && <img src={coverUrl} alt="" className="mt-3 h-40 w-40 rounded-md object-cover" />}
         </Field>
+
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Price (USD)">
