@@ -118,22 +118,12 @@ export const sendBookingCancelledEmail = createServerFn({ method: "POST" })
     const recipient = (booking.customer_email as string | null) ?? claimEmail;
     if (!recipient) return { success: false, reason: "no_recipient" as const };
 
-    const starts = new Date(booking.starts_at as string);
     const durationMinutes = booking.duration_minutes as number;
-    const ends = new Date(starts.getTime() + durationMinutes * 60_000);
-
-    const dateLabel = new Intl.DateTimeFormat("en-AU", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(starts);
-    const timeFmt = new Intl.DateTimeFormat("en-AU", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-    const timeLabel = `${timeFmt.format(starts)} – ${timeFmt.format(ends)}`;
+    const { dateLabel, timeLabel } = formatBookingDateTime(
+      booking.starts_at as string,
+      durationMinutes,
+      data.timeZone,
+    );
     const durationLabel = durationMinutes === 30 ? "30-minute session" : "1-hour session";
 
     const amount =
