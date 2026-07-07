@@ -84,6 +84,7 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
         notes: (booking.notes as string | null) ?? undefined,
         bookingId: booking.id as string,
         icsUrl,
+        dashboardUrl,
       },
     });
 
