@@ -376,9 +376,11 @@ export type Database = {
           description: string | null
           id: string
           kind: string
+          materials: string | null
           media_urls: Json
           price_cents: number | null
           published: boolean
+          sizes: string[]
           subscribers_only: boolean
           title: string
           updated_at: string
@@ -391,9 +393,11 @@ export type Database = {
           description?: string | null
           id?: string
           kind: string
+          materials?: string | null
           media_urls?: Json
           price_cents?: number | null
           published?: boolean
+          sizes?: string[]
           subscribers_only?: boolean
           title: string
           updated_at?: string
@@ -406,9 +410,11 @@ export type Database = {
           description?: string | null
           id?: string
           kind?: string
+          materials?: string | null
           media_urls?: Json
           price_cents?: number | null
           published?: boolean
+          sizes?: string[]
           subscribers_only?: boolean
           title?: string
           updated_at?: string
