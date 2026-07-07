@@ -256,8 +256,13 @@ function CheckoutReturn() {
           metadata={session!.metadata ?? {}}
           destination={destination}
         />
-      ) : isComplete && isPrivateRoomPurchase ? (
-        <PrivateRoomConfirmation sessionId={sessionId!} />
+      ) : isPrivateRoomPurchase ? (
+        <PrivateRoomConfirmation
+          sessionId={sessionId!}
+          sessionStatus={session?.status ?? null}
+          sessionComplete={isComplete}
+        />
+
       ) : isComplete ? (
         <>
           <h1 className="text-2xl font-medium">Thank you! 🎉</h1>
@@ -445,16 +450,28 @@ function MembershipConfirmation({
  * with a friendly "finalising" state while the webhook flips the row from
  * `pending` to `confirmed`.
  */
-function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
+function PrivateRoomConfirmation({
+  sessionId,
+  sessionStatus,
+  sessionComplete,
+}: {
+  sessionId: string;
+  sessionStatus: string | null;
+  sessionComplete: boolean;
+}) {
   const q = useQuery({
     queryKey: ["private-room-booking", sessionId],
     retry: 3,
     refetchInterval: (query) => {
       const data = query.state.data as { status?: string } | null | undefined;
-      return data && data.status === "confirmed" ? false : 3000;
+      if (!data) return 3000;
+      // Stop polling once the row reaches a terminal state.
+      if (["confirmed", "cancelled", "refunded"].includes(data.status ?? "")) return false;
+      return 3000;
     },
     queryFn: () => getMyPrivateRoomBookingBySession({ data: { sessionId } }),
   });
+
 
   const b = q.data;
   const starts = b ? new Date(b.starts_at) : null;
@@ -482,22 +499,96 @@ function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
     });
   }, [b]);
 
+  // Categorize the booking outcome so header, description, badge, and CTAs
+  // all stay in sync. `sessionComplete=false` (Stripe session still open or
+  // expired) is a "requires action" case even if the booking row is still
+  // pending, because no webhook is ever going to flip it.
+  type Outcome = "confirmed" | "cancelled" | "refunded" | "requires_action" | "finalising";
+  const bookingStatus = b?.status ?? null;
+  const outcome: Outcome = !sessionComplete
+    ? sessionStatus === "expired"
+      ? "requires_action"
+      : "requires_action"
+    : bookingStatus === "confirmed"
+      ? "confirmed"
+      : bookingStatus === "cancelled"
+        ? "cancelled"
+        : bookingStatus === "refunded"
+          ? "refunded"
+          : "finalising";
+
+  const isTerminalFailure =
+    outcome === "cancelled" || outcome === "refunded" || outcome === "requires_action";
+
+  const header =
+    outcome === "confirmed"
+      ? "You're booked in! 🎉"
+      : outcome === "cancelled"
+        ? "Booking cancelled"
+        : outcome === "refunded"
+          ? "Booking refunded"
+          : outcome === "requires_action"
+            ? "Payment didn't complete"
+            : "Finalising your booking…";
+
+  const subhead =
+    outcome === "confirmed"
+      ? "Payment confirmed. A calendar invite and receipt are on their way."
+      : outcome === "cancelled"
+        ? "This booking was cancelled and the time slot has been released. You can pick a new slot below."
+        : outcome === "refunded"
+          ? "This booking was refunded. If this was unexpected, get in touch — otherwise pick a new slot below."
+          : outcome === "requires_action"
+            ? sessionStatus === "expired"
+              ? "The Stripe checkout session expired before payment finished. Nothing was charged — start a fresh booking to try again."
+              : `Stripe hasn't confirmed this payment (status: ${sessionStatus ?? "unknown"}). Nothing has been charged. Start a fresh booking to try again.`
+            : "Hang tight — we're waiting on Stripe to confirm payment. This refreshes automatically.";
+
+  const statusBadge = (
+    <span
+      className={
+        outcome === "confirmed"
+          ? "rounded-full bg-primary/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-primary"
+          : outcome === "cancelled" || outcome === "refunded" || outcome === "requires_action"
+            ? "rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-destructive"
+            : "rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
+      }
+    >
+      {outcome === "confirmed"
+        ? "Confirmed"
+        : outcome === "cancelled"
+          ? "Cancelled"
+          : outcome === "refunded"
+            ? "Refunded"
+            : outcome === "requires_action"
+              ? "Action required"
+              : "Finalising…"}
+    </span>
+  );
+
+  const cardBorder =
+    outcome === "confirmed"
+      ? "border-primary/40 bg-primary/5 shadow-[var(--shadow-glow-pink)]"
+      : isTerminalFailure
+        ? "border-destructive/40 bg-destructive/5"
+        : "border-border/60 bg-muted/10";
+
+  const showDownloads = outcome === "confirmed" && !!b && !!starts && !!ends;
+
   return (
     <>
-      <h1 className="text-2xl font-medium">You're booked in! 🎉</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Payment confirmed. A calendar invite and receipt are on their way.
-      </p>
+      <h1 className="text-2xl font-medium">{header}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{subhead}</p>
 
       {q.isLoading ? (
         <p className="mt-6 text-sm text-muted-foreground">Loading booking details…</p>
-      ) : q.isError || !b ? (
+      ) : (q.isError || !b) && outcome !== "requires_action" ? (
         <p className="mt-6 text-sm text-muted-foreground">
           We couldn't load your booking details. Check your dashboard shortly — it
           will appear as soon as our server finishes processing.
         </p>
-      ) : (
-        <div className="mt-6 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-left shadow-[var(--shadow-glow-pink)]">
+      ) : b ? (
+        <div className={`mt-6 rounded-2xl border ${cardBorder} p-6 text-left`}>
           <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
             Your private room booking
           </div>
@@ -518,17 +609,7 @@ function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
               {b.party_size ?? 1} {(b.party_size ?? 1) === 1 ? "guest" : "guests"}
             </ConfRow>
             {amount && <ConfRow label="Amount paid">{amount}</ConfRow>}
-            <ConfRow label="Status">
-              <span
-                className={
-                  b.status === "confirmed"
-                    ? "rounded-full bg-primary/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-primary"
-                    : "rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
-                }
-              >
-                {b.status === "confirmed" ? "Confirmed" : "Finalising…"}
-              </span>
-            </ConfRow>
+            <ConfRow label="Status">{statusBadge}</ConfRow>
             <ConfRow label="Booking ID">
               <span className="font-mono text-[11px]">{b.id.slice(0, 8)}</span>
             </ConfRow>
@@ -545,10 +626,10 @@ function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       <div className="mt-6 flex flex-col gap-2">
-        {b && starts && ends && (
+        {showDownloads && b && starts && ends && (
           <button
             type="button"
             onClick={() => {
@@ -573,7 +654,7 @@ function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
             Add to calendar (.ics)
           </button>
         )}
-        {b && starts && ends && (
+        {showDownloads && b && starts && ends && (
           <button
             type="button"
             onClick={async () => {
@@ -594,22 +675,43 @@ function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
             Download receipt (PDF)
           </button>
         )}
-        <Link
-          to="/dashboard"
-          className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-        >
-          Go to your dashboard
-        </Link>
-        <Link
-          to="/private-room"
-          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-        >
-          Book another session
-        </Link>
+
+        {isTerminalFailure ? (
+          <>
+            <Link
+              to="/private-room"
+              className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+            >
+              Try booking again
+            </Link>
+            <Link
+              to="/dashboard"
+              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Go to your dashboard
+            </Link>
+          </>
+        ) : (
+          <>
+            <Link
+              to="/dashboard"
+              className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+            >
+              Go to your dashboard
+            </Link>
+            <Link
+              to="/private-room"
+              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Book another session
+            </Link>
+          </>
+        )}
       </div>
     </>
   );
 }
+
 
 function ConfRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
