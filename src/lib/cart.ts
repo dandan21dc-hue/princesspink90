@@ -15,6 +15,8 @@ export type CartItem =
       currency: string;
       cover_url?: string | null;
       quantity: number;
+      /** Selected size variant, e.g. "S", "M", "L". Undefined = one-size / no variant. */
+      size?: string;
     }
   | {
       kind: "panty";
@@ -25,7 +27,14 @@ export type CartItem =
       currency: string;
       cover_url?: string | null;
       quantity: number;
+      size?: string;
     };
+
+/** Stable per-line identity: same product in different sizes = separate lines. */
+export function cartLineKey(it: Pick<CartItem, "kind" | "id" | "size">): string {
+  return `${it.kind}:${it.id}:${it.size ?? ""}`;
+}
+
 
 const STORAGE_KEY = "pp_cart_v1";
 
