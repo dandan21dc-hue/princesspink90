@@ -5,6 +5,7 @@ import {
   getCheckoutSession,
   getMyPrivateRoomBookingBySession,
 } from "@/lib/store.functions";
+import { sendBookingConfirmationEmail } from "@/lib/booking-email.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart as cartStore } from "@/lib/cart";
 import { track } from "@/lib/track";
@@ -464,6 +465,21 @@ function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
           currency: (b.currency ?? "aud").toUpperCase(),
         }).format(b.amount_cents / 100)
       : null;
+
+  // Fire the booking-confirmation email once the booking flips to confirmed.
+  // Deduped by booking id via useRef + idempotency key on the server side, so
+  // a page refresh or re-render can't produce duplicate sends.
+  const emailSentRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!b || b.status !== "confirmed") return;
+    if (emailSentRef.current === b.id) return;
+    emailSentRef.current = b.id;
+    sendBookingConfirmationEmail({ data: { bookingId: b.id } }).catch((err) => {
+      // Non-fatal — the confirmation UI + dashboard both show the booking.
+      console.warn("booking confirmation email send failed", err);
+      emailSentRef.current = null;
+    });
+  }, [b]);
 
   return (
     <>

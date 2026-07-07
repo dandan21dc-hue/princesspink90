@@ -90,6 +90,7 @@ import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_auth
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
 import { Route as AuthenticatedAdminPartnershipsIdRouteImport } from './routes/_authenticated/admin.partnerships.$id'
+import { Route as ApiPublicBookingsIdIcsRouteImport } from './routes/api/public/bookings.$id.ics'
 import { Route as AuthenticatedEventsIdCheckinPrintRouteImport } from './routes/_authenticated/events.$id.checkin.print'
 
 const UnsubscribeRoute = UnsubscribeRouteImport.update({
@@ -541,6 +542,11 @@ const AuthenticatedAdminPartnershipsIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminPartnershipsRoute,
   } as any)
+const ApiPublicBookingsIdIcsRoute = ApiPublicBookingsIdIcsRouteImport.update({
+  id: '/api/public/bookings/$id/ics',
+  path: '/api/public/bookings/$id/ics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedEventsIdCheckinPrintRoute =
   AuthenticatedEventsIdCheckinPrintRouteImport.update({
     id: '/print',
@@ -630,6 +636,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
+  '/api/public/bookings/$id/ics': typeof ApiPublicBookingsIdIcsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -712,6 +719,7 @@ export interface FileRoutesByTo {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
+  '/api/public/bookings/$id/ics': typeof ApiPublicBookingsIdIcsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -797,6 +805,7 @@ export interface FileRoutesById {
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
   '/_authenticated/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
+  '/api/public/bookings/$id/ics': typeof ApiPublicBookingsIdIcsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -882,6 +891,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/events/$id/checkin/print'
+    | '/api/public/bookings/$id/ics'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -964,6 +974,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/events/$id/checkin/print'
+    | '/api/public/bookings/$id/ics'
   id:
     | '__root__'
     | '/'
@@ -1048,6 +1059,7 @@ export interface FileRouteTypes {
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
     | '/_authenticated/events/$id/checkin/print'
+    | '/api/public/bookings/$id/ics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1089,6 +1101,7 @@ export interface RootRouteChildren {
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
   LovableEmailTransactionalSendRoute: typeof LovableEmailTransactionalSendRoute
+  ApiPublicBookingsIdIcsRoute: typeof ApiPublicBookingsIdIcsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1660,6 +1673,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPartnershipsIdRouteImport
       parentRoute: typeof AuthenticatedAdminPartnershipsRoute
     }
+    '/api/public/bookings/$id/ics': {
+      id: '/api/public/bookings/$id/ics'
+      path: '/api/public/bookings/$id/ics'
+      fullPath: '/api/public/bookings/$id/ics'
+      preLoaderRoute: typeof ApiPublicBookingsIdIcsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/events/$id/checkin/print': {
       id: '/_authenticated/events/$id/checkin/print'
       path: '/print'
@@ -1865,6 +1885,7 @@ const rootRouteChildren: RootRouteChildren = {
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
   LovableEmailTransactionalSendRoute: LovableEmailTransactionalSendRoute,
+  ApiPublicBookingsIdIcsRoute: ApiPublicBookingsIdIcsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
