@@ -62,7 +62,27 @@ export const listPrivateRoomBusy = createServerFn({ method: "GET" })
       to_ts: data.to,
     });
     if (error) throw new Error(error.message);
-    return (rows ?? []) as Array<{ starts_at: string; duration_minutes: number }>;
+
+    // Also union admin-managed "blocked" slots (marked booked/unavailable in
+    // the Availability Manager) so the public picker greys them out.
+    const { data: blocked, error: blockedErr } = await supabaseAdmin
+      .from("private_session_slots")
+      .select("start_time,end_time")
+      .eq("is_booked", true)
+      .lt("start_time", data.to)
+      .gt("end_time", data.from);
+    if (blockedErr) throw new Error(blockedErr.message);
+
+    const busy = (rows ?? []) as Array<{ starts_at: string; duration_minutes: number }>;
+    const blockedBusy = (blocked ?? []).map((b: { start_time: string; end_time: string }) => {
+      const starts = new Date(b.start_time);
+      const ends = new Date(b.end_time);
+      return {
+        starts_at: b.start_time,
+        duration_minutes: Math.max(1, Math.round((ends.getTime() - starts.getTime()) / 60000)),
+      };
+    });
+    return [...busy, ...blockedBusy];
   });
 
 
