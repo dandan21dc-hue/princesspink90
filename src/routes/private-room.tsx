@@ -60,11 +60,13 @@ function PrivateRoomPage() {
   // Reset the picked slot when the day or duration changes, unless we're
   // jumping to a found "next available" slot.
   useEffect(() => {
+    console.log("reset effect", { jumpingToSlot: jumpingToSlot?.toISOString(), selectedDate: selectedDate?.toISOString() });
     if (
       jumpingToSlot &&
       selectedDate &&
       startOfDay(jumpingToSlot).getTime() === selectedDate.getTime()
     ) {
+      console.log("applying jump slot", jumpingToSlot.toISOString());
       setSelectedSlot(new Date(jumpingToSlot.getTime()));
       const el = document.getElementById(`slot-${jumpingToSlot.getTime()}`);
       el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -74,6 +76,7 @@ function PrivateRoomPage() {
 
     setSelectedSlot(null);
   }, [selectedDate, duration, jumpingToSlot]);
+
 
 
   const dayRange = useMemo(() => {
