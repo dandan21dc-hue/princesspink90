@@ -367,6 +367,13 @@ function PrivateRoomPage() {
                   </div>
                 </div>
 
+                {finding && (
+                  <div className="mb-3 inline-flex items-center gap-2 text-xs text-primary">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                    Scanning the next 30 days for the soonest open slot…
+                  </div>
+                )}
+
                 {noSlotsMessage && (
                   <div
                     role="alert"
