@@ -136,8 +136,9 @@ function AllAccessCard() {
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full">
-      <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
+    <TooltipProvider>
+      <div className="flex flex-col gap-3 w-full">
+        <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
         <div className="flex items-center justify-between">
           <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
           {currentLabel && (
