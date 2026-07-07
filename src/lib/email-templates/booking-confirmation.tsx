@@ -202,3 +202,23 @@ const secondaryButton = {
 const fineprint = { fontSize: '12px', color: '#666', textAlign: 'center' as const, margin: '0 0 18px' }
 const sig = { fontSize: '15px', color: '#0a0a0f', margin: '20px 0 8px', fontWeight: 600 as const }
 const footer = { fontSize: '11px', color: '#999', margin: '32px 0 0', lineHeight: '1.5' }
+const manageLabel = {
+  fontSize: '11px',
+  color: '#777',
+  margin: '0',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.18em',
+  textAlign: 'center' as const,
+}
+const dangerButton = {
+  backgroundColor: '#ffffff',
+  color: '#b91c1c',
+  border: '1px solid #b91c1c',
+  padding: '12px 22px',
+  borderRadius: '8px',
+  fontSize: '13px',
+  fontWeight: 700 as const,
+  textDecoration: 'none',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase' as const,
+}
