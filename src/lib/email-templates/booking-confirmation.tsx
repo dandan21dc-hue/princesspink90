@@ -146,6 +146,7 @@ export const template = {
     bookingId: '4f2c3a80-1a2b-4c5d-9e0f-abcdef012345',
     icsUrl: 'https://princesspink90.com/api/public/bookings/4f2c3a80-1a2b-4c5d-9e0f-abcdef012345.ics',
     dashboardUrl: 'https://princesspink90.com/bookings',
+    bookingUrl: 'https://princesspink90.com/bookings?booking=4f2c3a80-1a2b-4c5d-9e0f-abcdef012345&action=view',
     rescheduleUrl: 'https://princesspink90.com/bookings?booking=4f2c3a80-1a2b-4c5d-9e0f-abcdef012345&action=reschedule',
     cancelUrl: 'https://princesspink90.com/bookings?booking=4f2c3a80-1a2b-4c5d-9e0f-abcdef012345&action=cancel',
   },
