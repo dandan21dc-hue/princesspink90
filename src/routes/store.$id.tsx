@@ -242,7 +242,7 @@ function ItemPage() {
                       {m.type === "video" ? (
                         <video src={m.url} className="h-full w-full object-cover" muted playsInline preload="metadata" />
                       ) : (
-                        <img src={m.url} alt="" className="h-full w-full object-cover" />
+                        <img src={resolveMediaUrl(m.url) ?? ""} alt="" onError={onImgError} className="h-full w-full object-cover" />
                       )}
                     </button>
                   ))}
