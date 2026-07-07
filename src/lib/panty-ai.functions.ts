@@ -39,9 +39,9 @@ export const describePantyPhoto = createServerFn({ method: "POST" })
       "Do not invent size, brand, or wear history. Keep it classy — no explicit language.";
 
     try {
-      const { experimental_output } = await generateText({
+      const { output } = await generateText({
         model,
-        experimental_output: Output.object({ schema: ResultSchema }),
+        output: Output.object({ schema: ResultSchema }),
         messages: [
           { role: "system", content: systemPrompt },
           {
@@ -55,8 +55,8 @@ export const describePantyPhoto = createServerFn({ method: "POST" })
       });
 
       return {
-        title: experimental_output.title.slice(0, 80).trim(),
-        description: experimental_output.description.slice(0, 500).trim(),
+        title: output.title.slice(0, 80).trim(),
+        description: output.description.slice(0, 500).trim(),
       };
     } catch (error) {
       if (NoObjectGeneratedError.isInstance(error)) {
