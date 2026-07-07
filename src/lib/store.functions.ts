@@ -155,21 +155,13 @@ export const cancelMyPrivateRoomBooking = createServerFn({ method: "POST" })
     // Fire the cancellation email. Failures here shouldn't fail the cancel
     // action itself — the booking is already cancelled in the DB.
     try {
-      const startsAt = new Date(row.starts_at as string);
       const durationMinutes = (row.duration_minutes as number) ?? 60;
-      const ends = new Date(startsAt.getTime() + durationMinutes * 60_000);
-      const dateLabel = new Intl.DateTimeFormat("en-AU", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }).format(startsAt);
-      const timeFmt = new Intl.DateTimeFormat("en-AU", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-      const timeLabel = `${timeFmt.format(startsAt)} – ${timeFmt.format(ends)}`;
+      const { formatBookingDateTime } = await import("@/lib/booking-format");
+      const { dateLabel, timeLabel } = formatBookingDateTime(
+        row.starts_at as string,
+        durationMinutes,
+        data.timeZone,
+      );
       const durationLabel = durationMinutes === 30 ? "30-minute session" : "1-hour session";
       const amount =
         row.amount_cents != null
