@@ -1078,6 +1078,63 @@ export type Database = {
         }
         Relationships: []
       }
+      panty_listings: {
+        Row: {
+          color: string | null
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          description: string | null
+          id: string
+          media_urls: string[]
+          price_cents: number | null
+          published: boolean
+          size: string | null
+          sold: boolean
+          sort_order: number
+          style: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          media_urls?: string[]
+          price_cents?: number | null
+          published?: boolean
+          size?: string | null
+          sold?: boolean
+          sort_order?: number
+          style?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          description?: string | null
+          id?: string
+          media_urls?: string[]
+          price_cents?: number | null
+          published?: boolean
+          size?: string | null
+          sold?: boolean
+          sort_order?: number
+          style?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       panty_orders: {
         Row: {
           admin_notes: string | null
@@ -1089,6 +1146,7 @@ export type Database = {
           environment: string
           hours: number
           id: string
+          panty_listing_id: string | null
           shipping_city: string | null
           shipping_country: string | null
           shipping_line1: string | null
@@ -1112,6 +1170,7 @@ export type Database = {
           environment?: string
           hours: number
           id?: string
+          panty_listing_id?: string | null
           shipping_city?: string | null
           shipping_country?: string | null
           shipping_line1?: string | null
@@ -1135,6 +1194,7 @@ export type Database = {
           environment?: string
           hours?: number
           id?: string
+          panty_listing_id?: string | null
           shipping_city?: string | null
           shipping_country?: string | null
           shipping_line1?: string | null
@@ -1148,7 +1208,15 @@ export type Database = {
           user_id?: string
           variant?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "panty_orders_panty_listing_id_fkey"
+            columns: ["panty_listing_id"]
+            isOneToOne: false
+            referencedRelation: "panty_listings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       partnership_inquiries: {
         Row: {
