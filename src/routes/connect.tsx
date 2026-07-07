@@ -233,6 +233,151 @@ function ConnectPage() {
     }
   }
 
+  type DiagStep = {
+    label: string
+    url: string
+    method: string
+    status?: number
+    ok?: boolean
+    contentType?: string
+    body?: string
+    error?: string
+    ms?: number
+  }
+  const [diag, setDiag] = useState<DiagStep[] | null>(null)
+  const [diagRunning, setDiagRunning] = useState(false)
+  const [diagSummary, setDiagSummary] = useState<{
+    resource?: string
+    issuers?: string[]
+    scopes?: string[]
+    registration?: string
+  } | null>(null)
+
+  async function probe(label: string, url: string, init?: RequestInit): Promise<DiagStep> {
+    const t0 = performance.now()
+    try {
+      const res = await fetch(url, init)
+      const contentType = res.headers.get('content-type') ?? ''
+      const raw = await res.text()
+      let body = raw
+      if (contentType.includes('application/json')) {
+        try {
+          body = JSON.stringify(JSON.parse(raw), null, 2)
+        } catch {
+          /* keep raw */
+        }
+      }
+      return {
+        label,
+        url,
+        method: init?.method ?? 'GET',
+        status: res.status,
+        ok: res.ok,
+        contentType,
+        body: body.length > 4000 ? body.slice(0, 4000) + '\n… (truncated)' : body,
+        ms: Math.round(performance.now() - t0),
+      }
+    } catch (err) {
+      return {
+        label,
+        url,
+        method: init?.method ?? 'GET',
+        error: err instanceof Error ? err.message : String(err),
+        ms: Math.round(performance.now() - t0),
+      }
+    }
+  }
+
+  async function runDiagnostics() {
+    if (!mcpUrl) return
+    setDiagRunning(true)
+    setDiag(null)
+    setDiagSummary(null)
+    const steps: DiagStep[] = []
+    const summary: NonNullable<typeof diagSummary> = {}
+
+    // 1. Probe /mcp with initialize.
+    const mcpStep = await probe('MCP initialize', mcpUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+      },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: {
+          protocolVersion: '2025-06-18',
+          capabilities: {},
+          clientInfo: { name: 'princess-pink-diagnostics', version: '1.0.0' },
+        },
+      }),
+    })
+    steps.push(mcpStep)
+
+    // 2. Fetch OAuth protected-resource metadata (same origin as MCP URL).
+    let mcpOrigin = ''
+    try {
+      mcpOrigin = new URL(mcpUrl).origin
+    } catch {
+      /* ignore */
+    }
+    if (mcpOrigin) {
+      const prm = await probe(
+        'OAuth protected-resource metadata',
+        `${mcpOrigin}/.well-known/oauth-protected-resource`,
+      )
+      steps.push(prm)
+      if (prm.body && prm.contentType?.includes('application/json')) {
+        try {
+          const j = JSON.parse(prm.body) as {
+            resource?: string
+            authorization_servers?: string[]
+            scopes_supported?: string[]
+          }
+          summary.resource = j.resource
+          summary.issuers = j.authorization_servers
+          summary.scopes = j.scopes_supported
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    // 3. For each authorization server, fetch its discovery.
+    for (const issuer of summary.issuers ?? []) {
+      const base = issuer.replace(/\/+$/, '')
+      const disc = await probe(
+        `Authorization server metadata (${issuer})`,
+        `${base}/.well-known/oauth-authorization-server`,
+      )
+      steps.push(disc)
+      if (disc.body && disc.contentType?.includes('application/json')) {
+        try {
+          const j = JSON.parse(disc.body) as {
+            registration_endpoint?: string
+            scopes_supported?: string[]
+          }
+          if (j.registration_endpoint) summary.registration = j.registration_endpoint
+          if (!summary.scopes && j.scopes_supported) summary.scopes = j.scopes_supported
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    setDiag(steps)
+    setDiagSummary(summary)
+    setDiagRunning(false)
+  }
+
+  function copyDiag() {
+    if (!diag) return
+    const dump = JSON.stringify({ summary: diagSummary, steps: diag }, null, 2)
+    navigator.clipboard.writeText(dump).catch(() => {})
+  }
+
 
   const dotClass =
     status === 'ok'
