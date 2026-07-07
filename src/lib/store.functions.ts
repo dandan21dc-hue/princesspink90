@@ -69,6 +69,27 @@ export const listPrivateRoomBusy = createServerFn({ method: "GET" })
 
 // ---------- Authenticated ----------
 
+// Owner-scoped fetch of a private-room booking by its Stripe checkout session.
+// RLS ensures only the booking's user (or an admin) can read the row.
+export const getMyPrivateRoomBookingBySession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { sessionId: string }) => {
+    if (!/^cs_[a-zA-Z0-9_]+$/.test(data.sessionId)) throw new Error("Invalid session id");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("private_room_bookings")
+      .select(
+        "id,starts_at,duration_minutes,status,amount_cents,currency,party_size,notes,customer_email,created_at",
+      )
+      .eq("stripe_session_id", data.sessionId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+
 async function resolveOrCreateCustomer(
   stripe: ReturnType<typeof createStripeClient>,
   options: { email?: string; userId?: string },
