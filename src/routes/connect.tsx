@@ -605,13 +605,22 @@ function ConnectPage() {
               {diagRunning ? 'Running…' : 'Run diagnostics'}
             </button>
             {diag && (
-              <button
-                type="button"
-                onClick={copyDiag}
-                className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
-              >
-                Copy JSON
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={copyDiag}
+                  className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
+                >
+                  Copy JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadDiag}
+                  className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
+                >
+                  Download .json
+                </button>
+              </>
             )}
           </div>
         </div>
