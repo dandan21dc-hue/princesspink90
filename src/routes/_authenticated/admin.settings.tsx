@@ -326,6 +326,64 @@ function ConvertTermPassesSection() {
   );
 }
 
+function ArchiveUsdPricesSection() {
+  const archiveFn = useServerFn(archiveUsdPrices);
+  const run = useMutation({
+    mutationFn: () => archiveFn({ data: { environment: getStripeEnvironment() } }),
+  });
+  const data = run.data;
+  const summary =
+    data && "archived" in data
+      ? `${data.archived} archived · ${data.alreadyInactive} already inactive · ${data.scanned} prices scanned`
+      : null;
+
+  return (
+    <div className="mt-8 border-t border-border/60 pt-6">
+      <h3 className="font-display text-lg font-semibold">Archive legacy USD prices</h3>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Walks every active price in Stripe ({getStripeEnvironment()}) and deactivates any denominated in USD.
+        AUD is the only supported surface currency; any USD price is legacy and unsafe to leave active.
+        Safe to re-run — already-inactive prices are counted but not touched.
+      </p>
+      <div className="mt-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => run.mutate()}
+          disabled={run.isPending}
+          className="rounded-md border border-destructive/60 bg-destructive/10 px-5 py-2 text-sm font-semibold uppercase tracking-widest text-destructive disabled:opacity-50"
+        >
+          {run.isPending ? "Archiving…" : "Archive USD prices"}
+        </button>
+        {summary && <span className="text-sm text-muted-foreground">{summary}</span>}
+        {run.error && (
+          <span className="text-sm text-destructive">{(run.error as Error).message}</span>
+        )}
+      </div>
+      {data && "error" in data && (
+        <p className="mt-3 text-sm text-destructive">{data.error}</p>
+      )}
+      {data && "details" in data && data.details.length > 0 && (
+        <ul className="mt-3 space-y-1 text-xs font-mono">
+          {data.details.map((d) => (
+            <li key={d.priceId} className="text-muted-foreground">
+              <span className="mr-2">•</span>
+              {d.priceId}
+              {d.lookupKey ? ` (${d.lookupKey})` : ""}
+              {d.productId ? ` — ${d.productId}` : ""}
+              {d.amount != null ? ` · ${(d.amount / 100).toFixed(2)} USD` : ""}
+            </li>
+          ))}
+        </ul>
+      )}
+      {data && "details" in data && data.details.length === 0 && (
+        <p className="mt-3 text-sm text-muted-foreground">No USD prices found — catalogue is clean.</p>
+      )}
+    </div>
+  );
+}
+
+
+
 function ReminderJobConfigSection() {
   const getFn = useServerFn(getReminderJobConfig);
   const updateFn = useServerFn(updateReminderJobConfig);
