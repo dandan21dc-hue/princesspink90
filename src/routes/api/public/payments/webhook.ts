@@ -17,6 +17,37 @@ function getSupabase() {
   }
   return _supabase;
 }
+// Server-side enforcement of the "first 3 discounted Panty Drawer orders"
+// cap. The checkout gate in store.functions.ts already refuses to attach the
+// Stripe coupon past this count, but two concurrent checkouts could still
+// slip a 4th discounted session through before either completes. When the
+// webhook fans out orders we re-count and clamp: any order past the cap is
+// persisted as full-price (discount_percent = 0), regardless of what the
+// session metadata claimed. Payment already happened at Stripe — clamping
+// only controls how the row is recorded in our own tracking.
+const SUBSCRIBER_DISCOUNT_MAX_ORDERS = 3;
+async function allowedDiscountPercent(
+  userId: string,
+  env: StripeEnv,
+  requestedPercent: number,
+): Promise<number> {
+  if (requestedPercent <= 0) return 0;
+  const { count, error } = await getSupabase()
+    .from("panty_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("environment", env)
+    .eq("status", "paid")
+    .gt("discount_percent", 0);
+  if (error) {
+    // Fail closed: if we can't verify the allowance, record as full-price.
+    console.error("[webhook] discount cap lookup failed", error);
+    return 0;
+  }
+  const used = count ?? 0;
+  return used < SUBSCRIBER_DISCOUNT_MAX_ORDERS ? requestedPercent : 0;
+}
+
 
 async function notifyAllCreators(payload: {
   kind: string;
@@ -365,7 +396,7 @@ async function handleCartSession(session: any, env: StripeEnv) {
     null;
   const addr = ship?.address ?? null;
 
-  const cartDiscountPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
+  const requestedCartPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
 
   for (const entry of pantyEntries) {
     const match = /^panty_(24|48|72)hr_aud$/.exec(entry.id);
@@ -373,6 +404,14 @@ async function handleCartSession(session: any, env: StripeEnv) {
     const hours = Number(match[1]);
     const li = takeLineByPredicate((l) => l.price?.lookup_key === entry.id);
     const amountCents = li?.amount_total ?? 0;
+
+    // Re-check per row so a cart that requests the discount on multiple
+    // panty lines only records it on the ones still under the cap.
+    const rowDiscountPercent = await allowedDiscountPercent(
+      userId,
+      env,
+      requestedCartPercent,
+    );
 
     await (getSupabase() as any)
       .from("panty_orders")
@@ -386,7 +425,8 @@ async function handleCartSession(session: any, env: StripeEnv) {
           currency: (session.currency ?? "aud").toLowerCase(),
           environment: env,
           status: "paid",
-          discount_percent: cartDiscountPercent,
+          discount_percent: rowDiscountPercent,
+
           customer_email: session.customer_details?.email ?? null,
           shipping_name: ship?.name ?? session.customer_details?.name ?? null,
           shipping_line1: addr?.line1 ?? null,
@@ -575,7 +615,12 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       session.shipping_details ??
       null;
     const addr = ship?.address ?? null;
-    const singleDiscountPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
+    const requestedSinglePercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
+    const singleDiscountPercent = await allowedDiscountPercent(
+      userId,
+      env,
+      requestedSinglePercent,
+    );
     await (getSupabase() as any)
       .from("panty_orders")
       .upsert(
