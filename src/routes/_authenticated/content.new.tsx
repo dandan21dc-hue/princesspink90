@@ -29,6 +29,41 @@ type UploadItem = {
 // If no progress event fires for this long, the upload is treated as stalled.
 const STALL_MS = 15000;
 
+// Client-side upload limits (server enforces its own limits too).
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+const IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "gif", "avif"];
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const VIDEO_EXTS = ["mp4", "webm", "mov", "m4v"];
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15 MB
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // 500 MB
+
+function validateFile(file: File, type: "image" | "video"): string | null {
+  const ext = file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "";
+  const allowedTypes = type === "image" ? IMAGE_TYPES : VIDEO_TYPES;
+  const allowedExts = type === "image" ? IMAGE_EXTS : VIDEO_EXTS;
+  const maxBytes = type === "image" ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
+  const maxLabel = type === "image" ? "15 MB" : "500 MB";
+  const kindLabel = type === "image" ? "image" : "video";
+
+  const mimeOk = file.type ? allowedTypes.includes(file.type) : false;
+  const extOk = ext ? allowedExts.includes(ext) : false;
+  if (!mimeOk && !extOk) {
+    return `"${file.name}" isn't a supported ${kindLabel}. Allowed: ${allowedExts.join(", ").toUpperCase()}.`;
+  }
+  if (file.type && !file.type.startsWith(type === "image" ? "image/" : "video/")) {
+    return `"${file.name}" isn't a ${kindLabel} file (detected ${file.type}).`;
+  }
+  if (file.size === 0) {
+    return `"${file.name}" is empty.`;
+  }
+  if (file.size > maxBytes) {
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    return `"${file.name}" is ${mb} MB — max ${maxLabel} for ${kindLabel}s.`;
+  }
+  return null;
+}
+
+
 function NewContentPage() {
   const createFn = useServerFn(createContentItem);
   const navigate = useNavigate();
