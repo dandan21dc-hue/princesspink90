@@ -565,9 +565,10 @@ function PantyGallery() {
               <div className="aspect-square bg-muted/20">
                 {l.cover_url ? (
                   <img
-                    src={l.cover_url}
+                    src={resolveMediaUrl(l.cover_url) ?? ""}
                     alt={l.title}
                     loading="lazy"
+                    onError={onImgError}
                     className="h-full w-full object-cover transition group-hover:scale-[1.02]"
                   />
                 ) : (
