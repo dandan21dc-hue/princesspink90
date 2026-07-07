@@ -154,6 +154,16 @@ function AvailabilityAdmin() {
             type="button"
             onClick={() => {
               setError(null);
+              setBulkOpen(true);
+            }}
+            className="rounded-md border border-primary/50 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+          >
+            Bulk add slots
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
               setEditing("new");
             }}
             className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
