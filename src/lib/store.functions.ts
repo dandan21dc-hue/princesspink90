@@ -708,11 +708,8 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
 
 
 
-        // Members-only gate for the Panty Drawer. Never trust the client —
-        // enforce active subscription/membership before creating the session.
-        if (isPanty) {
-          await assertPantyAccess(context.supabase, context.userId, data.environment);
-        }
+        // Panty Drawer is open to the public — no access gate here.
+
 
         // Tax codes are set once via scripts/sync-stripe-tax-codes.mjs.
         // We no longer patch them per checkout — that hid API failures and
