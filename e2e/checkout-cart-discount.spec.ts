@@ -167,7 +167,7 @@ test("subscriber with 3 remaining, 1-item cart → 15% off applied, 2 left after
   await page.goto("/checkout/cart");
 
   const aside = page.locator("aside");
-  await expect(aside.getByText("Subscriber 15% off", { exact: false })).toBeVisible();
+  await expect(aside.getByText("Subscriber 15% off", { exact: true })).toBeVisible();
   await expect(aside.getByText("Active")).toBeVisible();
   // "3 / 3" remaining count.
   await expect(aside.getByText(/^\s*3\s*\/\s*3\s*$/)).toBeVisible();
