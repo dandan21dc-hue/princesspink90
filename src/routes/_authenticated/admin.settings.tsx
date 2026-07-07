@@ -8,7 +8,7 @@ import {
   getReminderJobConfig,
   updateReminderJobConfig,
 } from "@/lib/reminder-job-config.functions";
-import { syncMissingStripePrices, convertTermPassesToOneTime } from "@/lib/stripeMaintenance.functions";
+import { syncMissingStripePrices, convertTermPassesToOneTime, archiveUsdPrices } from "@/lib/stripeMaintenance.functions";
 import { refreshUserSubscriptionStatus } from "@/lib/admin.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 
