@@ -87,6 +87,16 @@ function ItemPage() {
   if (!item) return <div className="p-10 text-center">Not found.</div>;
 
   const canBuyOneTime = !!item.price_cents && !item.subscribers_only;
+  const gallery: string[] = Array.isArray((item as any).media_urls) && (item as any).media_urls.length
+    ? ((item as any).media_urls as string[])
+    : item.cover_url
+      ? [item.cover_url]
+      : [];
+  const [activeImage, setActiveImage] = useState(0);
+  const sizes: string[] = Array.isArray((item as any).sizes) ? ((item as any).sizes as string[]) : [];
+  const materials: string | null = (item as any).materials ?? null;
+  const [selectedSize, setSelectedSize] = useState<string | null>(sizes[0] ?? null);
+
 
   function buyThis() {
     if (busy) return;
