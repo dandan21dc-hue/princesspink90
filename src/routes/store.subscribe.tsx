@@ -378,12 +378,16 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
                 label={p.label}
                 price={display}
                 originalPrice={original ?? undefined}
-                subscriberBadge={isSubscriber}
+                subscriberBadge={hasActiveDiscount}
                 cadence="+ shipping"
                 highlight={p.highlight}
                 perks={[
                   ...p.perks,
-                  ...(isSubscriber ? [`Subscriber ${discountPercent}% off applied at checkout`] : []),
+                  ...(hasActiveDiscount
+                    ? [`Subscriber ${discountPercent}% off — ${discountedOrdersRemaining} of ${discountedOrdersMax} discounted orders left`]
+                    : isSubscriber
+                      ? [`You've used all ${discountedOrdersMax} subscriber-discount orders — now at full price`]
+                      : []),
                 ]}
                 cta={p.cta}
                 loading={busy(p.key)}
