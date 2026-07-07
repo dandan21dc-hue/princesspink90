@@ -74,7 +74,7 @@ export function AllAccessCard() {
               </span>
             )}
           </div>
-          <ul className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-5">
+          <ul className="mt-2 grid gap-2 text-sm grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
             {passes.map((p) => {
               const owned = tiers.active[p.plan];
               const supersededByLifetime = hasLifetime && p.plan !== "lifetime_onetime_aud";
