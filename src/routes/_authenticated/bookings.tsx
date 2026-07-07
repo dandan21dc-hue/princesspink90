@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 const bookingSearchSchema = z.object({
   status: fallback(z.enum(["all", "confirmed", "pending", "cancelled"]), "all").default("all"),
   date: fallback(z.enum(["all", "today", "week", "month"]), "all").default("all"),
+  booking: fallback(z.string().uuid().optional(), undefined).optional(),
+  action: fallback(z.enum(["reschedule", "cancel"]).optional(), undefined).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/bookings")({
