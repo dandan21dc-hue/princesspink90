@@ -106,11 +106,11 @@ function PrivateRoomPage() {
 
   function confirm() {
     if (pending) return;
-    if (!selectedSlot) return;
     if (!user) {
-      navigate({ to: "/auth" });
+      navigate({ to: "/auth", search: { next: "/private-room" } });
       return;
     }
+    if (!selectedSlot) return;
     if (partySize < 1 || partySize > 10) return;
     if (notes.length > 1000) return;
     setPending(true);
