@@ -201,7 +201,16 @@ function BookingsPage() {
                       {b.party_size ? ` · party of ${b.party_size}` : ""}
                     </div>
                   </div>
-                  <StatusBadge status={b.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={b.status} />
+                    <button
+                      type="button"
+                      onClick={() => setDetailsId(b.id)}
+                      className="rounded-md border border-border/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                    >
+                      View details
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
