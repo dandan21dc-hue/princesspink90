@@ -211,17 +211,22 @@ function EditModal(props: {
 
   const autoDescribe = async (imageUrl: string) => {
     if (!imageUrl) {
-      toast.error("Upload a cover photo first.");
+      toast.error("No image uploaded", {
+        description: "Upload a cover photo first, then click AI Auto-Describe.",
+        duration: 6000,
+      });
       return;
     }
     setDescribing(true);
     try {
       const result = await describeFn({ data: { imageUrl } });
       if (!result.title && !result.description) {
-        toast.error("AI couldn't read that photo — try another shot.");
+        toast.error("AI couldn't read that photo", {
+          description: "Try a clearer, well-lit shot of a single pair.",
+          duration: 6000,
+        });
         return;
       }
-      // Merge — never clobber text the admin has already tweaked.
       onChange({
         ...value,
         title: value.title && value.title.trim() ? value.title : result.title,
@@ -230,13 +235,21 @@ function EditModal(props: {
             ? value.description
             : result.description,
       });
-      toast.success("Filled title & description — review before saving.");
+      toast.success("Filled title & description", {
+        description: "Review and tweak before saving.",
+      });
     } catch (e) {
-      toast.error((e as Error).message);
+      const message = e instanceof Error ? e.message : String(e);
+      console.error("[AI Auto-Describe] failed:", e);
+      toast.error("AI Auto-Describe failed", {
+        description: message,
+        duration: 10000,
+      });
     } finally {
       setDescribing(false);
     }
   };
+
 
   const uploadPhoto = async (file: File, target: "cover" | "media") => {
     setUploading(true);
