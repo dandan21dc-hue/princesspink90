@@ -156,8 +156,43 @@ SUPABASE_ACCESS_TOKEN=... SUPABASE_PROJECT_REF=... \
 
 Flags: `-- --skip-migrations` to skip step 3 when you only touched
 policy/allowlist config. On failure the script exits non-zero, prints
-the failing step, the matching CI job, and the log path. The manual
-steps below still document what each step actually does.
+the failing step, the matching CI job, the failing command, and the log
+path. The manual steps below still document what each step actually does.
+
+**Structured output.** Every run writes `results.json` into the log
+directory alongside the per-step `.log` files. Pass
+`-- --json-out <path>` to also copy it to a stable path (e.g. for CI
+artifact upload or editor tooling). Schema:
+
+```jsonc
+{
+  "schema_version": 1,
+  "tool": "reproduce-security-gate",
+  "overall_status": "pass" | "fail",
+  "started_at": "2026-…Z",
+  "ended_at":   "2026-…Z",
+  "duration_ms": 12345,
+  "log_dir": "/tmp/gate-repro.XXXX",
+  "skip_migrations": false,
+  "failure": null | {
+    "step": "Step 2: Lint",
+    "ci_job": "Supabase / Lint",
+    "exit_code": 1,
+    "command": "bun run lint:supabase",
+    "log_path": "/tmp/gate-repro.XXXX/step-2.log"
+  },
+  "steps": [
+    {
+      "step": 1, "name": "Config Validate",
+      "ci_job": "Supabase / Config Validate",
+      "status": "pass" | "fail" | "skip",
+      "exit_code": 0, "started_at_ms": …, "ended_at_ms": …,
+      "duration_ms": …, "command": "bun run validate:security-config",
+      "log_path": "…/step-1.log", "skip_reason": null
+    }
+  ]
+}
+```
 
 
 ### Prerequisites (once)
