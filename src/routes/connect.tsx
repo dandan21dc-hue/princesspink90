@@ -23,6 +23,26 @@ export const Route = createFileRoute('/connect')({
 })
 
 const STORAGE_KEY = 'princess-pink:mcp-url'
+const AUTH_STORAGE_KEY = 'princess-pink:mcp-auth'
+
+type AuthConfig = {
+  bearer: string
+  headers: string // raw text: "Key: value" per line
+}
+
+function parseHeaderLines(raw: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    const idx = trimmed.indexOf(':')
+    if (idx <= 0) continue
+    const key = trimmed.slice(0, idx).trim()
+    const value = trimmed.slice(idx + 1).trim()
+    if (key) out[key] = value
+  }
+  return out
+}
 
 function ConnectPage() {
   const [defaultUrl, setDefaultUrl] = useState('')
@@ -31,6 +51,8 @@ function ConnectPage() {
   const [copied, setCopied] = useState(false)
   const [status, setStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle')
   const [statusDetail, setStatusDetail] = useState<string>('')
+  const [auth, setAuth] = useState<AuthConfig>({ bearer: '', headers: '' })
+  const [authSaved, setAuthSaved] = useState(false)
 
   useEffect(() => {
     const derived = new URL('/mcp', window.location.origin).toString()
@@ -38,7 +60,39 @@ function ConnectPage() {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     setMcpUrl(stored && stored.trim() ? stored.trim() : derived)
     if (stored && stored.trim()) setSaved(true)
+    const storedAuth = window.localStorage.getItem(AUTH_STORAGE_KEY)
+    if (storedAuth) {
+      try {
+        const parsed = JSON.parse(storedAuth) as Partial<AuthConfig>
+        setAuth({ bearer: parsed.bearer ?? '', headers: parsed.headers ?? '' })
+        setAuthSaved(true)
+      } catch {
+        /* ignore */
+      }
+    }
   }, [])
+
+  function updateAuth(next: AuthConfig) {
+    setAuth(next)
+    const hasValue = next.bearer.trim() !== '' || next.headers.trim() !== ''
+    if (hasValue) {
+      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next))
+      setAuthSaved(true)
+    } else {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY)
+      setAuthSaved(false)
+    }
+    setStatus('idle')
+    setStatusDetail('')
+  }
+
+  function clearAuth() {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY)
+    setAuth({ bearer: '', headers: '' })
+    setAuthSaved(false)
+    setStatus('idle')
+    setStatusDetail('')
+  }
 
   function saveUrl(next: string) {
     const trimmed = next.trim()
@@ -79,12 +133,17 @@ function ConnectPage() {
     setStatus('testing')
     setStatusDetail('')
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+        ...parseHeaderLines(auth.headers),
+      }
+      if (auth.bearer.trim()) {
+        headers.Authorization = `Bearer ${auth.bearer.trim()}`
+      }
       const res = await fetch(mcpUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json, text/event-stream',
-        },
+        headers,
         body: JSON.stringify({
           jsonrpc: '2.0',
           id: 1,
@@ -98,7 +157,11 @@ function ConnectPage() {
       })
       if (!res.ok) {
         setStatus('error')
-        setStatusDetail(`HTTP ${res.status}`)
+        setStatusDetail(
+          res.status === 401 || res.status === 403
+            ? `HTTP ${res.status} — check bearer token / auth headers`
+            : `HTTP ${res.status}`,
+        )
         return
       }
       const text = await res.text()
@@ -186,6 +249,61 @@ function ConnectPage() {
           )}
         </div>
 
+        <details
+          open={authSaved}
+          className="mt-6 rounded-2xl border border-border/60 bg-background/40 p-4"
+        >
+          <summary className="cursor-pointer text-xs uppercase tracking-[0.25em] text-muted-foreground">
+            Optional authentication {authSaved && <span className="text-neon">· configured</span>}
+          </summary>
+          <p className="mt-3 text-xs text-muted-foreground">
+            The Princess Pink server is public — leave these blank. Fill them in only if you
+            point the URL above at a private MCP server that expects a bearer token or custom
+            headers. Values are stored in this browser and sent with the Test connection
+            request.
+          </p>
+
+          <label className="mt-4 block text-xs uppercase tracking-wider text-muted-foreground">
+            Bearer token
+          </label>
+          <input
+            type="password"
+            value={auth.bearer}
+            onChange={(e) => updateAuth({ ...auth, bearer: e.target.value })}
+            placeholder="e.g. sk-..."
+            spellCheck={false}
+            autoComplete="off"
+            className="mt-1 w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-mono"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Sent as <code>Authorization: Bearer &lt;token&gt;</code>.
+          </p>
+
+          <label className="mt-4 block text-xs uppercase tracking-wider text-muted-foreground">
+            Custom headers
+          </label>
+          <textarea
+            value={auth.headers}
+            onChange={(e) => updateAuth({ ...auth, headers: e.target.value })}
+            placeholder={'X-Api-Key: abc123\nX-Tenant: princess-pink'}
+            spellCheck={false}
+            rows={3}
+            className="mt-1 w-full rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-mono"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            One <code>Header-Name: value</code> per line.
+          </p>
+
+          {authSaved && (
+            <button
+              type="button"
+              onClick={clearAuth}
+              className="mt-3 rounded border border-border px-2 py-1 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
+            >
+              Clear auth
+            </button>
+          )}
+        </details>
 
         <div className="mt-6 flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
