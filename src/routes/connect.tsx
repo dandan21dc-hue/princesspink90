@@ -372,11 +372,40 @@ function ConnectPage() {
     setDiagRunning(false)
   }
 
+  function diagPayload() {
+    return JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        mcpUrl,
+        pageOrigin: typeof window !== 'undefined' ? window.location.origin : '',
+        summary: diagSummary,
+        steps: diag,
+      },
+      null,
+      2,
+    )
+  }
+
   function copyDiag() {
     if (!diag) return
-    const dump = JSON.stringify({ summary: diagSummary, steps: diag }, null, 2)
-    navigator.clipboard.writeText(dump).catch(() => {})
+    navigator.clipboard.writeText(diagPayload()).catch(() => {})
   }
+
+  function downloadDiag() {
+    if (!diag) return
+    const blob = new Blob([diagPayload()], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+    a.href = url
+    a.download = `princess-pink-mcp-diagnostics-${stamp}.json`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+
 
 
   const dotClass =
@@ -576,13 +605,22 @@ function ConnectPage() {
               {diagRunning ? 'Running…' : 'Run diagnostics'}
             </button>
             {diag && (
-              <button
-                type="button"
-                onClick={copyDiag}
-                className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
-              >
-                Copy JSON
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={copyDiag}
+                  className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
+                >
+                  Copy JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadDiag}
+                  className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
+                >
+                  Download .json
+                </button>
+              </>
             )}
           </div>
         </div>
