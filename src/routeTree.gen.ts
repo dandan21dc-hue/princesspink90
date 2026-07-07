@@ -35,9 +35,9 @@ import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedCohostApplyRouteImport } from './routes/_authenticated/cohost-apply'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedContentIndexRouteImport } from './routes/_authenticated/content.index'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPartnershipRouteImport } from './routes/api/public/partnership'
@@ -219,11 +219,6 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedContentRoute = AuthenticatedContentRouteImport.update({
-  id: '/content',
-  path: '/content',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedCohostApplyRoute =
   AuthenticatedCohostApplyRouteImport.update({
     id: '/cohost-apply',
@@ -235,6 +230,12 @@ const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedContentIndexRoute =
+  AuthenticatedContentIndexRouteImport.update({
+    id: '/content/',
+    path: '/content/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccountIndexRoute =
   AuthenticatedAccountIndexRouteImport.update({
     id: '/',
@@ -262,9 +263,9 @@ const AuthenticatedEventsNewRoute = AuthenticatedEventsNewRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedContentNewRoute = AuthenticatedContentNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => AuthenticatedContentRoute,
+  id: '/content/new',
+  path: '/content/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminWebhookEventsRoute =
   AuthenticatedAdminWebhookEventsRouteImport.update({
@@ -550,7 +551,6 @@ export interface FileRoutesByFullPath {
   '/unsubscribe': typeof UnsubscribeRoute
   '/account': typeof AuthenticatedAccountRouteWithChildren
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
-  '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/support': typeof AuthenticatedSupportRoute
@@ -594,6 +594,7 @@ export interface FileRoutesByFullPath {
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
+  '/content/': typeof AuthenticatedContentIndexRoute
   '/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -630,7 +631,6 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
-  '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
   '/support': typeof AuthenticatedSupportRoute
@@ -674,6 +674,7 @@ export interface FileRoutesByTo {
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account': typeof AuthenticatedAccountIndexRoute
+  '/content': typeof AuthenticatedContentIndexRoute
   '/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -713,7 +714,6 @@ export interface FileRoutesById {
   '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
-  '/_authenticated/content': typeof AuthenticatedContentRouteWithChildren
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
@@ -757,6 +757,7 @@ export interface FileRoutesById {
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
+  '/_authenticated/content/': typeof AuthenticatedContentIndexRoute
   '/_authenticated/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -796,7 +797,6 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/account'
     | '/cohost-apply'
-    | '/content'
     | '/dashboard'
     | '/library'
     | '/support'
@@ -840,6 +840,7 @@ export interface FileRouteTypes {
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/account/'
+    | '/content/'
     | '/admin/partnerships/$id'
     | '/events/$id/checkin'
     | '/events/$id/edit'
@@ -876,7 +877,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/cohost-apply'
-    | '/content'
     | '/dashboard'
     | '/library'
     | '/support'
@@ -920,6 +920,7 @@ export interface FileRouteTypes {
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/account'
+    | '/content'
     | '/admin/partnerships/$id'
     | '/events/$id/checkin'
     | '/events/$id/edit'
@@ -958,7 +959,6 @@ export interface FileRouteTypes {
     | '/unsubscribe'
     | '/_authenticated/account'
     | '/_authenticated/cohost-apply'
-    | '/_authenticated/content'
     | '/_authenticated/dashboard'
     | '/_authenticated/library'
     | '/_authenticated/support'
@@ -1002,6 +1002,7 @@ export interface FileRouteTypes {
     | '/api/public/partnership'
     | '/lovable/email/suppression'
     | '/_authenticated/account/'
+    | '/_authenticated/content/'
     | '/_authenticated/admin/partnerships/$id'
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
@@ -1249,13 +1250,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/content': {
-      id: '/_authenticated/content'
-      path: '/content'
-      fullPath: '/content'
-      preLoaderRoute: typeof AuthenticatedContentRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/cohost-apply': {
       id: '/_authenticated/cohost-apply'
       path: '/cohost-apply'
@@ -1268,6 +1262,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/content/': {
+      id: '/_authenticated/content/'
+      path: '/content'
+      fullPath: '/content/'
+      preLoaderRoute: typeof AuthenticatedContentIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/account/': {
@@ -1307,10 +1308,10 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/content/new': {
       id: '/_authenticated/content/new'
-      path: '/new'
+      path: '/content/new'
       fullPath: '/content/new'
       preLoaderRoute: typeof AuthenticatedContentNewRouteImport
-      parentRoute: typeof AuthenticatedContentRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/webhook-events': {
       id: '/_authenticated/admin/webhook-events'
@@ -1643,17 +1644,6 @@ const AuthenticatedAccountRouteChildren: AuthenticatedAccountRouteChildren = {
 const AuthenticatedAccountRouteWithChildren =
   AuthenticatedAccountRoute._addFileChildren(AuthenticatedAccountRouteChildren)
 
-interface AuthenticatedContentRouteChildren {
-  AuthenticatedContentNewRoute: typeof AuthenticatedContentNewRoute
-}
-
-const AuthenticatedContentRouteChildren: AuthenticatedContentRouteChildren = {
-  AuthenticatedContentNewRoute: AuthenticatedContentNewRoute,
-}
-
-const AuthenticatedContentRouteWithChildren =
-  AuthenticatedContentRoute._addFileChildren(AuthenticatedContentRouteChildren)
-
 interface AuthenticatedAdminPartnershipsRouteChildren {
   AuthenticatedAdminPartnershipsIdRoute: typeof AuthenticatedAdminPartnershipsIdRoute
 }
@@ -1687,7 +1677,6 @@ const AuthenticatedEventsIdCheckinRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRouteWithChildren
   AuthenticatedCohostApplyRoute: typeof AuthenticatedCohostApplyRoute
-  AuthenticatedContentRoute: typeof AuthenticatedContentRouteWithChildren
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
@@ -1716,7 +1705,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminVenueComplianceRemindersRoute: typeof AuthenticatedAdminVenueComplianceRemindersRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
   AuthenticatedAdminWebhookEventsRoute: typeof AuthenticatedAdminWebhookEventsRoute
+  AuthenticatedContentNewRoute: typeof AuthenticatedContentNewRoute
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
+  AuthenticatedContentIndexRoute: typeof AuthenticatedContentIndexRoute
   AuthenticatedEventsIdCheckinRoute: typeof AuthenticatedEventsIdCheckinRouteWithChildren
   AuthenticatedEventsIdEditRoute: typeof AuthenticatedEventsIdEditRoute
   AuthenticatedEventsIdWaiversRoute: typeof AuthenticatedEventsIdWaiversRoute
@@ -1725,7 +1716,6 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRouteWithChildren,
   AuthenticatedCohostApplyRoute: AuthenticatedCohostApplyRoute,
-  AuthenticatedContentRoute: AuthenticatedContentRouteWithChildren,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
@@ -1765,7 +1755,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminVenueComplianceRemindersRoute,
   AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
   AuthenticatedAdminWebhookEventsRoute: AuthenticatedAdminWebhookEventsRoute,
+  AuthenticatedContentNewRoute: AuthenticatedContentNewRoute,
   AuthenticatedEventsNewRoute: AuthenticatedEventsNewRoute,
+  AuthenticatedContentIndexRoute: AuthenticatedContentIndexRoute,
   AuthenticatedEventsIdCheckinRoute:
     AuthenticatedEventsIdCheckinRouteWithChildren,
   AuthenticatedEventsIdEditRoute: AuthenticatedEventsIdEditRoute,
@@ -1834,3 +1826,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

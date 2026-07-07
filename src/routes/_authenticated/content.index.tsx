@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listMyContent, deleteContentItem } from "@/lib/store.functions";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/content")({
+export const Route = createFileRoute("/_authenticated/content/")({
   head: () => ({ meta: [{ title: "My content — Princess Pink" }] }),
   component: ContentAdminPage,
 });
