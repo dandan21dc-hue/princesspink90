@@ -575,6 +575,7 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       session.shipping_details ??
       null;
     const addr = ship?.address ?? null;
+    const singleDiscountPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
     await (getSupabase() as any)
       .from("panty_orders")
       .upsert(
@@ -587,6 +588,7 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
           currency: (session.currency ?? "aud").toLowerCase(),
           environment: env,
           status: "paid",
+          discount_percent: singleDiscountPercent,
           customer_email: session.customer_details?.email ?? null,
           shipping_name: ship?.name ?? session.customer_details?.name ?? null,
           shipping_line1: addr?.line1 ?? null,
