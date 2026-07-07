@@ -48,7 +48,8 @@ function PrivateRoomPage() {
   const [pending, setPending] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [finding, setFinding] = useState(false);
-  const [jumpingToSlot, setJumpingToSlot] = useState<Date | null>(null);
+  const jumpingToSlotRef = useRef<Date | null>(null);
+
 
 
   useEffect(() => {
