@@ -365,6 +365,8 @@ async function handleCartSession(session: any, env: StripeEnv) {
     null;
   const addr = ship?.address ?? null;
 
+  const cartDiscountPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
+
   for (const entry of pantyEntries) {
     const match = /^panty_(24|48|72)hr_aud$/.exec(entry.id);
     if (!match) continue;
@@ -384,6 +386,7 @@ async function handleCartSession(session: any, env: StripeEnv) {
           currency: (session.currency ?? "aud").toLowerCase(),
           environment: env,
           status: "paid",
+          discount_percent: cartDiscountPercent,
           customer_email: session.customer_details?.email ?? null,
           shipping_name: ship?.name ?? session.customer_details?.name ?? null,
           shipping_line1: addr?.line1 ?? null,
@@ -395,6 +398,7 @@ async function handleCartSession(session: any, env: StripeEnv) {
         },
         { onConflict: "stripe_session_id" },
       );
+
 
     const amountLabel = (amountCents / 100).toFixed(2);
     await notifyAllCreators({
