@@ -86,6 +86,21 @@ function NewContentPage() {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
   }, []);
 
+  // Abort any in-flight uploads and clear stall timers when leaving the page,
+  // so a subsequent visit to "+ New item" starts from a clean slate.
+  useEffect(() => {
+    const xhrMap = xhrs.current;
+    const timerMap = stallTimers.current;
+    return () => {
+      xhrMap.forEach((xhr) => {
+        try { xhr.abort(); } catch { /* noop */ }
+      });
+      xhrMap.clear();
+      timerMap.forEach((t) => clearTimeout(t));
+      timerMap.clear();
+    };
+  }, []);
+
   const busyUploads = uploads.some((u) => u.status === "uploading");
 
   const create = useMutation({
