@@ -40,7 +40,7 @@ export const listPantyListingsPublic = createServerFn({ method: "GET" }).handler
 });
 
 // Admin: all listings including drafts and sold.
-export const listPantyListingsAdmin = createServerFn({ method: "GET" })
+export const listPantyListingsAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
