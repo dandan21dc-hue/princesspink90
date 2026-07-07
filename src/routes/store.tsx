@@ -12,7 +12,8 @@ import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { X, SlidersHorizontal } from "lucide-react";
+import { X, SlidersHorizontal, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 export const storeQuery = queryOptions({
   queryKey: ["store-items"],
@@ -135,8 +136,9 @@ function AllAccessCard() {
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full">
-      <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
+    <TooltipProvider>
+      <div className="flex flex-col gap-3 w-full">
+        <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
         <div className="flex items-center justify-between">
           <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
           {currentLabel && (
@@ -195,14 +197,30 @@ function AllAccessCard() {
                   </span>
                 </div>
                 {p.perk && !disabled && !changeLabel && (
-                  <span
-                    className={cn(
-                      "text-[10px] text-primary/90",
-                      isLifetime && "text-[11px] font-medium text-gold",
-                    )}
-                  >
-                    {p.perk}
-                  </span>
+                  p.plan === "all_access_6mo_monthly_aud" ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] text-primary/90 cursor-help"
+                        >
+                          {p.perk}
+                          <HelpCircle className="h-3 w-3" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[260px] text-center leading-relaxed">
+                        The 6-month plan auto-renews every 6 months. You can cancel or switch plans anytime via the billing portal — changes take effect at your next renewal.
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span
+                      className={cn(
+                        "text-[10px] text-primary/90",
+                        isLifetime && "text-[11px] font-medium text-gold",
+                      )}
+                    >
+                      {p.perk}
+                    </span>
+                  )
                 )}
                 {badge && (
                   <span className="text-[10px] text-primary/90">{badge}</span>
@@ -322,6 +340,7 @@ function AllAccessCard() {
         <div className="mt-1 text-xs text-muted-foreground">Worn, sealed, shipped discreetly across Australia.</div>
       </Link>
     </div>
+    </TooltipProvider>
   );
 }
 
