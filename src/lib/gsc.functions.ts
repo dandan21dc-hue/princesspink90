@@ -113,3 +113,178 @@ export const submitSitemapToGsc = createServerFn({ method: "POST" })
       sitemapUrl: data.sitemapUrl,
     };
   });
+
+interface SitemapReportEntry {
+  path: string;
+  label: string;
+  urlInspection: {
+    verdict: string | null;
+    coverageState: string | null;
+    lastCrawlTime: string | null;
+    robotsTxtState: string | null;
+    indexingState: string | null;
+    pageFetchState: string | null;
+    googleCanonical: string | null;
+    userCanonical: string | null;
+    detectedRichResults: string[];
+  } | null;
+  error: string | null;
+}
+
+interface SitemapReport {
+  siteUrl: string;
+  sitemapUrl: string;
+  submission: {
+    ok: boolean;
+    status: number;
+    lastSubmitted: string | null;
+    lastDownloaded: string | null;
+    isPending: boolean;
+    isSitemapsIndex: boolean;
+    warnings: number;
+    errors: number;
+    contentsDiscovered: Array<{ type: string; submitted: string; indexed: string }>;
+    rawError: string | null;
+  };
+  entries: SitemapReportEntry[];
+  generatedAt: string;
+}
+
+async function inspectUrl(siteUrl: string, inspectionUrl: string) {
+  const res = await callGsc("/v1/urlInspection/index:inspect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ inspectionUrl, siteUrl }),
+  });
+  if (res.status < 200 || res.status >= 300) {
+    return { error: `URL inspection failed [${res.status}]: ${res.body}` } as const;
+  }
+  try {
+    const parsed = JSON.parse(res.body);
+    const idx = parsed.inspectionResult?.indexStatusResult ?? {};
+    const rich = parsed.inspectionResult?.richResultsResult?.detectedItems ?? [];
+    return {
+      data: {
+        verdict: idx.verdict ?? null,
+        coverageState: idx.coverageState ?? null,
+        lastCrawlTime: idx.lastCrawlTime ?? null,
+        robotsTxtState: idx.robotsTxtState ?? null,
+        indexingState: idx.indexingState ?? null,
+        pageFetchState: idx.pageFetchState ?? null,
+        googleCanonical: idx.googleCanonical ?? null,
+        userCanonical: idx.userCanonical ?? null,
+        detectedRichResults: Array.isArray(rich)
+          ? rich.map((r: { richResultType?: string }) => r.richResultType ?? "unknown")
+          : [],
+      },
+    } as const;
+  } catch (err) {
+    return {
+      error: `Unable to parse URL inspection response: ${err instanceof Error ? err.message : String(err)}`,
+    } as const;
+  }
+}
+
+/**
+ * Generate a compact GSC report: sitemap submission status plus per-URL
+ * inspection for the entries we care about (defaults to /guide/etiquette).
+ * Admin-only. Returns a plain DTO safe to render in the UI.
+ */
+export const getSitemapReport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (input: { siteUrl: string; sitemapUrl: string; paths?: string[] }) => {
+      if (!/^https:\/\/.+\/$/.test(input.siteUrl)) {
+        throw new Error("siteUrl must be an https URL with a trailing slash");
+      }
+      if (!/^https:\/\/.+\.xml$/.test(input.sitemapUrl)) {
+        throw new Error("sitemapUrl must be an https URL ending in .xml");
+      }
+      return {
+        siteUrl: input.siteUrl,
+        sitemapUrl: input.sitemapUrl,
+        paths: input.paths?.length ? input.paths : ["/guide/etiquette"],
+      };
+    },
+  )
+  .handler(async ({ data, context }): Promise<SitemapReport> => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+
+    // 1. Sitemap submission status.
+    const site = encodeURIComponent(data.siteUrl);
+    const sitemap = encodeURIComponent(data.sitemapUrl);
+    const sitemapRes = await callGsc(
+      `/webmasters/v3/sites/${site}/sitemaps/${sitemap}`,
+      { method: "GET" },
+    );
+
+    let submission: SitemapReport["submission"] = {
+      ok: false,
+      status: sitemapRes.status,
+      lastSubmitted: null,
+      lastDownloaded: null,
+      isPending: false,
+      isSitemapsIndex: false,
+      warnings: 0,
+      errors: 0,
+      contentsDiscovered: [],
+      rawError: null,
+    };
+    if (sitemapRes.status >= 200 && sitemapRes.status < 300) {
+      try {
+        const parsed = JSON.parse(sitemapRes.body);
+        submission = {
+          ok: true,
+          status: sitemapRes.status,
+          lastSubmitted: parsed.lastSubmitted ?? null,
+          lastDownloaded: parsed.lastDownloaded ?? null,
+          isPending: !!parsed.isPending,
+          isSitemapsIndex: !!parsed.isSitemapsIndex,
+          warnings: Number(parsed.warnings ?? 0),
+          errors: Number(parsed.errors ?? 0),
+          contentsDiscovered: Array.isArray(parsed.contents)
+            ? parsed.contents.map(
+                (c: { type?: string; submitted?: string; indexed?: string }) => ({
+                  type: c.type ?? "unknown",
+                  submitted: c.submitted ?? "0",
+                  indexed: c.indexed ?? "0",
+                }),
+              )
+            : [],
+          rawError: null,
+        };
+      } catch (err) {
+        submission.rawError = `Unable to parse sitemap response: ${err instanceof Error ? err.message : String(err)}`;
+      }
+    } else {
+      submission.rawError = sitemapRes.body;
+    }
+
+    // 2. Per-URL inspection (default: /guide/etiquette).
+    const entries: SitemapReportEntry[] = [];
+    for (const path of data.paths) {
+      const fullUrl = new URL(path, data.siteUrl).toString();
+      const result = await inspectUrl(data.siteUrl, fullUrl);
+      entries.push({
+        path,
+        label: fullUrl,
+        urlInspection: "data" in result ? result.data ?? null : null,
+        error: "error" in result ? result.error ?? null : null,
+      });
+
+
+    }
+
+    return {
+      siteUrl: data.siteUrl,
+      sitemapUrl: data.sitemapUrl,
+      submission,
+      entries,
+      generatedAt: new Date().toISOString(),
+    };
+  });
+
