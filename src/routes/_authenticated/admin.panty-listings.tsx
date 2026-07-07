@@ -10,6 +10,7 @@ import {
   deletePantyListing,
   type PantyListing,
 } from "@/lib/pantyListings.functions";
+import { describePantyPhoto } from "@/lib/panty-ai.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/panty-listings")({
@@ -205,6 +206,37 @@ function EditModal(props: {
   const { value, onChange } = props;
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [describing, setDescribing] = useState(false);
+  const describeFn = useServerFn(describePantyPhoto);
+
+  const autoDescribe = async (imageUrl: string) => {
+    if (!imageUrl) {
+      toast.error("Upload a cover photo first.");
+      return;
+    }
+    setDescribing(true);
+    try {
+      const result = await describeFn({ data: { imageUrl } });
+      if (!result.title && !result.description) {
+        toast.error("AI couldn't read that photo — try another shot.");
+        return;
+      }
+      // Merge — never clobber text the admin has already tweaked.
+      onChange({
+        ...value,
+        title: value.title && value.title.trim() ? value.title : result.title,
+        description:
+          value.description && value.description.trim()
+            ? value.description
+            : result.description,
+      });
+      toast.success("Filled title & description — review before saving.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setDescribing(false);
+    }
+  };
 
   const uploadPhoto = async (file: File, target: "cover" | "media") => {
     setUploading(true);
