@@ -68,6 +68,7 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
       process.env.SITE_URL?.replace(/\/$/, "") ??
       "https://princesspink90.com";
     const icsUrl = `${origin}/api/public/bookings/${booking.id}/ics`;
+    const dashboardUrl = `${origin}/bookings`;
 
     const { enqueueTemplateEmail } = await import("@/lib/email/enqueue.server");
     const result = await enqueueTemplateEmail({

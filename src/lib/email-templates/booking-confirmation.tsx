@@ -118,6 +118,7 @@ export const template = {
     notes: 'Anniversary — please dim the lights.',
     bookingId: '4f2c3a80-1a2b-4c5d-9e0f-abcdef012345',
     icsUrl: 'https://princesspink90.com/api/public/bookings/4f2c3a80-1a2b-4c5d-9e0f-abcdef012345.ics',
+    dashboardUrl: 'https://princesspink90.com/bookings',
   },
 } satisfies TemplateEntry
 
