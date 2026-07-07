@@ -157,16 +157,14 @@ function PrivateRoomPage() {
       } else {
         window.alert("No available slots in the next 30 days.");
       }
-
-
     } finally {
       setFinding(false);
     }
   }
 
   function slotConflicts(start: Date) {
-
     const s = start.getTime();
+
     const e = s + duration * 60_000;
     if (s < now + 60 * 60 * 1000) return true; // 1h lead time
     return busyRanges.some((b) => b.start < e && b.end > s);
