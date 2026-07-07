@@ -197,7 +197,7 @@ function AllAccessCard() {
                   </span>
                 </div>
                 {p.perk && !disabled && !changeLabel && (
-                  p.plan === "all_access_6mo_monthly_aud" ? (
+                  ["all_access_3mo_monthly_aud", "all_access_6mo_monthly_aud", "all_access_12mo_monthly_aud"].includes(p.plan) ? (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span
@@ -208,7 +208,7 @@ function AllAccessCard() {
                         </span>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="max-w-[260px] text-center leading-relaxed">
-                        The 6-month plan auto-renews every 6 months. You can cancel or switch plans anytime via the billing portal — changes take effect at your next renewal.
+                        Term plans auto-renew at the end of each term. You can cancel or switch plans anytime via the billing portal — changes take effect at your next renewal.
                       </TooltipContent>
                     </Tooltip>
                   ) : (
