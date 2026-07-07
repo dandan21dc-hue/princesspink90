@@ -440,9 +440,10 @@ function formatBytes(n: number) {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block">
+    <div className="block">
       <div className="mb-1 text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
       {children}
-    </label>
+    </div>
   );
 }
+
