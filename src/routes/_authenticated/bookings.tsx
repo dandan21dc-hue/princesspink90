@@ -29,7 +29,13 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
+const bookingSearchSchema = z.object({
+  status: fallback(z.enum(["all", "confirmed", "pending", "cancelled"]), "all").default("all"),
+  date: fallback(z.enum(["all", "today", "week", "month"]), "all").default("all"),
+});
+
 export const Route = createFileRoute("/_authenticated/bookings")({
+  validateSearch: zodValidator(bookingSearchSchema),
   head: () => ({ meta: [{ title: "My Bookings · Princess Pink" }] }),
   component: BookingsPage,
   errorComponent: ({ error }) => (
