@@ -39,6 +39,38 @@ type SubStatus = {
   discountedOrdersMax: number;
 };
 
+const SUPABASE_STORAGE_KEY = "sb-bxwwrlhtgrqbsgbmaxgq-auth-token";
+const FAKE_USER = {
+  id: "00000000-0000-0000-0000-000000000001",
+  aud: "authenticated",
+  role: "authenticated",
+  email: "test@example.com",
+  app_metadata: {},
+  user_metadata: {},
+};
+
+async function seedAuthSession(page: Page) {
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60;
+  const session = {
+    access_token: "test-access-token",
+    refresh_token: "test-refresh-token",
+    token_type: "bearer",
+    expires_in: 3600,
+    expires_at: expiresAt,
+    user: FAKE_USER,
+  };
+  await page.addInitScript(
+    ({ key, value }) => {
+      try {
+        window.localStorage.setItem(key, value);
+      } catch {
+        /* ignore */
+      }
+    },
+    { key: SUPABASE_STORAGE_KEY, value: JSON.stringify(session) },
+  );
+}
+
 async function stubBackend(page: Page, status: SubStatus) {
   // Fake an authenticated Supabase user so the page doesn't bounce to /auth.
   await page.route("**/auth/v1/user**", async (route: Route) => {
