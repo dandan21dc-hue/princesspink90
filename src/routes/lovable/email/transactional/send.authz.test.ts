@@ -158,7 +158,7 @@ describe('POST /lovable/email/transactional/send — authorization', () => {
   })
 
   const auditCalls = (spy: ReturnType<typeof vi.spyOn>, event: string) =>
-    spy.mock.calls.filter(([tag]) => tag === `[audit] ${event}`)
+    (spy.mock.calls as unknown[][]).filter((call) => call[0] === `[audit] ${event}`)
 
 
   it('rejects requests without a bearer token (401) and does not check roles', async () => {
