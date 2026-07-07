@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  listPantyListingsAdmin,
   createPantyListing,
   updatePantyListing,
   deletePantyListing,
@@ -51,14 +50,23 @@ function emptyEdit(): EditState {
 }
 
 function AdminPantyListings() {
-  const listFn = useServerFn(listPantyListingsAdmin);
   const createFn = useServerFn(createPantyListing);
   const updateFn = useServerFn(updatePantyListing);
   const deleteFn = useServerFn(deletePantyListing);
   const qc = useQueryClient();
   const listings = useQuery({
     queryKey: ["admin-panty-listings"],
-    queryFn: () => listFn(),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("panty_listings")
+        .select(
+          "id,title,description,color,style,size,cover_url,media_urls,price_cents,currency,published,sold,sort_order,created_at",
+        )
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as PantyListing[];
+    },
   });
   const [edit, setEdit] = useState<EditState | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PantyListing | null>(null);
