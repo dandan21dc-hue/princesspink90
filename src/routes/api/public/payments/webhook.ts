@@ -17,6 +17,37 @@ function getSupabase() {
   }
   return _supabase;
 }
+// Server-side enforcement of the "first 3 discounted Panty Drawer orders"
+// cap. The checkout gate in store.functions.ts already refuses to attach the
+// Stripe coupon past this count, but two concurrent checkouts could still
+// slip a 4th discounted session through before either completes. When the
+// webhook fans out orders we re-count and clamp: any order past the cap is
+// persisted as full-price (discount_percent = 0), regardless of what the
+// session metadata claimed. Payment already happened at Stripe — clamping
+// only controls how the row is recorded in our own tracking.
+const SUBSCRIBER_DISCOUNT_MAX_ORDERS = 3;
+async function allowedDiscountPercent(
+  userId: string,
+  env: StripeEnv,
+  requestedPercent: number,
+): Promise<number> {
+  if (requestedPercent <= 0) return 0;
+  const { count, error } = await getSupabase()
+    .from("panty_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("environment", env)
+    .eq("status", "paid")
+    .gt("discount_percent", 0);
+  if (error) {
+    // Fail closed: if we can't verify the allowance, record as full-price.
+    console.error("[webhook] discount cap lookup failed", error);
+    return 0;
+  }
+  const used = count ?? 0;
+  return used < SUBSCRIBER_DISCOUNT_MAX_ORDERS ? requestedPercent : 0;
+}
+
 
 async function notifyAllCreators(payload: {
   kind: string;
