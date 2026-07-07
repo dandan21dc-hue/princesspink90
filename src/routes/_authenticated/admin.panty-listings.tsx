@@ -363,7 +363,7 @@ function EditModal(props: {
 
           <div>
             <div className="text-xs uppercase tracking-widest text-muted-foreground">Cover photo</div>
-            <div className="mt-2 flex items-center gap-3">
+            <div className="mt-2 flex flex-wrap items-center gap-3">
               {value.cover_url && (
                 <img
                   src={value.cover_url}
@@ -375,14 +375,37 @@ function EditModal(props: {
                 ref={fileRef}
                 type="file"
                 accept="image/*"
-                disabled={uploading}
+                disabled={uploading || describing}
                 onChange={(e) => {
                   const f = e.target.files?.[0];
                   if (f) uploadPhoto(f, "cover");
                 }}
                 className="text-xs"
               />
+              <button
+                type="button"
+                onClick={() => autoDescribe(value.cover_url ?? "")}
+                disabled={!value.cover_url || uploading || describing}
+                title={
+                  value.cover_url
+                    ? "Use AI to draft the title & description from the cover photo"
+                    : "Upload a cover photo first"
+                }
+                className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {describing ? (
+                  <>
+                    <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+                    Describing…
+                  </>
+                ) : (
+                  <>✨ AI Auto-Describe</>
+                )}
+              </button>
             </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              AI drafts fill only empty fields — your edits are never overwritten. Review before saving.
+            </p>
           </div>
 
           <div>
