@@ -59,6 +59,7 @@ function BookingsPage() {
 
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
