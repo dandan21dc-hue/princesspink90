@@ -25,14 +25,47 @@ type LogInput = {
 };
 
 // Public (unauthenticated) event logger. Whitelist enforced both here and by
-// the RLS INSERT policy on analytics_events.
+// the RLS INSERT policy on analytics_events. To prevent volumetric abuse
+// (arbitrary anonymous inserts flooding the table), we require a well-formed
+// session_id and apply an in-memory per-session token bucket.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const RL_WINDOW_MS = 60_000;
+const RL_MAX_EVENTS = 30;
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(sessionId: string): boolean {
+  const now = Date.now();
+  const b = rateBuckets.get(sessionId);
+  if (!b || b.resetAt <= now) {
+    rateBuckets.set(sessionId, { count: 1, resetAt: now + RL_WINDOW_MS });
+    // Opportunistic GC so the map can't grow unbounded on a hot Worker.
+    if (rateBuckets.size > 5000) {
+      for (const [k, v] of rateBuckets) if (v.resetAt <= now) rateBuckets.delete(k);
+    }
+    return true;
+  }
+  if (b.count >= RL_MAX_EVENTS) return false;
+  b.count += 1;
+  return true;
+}
+
 export const logAnalyticsEvent = createServerFn({ method: "POST" })
   .inputValidator((data: LogInput) => {
     if (!data || typeof data.event !== "string") throw new Error("event required");
     if (!ALLOWED_EVENTS.has(data.event)) throw new Error("event not allowed");
+    if (!data.session_id || !UUID_RE.test(data.session_id))
+      throw new Error("valid session_id required");
+    // Cap props size so a caller can't stuff MBs into a single row.
+    if (data.props && JSON.stringify(data.props).length > 4000)
+      throw new Error("props too large");
     return data;
   })
   .handler(async ({ data }) => {
+    if (!checkRateLimit(data.session_id as string)) {
+      // Silently drop — never surface details to the caller.
+      return { ok: true, throttled: true };
+    }
     const supabase = createClient<Database>(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_PUBLISHABLE_KEY!,
