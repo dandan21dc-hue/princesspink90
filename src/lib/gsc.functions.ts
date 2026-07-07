@@ -275,6 +275,7 @@ export const getSitemapReport = createServerFn({ method: "POST" })
         urlInspection: "data" in result ? result.data : null,
         error: "error" in result ? result.error : null,
       });
+
     }
 
     return {
