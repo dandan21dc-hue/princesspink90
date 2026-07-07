@@ -22,15 +22,45 @@ export const Route = createFileRoute('/connect')({
   component: ConnectPage,
 })
 
+const STORAGE_KEY = 'princess-pink:mcp-url'
+
 function ConnectPage() {
+  const [defaultUrl, setDefaultUrl] = useState('')
   const [mcpUrl, setMcpUrl] = useState('')
+  const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [status, setStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle')
   const [statusDetail, setStatusDetail] = useState<string>('')
 
   useEffect(() => {
-    setMcpUrl(new URL('/mcp', window.location.origin).toString())
+    const derived = new URL('/mcp', window.location.origin).toString()
+    setDefaultUrl(derived)
+    const stored = window.localStorage.getItem(STORAGE_KEY)
+    setMcpUrl(stored && stored.trim() ? stored.trim() : derived)
+    if (stored && stored.trim()) setSaved(true)
   }, [])
+
+  function saveUrl(next: string) {
+    const trimmed = next.trim()
+    setMcpUrl(trimmed)
+    if (trimmed && trimmed !== defaultUrl) {
+      window.localStorage.setItem(STORAGE_KEY, trimmed)
+      setSaved(true)
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY)
+      setSaved(false)
+    }
+    setStatus('idle')
+    setStatusDetail('')
+  }
+
+  function resetUrl() {
+    window.localStorage.removeItem(STORAGE_KEY)
+    setMcpUrl(defaultUrl)
+    setSaved(false)
+    setStatus('idle')
+    setStatusDetail('')
+  }
 
   async function copy() {
     if (!mcpUrl) return
@@ -42,6 +72,7 @@ function ConnectPage() {
       /* ignore */
     }
   }
+
 
   async function testConnection() {
     if (!mcpUrl) return
