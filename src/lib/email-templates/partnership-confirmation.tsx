@@ -1,6 +1,4 @@
-// @ts-expect-error React import kept for JSX runtime
-import * as React from 'react';
-void React;
+import * as React from 'react'; void React;
 import {
   Body,
   Container,
