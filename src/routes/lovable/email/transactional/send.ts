@@ -101,6 +101,23 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
           )
         }
 
+        // Authorization: if the template does not have a fixed `to`, only admins
+        // may specify an arbitrary recipient. This prevents authenticated users
+        // from using the send endpoint as an email relay for phishing/spam.
+        if (!template.to) {
+          const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
+            _user_id: user.id,
+            _role: 'admin',
+          })
+          if (roleError || !isAdmin) {
+            console.warn('Non-admin attempted open-recipient template send', {
+              templateName,
+              userId: user.id,
+            })
+            return Response.json({ error: 'Forbidden' }, { status: 403 })
+          }
+        }
+
         // Resolve effective recipient: template-level `to` takes precedence over
         // the caller-provided recipientEmail. This allows notification templates
         // to always send to a fixed address (e.g., site owner from env var).
