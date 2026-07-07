@@ -316,12 +316,23 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       returnUrl: string;
       environment: StripeEnv;
       bookingStartsAt?: string;
+      bookingPartySize?: number;
+      bookingNotes?: string;
       customerCountry?: string;
       autoRenew?: boolean;
     }) => {
       if (!data.priceId && !data.contentItemId) throw new Error("priceId or contentItemId required");
       if (data.priceId && !/^[a-zA-Z0-9_-]+$/.test(data.priceId)) throw new Error("Invalid priceId");
       if (data.contentItemId && !/^[a-f0-9-]+$/i.test(data.contentItemId)) throw new Error("Invalid item id");
+      if (data.bookingPartySize !== undefined) {
+        if (!Number.isInteger(data.bookingPartySize) || data.bookingPartySize < 1 || data.bookingPartySize > 10) {
+          throw new Error("Party size must be between 1 and 10");
+        }
+      }
+      if (data.bookingNotes !== undefined) {
+        if (typeof data.bookingNotes !== "string") throw new Error("Invalid notes");
+        if (data.bookingNotes.length > 1000) throw new Error("Notes must be 1000 characters or fewer");
+      }
       return data;
     },
   )
