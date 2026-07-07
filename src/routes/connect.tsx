@@ -136,7 +136,28 @@ function ConnectPage() {
         <p className="mt-3 text-xs text-muted-foreground">
           Paste this URL into the connector setup in your assistant.
         </p>
+
+        <div className="mt-6 flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${dotClass}`} aria-hidden />
+            <div className="text-sm">
+              <div className="font-medium">{statusLabel}</div>
+              {statusDetail && (
+                <div className="text-xs text-muted-foreground">{statusDetail}</div>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={testConnection}
+            disabled={!mcpUrl || status === 'testing'}
+            className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition disabled:opacity-50"
+          >
+            {status === 'testing' ? 'Testing…' : 'Test connection'}
+          </button>
+        </div>
       </section>
+
 
       <section className="mt-10">
         <h2 className="font-display text-2xl font-bold">ChatGPT</h2>
