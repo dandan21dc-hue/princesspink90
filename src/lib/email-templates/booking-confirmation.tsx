@@ -22,6 +22,7 @@ interface Props {
   notes?: string
   bookingId: string
   icsUrl: string
+  dashboardUrl: string
 }
 
 const Email = ({
@@ -34,6 +35,7 @@ const Email = ({
   notes,
   bookingId,
   icsUrl,
+  dashboardUrl,
 }: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -70,13 +72,18 @@ const Email = ({
         )}
 
         <Section style={{ textAlign: 'center' as const, margin: '24px 0 8px' }}>
-          <Button href={icsUrl} style={button}>
+          <Button href={dashboardUrl} style={button}>
+            Go to dashboard
+          </Button>
+        </Section>
+        <Section style={{ textAlign: 'center' as const, margin: '8px 0' }}>
+          <Button href={icsUrl} style={secondaryButton}>
             Add to calendar (.ics)
           </Button>
         </Section>
         <Text style={fineprint}>
-          The button above downloads a calendar file you can import into Apple
-          Calendar, Google Calendar, Outlook or any iCal-compatible app.
+          The calendar button downloads a file you can import into Apple Calendar,
+          Google Calendar, Outlook or any iCal-compatible app.
         </Text>
 
         <Text style={sig}>— Princess Pink</Text>
@@ -111,6 +118,7 @@ export const template = {
     notes: 'Anniversary — please dim the lights.',
     bookingId: '4f2c3a80-1a2b-4c5d-9e0f-abcdef012345',
     icsUrl: 'https://princesspink90.com/api/public/bookings/4f2c3a80-1a2b-4c5d-9e0f-abcdef012345.ics',
+    dashboardUrl: 'https://princesspink90.com/bookings',
   },
 } satisfies TemplateEntry
 
@@ -149,6 +157,18 @@ const rowValue = { fontSize: '14px', color: '#0a0a0f', margin: 0, fontWeight: 50
 const button = {
   backgroundColor: '#e91e63',
   color: '#ffffff',
+  padding: '12px 22px',
+  borderRadius: '8px',
+  fontSize: '13px',
+  fontWeight: 700 as const,
+  textDecoration: 'none',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase' as const,
+}
+const secondaryButton = {
+  backgroundColor: '#ffffff',
+  color: '#e91e63',
+  border: '1px solid #e91e63',
   padding: '12px 22px',
   borderRadius: '8px',
   fontSize: '13px',
