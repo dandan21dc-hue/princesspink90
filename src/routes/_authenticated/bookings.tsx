@@ -446,7 +446,7 @@ function BookingCard(props: {
     : null;
 
   return (
-    <li className="rounded-lg border border-border/60 bg-card/40 p-5">
+    <li id={`booking-${b.id}`} className="rounded-lg border border-border/60 bg-card/40 p-5 scroll-mt-24">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="font-display text-lg font-semibold">
