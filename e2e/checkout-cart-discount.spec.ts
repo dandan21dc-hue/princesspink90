@@ -72,6 +72,7 @@ async function seedAuthSession(page: Page) {
 }
 
 async function stubBackend(page: Page, status: SubStatus) {
+  await seedAuthSession(page);
   // Fake an authenticated Supabase user so the page doesn't bounce to /auth.
   await page.route("**/auth/v1/user**", async (route: Route) => {
     return route.fulfill({
