@@ -224,7 +224,7 @@ function ItemPage() {
                       preload="metadata"
                     />
                   ) : (
-                    <img src={gallery[activeImage].url} alt={item.title} className="h-full w-full object-cover" />
+                    <img src={resolveMediaUrl(gallery[activeImage].url) ?? ""} alt={item.title} onError={onImgError} className="h-full w-full object-cover" />
                   )
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No image</div>
