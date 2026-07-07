@@ -23,6 +23,7 @@ export const listStoreItems = createServerFn({ method: "GET" }).handler(async ()
     .from("content_items")
     .select("id,kind,title,description,cover_url,media_urls,price_cents,currency,subscribers_only,sizes,materials,created_at")
     .eq("published", true)
+    .eq("moderation_status", "approved")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
