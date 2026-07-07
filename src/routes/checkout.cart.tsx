@@ -225,6 +225,63 @@ function CartCheckoutPage() {
 
           <aside className="h-fit rounded-2xl border border-border/60 bg-card/60 p-5">
             <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Order summary</div>
+            {hasPanty && subStatus.data?.isSubscriber && (() => {
+              const { discountedOrdersRemaining, discountedOrdersMax, discountPercent } = subStatus.data;
+              const pantyQty = snapshot
+                .filter((it) => it.kind === "panty")
+                .reduce((n, it) => n + it.quantity, 0);
+              const used = discountedOrdersMax - discountedOrdersRemaining;
+              const willUse = Math.min(pantyQty, discountedOrdersRemaining);
+              const afterOrder = Math.max(0, discountedOrdersRemaining - willUse);
+              const pct = Math.round((used / discountedOrdersMax) * 100);
+              const active = discountedOrdersRemaining > 0;
+              return (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={`mt-3 rounded-lg border p-3 ${
+                    active ? "border-primary/40 bg-primary/5" : "border-border/60 bg-muted/30"
+                  }`}
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.25em] text-primary">
+                      Subscriber {discountPercent}% off
+                    </div>
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      {active ? "Active" : "Used up"}
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-end justify-between gap-3">
+                    <div>
+                      <div className="font-display text-3xl font-extrabold tabular-nums leading-none text-foreground">
+                        {discountedOrdersRemaining}
+                        <span className="text-lg font-normal text-muted-foreground"> / {discountedOrdersMax}</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-muted-foreground">
+                        discounted order{discountedOrdersRemaining === 1 ? "" : "s"} remaining
+                      </div>
+                    </div>
+                    {active && willUse > 0 && (
+                      <div className="text-right text-[11px] leading-tight text-muted-foreground">
+                        <div>Using <span className="font-semibold text-foreground">{willUse}</span> now</div>
+                        <div>
+                          {afterOrder > 0
+                            ? <>Then <span className="font-semibold text-foreground">{afterOrder}</span> left</>
+                            : <span className="font-semibold text-foreground">Last discount</span>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${Math.min(100, pct + (willUse / discountedOrdersMax) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
             <ul className="mt-3 space-y-2 text-sm">
               {snapshot.map((it) => (
                 <li key={cartLineKey(it)} className="flex items-start justify-between gap-3">
