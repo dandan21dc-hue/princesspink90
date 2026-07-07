@@ -96,6 +96,17 @@ function AvailabilityAdmin() {
     onSuccess: () => invalidate(),
     onError: (e: Error) => setError(e.message),
   });
+  const bulkMut = useMutation({
+    mutationFn: (slots: Array<{ startTime: string; endTime: string }>) =>
+      bulkFn({ data: { slots } }),
+    onSuccess: (res) => {
+      setBulkOpen(false);
+      invalidate();
+      const skippedNote = res.skipped > 0 ? ` (${res.skipped} skipped — overlap with closed/existing)` : "";
+      toast.success(`Created ${res.created} slot${res.created === 1 ? "" : "s"}${skippedNote}`);
+    },
+    onError: (e: Error) => setError(e.message),
+  });
 
   if (me.isLoading) {
     return (
