@@ -63,9 +63,18 @@ export const listStripeWebhookEvents = createServerFn({ method: "GET" })
       q = q.gte("received_at", since);
     }
     if (data.search) {
-      q = q.or(
-        `stripe_event_id.ilike.%${data.search}%,error_message.ilike.%${data.search}%`,
-      );
+      // Strip PostgREST .or() structural chars (comma, parens) so user input
+      // can't inject extra OR clauses, and escape LIKE wildcards so it can't
+      // widen the match. Same class of fix as checkin.functions.ts.
+      const safe = data.search
+        .replace(/[,()]/g, " ")
+        .replace(/([\\%_])/g, "\\$1")
+        .trim();
+      if (safe) {
+        q = q.or(
+          `stripe_event_id.ilike.%${safe}%,error_message.ilike.%${safe}%`,
+        );
+      }
     }
 
     const { data: rows, error } = await q;
