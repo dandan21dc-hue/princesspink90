@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
 import {
   getCheckoutSession,
   getMyPrivateRoomBookingBySession,
+  cancelMyPrivateRoomBooking,
 } from "@/lib/store.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { sendBookingConfirmationEmail } from "@/lib/booking-email.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart as cartStore } from "@/lib/cart";
