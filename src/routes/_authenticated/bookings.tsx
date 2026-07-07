@@ -1,8 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { format, addDays, startOfDay } from "date-fns";
+import { format, addDays, startOfDay, isSameDay, isWithinInterval } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   listMyPrivateRoomBookings,
   cancelMyPrivateRoomBooking,
@@ -20,7 +29,13 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
+const bookingSearchSchema = z.object({
+  status: fallback(z.enum(["all", "confirmed", "pending", "cancelled"]), "all").default("all"),
+  date: fallback(z.enum(["all", "today", "week", "month"]), "all").default("all"),
+});
+
 export const Route = createFileRoute("/_authenticated/bookings")({
+  validateSearch: zodValidator(bookingSearchSchema),
   head: () => ({ meta: [{ title: "My Bookings · Princess Pink" }] }),
   component: BookingsPage,
   errorComponent: ({ error }) => (
@@ -49,6 +64,8 @@ type Booking = {
 };
 
 function BookingsPage() {
+  const { status, date: dateFilter } = Route.useSearch();
+  const navigate = useNavigate({ from: "/bookings" });
   const listFn = useServerFn(listMyPrivateRoomBookings);
   const cancelFn = useServerFn(cancelMyPrivateRoomBooking);
   const rescheduleFn = useServerFn(rescheduleMyPrivateRoomBooking);
@@ -93,10 +110,29 @@ function BookingsPage() {
   });
 
   const rows: Booking[] = (bookings.data ?? []) as Booking[];
-  const upcoming = rows.filter(
+
+  const filteredRows = useMemo(() => {
+    const today = startOfDay(new Date());
+    return rows.filter((b) => {
+      if (status !== "all" && b.status !== status) return false;
+      const starts = new Date(b.starts_at);
+      if (dateFilter === "today") return isSameDay(starts, today);
+      if (dateFilter === "week") {
+        const end = addDays(today, 7);
+        return isWithinInterval(starts, { start: today, end });
+      }
+      if (dateFilter === "month") {
+        const end = addDays(today, 30);
+        return isWithinInterval(starts, { start: today, end });
+      }
+      return true;
+    });
+  }, [rows, status, dateFilter]);
+
+  const upcoming = filteredRows.filter(
     (b) => b.status !== "cancelled" && new Date(b.starts_at).getTime() > Date.now(),
   );
-  const past = rows.filter(
+  const past = filteredRows.filter(
     (b) => b.status === "cancelled" || new Date(b.starts_at).getTime() <= Date.now(),
   );
 
@@ -113,6 +149,52 @@ function BookingsPage() {
         >
           Book another
         </Link>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <Select
+          value={status}
+          onValueChange={(value) =>
+            navigate({ search: { status: value as typeof status, date: dateFilter } })
+          }
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={dateFilter}
+          onValueChange={(value) =>
+            navigate({ search: { status, date: value as typeof dateFilter } })
+          }
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All dates</SelectItem>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="week">Next 7 days</SelectItem>
+            <SelectItem value="month">Next 30 days</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {(status !== "all" || dateFilter !== "all") && (
+          <button
+            type="button"
+            onClick={() => navigate({ search: { status: "all", date: "all" } })}
+            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {error && (
@@ -139,6 +221,21 @@ function BookingsPage() {
           >
             Book a session
           </Link>
+        </div>
+      )}
+
+      {!bookings.isLoading && rows.length > 0 && filteredRows.length === 0 && (
+        <div className="mt-10 rounded-lg border border-border/60 bg-card/40 p-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            No bookings match the selected filters.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate({ search: { status: "all", date: "all" } })}
+            className="mt-4 inline-block rounded-md bg-primary px-5 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90"
+          >
+            Clear filters
+          </button>
         </div>
       )}
 
