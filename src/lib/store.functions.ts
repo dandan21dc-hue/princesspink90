@@ -522,7 +522,7 @@ async function ensureRenewalPrice(
 
   return stripe.prices.create({
     product: productId,
-    currency: sourcePrice.currency,
+    currency: assertAudCurrency(sourcePrice.currency),
     unit_amount: sourcePrice.unit_amount ?? 0,
     recurring: { interval: "month", interval_count: termMonths },
     lookup_key: lookupKey,
