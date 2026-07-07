@@ -794,6 +794,9 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
           managed_payments: useManagedPayments ? "true" : "false",
           ...(customerCountry && { customer_country: customerCountry }),
           ...(data.clientOrderRef && { client_order_ref: data.clientOrderRef }),
+          ...(applyPantyDiscount && {
+            subscriber_discount_percent: String(SUBSCRIBER_DISCOUNT_PERCENT),
+          }),
         },
       };
 
