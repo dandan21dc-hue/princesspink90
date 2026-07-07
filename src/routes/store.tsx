@@ -1,6 +1,8 @@
-import { createFileRoute, Link, Outlet, useMatches } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatches, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { listStoreItems } from "@/lib/store.functions";
 import { createBillingPortalSession } from "@/lib/billing.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
@@ -10,10 +12,17 @@ import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { X, SlidersHorizontal } from "lucide-react";
 
 export const storeQuery = queryOptions({
   queryKey: ["store-items"],
   queryFn: () => listStoreItems(),
+});
+
+const storeSearchSchema = z.object({
+  sizes: fallback(z.array(z.string()), []).default([]),
+  colors: fallback(z.array(z.string()), []).default([]),
+  styles: fallback(z.array(z.string()), []).default([]),
 });
 
 export const Route = createFileRoute("/store")({
