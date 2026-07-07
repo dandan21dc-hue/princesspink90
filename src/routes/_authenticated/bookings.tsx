@@ -367,7 +367,8 @@ function BookingsPage() {
             {past.map((b) => (
               <li
                 key={b.id}
-                className="rounded-lg border border-border/60 bg-card/30 px-5 py-4 text-sm"
+                id={`booking-${b.id}`}
+                className="rounded-lg border border-border/60 bg-card/30 px-5 py-4 text-sm scroll-mt-24"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
