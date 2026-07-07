@@ -275,10 +275,21 @@ function PrivateRoomPage() {
                   <div className="font-display text-lg">
                     {selectedDate ? format(selectedDate, "EEEE, d MMMM") : "Pick a date"}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {busyQuery.isFetching ? "Checking availability…" : `${slots.filter((s) => !slotConflicts(s)).length} slots free`}
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={jumpToNextAvailable}
+                      disabled={finding}
+                      className="text-xs uppercase tracking-widest text-primary hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {finding ? "Finding…" : "Next available"}
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      {busyQuery.isFetching ? "Checking availability…" : `${slots.filter((s) => !slotConflicts(s)).length} slots free`}
+                    </div>
                   </div>
                 </div>
+
 
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {slots.map((s) => {
