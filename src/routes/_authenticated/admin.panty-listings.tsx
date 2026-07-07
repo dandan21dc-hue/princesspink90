@@ -12,6 +12,16 @@ import {
 } from "@/lib/pantyListings.functions";
 import { describePantyPhoto } from "@/lib/panty-ai.functions";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/admin/panty-listings")({
   head: () => ({ meta: [{ title: "Panty Listings · Admin" }] }),
