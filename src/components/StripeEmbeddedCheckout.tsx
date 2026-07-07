@@ -174,6 +174,7 @@ export function StripeEmbeddedCheckout(props: Props) {
         data: {
           priceId: p.priceId,
           contentItemId: p.contentItemId,
+          pantyListingId: p.pantyListingId,
           userId: p.userId,
           customerEmail: p.customerEmail,
           returnUrl: p.returnUrl || window.location.href,
