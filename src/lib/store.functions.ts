@@ -131,7 +131,9 @@ export const cancelMyPrivateRoomBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error: readErr } = await context.supabase
       .from("private_room_bookings")
-      .select("id,user_id,starts_at,status")
+      .select(
+        "id,user_id,starts_at,status,duration_minutes,amount_cents,currency,party_size,customer_email",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (readErr) throw new Error(readErr.message);
@@ -149,6 +151,62 @@ export const cancelMyPrivateRoomBooking = createServerFn({ method: "POST" })
       .eq("id", data.id)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
+
+    // Fire the cancellation email. Failures here shouldn't fail the cancel
+    // action itself — the booking is already cancelled in the DB.
+    try {
+      const startsAt = new Date(row.starts_at as string);
+      const durationMinutes = (row.duration_minutes as number) ?? 60;
+      const ends = new Date(startsAt.getTime() + durationMinutes * 60_000);
+      const dateLabel = new Intl.DateTimeFormat("en-AU", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(startsAt);
+      const timeFmt = new Intl.DateTimeFormat("en-AU", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      const timeLabel = `${timeFmt.format(startsAt)} – ${timeFmt.format(ends)}`;
+      const durationLabel = durationMinutes === 30 ? "30-minute session" : "1-hour session";
+      const amount =
+        row.amount_cents != null
+          ? new Intl.NumberFormat("en-AU", {
+              style: "currency",
+              currency: ((row.currency as string | null) ?? "aud").toUpperCase(),
+            }).format((row.amount_cents as number) / 100)
+          : undefined;
+      const claimEmail =
+        (context.claims as { email?: string } | null | undefined)?.email ?? null;
+      const recipient = (row.customer_email as string | null) ?? claimEmail;
+      if (recipient) {
+        const origin =
+          process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ??
+          process.env.SITE_URL?.replace(/\/$/, "") ??
+          "https://princesspink90.com";
+        const dashboardUrl = `${origin}/bookings`;
+        const { enqueueTemplateEmail } = await import("@/lib/email/enqueue.server");
+        await enqueueTemplateEmail({
+          templateName: "booking-cancelled",
+          recipientEmail: recipient,
+          idempotencyKey: `booking-cancelled-${row.id}`,
+          templateData: {
+            dateLabel,
+            timeLabel,
+            durationLabel,
+            partySize: (row.party_size as number | null) ?? 1,
+            amount,
+            bookingId: row.id as string,
+            dashboardUrl,
+          },
+        });
+      }
+    } catch (e) {
+      console.error("[cancelMyPrivateRoomBooking] failed to enqueue cancellation email", e);
+    }
+
     return { ok: true };
   });
 
