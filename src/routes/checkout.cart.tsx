@@ -203,7 +203,7 @@ function CartCheckoutPage() {
                   </button>
                 </div>
               </div>
-            ) : canCheckout && clientSecret ? (
+            ) : user && clientSecret ? (
               <EmbeddedCheckoutProvider stripe={getStripe()} options={{ fetchClientSecret }}>
                 <EmbeddedCheckout />
               </EmbeddedCheckoutProvider>
