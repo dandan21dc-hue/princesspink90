@@ -16,6 +16,7 @@ import {
 import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 import { format } from "date-fns";
 import { buildIcs, downloadIcs } from "@/lib/ics";
+import { buildBookingReceiptPdf, downloadPdf } from "@/lib/booking-receipt";
 
 
 /**
