@@ -368,8 +368,70 @@ function ManageBillingButton() {
 }
 
 
-function ItemGrid() {
+type StoreItem = ReturnType<typeof useSuspenseQuery<typeof storeQuery>>["data"][number];
+
+function tokenize(input: string | null | undefined): string[] {
+  if (!input) return [];
+  return input
+    .split(/[,/&|]|\s{2,}/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function FilteredItemGrid() {
   const { data } = useSuspenseQuery(storeQuery);
+  const { sizes, colors, styles } = Route.useSearch();
+  const navigate = useNavigate({ from: "/store" });
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const { sizeOptions, colorOptions, styleOptions } = useMemo(() => {
+    const sSet = new Set<string>();
+    const cSet = new Set<string>();
+    const stSet = new Set<string>();
+    for (const it of data as StoreItem[]) {
+      (it.sizes ?? []).forEach((s) => s && sSet.add(s));
+      tokenize(it.materials).forEach((c) => cSet.add(c));
+      if (it.kind) stSet.add(it.kind);
+    }
+    const sortStr = (a: string, b: string) => a.localeCompare(b);
+    return {
+      sizeOptions: [...sSet].sort(sortStr),
+      colorOptions: [...cSet].sort(sortStr),
+      styleOptions: [...stSet].sort(sortStr),
+    };
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    return (data as StoreItem[]).filter((item) => {
+      if (styles.length && !styles.includes(item.kind)) return false;
+      if (sizes.length) {
+        const itemSizes = item.sizes ?? [];
+        if (!sizes.some((s) => itemSizes.includes(s))) return false;
+      }
+      if (colors.length) {
+        const tokens = tokenize(item.materials).map((t) => t.toLowerCase());
+        if (!colors.some((c) => tokens.includes(c.toLowerCase()))) return false;
+      }
+      return true;
+    });
+  }, [data, sizes, colors, styles]);
+
+  const toggle = (group: "sizes" | "colors" | "styles", value: string) => {
+    navigate({
+      search: (prev) => {
+        const current = (prev[group] ?? []) as string[];
+        const next = current.includes(value)
+          ? current.filter((v) => v !== value)
+          : [...current, value];
+        return { ...prev, [group]: next };
+      },
+    });
+  };
+
+  const clearAll = () => navigate({ search: { sizes: [], colors: [], styles: [] } });
+
+  const activeCount = sizes.length + colors.length + styles.length;
+
   if (!data.length) {
     return (
       <div className="rounded-2xl border border-dashed border-border/60 p-16 text-center">
@@ -378,54 +440,193 @@ function ItemGrid() {
       </div>
     );
   }
+
+  const sidebar = (
+    <aside className="w-full md:w-64 md:shrink-0 rounded-2xl border border-border/60 bg-card/60 p-5 md:sticky md:top-24 md:self-start">
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Filters</div>
+        {activeCount > 0 && (
+          <button
+            type="button"
+            onClick={clearAll}
+            className="text-[11px] text-muted-foreground hover:text-primary"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
+      <FilterGroup
+        label="Style"
+        options={styleOptions}
+        selected={styles}
+        onToggle={(v) => toggle("styles", v)}
+        renderLabel={labelForKind}
+      />
+      <FilterGroup
+        label="Size"
+        options={sizeOptions}
+        selected={sizes}
+        onToggle={(v) => toggle("sizes", v)}
+      />
+      <FilterGroup
+        label="Color / Material"
+        options={colorOptions}
+        selected={colors}
+        onToggle={(v) => toggle("colors", v)}
+      />
+    </aside>
+  );
+
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {data.map((item) => (
-        <Link
-          key={item.id}
-          to="/store/$id"
-          params={{ id: item.id }}
-          className="group overflow-hidden rounded-2xl border border-border/60 bg-card transition hover:border-primary/60"
-        >
-          <div className="relative aspect-[4/5] w-full overflow-hidden bg-secondary/30">
-            {item.cover_url ? (
-              <img
-                src={item.cover_url}
-                alt={item.title}
-                loading="lazy"
-                className="h-full w-full object-cover transition group-hover:scale-105"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">No cover</div>
-            )}
-            <div className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/90 backdrop-blur">
-              {labelForKind(item.kind)}
-            </div>
-            {item.subscribers_only && (
-              <div className="absolute right-2 top-2 rounded-full border border-primary/60 bg-primary/20 px-2 py-0.5 text-[10px] uppercase tracking-widest text-primary backdrop-blur">
-                Subs only
-              </div>
-            )}
+    <div className="flex flex-col md:flex-row gap-6">
+      <div className="hidden md:block">{sidebar}</div>
+
+      <div className="flex-1 min-w-0">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="text-xs text-muted-foreground">
+            Showing {filtered.length} of {data.length}
+            {activeCount > 0 ? ` · ${activeCount} filter${activeCount === 1 ? "" : "s"} active` : ""}
           </div>
-          <div className="p-4">
-            <div className="truncate font-medium">{item.title}</div>
-            <div className="mt-1 text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">
-              {item.description || "Tap for details."}
-            </div>
-            <div className="mt-3 flex items-center justify-between">
-              <div className="font-display text-lg text-neon">
-                {item.subscribers_only && !item.price_cents ? "Members" : item.price_cents ? formatPrice(item.price_cents) : "—"}
-              </div>
-              <span className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary">
-                View →
-              </span>
-            </div>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card px-3 py-1.5 text-xs md:hidden"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filters{activeCount > 0 ? ` (${activeCount})` : ""}
+          </button>
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border/60 p-12 text-center">
+            <p className="font-display text-lg">No matches.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Try clearing some filters.</p>
+            <button
+              type="button"
+              onClick={clearAll}
+              className="mt-4 rounded-full border border-primary/60 px-4 py-1.5 text-xs uppercase tracking-widest text-primary hover:bg-primary/10"
+            >
+              Reset filters
+            </button>
           </div>
-        </Link>
-      ))}
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((item) => (
+              <Link
+                key={item.id}
+                to="/store/$id"
+                params={{ id: item.id }}
+                className="group overflow-hidden rounded-2xl border border-border/60 bg-card transition hover:border-primary/60"
+              >
+                <div className="relative aspect-[4/5] w-full overflow-hidden bg-secondary/30">
+                  {item.cover_url ? (
+                    <img
+                      src={item.cover_url}
+                      alt={item.title}
+                      loading="lazy"
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">No cover</div>
+                  )}
+                  <div className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white/90 backdrop-blur">
+                    {labelForKind(item.kind)}
+                  </div>
+                  {item.subscribers_only && (
+                    <div className="absolute right-2 top-2 rounded-full border border-primary/60 bg-primary/20 px-2 py-0.5 text-[10px] uppercase tracking-widest text-primary backdrop-blur">
+                      Subs only
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <div className="truncate font-medium">{item.title}</div>
+                  <div className="mt-1 text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">
+                    {item.description || "Tap for details."}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <div className="font-display text-lg text-neon">
+                      {item.subscribers_only && !item.price_cents ? "Members" : item.price_cents ? formatPrice(item.price_cents) : "—"}
+                    </div>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary">
+                      View →
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-background p-5 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div className="font-display text-lg">Filters</div>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close filters"
+                className="rounded-full p-2 hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-4">{sidebar}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+function FilterGroup({
+  label,
+  options,
+  selected,
+  onToggle,
+  renderLabel,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onToggle: (value: string) => void;
+  renderLabel?: (value: string) => string;
+}) {
+  if (options.length === 0) return null;
+  return (
+    <div className="mt-5">
+      <div className="text-xs font-medium text-foreground/90">{label}</div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {options.map((opt) => {
+          const active = selected.includes(opt);
+          return (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => onToggle(opt)}
+              aria-pressed={active}
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-[11px] transition",
+                active
+                  ? "border-primary bg-primary/20 text-primary"
+                  : "border-border/60 bg-background/40 text-muted-foreground hover:border-primary/60 hover:text-foreground",
+              )}
+            >
+              {renderLabel ? renderLabel(opt) : opt}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 
 function labelForKind(kind: string) {
   return kind === "photo_set" ? "Photos" : kind === "video" ? "Video" : "Bundle";
