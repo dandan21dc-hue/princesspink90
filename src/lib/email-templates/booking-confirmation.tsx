@@ -23,6 +23,7 @@ interface Props {
   bookingId: string
   icsUrl: string
   dashboardUrl: string
+  bookingUrl: string
   rescheduleUrl: string
   cancelUrl: string
 }
