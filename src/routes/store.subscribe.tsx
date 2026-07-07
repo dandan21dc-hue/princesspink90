@@ -363,7 +363,7 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
 
         <PantyGallery />
 
-        <div className="mt-6 grid gap-4 md:grid-cols-4">
+        <div id="panty-buy-cards" className="mt-6 grid gap-4 md:grid-cols-4">
 
           {(
             [
