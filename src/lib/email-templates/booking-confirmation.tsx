@@ -23,6 +23,8 @@ interface Props {
   bookingId: string
   icsUrl: string
   dashboardUrl: string
+  rescheduleUrl: string
+  cancelUrl: string
 }
 
 const Email = ({
@@ -36,6 +38,8 @@ const Email = ({
   bookingId,
   icsUrl,
   dashboardUrl,
+  rescheduleUrl,
+  cancelUrl,
 }: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -81,9 +85,25 @@ const Email = ({
             Add to calendar (.ics)
           </Button>
         </Section>
+
+        <Section style={{ textAlign: 'center' as const, margin: '16px 0 4px' }}>
+          <Text style={manageLabel}>Need to change plans?</Text>
+        </Section>
+        <Section style={{ textAlign: 'center' as const, margin: '4px 0' }}>
+          <Button href={rescheduleUrl} style={secondaryButton}>
+            Reschedule
+          </Button>
+        </Section>
+        <Section style={{ textAlign: 'center' as const, margin: '8px 0 16px' }}>
+          <Button href={cancelUrl} style={dangerButton}>
+            Cancel booking
+          </Button>
+        </Section>
+
         <Text style={fineprint}>
           The calendar button downloads a file you can import into Apple Calendar,
-          Google Calendar, Outlook or any iCal-compatible app.
+          Google Calendar, Outlook or any iCal-compatible app. Cancellations
+          must be made at least 2 hours before your session.
         </Text>
 
         <Text style={sig}>— Princess Pink</Text>
@@ -119,6 +139,8 @@ export const template = {
     bookingId: '4f2c3a80-1a2b-4c5d-9e0f-abcdef012345',
     icsUrl: 'https://princesspink90.com/api/public/bookings/4f2c3a80-1a2b-4c5d-9e0f-abcdef012345.ics',
     dashboardUrl: 'https://princesspink90.com/bookings',
+    rescheduleUrl: 'https://princesspink90.com/bookings?booking=4f2c3a80-1a2b-4c5d-9e0f-abcdef012345&action=reschedule',
+    cancelUrl: 'https://princesspink90.com/bookings?booking=4f2c3a80-1a2b-4c5d-9e0f-abcdef012345&action=cancel',
   },
 } satisfies TemplateEntry
 
@@ -180,3 +202,23 @@ const secondaryButton = {
 const fineprint = { fontSize: '12px', color: '#666', textAlign: 'center' as const, margin: '0 0 18px' }
 const sig = { fontSize: '15px', color: '#0a0a0f', margin: '20px 0 8px', fontWeight: 600 as const }
 const footer = { fontSize: '11px', color: '#999', margin: '32px 0 0', lineHeight: '1.5' }
+const manageLabel = {
+  fontSize: '11px',
+  color: '#777',
+  margin: '0',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.18em',
+  textAlign: 'center' as const,
+}
+const dangerButton = {
+  backgroundColor: '#ffffff',
+  color: '#b91c1c',
+  border: '1px solid #b91c1c',
+  padding: '12px 22px',
+  borderRadius: '8px',
+  fontSize: '13px',
+  fontWeight: 700 as const,
+  textDecoration: 'none',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase' as const,
+}

@@ -3,7 +3,7 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format, addDays, startOfDay, isSameDay, isWithinInterval } from "date-fns";
 import {
   Select,
@@ -33,6 +33,8 @@ import { cn } from "@/lib/utils";
 const bookingSearchSchema = z.object({
   status: fallback(z.enum(["all", "confirmed", "pending", "cancelled"]), "all").default("all"),
   date: fallback(z.enum(["all", "today", "week", "month"]), "all").default("all"),
+  booking: fallback(z.string().uuid().optional(), undefined).optional(),
+  action: fallback(z.enum(["reschedule", "cancel"]).optional(), undefined).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/bookings")({
@@ -65,7 +67,7 @@ type Booking = {
 };
 
 function BookingsPage() {
-  const { status, date: dateFilter } = Route.useSearch();
+  const { status, date: dateFilter, booking: bookingParam, action: actionParam } = Route.useSearch();
   const navigate = useNavigate({ from: "/bookings" });
   const listFn = useServerFn(listMyPrivateRoomBookings);
   const cancelFn = useServerFn(cancelMyPrivateRoomBooking);
@@ -83,6 +85,30 @@ function BookingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
+
+  // Deep-link support: /bookings?booking=<id>&action=reschedule|cancel
+  // Opens the matching sheet once the booking list has loaded, then strips
+  // the params so refreshes/back-navigation don't re-trigger the action.
+  const allBookings = bookings.data ?? [];
+  useEffect(() => {
+    if (!bookingParam || !actionParam) return;
+    const match = allBookings.find((b) => b.id === bookingParam);
+    if (!match) return;
+    if (actionParam === "reschedule") {
+      setReschedulingId(bookingParam);
+      setConfirmCancelId(null);
+    } else if (actionParam === "cancel") {
+      setConfirmCancelId(bookingParam);
+      setReschedulingId(null);
+    }
+    setError(null);
+    setSuccess(null);
+    void navigate({
+      search: (prev: Record<string, unknown>) => ({ ...prev, booking: undefined, action: undefined }),
+      replace: true,
+    });
+  }, [bookingParam, actionParam, allBookings, navigate]);
+
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) =>
