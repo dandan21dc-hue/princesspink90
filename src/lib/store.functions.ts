@@ -628,7 +628,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           mode: isRecurring ? "subscription" : "payment",
           ui_mode: "embedded_page",
           return_url: ensureSessionIdInReturnUrl(data.returnUrl),
-          ...(customerId && { customer: customerId }),
+          ...(customerId && { customer: customerId, customer_update: { address: "auto" } }),
           ...(!isRecurring && !useManagedPayments && {
             payment_intent_data: { description: productDescription },
           }),
