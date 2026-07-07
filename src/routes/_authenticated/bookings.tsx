@@ -155,7 +155,7 @@ function BookingsPage() {
         <Select
           value={status}
           onValueChange={(value) =>
-            navigate({ search: (prev) => ({ ...prev, status: value as typeof status }) })
+            navigate({ search: { status: value as typeof status, date: dateFilter } })
           }
         >
           <SelectTrigger className="w-[160px]">
@@ -172,7 +172,7 @@ function BookingsPage() {
         <Select
           value={dateFilter}
           onValueChange={(value) =>
-            navigate({ search: (prev) => ({ ...prev, date: value as typeof dateFilter }) })
+            navigate({ search: { status, date: value as typeof dateFilter } })
           }
         >
           <SelectTrigger className="w-[160px]">
