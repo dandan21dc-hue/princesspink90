@@ -15,7 +15,7 @@
     "test:checkout": "vitest run src/lib/stripeCheckoutFlow.test.ts src/routes/store.subscribe.test.ts src/routes/api/public/payments/webhook.test.ts",
     "test:e2e": "playwright test",
     "verify:checkout": "node scripts/verify-multi-currency-checkout.mjs",
-    "lint:usd": "node scripts/scan-usd.mjs",
+    "lint:usd": "bun scripts/scan-usd.mjs",
     "lint:supabase": "node scripts/supabase-security-lint.mjs",
     "validate:security-config": "node scripts/validate-security-config.mjs",
     "security:baseline:update": "bash scripts/update-security-baseline.sh",
