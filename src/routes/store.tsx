@@ -15,6 +15,7 @@ type PictureImport = {
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cn } from "@/lib/utils";
 import { X, SlidersHorizontal } from "lucide-react";
+import { onImgError, resolveMediaUrl } from "@/lib/media-url";
 
 
 export const storeQuery = queryOptions({
