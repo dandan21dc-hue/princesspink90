@@ -116,7 +116,14 @@ function BookingsPage() {
   });
 
   const resendEmailMutation = useMutation({
-    mutationFn: (id: string) => resendEmailFn({ data: { bookingId: id, resend: true } }),
+    mutationFn: (id: string) =>
+      resendEmailFn({
+        data: {
+          bookingId: id,
+          resend: true,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+      }),
     onSuccess: (result) => {
       if (result.success) {
         setSuccess("Confirmation email resent.");
