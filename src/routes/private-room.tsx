@@ -105,8 +105,7 @@ function PrivateRoomPage() {
     return busyRanges.some((b) => b.start < e && b.end > s);
   }
 
-  function confirm() {
-    if (pending) return;
+  function review() {
     if (!user) {
       navigate({ to: "/auth", search: { next: "/private-room" } });
       return;
@@ -114,6 +113,12 @@ function PrivateRoomPage() {
     if (!selectedSlot) return;
     if (partySize < 1 || partySize > 10) return;
     if (notes.length > 1000) return;
+    setReviewing(true);
+  }
+
+  function confirm() {
+    if (pending) return;
+    if (!user || !selectedSlot) return;
     setPending(true);
     const priceId = duration === 30 ? "private_room_30min_aud" : "private_room_60min_aud";
     openCheckout({
@@ -126,6 +131,7 @@ function PrivateRoomPage() {
       returnUrl: `${window.location.origin}/checkout/return?next=%2Fdashboard`,
     });
   }
+
 
   useEffect(() => {
     // Re-enable the confirm button if the user dismisses the embedded
