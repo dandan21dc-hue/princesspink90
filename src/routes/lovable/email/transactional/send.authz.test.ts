@@ -198,10 +198,20 @@ describe('POST /lovable/email/transactional/send — authorization', () => {
     expect(res.status).toBe(403)
     expect(await res.json()).toEqual({ error: 'Forbidden' })
     expect(knobs.hasRoleCalled).toBe(1)
+    // Audit trail: forbidden attempt is logged with actor + template + redacted recipient
+    const forbidden = auditCalls(warnSpy, 'email_send.forbidden_non_admin_open_recipient')
+    expect(forbidden.length).toBe(1)
+    expect(forbidden[0][1]).toMatchObject({
+      templateName: 'open',
+      actorUserId: 'user-123',
+      recipient_redacted: 'v***@example.com',
+    })
+    // Success-path audit line MUST NOT fire on denial
+    expect(auditCalls(infoSpy, 'email_send.admin_recipient_override').length).toBe(0)
   })
 
   it('treats has_role RPC errors as denial (fail-closed → 403)', async () => {
-    knobs.hasRoleResult = { data: null, error: { message: 'db down' } }
+    knobs.hasRoleResult = { data: null, error: { code: '42501', message: 'db down' } }
     const handler = await loadHandler()
     const res = await handler({
       request: makeRequest({
@@ -211,6 +221,13 @@ describe('POST /lovable/email/transactional/send — authorization', () => {
     })
     expect(res.status).toBe(403)
     expect(knobs.hasRoleCalled).toBe(1)
+    // Audit trail captures the RPC error code/message for debugging
+    const forbidden = auditCalls(warnSpy, 'email_send.forbidden_non_admin_open_recipient')
+    expect(forbidden.length).toBe(1)
+    expect(forbidden[0][1]).toMatchObject({
+      roleErrorCode: '42501',
+      roleErrorMessage: 'db down',
+    })
   })
 
   it('allows admins to specify arbitrary recipients for open templates', async () => {
@@ -220,17 +237,45 @@ describe('POST /lovable/email/transactional/send — authorization', () => {
       request: makeRequest({
         templateName: 'open',
         recipientEmail: 'someone@example.com',
+        templateData: { name: 'Alice', message: 'hi' },
       }),
     })
     // Passes the authorization gate. Downstream flow (suppression / enqueue)
     // is mocked to succeed, so we should NOT see the 403 from this fix.
     expect(res.status).not.toBe(403)
     expect(knobs.hasRoleCalled).toBe(1)
+
+    // Audit trail: exactly one override event, with actor + redacted recipient
+    // + recipient domain + non-sensitive templateData key list.
+    const overrides = auditCalls(infoSpy, 'email_send.admin_recipient_override')
+    expect(overrides.length).toBe(1)
+    const payload = overrides[0][1] as Record<string, unknown>
+    expect(payload).toMatchObject({
+      templateName: 'open',
+      actorUserId: 'user-123',
+      actorEmail_redacted: 'u***@example.com',
+      recipient_redacted: 's***@example.com',
+      recipientDomain: 'example.com',
+      templateDataKeys: ['message', 'name'],
+    })
+    // Sanity: full email addresses MUST NOT appear in the audit payload
+    const serialized = JSON.stringify(payload)
+    expect(serialized).not.toContain('someone@example.com')
+    expect(serialized).not.toContain('u@example.com')
+    // messageId + idempotencyKey are present so the audit line can be
+    // cross-referenced against email_send_log.
+    expect(typeof payload.messageId).toBe('string')
+    expect(typeof payload.idempotencyKey).toBe('string')
+    expect(typeof payload.at).toBe('string')
+
+    // Denial-path audit line MUST NOT fire on success
+    expect(auditCalls(warnSpy, 'email_send.forbidden_non_admin_open_recipient').length).toBe(0)
   })
 
-  it('skips the admin check entirely for fixed-recipient templates', async () => {
-    // Non-admin caller, but template has fixed `to` — must NOT invoke has_role
-    // and must NOT return 403.
+  it('skips the admin check and emits no override audit for fixed-recipient templates', async () => {
+    // Non-admin caller, but template has fixed `to` — must NOT invoke has_role,
+    // must NOT return 403, and must NOT emit the admin_recipient_override
+    // audit line (fixed recipients are not attacker-controlled).
     knobs.hasRoleResult = { data: false, error: null }
     const handler = await loadHandler()
     const res = await handler({
@@ -243,6 +288,8 @@ describe('POST /lovable/email/transactional/send — authorization', () => {
     })
     expect(res.status).not.toBe(403)
     expect(knobs.hasRoleCalled).toBe(0)
+    expect(auditCalls(infoSpy, 'email_send.admin_recipient_override').length).toBe(0)
+    expect(auditCalls(warnSpy, 'email_send.forbidden_non_admin_open_recipient').length).toBe(0)
   })
 
   it('does not leak the admin check onto unknown templates (404 first)', async () => {
