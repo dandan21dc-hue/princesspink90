@@ -15,9 +15,7 @@ import { Route as StoreRouteImport } from './routes/store'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PartnershipsRouteImport } from './routes/partnerships'
-import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LegalRouteImport } from './routes/legal'
-import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -39,8 +37,6 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedCohostApplyRouteImport } from './routes/_authenticated/cohost-apply'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
 import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/email/suppression'
 import { Route as ApiPublicPartnershipRouteImport } from './routes/api/public/partnership'
@@ -71,8 +67,6 @@ import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminCheckoutReconciliationRouteImport } from './routes/_authenticated/admin.checkout-reconciliation'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
-import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -124,19 +118,9 @@ const PartnershipsRoute = PartnershipsRouteImport.update({
   path: '/partnerships',
   getParentRoute: () => rootRouteImport,
 } as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LegalRoute = LegalRouteImport.update({
   id: '/legal',
   path: '/legal',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConnectRoute = ConnectRouteImport.update({
-  id: '/connect',
-  path: '/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConductRoute = ConductRouteImport.update({
@@ -244,18 +228,6 @@ const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   path: '/account',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthenticatedAccountIndexRoute =
   AuthenticatedAccountIndexRouteImport.update({
     id: '/',
@@ -430,17 +402,6 @@ const AuthenticatedAccountBillingRoute =
     path: '/billing',
     getParentRoute: () => AuthenticatedAccountRoute,
   } as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
-  id: '/.lovable/oauth/consent',
-  path: '/.lovable/oauth/consent',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -566,17 +527,13 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
-  '/connect': typeof ConnectRoute
   '/legal': typeof LegalRoute
-  '/mcp': typeof McpRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/account': typeof AuthenticatedAccountRouteWithChildren
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
@@ -592,8 +549,6 @@ export interface FileRoutesByFullPath {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
@@ -651,17 +606,13 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
-  '/connect': typeof ConnectRoute
   '/legal': typeof LegalRoute
-  '/mcp': typeof McpRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/content': typeof AuthenticatedContentRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -676,8 +627,6 @@ export interface FileRoutesByTo {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
@@ -737,17 +686,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
-  '/connect': typeof ConnectRoute
   '/legal': typeof LegalRoute
-  '/mcp': typeof McpRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
-  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/_authenticated/content': typeof AuthenticatedContentRouteWithChildren
@@ -763,8 +708,6 @@ export interface FileRoutesById {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
-  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
-  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
@@ -824,17 +767,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
-    | '/connect'
     | '/legal'
-    | '/mcp'
     | '/partnerships'
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
     | '/unsubscribe'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/account'
     | '/cohost-apply'
     | '/content'
@@ -850,8 +789,6 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/account/billing'
     | '/admin/analytics'
     | '/admin/checkout-reconciliation'
@@ -909,17 +846,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
-    | '/connect'
     | '/legal'
-    | '/mcp'
     | '/partnerships'
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
     | '/unsubscribe'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/cohost-apply'
     | '/content'
     | '/dashboard'
@@ -934,8 +867,6 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/account/billing'
     | '/admin/analytics'
     | '/admin/checkout-reconciliation'
@@ -994,17 +925,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
-    | '/connect'
     | '/legal'
-    | '/mcp'
     | '/partnerships'
     | '/privacy'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
     | '/unsubscribe'
-    | '/.mcp/list-tools'
-    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/account'
     | '/_authenticated/cohost-apply'
     | '/_authenticated/content'
@@ -1020,8 +947,6 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
-    | '/.lovable/oauth/consent'
-    | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/account/billing'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/checkout-reconciliation'
@@ -1081,24 +1006,18 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
-  ConnectRoute: typeof ConnectRoute
   LegalRoute: typeof LegalRoute
-  McpRoute: typeof McpRoute
   PartnershipsRoute: typeof PartnershipsRoute
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
   TermsRoute: typeof TermsRoute
   UnsubscribeRoute: typeof UnsubscribeRoute
-  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
-  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ApiChatRoute: typeof ApiChatRoute
   CheckoutCartRoute: typeof CheckoutCartRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventsIdRoute: typeof EventsIdRoute
-  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
-  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicAgeGateEventRoute: typeof ApiPublicAgeGateEventRoute
   ApiPublicPartnershipRoute: typeof ApiPublicPartnershipRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -1163,25 +1082,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartnershipsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/legal': {
       id: '/legal'
       path: '/legal'
       fullPath: '/legal'
       preLoaderRoute: typeof LegalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/connect': {
-      id: '/connect'
-      path: '/connect'
-      fullPath: '/connect'
-      preLoaderRoute: typeof ConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conduct': {
@@ -1330,20 +1235,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/account'
       preLoaderRoute: typeof AuthenticatedAccountRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/account/': {
       id: '/_authenticated/account/'
@@ -1554,20 +1445,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/account/billing'
       preLoaderRoute: typeof AuthenticatedAccountBillingRouteImport
       parentRoute: typeof AuthenticatedAccountRoute
-    }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/.lovable/oauth/consent': {
-      id: '/.lovable/oauth/consent'
-      path: '/.lovable/oauth/consent'
-      fullPath: '/.lovable/oauth/consent'
-      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
@@ -1875,25 +1752,18 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
-  ConnectRoute: ConnectRoute,
   LegalRoute: LegalRoute,
-  McpRoute: McpRoute,
   PartnershipsRoute: PartnershipsRoute,
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
   TermsRoute: TermsRoute,
   UnsubscribeRoute: UnsubscribeRoute,
-  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
-  Char91DotwellKnownChar93OauthProtectedResourceRoute:
-    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ApiChatRoute: ApiChatRoute,
   CheckoutCartRoute: CheckoutCartRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventsIdRoute: EventsIdRoute,
-  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
-  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicAgeGateEventRoute: ApiPublicAgeGateEventRoute,
   ApiPublicPartnershipRoute: ApiPublicPartnershipRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
