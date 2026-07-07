@@ -573,6 +573,27 @@ function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
             Add to calendar (.ics)
           </button>
         )}
+        {b && starts && ends && (
+          <button
+            type="button"
+            onClick={async () => {
+              const bytes = await buildBookingReceiptPdf({
+                bookingId: b.id,
+                status: b.status,
+                starts,
+                ends,
+                durationMinutes: b.duration_minutes,
+                partySize: b.party_size ?? 1,
+                amountFormatted: amount,
+                notes: b.notes,
+              });
+              downloadPdf(`princess-pink-receipt-${b.id.slice(0, 8)}.pdf`, bytes);
+            }}
+            className="rounded-md border border-primary/50 bg-background px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+          >
+            Download receipt (PDF)
+          </button>
+        )}
         <Link
           to="/dashboard"
           className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
