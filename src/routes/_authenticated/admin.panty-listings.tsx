@@ -203,9 +203,7 @@ function AdminPantyListings() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm(`Delete "${l.title}"?`)) remove.mutate(l.id);
-                  }}
+                  onClick={() => setPendingDelete(l)}
                   className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-destructive hover:bg-destructive/20"
                 >
                   Delete
