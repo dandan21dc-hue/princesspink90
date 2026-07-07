@@ -450,16 +450,28 @@ function MembershipConfirmation({
  * with a friendly "finalising" state while the webhook flips the row from
  * `pending` to `confirmed`.
  */
-function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
+function PrivateRoomConfirmation({
+  sessionId,
+  sessionStatus,
+  sessionComplete,
+}: {
+  sessionId: string;
+  sessionStatus: string | null;
+  sessionComplete: boolean;
+}) {
   const q = useQuery({
     queryKey: ["private-room-booking", sessionId],
     retry: 3,
     refetchInterval: (query) => {
       const data = query.state.data as { status?: string } | null | undefined;
-      return data && data.status === "confirmed" ? false : 3000;
+      if (!data) return 3000;
+      // Stop polling once the row reaches a terminal state.
+      if (["confirmed", "cancelled", "refunded"].includes(data.status ?? "")) return false;
+      return 3000;
     },
     queryFn: () => getMyPrivateRoomBookingBySession({ data: { sessionId } }),
   });
+
 
   const b = q.data;
   const starts = b ? new Date(b.starts_at) : null;
