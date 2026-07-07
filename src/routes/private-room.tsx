@@ -151,14 +151,11 @@ function PrivateRoomPage() {
       }
       if (found) {
         setSelectedDate(startOfDay(found));
-        setTimeout(() => {
-          setSelectedSlot(found);
-          const el = document.getElementById(`slot-${found!.getTime()}`);
-          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }, 0);
+        setJumpingToSlot(found);
       } else {
         window.alert("No available slots in the next 30 days.");
       }
+
     } finally {
       setFinding(false);
     }
