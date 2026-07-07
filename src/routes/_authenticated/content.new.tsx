@@ -29,6 +29,41 @@ type UploadItem = {
 // If no progress event fires for this long, the upload is treated as stalled.
 const STALL_MS = 15000;
 
+// Client-side upload limits (server enforces its own limits too).
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+const IMAGE_EXTS = ["jpg", "jpeg", "png", "webp", "gif", "avif"];
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+const VIDEO_EXTS = ["mp4", "webm", "mov", "m4v"];
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15 MB
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024; // 500 MB
+
+function validateFile(file: File, type: "image" | "video"): string | null {
+  const ext = file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "";
+  const allowedTypes = type === "image" ? IMAGE_TYPES : VIDEO_TYPES;
+  const allowedExts = type === "image" ? IMAGE_EXTS : VIDEO_EXTS;
+  const maxBytes = type === "image" ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
+  const maxLabel = type === "image" ? "15 MB" : "500 MB";
+  const kindLabel = type === "image" ? "image" : "video";
+
+  const mimeOk = file.type ? allowedTypes.includes(file.type) : false;
+  const extOk = ext ? allowedExts.includes(ext) : false;
+  if (!mimeOk && !extOk) {
+    return `"${file.name}" isn't a supported ${kindLabel}. Allowed: ${allowedExts.join(", ").toUpperCase()}.`;
+  }
+  if (file.type && !file.type.startsWith(type === "image" ? "image/" : "video/")) {
+    return `"${file.name}" isn't a ${kindLabel} file (detected ${file.type}).`;
+  }
+  if (file.size === 0) {
+    return `"${file.name}" is empty.`;
+  }
+  if (file.size > maxBytes) {
+    const mb = (file.size / (1024 * 1024)).toFixed(1);
+    return `"${file.name}" is ${mb} MB — max ${maxLabel} for ${kindLabel}s.`;
+  }
+  return null;
+}
+
+
 function NewContentPage() {
   const createFn = useServerFn(createContentItem);
   const navigate = useNavigate();
@@ -185,7 +220,17 @@ function NewContentPage() {
 
   function queueFiles(files: FileList | null, type: "image" | "video", slot: "media" | "cover") {
     if (!files?.length) return;
-    const items: UploadItem[] = Array.from(files).map((file) => ({
+    const accepted: File[] = [];
+    for (const file of Array.from(files)) {
+      const err = validateFile(file, type);
+      if (err) {
+        toast.error(err);
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (!accepted.length) return;
+    const items: UploadItem[] = accepted.map((file) => ({
       id: crypto.randomUUID(),
       file,
       name: file.name,
@@ -198,6 +243,7 @@ function NewContentPage() {
     setUploads((list) => [...list, ...items]);
     items.forEach((it) => void startUpload(it));
   }
+
 
   function retry(id: string) {
     const item = uploads.find((u) => u.id === id);
@@ -267,12 +313,19 @@ function NewContentPage() {
         <Field label="Cover image">
           <input
             type="file"
-            accept="image/*"
-            onChange={(e) => queueFiles(e.target.files, "image", "cover")}
+            accept={IMAGE_TYPES.join(",")}
+            onChange={(e) => {
+              queueFiles(e.target.files, "image", "cover");
+              e.target.value = "";
+            }}
             className="text-sm"
           />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            JPG, PNG, WEBP, GIF, or AVIF · up to 15 MB.
+          </p>
           {coverUrl && <img src={coverUrl} alt="" className="mt-3 h-40 w-40 rounded-md object-cover" />}
         </Field>
+
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Price (USD)">
@@ -300,12 +353,12 @@ function NewContentPage() {
         </div>
 
         <Field label="Media files">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">Photos</label>
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_TYPES.join(",")}
                 multiple
                 onChange={(e) => {
                   queueFiles(e.target.files, "image", "media");
@@ -313,12 +366,15 @@ function NewContentPage() {
                 }}
                 className="mt-1 block text-sm"
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                JPG, PNG, WEBP, GIF, or AVIF · up to 15 MB each.
+              </p>
             </div>
             <div>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">Videos</label>
               <input
                 type="file"
-                accept="video/*"
+                accept={VIDEO_TYPES.join(",")}
                 multiple
                 onChange={(e) => {
                   queueFiles(e.target.files, "video", "media");
@@ -326,12 +382,16 @@ function NewContentPage() {
                 }}
                 className="mt-1 block text-sm"
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                MP4, WEBM, or MOV · up to 500 MB each.
+              </p>
             </div>
             {media.length > 0 && (
               <div className="text-xs text-muted-foreground">
                 {media.length} file(s) attached
               </div>
             )}
+
           </div>
         </Field>
 
