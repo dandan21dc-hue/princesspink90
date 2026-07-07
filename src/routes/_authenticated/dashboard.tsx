@@ -7,6 +7,7 @@ import { amIAdmin } from "@/lib/admin.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
 import { PerksWidget } from "@/components/PerksWidget";
+import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
@@ -176,6 +177,11 @@ function Dashboard() {
       <div className="mt-10">
         <PerksWidget />
       </div>
+
+      <div className="mt-6">
+        <SubscriberDiscountPanel />
+      </div>
+
 
       <div className="mt-10 grid gap-10 lg:grid-cols-2">
         <div>
