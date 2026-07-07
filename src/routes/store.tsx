@@ -264,6 +264,11 @@ function AllAccessCard() {
                     Buy Lifetime
                   </span>
                 )}
+                {!isLifetime && !disabled && (
+                  <span className="mt-1 text-[10px] font-medium text-primary group-hover:underline">
+                    Select plan
+                  </span>
+                )}
               </div>
             );
 
