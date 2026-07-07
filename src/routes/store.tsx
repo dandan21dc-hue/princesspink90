@@ -172,6 +172,27 @@ function AllAccessCard() {
                 ? "Included"
                 : changeLabel;
 
+            const cadenceText =
+              p.cadence === "/month"
+                ? " per month"
+                : p.cadence === "upfront"
+                  ? " upfront"
+                  : p.cadence === "one-time"
+                    ? " one-time"
+                    : "";
+            const renewalText = owned && !isLifetime && expiry
+              ? `${willCancel ? "Ends" : "Renews"} ${expiry}`
+              : null;
+            const ariaLabel = [
+              `${p.label}, ${p.price}${cadenceText}`,
+              p.perk,
+              badge ? `${badge} plan` : null,
+              renewalText,
+              disabled ? "Current plan" : "Select this plan",
+            ]
+              .filter(Boolean)
+              .join(". ");
+
             const row = (
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center justify-between gap-3">
@@ -204,7 +225,8 @@ function AllAccessCard() {
                           className="inline-flex items-center gap-1 text-[10px] text-primary/90 cursor-help"
                         >
                           {p.perk}
-                          <HelpCircle className="h-3 w-3" />
+                          <HelpCircle className="h-3 w-3" aria-hidden="true" />
+                          <span className="sr-only">Auto-renewal details</span>
                         </span>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="max-w-[260px] text-center leading-relaxed">
@@ -242,6 +264,11 @@ function AllAccessCard() {
                     Buy Lifetime
                   </span>
                 )}
+                {!isLifetime && !disabled && (
+                  <span className="mt-1 text-[10px] font-medium text-primary group-hover:underline">
+                    Select plan
+                  </span>
+                )}
               </div>
             );
 
@@ -264,6 +291,7 @@ function AllAccessCard() {
               <div
                 aria-disabled="true"
                 role="button"
+                aria-label={ariaLabel}
                 tabIndex={0}
                 onClick={() =>
                   track("boutique_tier_click", { ...trackPayload, action: "blocked" })
@@ -279,6 +307,7 @@ function AllAccessCard() {
               <Link
                 to="/store/subscribe"
                 search={{ plan: p.plan }}
+                aria-label={ariaLabel}
                 onClick={() => {
                   track("all_access_tier_click", { plan: p.plan, change: changeLabel ?? "new" });
                   track("boutique_tier_click", { ...trackPayload, action: "navigate" });
