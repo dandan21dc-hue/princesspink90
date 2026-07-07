@@ -103,6 +103,24 @@ export const listMyPrivateRoomBookings = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+// Return the status history (held/confirmed/cancelled) timeline for one of the
+// user's bookings. RLS restricts access to the booking's owner (or admins).
+export const listMyPrivateRoomBookingHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(data.id)) throw new Error("Invalid id");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("private_room_booking_status_events")
+      .select("id,status,changed_at,note")
+      .eq("booking_id", data.id)
+      .order("changed_at", { ascending: true });
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
 // Cancel one of the user's own bookings. Must be at least 2 hours away and not already cancelled.
 export const cancelMyPrivateRoomBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
