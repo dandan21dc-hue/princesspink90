@@ -5,6 +5,9 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { listStoreItems } from "@/lib/store.functions";
 import { track } from "@/lib/track";
+import allAccessCover from "@/assets/store-all-access.jpg";
+import privateRoomCover from "@/assets/store-private-room.jpg";
+import pantyDrawerCover from "@/assets/store-panty-drawer.jpg";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cn } from "@/lib/utils";
 import { X, SlidersHorizontal } from "lucide-react";
@@ -101,7 +104,8 @@ function CategoryCards() {
     price: string;
     priceSuffix: string;
     blurb: string;
-    gradient: string;
+    image: string;
+    imageAlt: string;
     cta: string;
   }> = [
     {
@@ -111,7 +115,8 @@ function CategoryCards() {
       price: "From A$10",
       priceSuffix: "/ month",
       blurb: "Unlock every set, every video, every bundle in the library.",
-      gradient: "from-primary/25 via-primary/10 to-transparent",
+      image: allAccessCover,
+      imageAlt: "Neon-lit boutique with pink glow behind velvet drapes",
       cta: "Choose a plan",
     },
     {
@@ -121,7 +126,8 @@ function CategoryCards() {
       price: "From A$150",
       priceSuffix: "/ 30 min",
       blurb: "Book a 30-minute or 1-hour private session with me.",
-      gradient: "from-pink-500/25 via-primary/10 to-transparent",
+      image: privateRoomCover,
+      imageAlt: "Moody private lounge lit with soft pink light behind sheer curtains",
       cta: "Book a session",
     },
     {
@@ -131,14 +137,15 @@ function CategoryCards() {
       price: "From A$60",
       priceSuffix: "/ pair",
       blurb: "Worn, sealed, shipped discreetly across Australia.",
-      gradient: "from-fuchsia-500/25 via-primary/10 to-transparent",
+      image: pantyDrawerCover,
+      imageAlt: "Close-up of pink lace lingerie with a black-ribboned gift box in shadow",
       cta: "Open the drawer",
     },
   ];
 
   return (
-    <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {cards.map((c) => (
+    <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {cards.map((c, idx) => (
         <Link
           key={c.to}
           to={c.to}
@@ -146,31 +153,45 @@ function CategoryCards() {
             track("store_category_card_click", {
               destination: c.to,
               category: c.title,
-              position: cards.findIndex((x) => x.to === c.to) + 1,
+              position: idx + 1,
             })
           }
-          className="group relative flex flex-col overflow-hidden rounded-2xl border border-primary/40 bg-background/40 p-6 shadow-[var(--shadow-glow-pink)] transition hover:border-primary hover:bg-primary/5"
+          aria-label={`${c.title} — ${c.cta}`}
+          className="group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card/60 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_40px_-10px_hsl(var(--primary)/0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-70 transition group-hover:opacity-100",
-              c.gradient,
-            )}
-            aria-hidden="true"
-          />
-          <div className="relative flex flex-1 flex-col">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
+          <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+            <img
+              src={c.image}
+              alt={c.imageAlt}
+              width={1024}
+              height={768}
+              loading="lazy"
+              className="h-full w-full object-cover grayscale transition-all duration-700 ease-out group-hover:scale-110 group-hover:grayscale-0 group-focus-visible:scale-110 group-focus-visible:grayscale-0"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent"
+            />
+          </div>
+          <div className="relative flex flex-1 flex-col p-6 sm:p-8">
+            <div className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">
               {c.eyebrow}
             </div>
-            <div className="mt-2 font-display text-2xl font-extrabold">{c.title}</div>
-            <div className="mt-1 font-display text-lg font-bold">
-              {c.price}
-              <span className="ml-1 text-xs font-normal text-muted-foreground">
+            <div className="mt-3 font-display text-2xl font-extrabold text-foreground">
+              {c.title}
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span className="font-display text-lg font-bold text-foreground">
+                {c.price}
+              </span>
+              <span className="text-xs font-normal text-muted-foreground">
                 {c.priceSuffix}
               </span>
             </div>
-            <p className="mt-3 text-sm text-muted-foreground">{c.blurb}</p>
-            <div className="mt-6 inline-flex items-center gap-2 self-start rounded-full border border-primary/60 bg-background/60 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary group-hover:bg-primary group-hover:text-primary-foreground">
+            <p className="mt-3 flex-grow text-sm leading-relaxed text-muted-foreground">
+              {c.blurb}
+            </p>
+            <div className="mt-8 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold uppercase tracking-widest text-primary-foreground transition-all group-hover:bg-primary/90 group-active:scale-[0.98]">
               {c.cta} →
             </div>
           </div>
@@ -179,6 +200,7 @@ function CategoryCards() {
     </div>
   );
 }
+
 
 
 
