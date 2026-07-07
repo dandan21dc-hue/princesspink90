@@ -61,6 +61,7 @@ function AdminPantyListings() {
     queryFn: () => listFn(),
   });
   const [edit, setEdit] = useState<EditState | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PantyListing | null>(null);
 
   const save = useMutation({
     mutationFn: async (v: EditState) => {
