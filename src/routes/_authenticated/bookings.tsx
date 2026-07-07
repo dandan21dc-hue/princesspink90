@@ -224,6 +224,21 @@ function BookingsPage() {
         </div>
       )}
 
+      {!bookings.isLoading && rows.length > 0 && filteredRows.length === 0 && (
+        <div className="mt-10 rounded-lg border border-border/60 bg-card/40 p-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            No bookings match the selected filters.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate({ search: { status: "all", date: "all" } })}
+            className="mt-4 inline-block rounded-md bg-primary px-5 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90"
+          >
+            Clear filters
+          </button>
+        </div>
+      )}
+
       {upcoming.length > 0 && (
         <div className="mt-10">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
