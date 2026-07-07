@@ -22,15 +22,45 @@ export const Route = createFileRoute('/connect')({
   component: ConnectPage,
 })
 
+const STORAGE_KEY = 'princess-pink:mcp-url'
+
 function ConnectPage() {
+  const [defaultUrl, setDefaultUrl] = useState('')
   const [mcpUrl, setMcpUrl] = useState('')
+  const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
   const [status, setStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle')
   const [statusDetail, setStatusDetail] = useState<string>('')
 
   useEffect(() => {
-    setMcpUrl(new URL('/mcp', window.location.origin).toString())
+    const derived = new URL('/mcp', window.location.origin).toString()
+    setDefaultUrl(derived)
+    const stored = window.localStorage.getItem(STORAGE_KEY)
+    setMcpUrl(stored && stored.trim() ? stored.trim() : derived)
+    if (stored && stored.trim()) setSaved(true)
   }, [])
+
+  function saveUrl(next: string) {
+    const trimmed = next.trim()
+    setMcpUrl(trimmed)
+    if (trimmed && trimmed !== defaultUrl) {
+      window.localStorage.setItem(STORAGE_KEY, trimmed)
+      setSaved(true)
+    } else {
+      window.localStorage.removeItem(STORAGE_KEY)
+      setSaved(false)
+    }
+    setStatus('idle')
+    setStatusDetail('')
+  }
+
+  function resetUrl() {
+    window.localStorage.removeItem(STORAGE_KEY)
+    setMcpUrl(defaultUrl)
+    setSaved(false)
+    setStatus('idle')
+    setStatusDetail('')
+  }
 
   async function copy() {
     if (!mcpUrl) return
@@ -42,6 +72,7 @@ function ConnectPage() {
       /* ignore */
     }
   }
+
 
   async function testConnection() {
     if (!mcpUrl) return
@@ -121,9 +152,14 @@ function ConnectPage() {
           MCP server URL
         </div>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <code className="flex-1 truncate rounded-lg border border-border bg-background/60 px-3 py-2 text-sm">
-            {mcpUrl || 'Loading…'}
-          </code>
+          <input
+            type="url"
+            value={mcpUrl}
+            onChange={(e) => saveUrl(e.target.value)}
+            placeholder={defaultUrl || 'https://…/mcp'}
+            spellCheck={false}
+            className="flex-1 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-mono"
+          />
           <button
             type="button"
             onClick={copy}
@@ -133,9 +169,23 @@ function ConnectPage() {
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Paste this URL into the connector setup in your assistant.
-        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+          <span>
+            {saved
+              ? 'Saved to this browser — reused automatically next visit.'
+              : 'Paste a custom URL to override the default, or leave as-is.'}
+          </span>
+          {saved && (
+            <button
+              type="button"
+              onClick={resetUrl}
+              className="rounded border border-border px-2 py-1 uppercase tracking-wider hover:bg-secondary/50 transition"
+            >
+              Reset to default
+            </button>
+          )}
+        </div>
+
 
         <div className="mt-6 flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
