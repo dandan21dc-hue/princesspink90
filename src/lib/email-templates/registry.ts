@@ -24,4 +24,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'partnership-notification': partnershipNotification,
   'partnership-reply': partnershipReply,
   'booking-confirmation': bookingConfirmation,
+  'booking-cancelled': bookingCancelled,
 }
