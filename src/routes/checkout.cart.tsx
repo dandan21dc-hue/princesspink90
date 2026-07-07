@@ -4,7 +4,7 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe
 import { supabase } from "@/integrations/supabase/client";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createCartCheckoutSession } from "@/lib/store.functions";
-import { useCart, formatMoney, cart as cartStore } from "@/lib/cart";
+import { useCart, formatMoney, cart as cartStore, cartLineKey } from "@/lib/cart";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { track } from "@/lib/track";
 
@@ -172,10 +172,12 @@ function CartCheckoutPage() {
             <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Order summary</div>
             <ul className="mt-3 space-y-2 text-sm">
               {snapshot.map((it) => (
-                <li key={`${it.kind}:${it.id}`} className="flex items-start justify-between gap-3">
+                <li key={cartLineKey(it)} className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate">{it.title}</div>
-                    <div className="text-xs text-muted-foreground">Qty {it.quantity}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {it.size ? <>Size {it.size} · </> : null}Qty {it.quantity}
+                    </div>
                   </div>
                   <div className="shrink-0 tabular-nums">
                     {formatMoney(it.unit_amount_cents * it.quantity, it.currency)}

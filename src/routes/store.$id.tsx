@@ -240,6 +240,7 @@ function ItemPage() {
                             unit_amount_cents: item!.price_cents!,
                             currency: (item!.currency ?? "aud").toLowerCase(),
                             cover_url: item!.cover_url,
+                            ...(selectedSize ? { size: selectedSize } : {}),
                           });
                           toast.success("Added to cart");
                         } finally {

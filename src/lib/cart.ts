@@ -15,6 +15,8 @@ export type CartItem =
       currency: string;
       cover_url?: string | null;
       quantity: number;
+      /** Selected size variant, e.g. "S", "M", "L". Undefined = one-size / no variant. */
+      size?: string;
     }
   | {
       kind: "panty";
@@ -25,7 +27,14 @@ export type CartItem =
       currency: string;
       cover_url?: string | null;
       quantity: number;
+      size?: string;
     };
+
+/** Stable per-line identity: same product in different sizes = separate lines. */
+export function cartLineKey(it: Pick<CartItem, "kind" | "id" | "size">): string {
+  return `${it.kind}:${it.id}:${it.size ?? ""}`;
+}
+
 
 const STORAGE_KEY = "pp_cart_v1";
 
@@ -99,7 +108,9 @@ export const cart = {
   add(item: Omit<CartItem, "quantity"> & { quantity?: number }) {
     ensureHydrated();
     const qty = Math.max(1, item.quantity ?? 1);
-    const idx = cache.findIndex((it) => it.kind === item.kind && it.id === item.id);
+    const idx = cache.findIndex(
+      (it) => it.kind === item.kind && it.id === item.id && (it.size ?? "") === (item.size ?? ""),
+    );
     if (idx >= 0) {
       const next = [...cache];
       // Panty variants are unique per Stripe session — cap at 1.
@@ -118,15 +129,21 @@ export const cart = {
       setItems([...next, { ...item, quantity: item.kind === "panty" ? 1 : qty } as CartItem]);
     }
   },
-  remove(kind: CartItem["kind"], id: string) {
-    setItems(cache.filter((it) => !(it.kind === kind && it.id === id)));
+  remove(kind: CartItem["kind"], id: string, size?: string) {
+    setItems(
+      cache.filter(
+        (it) => !(it.kind === kind && it.id === id && (it.size ?? "") === (size ?? "")),
+      ),
+    );
   },
-  setQty(kind: CartItem["kind"], id: string, quantity: number) {
-    if (quantity <= 0) return cart.remove(kind, id);
+  setQty(kind: CartItem["kind"], id: string, quantity: number, size?: string) {
+    if (quantity <= 0) return cart.remove(kind, id, size);
     if (kind === "panty") quantity = 1;
     setItems(
       cache.map((it) =>
-        it.kind === kind && it.id === id ? ({ ...it, quantity } as CartItem) : it,
+        it.kind === kind && it.id === id && (it.size ?? "") === (size ?? "")
+          ? ({ ...it, quantity } as CartItem)
+          : it,
       ),
     );
   },
@@ -138,6 +155,7 @@ export const cart = {
     return cache;
   },
 };
+
 
 export function useCart() {
   const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
