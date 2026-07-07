@@ -124,7 +124,7 @@ export const listMyPrivateRoomBookingHistory = createServerFn({ method: "GET" })
 // Cancel one of the user's own bookings. Must be at least 2 hours away and not already cancelled.
 export const cancelMyPrivateRoomBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { id: string }) => {
+  .inputValidator((data: { id: string; timeZone?: string }) => {
     if (!/^[0-9a-f-]{36}$/i.test(data.id)) throw new Error("Invalid id");
     return data;
   })
