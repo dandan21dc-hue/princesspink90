@@ -225,7 +225,8 @@ function AllAccessCard() {
                           className="inline-flex items-center gap-1 text-[10px] text-primary/90 cursor-help"
                         >
                           {p.perk}
-                          <HelpCircle className="h-3 w-3" />
+                          <HelpCircle className="h-3 w-3" aria-hidden="true" />
+                          <span className="sr-only">Auto-renewal details</span>
                         </span>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="max-w-[260px] text-center leading-relaxed">
