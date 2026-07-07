@@ -164,6 +164,18 @@ const button = {
   letterSpacing: '0.12em',
   textTransform: 'uppercase' as const,
 }
+const secondaryButton = {
+  backgroundColor: '#ffffff',
+  color: '#e91e63',
+  border: '1px solid #e91e63',
+  padding: '12px 22px',
+  borderRadius: '8px',
+  fontSize: '13px',
+  fontWeight: 700 as const,
+  textDecoration: 'none',
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase' as const,
+}
 const fineprint = { fontSize: '12px', color: '#666', textAlign: 'center' as const, margin: '0 0 18px' }
 const sig = { fontSize: '15px', color: '#0a0a0f', margin: '20px 0 8px', fontWeight: 600 as const }
 const footer = { fontSize: '11px', color: '#999', margin: '32px 0 0', lineHeight: '1.5' }
