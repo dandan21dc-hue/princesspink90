@@ -7,6 +7,7 @@ import { amIAdmin } from "@/lib/admin.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
 import { PerksWidget } from "@/components/PerksWidget";
+import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
