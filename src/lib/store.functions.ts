@@ -89,6 +89,106 @@ export const getMyPrivateRoomBookingBySession = createServerFn({ method: "POST" 
     return row;
   });
 
+// List all of the signed-in user's private-room bookings (past + upcoming).
+export const listMyPrivateRoomBookings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("private_room_bookings")
+      .select(
+        "id,starts_at,duration_minutes,status,amount_cents,currency,party_size,notes,customer_email,created_at",
+      )
+      .order("starts_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+// Cancel one of the user's own bookings. Must be at least 2 hours away and not already cancelled.
+export const cancelMyPrivateRoomBooking = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(data.id)) throw new Error("Invalid id");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: row, error: readErr } = await context.supabase
+      .from("private_room_bookings")
+      .select("id,user_id,starts_at,status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!row) throw new Error("Booking not found");
+    if (row.user_id !== context.userId) throw new Error("Not your booking");
+    if (row.status === "cancelled") throw new Error("Already cancelled");
+    const starts = new Date(row.starts_at).getTime();
+    if (starts - Date.now() < 2 * 60 * 60 * 1000) {
+      throw new Error("Bookings can only be cancelled at least 2 hours in advance");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("private_room_bookings")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Reschedule a booking. Keeps duration, moves starts_at, validates lead time and no overlap.
+export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string; startsAt: string }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(data.id)) throw new Error("Invalid id");
+    if (Number.isNaN(Date.parse(data.startsAt))) throw new Error("Invalid startsAt");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: row, error: readErr } = await context.supabase
+      .from("private_room_bookings")
+      .select("id,user_id,starts_at,duration_minutes,status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!row) throw new Error("Booking not found");
+    if (row.user_id !== context.userId) throw new Error("Not your booking");
+    if (row.status === "cancelled") throw new Error("Cannot reschedule a cancelled booking");
+    const newStart = new Date(data.startsAt);
+    if (newStart.getTime() - Date.now() < 60 * 60 * 1000) {
+      throw new Error("New time must be at least 1 hour from now");
+    }
+    const hour = newStart.getHours();
+    if (hour < 10 || hour > 21) throw new Error("Time must be between 10:00 and 22:00");
+    const newEnd = new Date(newStart.getTime() + row.duration_minutes * 60_000);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: busy, error: busyErr } = await supabaseAdmin
+      .from("private_room_bookings")
+      .select("id,starts_at,duration_minutes,status,created_at")
+      .neq("id", data.id)
+      .in("status", ["confirmed", "pending"])
+      .gte("starts_at", new Date(newStart.getTime() - 2 * 60 * 60_000).toISOString())
+      .lte("starts_at", new Date(newEnd.getTime() + 2 * 60 * 60_000).toISOString());
+    if (busyErr) throw new Error(busyErr.message);
+    const conflict = (busy ?? []).some((b) => {
+      if (b.status === "pending" && new Date(b.created_at).getTime() < Date.now() - 15 * 60_000) {
+        return false; // stale hold
+      }
+      const bStart = new Date(b.starts_at).getTime();
+      const bEnd = bStart + b.duration_minutes * 60_000;
+      return bStart < newEnd.getTime() && bEnd > newStart.getTime();
+    });
+    if (conflict) throw new Error("That slot is no longer available");
+    const { error } = await supabaseAdmin
+      .from("private_room_bookings")
+      .update({ starts_at: newStart.toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
+
+
 
 async function resolveOrCreateCustomer(
   stripe: ReturnType<typeof createStripeClient>,

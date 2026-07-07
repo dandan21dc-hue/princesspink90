@@ -36,6 +36,7 @@ import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCohostApplyRouteImport } from './routes/_authenticated/cohost-apply'
+import { Route as AuthenticatedBookingsRouteImport } from './routes/_authenticated/bookings'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedContentIndexRouteImport } from './routes/_authenticated/content.index'
 import { Route as AuthenticatedAccountIndexRouteImport } from './routes/_authenticated/account.index'
@@ -225,6 +226,11 @@ const AuthenticatedCohostApplyRoute =
     path: '/cohost-apply',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedBookingsRoute = AuthenticatedBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -550,6 +556,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/account': typeof AuthenticatedAccountRouteWithChildren
+  '/bookings': typeof AuthenticatedBookingsRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
@@ -630,6 +637,7 @@ export interface FileRoutesByTo {
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
+  '/bookings': typeof AuthenticatedBookingsRoute
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
@@ -713,6 +721,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/unsubscribe': typeof UnsubscribeRoute
   '/_authenticated/account': typeof AuthenticatedAccountRouteWithChildren
+  '/_authenticated/bookings': typeof AuthenticatedBookingsRoute
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
@@ -796,6 +805,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/account'
+    | '/bookings'
     | '/cohost-apply'
     | '/dashboard'
     | '/library'
@@ -876,6 +886,7 @@ export interface FileRouteTypes {
     | '/store'
     | '/terms'
     | '/unsubscribe'
+    | '/bookings'
     | '/cohost-apply'
     | '/dashboard'
     | '/library'
@@ -958,6 +969,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/unsubscribe'
     | '/_authenticated/account'
+    | '/_authenticated/bookings'
     | '/_authenticated/cohost-apply'
     | '/_authenticated/dashboard'
     | '/_authenticated/library'
@@ -1255,6 +1267,13 @@ declare module '@tanstack/react-router' {
       path: '/cohost-apply'
       fullPath: '/cohost-apply'
       preLoaderRoute: typeof AuthenticatedCohostApplyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/bookings': {
+      id: '/_authenticated/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof AuthenticatedBookingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/account': {
@@ -1676,6 +1695,7 @@ const AuthenticatedEventsIdCheckinRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRouteWithChildren
+  AuthenticatedBookingsRoute: typeof AuthenticatedBookingsRoute
   AuthenticatedCohostApplyRoute: typeof AuthenticatedCohostApplyRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
@@ -1715,6 +1735,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRouteWithChildren,
+  AuthenticatedBookingsRoute: AuthenticatedBookingsRoute,
   AuthenticatedCohostApplyRoute: AuthenticatedCohostApplyRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
