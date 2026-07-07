@@ -87,6 +87,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only." },
       { property: "og:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
       { name: "twitter:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
+      { name: "google-site-verification", content: "L6cxAJZao3yrM4xXKeBrsyMdFa94p4LVYXQ-tdjqmus" },
+
+
 
     ],
     links: [
