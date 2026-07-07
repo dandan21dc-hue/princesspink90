@@ -279,11 +279,13 @@ function BookingsPage() {
                 booking={b}
                 isRescheduling={reschedulingId === b.id}
                 confirmCancel={confirmCancelId === b.id}
+                resendEmailPending={resendingEmailId === b.id && resendEmailMutation.isPending}
                 onStartReschedule={() => {
                   setReschedulingId(b.id);
                   setConfirmCancelId(null);
                   setError(null);
                   setSuccess(null);
+                  setResendingEmailId(null);
                 }}
                 onCloseReschedule={() => setReschedulingId(null)}
                 onRequestCancel={() => {
@@ -291,6 +293,7 @@ function BookingsPage() {
                   setReschedulingId(null);
                   setError(null);
                   setSuccess(null);
+                  setResendingEmailId(null);
                 }}
                 onDismissCancel={() => setConfirmCancelId(null)}
                 onConfirmCancel={() => cancelMutation.mutate(b.id)}
@@ -300,6 +303,12 @@ function BookingsPage() {
                 }
                 reschedulePending={rescheduleMutation.isPending}
                 onOpenDetails={() => setDetailsId(b.id)}
+                onResendEmail={() => {
+                  setResendingEmailId(b.id);
+                  setError(null);
+                  setSuccess(null);
+                  resendEmailMutation.mutate(b.id);
+                }}
               />
             ))}
           </ul>
