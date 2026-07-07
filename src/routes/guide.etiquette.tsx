@@ -69,6 +69,50 @@ export const Route = createFileRoute("/guide/etiquette")({
           })),
         }),
       },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: TITLE,
+          description: DESCRIPTION,
+          url: CANONICAL,
+          inLanguage: "en",
+          isPartOf: {
+            "@type": "WebSite",
+            name: "Princess Pink",
+            url: "https://princesspink90.lovable.app",
+          },
+          primaryImageOfPage: undefined,
+        }),
+      },
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Home",
+              item: "https://princesspink90.lovable.app/",
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Guides",
+              item: "https://princesspink90.lovable.app/guide/etiquette",
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: "Dress Code & Etiquette",
+              item: CANONICAL,
+            },
+          ],
+        }),
+      },
     ],
   }),
   component: EtiquettePage,
