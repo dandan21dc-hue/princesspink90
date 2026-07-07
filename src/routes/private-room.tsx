@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, addDays, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,19 +47,37 @@ function PrivateRoomPage() {
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [finding, setFinding] = useState(false);
+  const jumpingToSlotRef = useRef<Date | null>(null);
 
   useEffect(() => {
+
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUser({ id: data.user.id, email: data.user.email ?? undefined });
     });
   }, []);
 
-  // Reset the picked slot when the day or duration changes.
+  // Reset the picked slot when the day or duration changes, unless we're
+  // jumping to a found "next available" slot.
   useEffect(() => {
+    if (
+      jumpingToSlotRef.current &&
+      selectedDate &&
+      startOfDay(jumpingToSlotRef.current).getTime() === selectedDate.getTime()
+    ) {
+      const slot = jumpingToSlotRef.current;
+      setSelectedSlot(new Date(slot.getTime()));
+      const el = document.getElementById(`slot-${slot.getTime()}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      jumpingToSlotRef.current = null;
+      return;
+    }
+
     setSelectedSlot(null);
   }, [selectedDate, duration]);
 
   const dayRange = useMemo(() => {
+
     if (!selectedDate) return null;
     const from = new Date(selectedDate);
     from.setHours(0, 0, 0, 0);
@@ -98,8 +116,55 @@ function PrivateRoomPage() {
 
   const now = Date.now();
 
+  async function jumpToNextAvailable() {
+    setFinding(true);
+    try {
+      const from = new Date();
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(from.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const busy = await listPrivateRoomBusy({
+        data: { from: from.toISOString(), to: to.toISOString() },
+      });
+      const ranges = busy.map((b) => {
+        const start = new Date(b.starts_at).getTime();
+        const end = start + b.duration_minutes * 60_000;
+        return { start, end };
+      });
+      const earliest = Date.now() + 60 * 60 * 1000;
+      let found: Date | null = null;
+      for (let d = 0; d < 30 && !found; d++) {
+        const day = startOfDay(addDays(new Date(), d));
+        for (
+          let m = DAY_START_HOUR * 60;
+          m + duration <= DAY_END_HOUR * 60;
+          m += SLOT_STEP_MIN
+        ) {
+          const slot = new Date(day);
+          slot.setHours(0, 0, 0, 0);
+          slot.setMinutes(m);
+          const s = slot.getTime();
+          if (s < earliest) continue;
+          const e = s + duration * 60_000;
+          if (!ranges.some((b) => b.start < e && b.end > s)) {
+            found = slot;
+            break;
+          }
+        }
+      }
+      if (found) {
+        jumpingToSlotRef.current = found;
+        setSelectedDate(startOfDay(found));
+      } else {
+        window.alert("No available slots in the next 30 days.");
+      }
+    } finally {
+      setFinding(false);
+    }
+  }
+
   function slotConflicts(start: Date) {
     const s = start.getTime();
+
     const e = s + duration * 60_000;
     if (s < now + 60 * 60 * 1000) return true; // 1h lead time
     return busyRanges.some((b) => b.start < e && b.end > s);
@@ -222,10 +287,21 @@ function PrivateRoomPage() {
                   <div className="font-display text-lg">
                     {selectedDate ? format(selectedDate, "EEEE, d MMMM") : "Pick a date"}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {busyQuery.isFetching ? "Checking availability…" : `${slots.filter((s) => !slotConflicts(s)).length} slots free`}
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={jumpToNextAvailable}
+                      disabled={finding}
+                      className="text-xs uppercase tracking-widest text-primary hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {finding ? "Finding…" : "Next available"}
+                    </button>
+                    <div className="text-xs text-muted-foreground">
+                      {busyQuery.isFetching ? "Checking availability…" : `${slots.filter((s) => !slotConflicts(s)).length} slots free`}
+                    </div>
                   </div>
                 </div>
+
 
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {slots.map((s) => {
@@ -233,9 +309,11 @@ function PrivateRoomPage() {
                     const active = selectedSlot?.getTime() === s.getTime();
                     return (
                       <button
+                        id={`slot-${s.getTime()}`}
                         key={s.toISOString()}
                         onClick={() => !disabled && setSelectedSlot(s)}
                         disabled={disabled}
+
                         className={cn(
                           "rounded-md border px-3 py-2 text-sm font-medium transition",
                           disabled
