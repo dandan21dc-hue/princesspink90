@@ -236,7 +236,19 @@ function PrivateRoomPage() {
             partySize={partySize}
             notes={notes}
             pending={pending}
-            onEdit={() => setReviewing(false)}
+            onEdit={() => {
+              setReviewing(false);
+              // Preserve the picked slot/date/duration/party size/notes and
+              // scroll back to the slot the user had highlighted so they can
+              // see their selection right away.
+              const slot = selectedSlot;
+              if (slot) {
+                requestAnimationFrame(() => {
+                  const el = document.getElementById(`slot-${slot.getTime()}`);
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                });
+              }
+            }}
             onConfirm={confirm}
           />
         ) : (
@@ -559,9 +571,12 @@ function ReviewBookingCard({
           disabled={pending}
           className="min-h-11 rounded-md border border-border/60 bg-background px-4 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground disabled:opacity-40"
         >
-          Edit
+          ← Back to edit
         </button>
       </div>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        Your date, time, party size, and notes are kept if you go back.
+      </p>
     </div>
   );
 }
