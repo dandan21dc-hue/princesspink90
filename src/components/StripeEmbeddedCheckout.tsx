@@ -178,6 +178,8 @@ export function StripeEmbeddedCheckout(props: Props) {
           returnUrl: p.returnUrl || window.location.href,
           environment: getStripeEnvironment(),
           bookingStartsAt: p.bookingStartsAt,
+          bookingPartySize: p.bookingPartySize,
+          bookingNotes: p.bookingNotes,
           customerCountry: countryRef.current,
           autoRenew: p.autoRenew,
         },
