@@ -540,6 +540,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
     (data: {
       priceId?: string;
       contentItemId?: string;
+      pantyListingId?: string;
       quantity?: number;
       customerEmail?: string;
       userId?: string;
@@ -551,9 +552,12 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       customerCountry?: string;
       autoRenew?: boolean;
     }) => {
-      if (!data.priceId && !data.contentItemId) throw new Error("priceId or contentItemId required");
+      if (!data.priceId && !data.contentItemId && !data.pantyListingId) {
+        throw new Error("priceId, contentItemId, or pantyListingId required");
+      }
       if (data.priceId && !/^[a-zA-Z0-9_-]+$/.test(data.priceId)) throw new Error("Invalid priceId");
       if (data.contentItemId && !/^[a-f0-9-]+$/i.test(data.contentItemId)) throw new Error("Invalid item id");
+      if (data.pantyListingId && !/^[a-f0-9-]{36}$/i.test(data.pantyListingId)) throw new Error("Invalid listing id");
       if (data.bookingPartySize !== undefined) {
         if (!Number.isInteger(data.bookingPartySize) || data.bookingPartySize < 1 || data.bookingPartySize > 10) {
           throw new Error("Party size must be between 1 and 10");
