@@ -51,6 +51,7 @@ import { Route as AuthenticatedAdminWebhookEventsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
 import { Route as AuthenticatedAdminVenueComplianceRemindersRouteImport } from './routes/_authenticated/admin.venue-compliance-reminders'
 import { Route as AuthenticatedAdminVenueComplianceRouteImport } from './routes/_authenticated/admin.venue-compliance'
+import { Route as AuthenticatedAdminUserManagementRouteImport } from './routes/_authenticated/admin.user-management'
 import { Route as AuthenticatedAdminSystemLogsRouteImport } from './routes/_authenticated/admin.system-logs'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
@@ -310,6 +311,12 @@ const AuthenticatedAdminVenueComplianceRoute =
   AuthenticatedAdminVenueComplianceRouteImport.update({
     id: '/admin/venue-compliance',
     path: '/admin/venue-compliance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminUserManagementRoute =
+  AuthenticatedAdminUserManagementRouteImport.update({
+    id: '/admin/user-management',
+    path: '/admin/user-management',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminSystemLogsRoute =
@@ -627,6 +634,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
+  '/admin/user-management': typeof AuthenticatedAdminUserManagementRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
@@ -713,6 +721,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
+  '/admin/user-management': typeof AuthenticatedAdminUserManagementRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
@@ -802,6 +811,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
+  '/_authenticated/admin/user-management': typeof AuthenticatedAdminUserManagementRoute
   '/_authenticated/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/_authenticated/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
@@ -891,6 +901,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/support'
     | '/admin/system-logs'
+    | '/admin/user-management'
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
     | '/admin/verifications'
@@ -977,6 +988,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/support'
     | '/admin/system-logs'
+    | '/admin/user-management'
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
     | '/admin/verifications'
@@ -1065,6 +1077,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/system-logs'
+    | '/_authenticated/admin/user-management'
     | '/_authenticated/admin/venue-compliance'
     | '/_authenticated/admin/venue-compliance-reminders'
     | '/_authenticated/admin/verifications'
@@ -1437,6 +1450,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/venue-compliance'
       fullPath: '/admin/venue-compliance'
       preLoaderRoute: typeof AuthenticatedAdminVenueComplianceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/user-management': {
+      id: '/_authenticated/admin/user-management'
+      path: '/admin/user-management'
+      fullPath: '/admin/user-management'
+      preLoaderRoute: typeof AuthenticatedAdminUserManagementRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/system-logs': {
@@ -1823,6 +1843,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminSystemLogsRoute: typeof AuthenticatedAdminSystemLogsRoute
+  AuthenticatedAdminUserManagementRoute: typeof AuthenticatedAdminUserManagementRoute
   AuthenticatedAdminVenueComplianceRoute: typeof AuthenticatedAdminVenueComplianceRoute
   AuthenticatedAdminVenueComplianceRemindersRoute: typeof AuthenticatedAdminVenueComplianceRemindersRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
@@ -1874,6 +1895,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
   AuthenticatedAdminSystemLogsRoute: AuthenticatedAdminSystemLogsRoute,
+  AuthenticatedAdminUserManagementRoute: AuthenticatedAdminUserManagementRoute,
   AuthenticatedAdminVenueComplianceRoute:
     AuthenticatedAdminVenueComplianceRoute,
   AuthenticatedAdminVenueComplianceRemindersRoute:

@@ -41,6 +41,102 @@ export const getMyRoles = createServerFn({ method: "GET" })
     };
   });
 
+// ---------- User management (roles) ----------
+
+export const listAllUsersWithRoles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const users: Array<{
+      id: string;
+      email: string | null;
+      created_at: string | null;
+      display_name: string | null;
+      roles: string[];
+    }> = [];
+
+    // Page through auth users
+    let page = 1;
+    const perPage = 200;
+    // Cap at 20 pages (~4000 users) to keep this safe.
+    for (let i = 0; i < 20; i++) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error) throw new Error(error.message);
+      for (const u of data.users) {
+        users.push({
+          id: u.id,
+          email: u.email ?? null,
+          created_at: u.created_at ?? null,
+          display_name: null,
+          roles: [],
+        });
+      }
+      if (data.users.length < perPage) break;
+      page += 1;
+    }
+
+    if (users.length === 0) return { users };
+
+    const ids = users.map((u) => u.id);
+    const [{ data: profiles }, { data: roleRows }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("user_id, display_name").in("user_id", ids),
+      supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids),
+    ]);
+
+    const nameMap = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name]));
+    const rolesByUser = new Map<string, string[]>();
+    for (const r of roleRows ?? []) {
+      const arr = rolesByUser.get(r.user_id) ?? [];
+      arr.push(r.role as string);
+      rolesByUser.set(r.user_id, arr);
+    }
+
+    for (const u of users) {
+      u.display_name = nameMap.get(u.id) ?? null;
+      u.roles = rolesByUser.get(u.id) ?? [];
+    }
+
+    users.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    return { users };
+  });
+
+export const setUserCoHostRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; role: "user" | "co_host" }) => {
+    if (!data.userId) throw new Error("userId required");
+    if (data.role !== "user" && data.role !== "co_host") {
+      throw new Error("role must be 'user' or 'co_host'");
+    }
+    return data;
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Never let this endpoint touch the 'admin' role — admins are managed by migration.
+    if (data.role === "co_host") {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .upsert(
+          { user_id: data.userId, role: "co_host" as const },
+          { onConflict: "user_id,role" },
+        );
+      if (error) throw new Error(error.message);
+    } else {
+      // "user" — clear the co_host grant. Leave admin intact.
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.userId)
+        .eq("role", "co_host");
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true as const };
+  });
+
+
 export const listLifetimeMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
