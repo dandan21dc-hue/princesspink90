@@ -43,6 +43,7 @@ function AvailabilityAdmin() {
   const createFn = useServerFn(createSessionSlot);
   const updateFn = useServerFn(updateSessionSlot);
   const deleteFn = useServerFn(deleteSessionSlot);
+  const bulkFn = useServerFn(bulkCreateSessionSlots);
 
   const qc = useQueryClient();
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
