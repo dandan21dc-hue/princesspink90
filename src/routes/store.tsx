@@ -26,6 +26,7 @@ const storeSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/store")({
+  validateSearch: zodValidator(storeSearchSchema),
   loader: ({ context }) => context.queryClient.ensureQueryData(storeQuery),
   head: () => ({
     meta: [
