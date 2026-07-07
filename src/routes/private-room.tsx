@@ -61,22 +61,22 @@ function PrivateRoomPage() {
   // Reset the picked slot when the day or duration changes, unless we're
   // jumping to a found "next available" slot.
   useEffect(() => {
-    console.log("reset effect", { jumpingToSlot: jumpingToSlot?.toISOString(), selectedDate: selectedDate?.toISOString() });
     if (
-      jumpingToSlot &&
+      jumpingToSlotRef.current &&
       selectedDate &&
-      startOfDay(jumpingToSlot).getTime() === selectedDate.getTime()
+      startOfDay(jumpingToSlotRef.current).getTime() === selectedDate.getTime()
     ) {
-      console.log("applying jump slot", jumpingToSlot.toISOString());
-      setSelectedSlot(new Date(jumpingToSlot.getTime()));
-      const el = document.getElementById(`slot-${jumpingToSlot.getTime()}`);
+      const slot = jumpingToSlotRef.current;
+      setSelectedSlot(new Date(slot.getTime()));
+      const el = document.getElementById(`slot-${slot.getTime()}`);
       el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      setJumpingToSlot(null);
+      jumpingToSlotRef.current = null;
       return;
     }
 
     setSelectedSlot(null);
-  }, [selectedDate, duration, jumpingToSlot]);
+  }, [selectedDate, duration]);
+
 
 
 
