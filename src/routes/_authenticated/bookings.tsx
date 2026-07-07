@@ -70,6 +70,7 @@ function BookingsPage() {
   const listFn = useServerFn(listMyPrivateRoomBookings);
   const cancelFn = useServerFn(cancelMyPrivateRoomBooking);
   const rescheduleFn = useServerFn(rescheduleMyPrivateRoomBooking);
+  const resendEmailFn = useServerFn(sendBookingConfirmationEmail);
   const qc = useQueryClient();
   const bookings = useQuery({
     queryKey: ["my-private-room-bookings"],
@@ -81,6 +82,7 @@ function BookingsPage() {
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => cancelFn({ data: { id } }),
