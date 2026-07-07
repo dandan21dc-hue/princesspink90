@@ -5,9 +5,13 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { listStoreItems } from "@/lib/store.functions";
 import { track } from "@/lib/track";
-import allAccessCover from "@/assets/store-all-access.jpg";
-import privateRoomCover from "@/assets/store-private-room.jpg";
-import pantyDrawerCover from "@/assets/store-panty-drawer.jpg";
+import allAccessCover from "@/assets/store-all-access.jpg?w=480;768;1024&format=avif;webp;jpg&as=picture";
+import privateRoomCover from "@/assets/store-private-room.jpg?w=480;768;1024&format=avif;webp;jpg&as=picture";
+import pantyDrawerCover from "@/assets/store-panty-drawer.jpg?w=480;768;1024&format=avif;webp;jpg&as=picture";
+type PictureImport = {
+  sources: Record<string, string>;
+  img: { src: string; w: number; h: number };
+};
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cn } from "@/lib/utils";
 import { X, SlidersHorizontal } from "lucide-react";
