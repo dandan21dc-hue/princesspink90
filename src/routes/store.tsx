@@ -77,7 +77,7 @@ function StorePage() {
 
         <div className="mt-10">
           <Suspense fallback={<div className="text-sm text-muted-foreground">Loading…</div>}>
-            <ItemGrid />
+            <FilteredItemGrid />
           </Suspense>
         </div>
       </section>
