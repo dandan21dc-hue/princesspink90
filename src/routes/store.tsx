@@ -172,6 +172,27 @@ function AllAccessCard() {
                 ? "Included"
                 : changeLabel;
 
+            const cadenceText =
+              p.cadence === "/month"
+                ? " per month"
+                : p.cadence === "upfront"
+                  ? " upfront"
+                  : p.cadence === "one-time"
+                    ? " one-time"
+                    : "";
+            const renewalText = owned && !isLifetime && expiry
+              ? `${willCancel ? "Ends" : "Renews"} ${expiry}`
+              : null;
+            const ariaLabel = [
+              `${p.label}, ${p.price}${cadenceText}`,
+              p.perk,
+              badge ? `${badge} plan` : null,
+              renewalText,
+              disabled ? "Current plan" : "Select this plan",
+            ]
+              .filter(Boolean)
+              .join(". ");
+
             const row = (
               <div className="flex flex-col gap-0.5">
                 <div className="flex items-center justify-between gap-3">
