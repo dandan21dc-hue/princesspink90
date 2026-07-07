@@ -297,9 +297,11 @@ function PrivateRoomPage() {
                     const active = selectedSlot?.getTime() === s.getTime();
                     return (
                       <button
+                        id={`slot-${s.getTime()}`}
                         key={s.toISOString()}
                         onClick={() => !disabled && setSelectedSlot(s)}
                         disabled={disabled}
+
                         className={cn(
                           "rounded-md border px-3 py-2 text-sm font-medium transition",
                           disabled
