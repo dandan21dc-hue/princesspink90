@@ -23,6 +23,7 @@ interface Props {
   bookingId: string
   icsUrl: string
   dashboardUrl: string
+  bookingUrl: string
   rescheduleUrl: string
   cancelUrl: string
 }
@@ -38,6 +39,7 @@ const Email = ({
   bookingId,
   icsUrl,
   dashboardUrl,
+  bookingUrl,
   rescheduleUrl,
   cancelUrl,
 }: Props) => (
@@ -76,13 +78,18 @@ const Email = ({
         )}
 
         <Section style={{ textAlign: 'center' as const, margin: '24px 0 8px' }}>
-          <Button href={dashboardUrl} style={button}>
-            Go to dashboard
+          <Button href={bookingUrl} style={button}>
+            View this booking
           </Button>
         </Section>
         <Section style={{ textAlign: 'center' as const, margin: '8px 0' }}>
           <Button href={icsUrl} style={secondaryButton}>
             Add to calendar (.ics)
+          </Button>
+        </Section>
+        <Section style={{ textAlign: 'center' as const, margin: '8px 0' }}>
+          <Button href={dashboardUrl} style={secondaryButton}>
+            All my bookings
           </Button>
         </Section>
 
@@ -139,6 +146,7 @@ export const template = {
     bookingId: '4f2c3a80-1a2b-4c5d-9e0f-abcdef012345',
     icsUrl: 'https://princesspink90.com/api/public/bookings/4f2c3a80-1a2b-4c5d-9e0f-abcdef012345.ics',
     dashboardUrl: 'https://princesspink90.com/bookings',
+    bookingUrl: 'https://princesspink90.com/bookings?booking=4f2c3a80-1a2b-4c5d-9e0f-abcdef012345&action=view',
     rescheduleUrl: 'https://princesspink90.com/bookings?booking=4f2c3a80-1a2b-4c5d-9e0f-abcdef012345&action=reschedule',
     cancelUrl: 'https://princesspink90.com/bookings?booking=4f2c3a80-1a2b-4c5d-9e0f-abcdef012345&action=cancel',
   },

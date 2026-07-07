@@ -61,6 +61,7 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
       "https://princesspink90.com";
     const icsUrl = `${origin}/api/public/bookings/${booking.id}/ics`;
     const dashboardUrl = `${origin}/bookings`;
+    const bookingUrl = `${origin}/bookings?booking=${booking.id}&action=view`;
     const rescheduleUrl = `${origin}/bookings?booking=${booking.id}&action=reschedule`;
     const cancelUrl = `${origin}/bookings?booking=${booking.id}&action=cancel`;
 
@@ -84,6 +85,7 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
         bookingId: booking.id as string,
         icsUrl,
         dashboardUrl,
+        bookingUrl,
         rescheduleUrl,
         cancelUrl,
       },

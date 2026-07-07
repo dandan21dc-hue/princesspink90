@@ -34,7 +34,7 @@ const bookingSearchSchema = z.object({
   status: fallback(z.enum(["all", "confirmed", "pending", "cancelled"]), "all").default("all"),
   date: fallback(z.enum(["all", "today", "week", "month"]), "all").default("all"),
   booking: fallback(z.string().uuid().optional(), undefined).optional(),
-  action: fallback(z.enum(["reschedule", "cancel"]).optional(), undefined).optional(),
+  action: fallback(z.enum(["reschedule", "cancel", "view"]).optional(), undefined).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/bookings")({
@@ -86,9 +86,9 @@ function BookingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
 
-  // Deep-link support: /bookings?booking=<id>&action=reschedule|cancel
-  // Opens the matching sheet once the booking list has loaded, then strips
-  // the params so refreshes/back-navigation don't re-trigger the action.
+  // Deep-link support: /bookings?booking=<id>&action=reschedule|cancel|view
+  // Opens the matching sheet/details once the booking list has loaded, then
+  // strips the params so refreshes/back-navigation don't re-trigger the action.
   const allBookings = bookings.data ?? [];
   useEffect(() => {
     if (!bookingParam || !actionParam) return;
@@ -100,6 +100,13 @@ function BookingsPage() {
     } else if (actionParam === "cancel") {
       setConfirmCancelId(bookingParam);
       setReschedulingId(null);
+    } else if (actionParam === "view") {
+      setDetailsId(bookingParam);
+    }
+    // Scroll the booking into view so the user lands directly on it.
+    if (typeof document !== "undefined") {
+      const el = document.getElementById(`booking-${bookingParam}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
     setError(null);
     setSuccess(null);
@@ -360,7 +367,8 @@ function BookingsPage() {
             {past.map((b) => (
               <li
                 key={b.id}
-                className="rounded-lg border border-border/60 bg-card/30 px-5 py-4 text-sm"
+                id={`booking-${b.id}`}
+                className="rounded-lg border border-border/60 bg-card/30 px-5 py-4 text-sm scroll-mt-24"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -439,7 +447,7 @@ function BookingCard(props: {
     : null;
 
   return (
-    <li className="rounded-lg border border-border/60 bg-card/40 p-5">
+    <li id={`booking-${b.id}`} className="rounded-lg border border-border/60 bg-card/40 p-5 scroll-mt-24">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="font-display text-lg font-semibold">
