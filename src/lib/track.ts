@@ -61,7 +61,10 @@ export function track(event: string, props: TrackProps = {}): void {
           : null;
     const action = typeof props.action === "string" ? props.action : null;
     const tierKind = typeof props.tier_kind === "string" ? props.tier_kind : null;
-    const sessionId = typeof props.session_id === "string" ? props.session_id : null;
+    const sessionId =
+      typeof props.session_id === "string" && props.session_id
+        ? props.session_id
+        : getOrCreateSessionId();
     // fire-and-forget; never surface errors to the UI
     void logAnalyticsEvent({
       data: {
@@ -73,5 +76,32 @@ export function track(event: string, props: TrackProps = {}): void {
         props: payload,
       },
     }).catch(() => {});
+  }
+}
+
+// Per-tab UUID used as a rate-limit key on the server. Kept in sessionStorage
+// so the same tab reuses one id across navigations without following the user
+// across tabs (making volumetric abuse from a single origin easier to bound).
+function getOrCreateSessionId(): string {
+  try {
+    const KEY = "app:analytics_session_id";
+    const existing = window.sessionStorage.getItem(KEY);
+    if (existing) return existing;
+    const fresh =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : // Fallback: RFC4122-ish v4 from Math.random (only when crypto is unavailable).
+          "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === "x" ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+    window.sessionStorage.setItem(KEY, fresh);
+    return fresh;
+  } catch {
+    // sessionStorage disabled — still return a valid UUID so the server accepts the event.
+    return typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : "00000000-0000-4000-8000-000000000000";
   }
 }
