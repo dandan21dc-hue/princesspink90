@@ -152,11 +152,27 @@ function ItemPage() {
           </div>
         ) : (
           <div className="mt-6 grid gap-8 md:grid-cols-2">
-            <div className="overflow-hidden rounded-2xl border border-border/60 bg-secondary/20 aspect-[4/5]">
-              {item.cover_url ? (
-                <img src={item.cover_url} alt={item.title} className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No cover</div>
+            <div>
+              <div className="overflow-hidden rounded-2xl border border-border/60 bg-secondary/20 aspect-[4/5]">
+                {gallery[activeImage] ? (
+                  <img src={gallery[activeImage]} alt={item.title} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">No image</div>
+                )}
+              </div>
+              {gallery.length > 1 && (
+                <div className="mt-3 grid grid-cols-5 gap-2">
+                  {gallery.map((src, i) => (
+                    <button
+                      key={src + i}
+                      onClick={() => setActiveImage(i)}
+                      aria-label={`Show image ${i + 1}`}
+                      className={`overflow-hidden rounded-md border aspect-square ${i === activeImage ? "border-primary" : "border-border/60 opacity-70 hover:opacity-100"}`}
+                    >
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
             <div>
@@ -164,11 +180,41 @@ function ItemPage() {
                 {item.kind === "photo_set" ? "Photo set" : item.kind === "video" ? "Video" : "Bundle"}
               </div>
               <h1 className="mt-2 font-display text-3xl font-extrabold">{item.title}</h1>
+              {item.price_cents ? (
+                <div className="mt-2 font-display text-2xl text-neon">
+                  ${(item.price_cents / 100).toFixed(2)} <span className="text-xs uppercase tracking-widest text-muted-foreground">{(item.currency ?? "aud").toUpperCase()}</span>
+                </div>
+              ) : null}
               {item.description && (
                 <p className="mt-4 whitespace-pre-line text-sm text-muted-foreground leading-relaxed">
                   {item.description}
                 </p>
               )}
+
+              {sizes.length > 0 && (
+                <div className="mt-6">
+                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Size</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {sizes.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setSelectedSize(s)}
+                        className={`min-w-11 rounded-md border px-3 py-2 text-sm font-medium transition ${selectedSize === s ? "border-primary bg-primary/10 text-primary" : "border-border/60 text-muted-foreground hover:text-foreground"}`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {materials && (
+                <div className="mt-6">
+                  <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Materials</div>
+                  <p className="mt-1 text-sm text-foreground/90">{materials}</p>
+                </div>
+              )}
+
 
               <div className="mt-8 space-y-3">
                 {canBuyOneTime && (
