@@ -730,4 +730,105 @@ function ConfRow({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+/**
+ * Quick-change CTAs for a confirmed booking, shown directly on the
+ * confirmation page: jump to reschedule in /bookings, or cancel inline
+ * (with a confirm step) when the booking is >2h away. Mirrors the cancel
+ * rules used on the /bookings management page.
+ */
+function ConfirmedBookingActions({
+  bookingId,
+  startsAt,
+  onCancelled,
+}: {
+  bookingId: string;
+  startsAt: Date;
+  onCancelled: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cancelFn = useServerFn(cancelMyPrivateRoomBooking);
+  const qc = useQueryClient();
+  const canCancel = startsAt.getTime() - Date.now() > 2 * 60 * 60 * 1000;
+
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelFn({ data: { id: bookingId } }),
+    onSuccess: async () => {
+      setConfirming(false);
+      await qc.invalidateQueries({ queryKey: ["private-room-booking"] });
+      onCancelled();
+    },
+    onError: (e: unknown) => {
+      setError(e instanceof Error ? e.message : "Couldn't cancel — try again.");
+    },
+  });
+
+  if (confirming) {
+    return (
+      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-left">
+        <p className="text-sm">Cancel this booking? This can't be undone.</p>
+        {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={cancelMutation.isPending}
+            onClick={() => cancelMutation.mutate()}
+            className="rounded-md bg-destructive px-4 py-2 text-xs font-semibold uppercase tracking-widest text-destructive-foreground disabled:opacity-60"
+          >
+            {cancelMutation.isPending ? "Cancelling…" : "Yes, cancel booking"}
+          </button>
+          <button
+            type="button"
+            disabled={cancelMutation.isPending}
+            onClick={() => {
+              setError(null);
+              setConfirming(false);
+            }}
+            className="rounded-md border border-border px-4 py-2 text-xs font-semibold uppercase tracking-widest hover:bg-muted/30"
+          >
+            Keep booking
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Link
+        to="/bookings"
+        className="rounded-md border border-primary/50 bg-background px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+      >
+        Reschedule
+      </Link>
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        disabled={!canCancel}
+        title={canCancel ? "" : "Bookings must be cancelled at least 2 hours ahead"}
+        className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-destructive hover:bg-destructive/15 disabled:opacity-40"
+      >
+        Cancel booking
+      </button>
+      {!canCancel && (
+        <span className="text-center text-[11px] text-muted-foreground">
+          Within 2 hours of your session — contact support to make changes.
+        </span>
+      )}
+      <Link
+        to="/dashboard"
+        className="rounded-md bg-primary px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+      >
+        Go to your dashboard
+      </Link>
+      <Link
+        to="/private-room"
+        className="text-center text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+      >
+        Book another session
+      </Link>
+    </>
+  );
+}
+
 
