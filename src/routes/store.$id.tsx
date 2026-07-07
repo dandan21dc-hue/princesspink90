@@ -71,7 +71,7 @@ function ItemPage() {
   const { id } = Route.useParams();
   const { data: item } = useSuspenseQuery(itemQuery(id));
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [user] = useState<{ id: string; email?: string } | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState<null | "buy" | "subscribe" | "cart">(null);
   const [activeImage, setActiveImage] = useState(0);
