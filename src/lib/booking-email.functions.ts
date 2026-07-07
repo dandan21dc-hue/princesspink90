@@ -50,9 +50,10 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
       booking.amount_cents != null
         ? new Intl.NumberFormat("en-AU", {
             style: "currency",
-            currency: ((booking.currency as string | null) ?? "aud").toUpperCase(),
+            currency: "AUD",
           }).format((booking.amount_cents as number) / 100)
         : undefined;
+
 
     const origin =
       process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ??
@@ -130,9 +131,10 @@ export const sendBookingCancelledEmail = createServerFn({ method: "POST" })
       booking.amount_cents != null
         ? new Intl.NumberFormat("en-AU", {
             style: "currency",
-            currency: ((booking.currency as string | null) ?? "aud").toUpperCase(),
+            currency: "AUD",
           }).format((booking.amount_cents as number) / 100)
         : undefined;
+
 
     const origin =
       process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ??
