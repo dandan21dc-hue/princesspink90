@@ -31,6 +31,23 @@ export const Route = createFileRoute("/_authenticated")({
         if (e && typeof e === "object" && "to" in e) throw e;
       }
     }
+
+    // Staff-only paths: /dashboard and any sub-route require admin or co_host.
+    // Kept in beforeLoad so unauthorized users redirect before render (no flash).
+    const path = location.pathname;
+    const isStaffPath = path === "/dashboard" || path.startsWith("/dashboard/");
+    if (isStaffPath) {
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id);
+      const roles = (roleRows ?? []).map((r) => r.role as string);
+      const allowed = roles.includes("admin") || roles.includes("co_host");
+      if (!allowed) {
+        throw redirect({ to: "/", search: { restricted: "1" } });
+      }
+    }
+
     return { user: data.user };
   },
   component: () => <Outlet />,

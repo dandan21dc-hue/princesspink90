@@ -69,13 +69,13 @@ function AdminGoLivePage() {
     name,
     job: cronByName.get(name),
   }));
-  const extraJobs = (data?.cron_jobs ?? []).filter(
+  void (data?.cron_jobs ?? []).filter(
     (j) => !EXPECTED_JOBS.includes(j.jobname),
   );
 
-  const emailOk = Boolean(data?.last_email_sent_at);
-  const phraseOk = (data?.rsvp_with_entry_phrase ?? 0) > 0;
-  const cronOk = expectedRows.every((r) => r.job?.active);
+  void Boolean(data?.last_email_sent_at);
+  void ((data?.rsvp_with_entry_phrase ?? 0) > 0);
+  void expectedRows.every((r) => r.job?.active);
 
   // Missing = row absent from cron.job entirely. Inactive = present but disabled.
   const missingJobs = expectedRows.filter((r) => !r.job).map((r) => r.name);

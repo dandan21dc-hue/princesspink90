@@ -41,7 +41,7 @@ function EmailSetupPage() {
 
   const data = query.data;
   const isVerified = data?.status?.toLowerCase() === "verified";
-  const isPending = data?.found && !isVerified;
+  void (data?.found && !isVerified);
 
   const steps: Array<{ key: string; title: string; state: StepState; body: React.ReactNode }> = [
     {

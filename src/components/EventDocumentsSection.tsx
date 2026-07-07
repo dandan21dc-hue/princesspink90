@@ -314,7 +314,7 @@ function PolicyAgreementCard({
 }
 
 function DocSlot({
-  type, label, hint, required, docs, uploading, uploadDisabled, currentPolicyId, reAcknowledged, onUpload, onOpen, onDelete,
+  type: _type, label, hint, required, docs, uploading, uploadDisabled, currentPolicyId, reAcknowledged, onUpload, onOpen, onDelete,
 }: {
   type: DocType; label: string; hint: string; required?: boolean;
   docs: {

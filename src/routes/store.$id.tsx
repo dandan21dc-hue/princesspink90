@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getStoreItem } from "@/lib/store.functions";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cart } from "@/lib/cart";
@@ -71,7 +71,7 @@ function ItemPage() {
   const { id } = Route.useParams();
   const { data: item } = useSuspenseQuery(itemQuery(id));
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [user] = useState<{ id: string; email?: string } | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState<null | "buy" | "subscribe" | "cart">(null);
   const [activeImage, setActiveImage] = useState(0);

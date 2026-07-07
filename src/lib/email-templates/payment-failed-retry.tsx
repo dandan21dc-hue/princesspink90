@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react'; void React;
 import {
   Body, Button, Container, Head, Heading, Html, Link, Preview, Text,
 } from "@react-email/components";
