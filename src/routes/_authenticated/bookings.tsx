@@ -85,7 +85,10 @@ function BookingsPage() {
   const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
 
   const cancelMutation = useMutation({
-    mutationFn: (id: string) => cancelFn({ data: { id } }),
+    mutationFn: (id: string) =>
+      cancelFn({
+        data: { id, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      }),
     onSuccess: () => {
       setSuccess("Booking cancelled.");
       setError(null);
