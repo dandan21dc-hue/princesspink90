@@ -22,6 +22,7 @@ interface Props {
   notes?: string
   bookingId: string
   icsUrl: string
+  dashboardUrl: string
 }
 
 const Email = ({
@@ -34,6 +35,7 @@ const Email = ({
   notes,
   bookingId,
   icsUrl,
+  dashboardUrl,
 }: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
