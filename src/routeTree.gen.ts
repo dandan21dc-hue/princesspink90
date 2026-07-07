@@ -72,6 +72,7 @@ import { Route as AuthenticatedAdminCheckoutReconciliationRouteImport } from './
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -435,6 +436,11 @@ const Char91DotmcpChar93InvokeToolToolRoute =
     path: '/.mcp/invoke-tool/$tool',
     getParentRoute: () => rootRouteImport,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -586,6 +592,7 @@ export interface FileRoutesByFullPath {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -669,6 +676,7 @@ export interface FileRoutesByTo {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -755,6 +763,7 @@ export interface FileRoutesById {
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -841,6 +850,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/account/billing'
     | '/admin/analytics'
@@ -924,6 +934,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/account/billing'
     | '/admin/analytics'
@@ -1009,6 +1020,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
+    | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/account/billing'
     | '/_authenticated/admin/analytics'
@@ -1085,6 +1097,7 @@ export interface RootRouteChildren {
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventsIdRoute: typeof EventsIdRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicAgeGateEventRoute: typeof ApiPublicAgeGateEventRoute
   ApiPublicPartnershipRoute: typeof ApiPublicPartnershipRoute
@@ -1549,6 +1562,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -1872,6 +1892,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventsIdRoute: EventsIdRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicAgeGateEventRoute: ApiPublicAgeGateEventRoute,
   ApiPublicPartnershipRoute: ApiPublicPartnershipRoute,
