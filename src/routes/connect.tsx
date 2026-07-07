@@ -417,6 +417,139 @@ function ConnectPage() {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
+  type Diagnosis = {
+    tone: 'ok' | 'info' | 'warn' | 'error'
+    title: string
+    detail: string
+    checklist: string[]
+  }
+
+  function diagnose(): Diagnosis | null {
+    if (!diag || diag.length === 0) return null
+    const mcp = diag.find((s) => s.label === 'MCP initialize')
+    const prm = diag.find((s) => s.label.startsWith('OAuth protected-resource'))
+    const discs = diag.filter((s) => s.label.startsWith('Authorization server metadata'))
+
+    if (mcp?.error) {
+      return {
+        tone: 'error',
+        title: 'MCP server unreachable from this browser',
+        detail: `Network error contacting ${mcp.url}: ${mcp.error}.`,
+        checklist: [
+          'Confirm the URL ends with /mcp and uses https://',
+          'If it points at a preview URL, switch to the published URL — preview URLs sit behind the Lovable auth gate and outside clients cannot reach them.',
+          'Retry after a few seconds in case the deployment is restarting.',
+        ],
+      }
+    }
+
+    if (mcp?.status === 401 || mcp?.status === 403) {
+      const hasIssuer = (diagSummary?.issuers?.length ?? 0) > 0
+      return {
+        tone: 'info',
+        title: `HTTP ${mcp.status} on /mcp — this is expected`,
+        detail: hasIssuer
+          ? 'The server correctly demands OAuth. ChatGPT/Claude perform the token handshake themselves — a browser 401 does not mean the connector will fail.'
+          : 'The server rejected the request but did not advertise an authorization server. That will block OAuth clients.',
+        checklist: hasIssuer
+          ? [
+              'Paste the same URL into ChatGPT/Claude — they will discover OAuth automatically.',
+              'Sign in to Princess Pink first so the consent screen appears without a login detour.',
+              'If you set a custom bearer/headers above, clear them — the assistant supplies its own token.',
+            ]
+          : [
+              'Verify the /mcp server exposes /.well-known/oauth-protected-resource on the same origin.',
+              'Re-run supabase--configure_oauth_server if the OAuth server was never activated.',
+              'Publish the app so the metadata route is live on the public domain.',
+            ],
+      }
+    }
+
+    if (mcp && mcp.status && mcp.status >= 500) {
+      return {
+        tone: 'error',
+        title: `HTTP ${mcp.status} — server-side error`,
+        detail: 'The MCP handler crashed or the runtime returned an error.',
+        checklist: [
+          'Open the server logs for the /mcp route and read the stack trace.',
+          'If you just deployed, wait for the rolling restart to finish and retry.',
+          'Confirm environment variables required by your tools are set.',
+        ],
+      }
+    }
+
+    if (mcp && (mcp.status === 405 || mcp.status === 406)) {
+      return {
+        tone: 'warn',
+        title: `HTTP ${mcp.status} — protocol mismatch`,
+        detail:
+          mcp.status === 406
+            ? 'Client did not send Accept: application/json, text/event-stream.'
+            : 'The endpoint only accepts POST with a JSON-RPC body.',
+        checklist: [
+          'Ensure requests use POST and Content-Type: application/json.',
+          'Include Accept: application/json, text/event-stream on every request.',
+          'Do not GET /mcp directly in a browser — that always returns 405.',
+        ],
+      }
+    }
+
+    if (prm?.error || (prm && !prm.ok)) {
+      return {
+        tone: 'error',
+        title: 'OAuth discovery failed',
+        detail: prm.error
+          ? `Could not fetch protected-resource metadata: ${prm.error}`
+          : `Metadata endpoint returned HTTP ${prm.status}. OAuth clients cannot discover the authorization server.`,
+        checklist: [
+          'Confirm /.well-known/oauth-protected-resource is reachable on the same origin as /mcp.',
+          'Re-run supabase--configure_oauth_server to (re)advertise the issuer.',
+          'Publish the app so the well-known route is live on the public domain.',
+        ],
+      }
+    }
+
+    const failedDisc = discs.find((s) => s.error || !s.ok)
+    if (failedDisc) {
+      return {
+        tone: 'error',
+        title: 'Authorization server discovery failed',
+        detail: failedDisc.error
+          ? `Could not reach ${failedDisc.url}: ${failedDisc.error}`
+          : `Discovery returned HTTP ${failedDisc.status} at ${failedDisc.url}.`,
+        checklist: [
+          'Verify the issuer URL is the direct https://<project-ref>.supabase.co/auth/v1 form, not a .lovable.cloud proxy.',
+          'Check the project ref matches VITE_SUPABASE_PROJECT_ID.',
+          'If Supabase auth is paused or misconfigured, re-enable it before retrying.',
+        ],
+      }
+    }
+
+    if (mcp?.ok) {
+      return {
+        tone: 'ok',
+        title: 'MCP server responded successfully',
+        detail: 'The server accepted an unauthenticated initialize. Auth is not enforced on /mcp.',
+        checklist: [
+          'This is fine for a fully public MCP server.',
+          'If tools access private user data, add OAuth via defineMcp({ auth: … }) so the assistant connects as a real user.',
+        ],
+      }
+    }
+
+    return {
+      tone: 'warn',
+      title: `Unexpected result: HTTP ${mcp?.status ?? '?'}`,
+      detail: 'The server responded but not in a recognised way.',
+      checklist: ['Open the MCP initialize step below and share the response body when asking for help.'],
+    }
+  }
+
+  const diagnosis = diagnose()
+
+
+
+
 
 
 
