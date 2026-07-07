@@ -65,7 +65,7 @@ type Booking = {
 
 function BookingsPage() {
   const { status, date: dateFilter } = Route.useSearch();
-  const navigate = useNavigate({ from: "/_authenticated/bookings" });
+  const navigate = useNavigate({ from: "/bookings" });
   const listFn = useServerFn(listMyPrivateRoomBookings);
   const cancelFn = useServerFn(cancelMyPrivateRoomBooking);
   const rescheduleFn = useServerFn(rescheduleMyPrivateRoomBooking);
