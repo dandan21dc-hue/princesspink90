@@ -368,7 +368,7 @@ function ManageBillingButton() {
 }
 
 
-type StoreItem = ReturnType<typeof useSuspenseQuery<typeof storeQuery>>["data"][number];
+type StoreItem = Awaited<ReturnType<typeof listStoreItems>>[number];
 
 function tokenize(input: string | null | undefined): string[] {
   if (!input) return [];
