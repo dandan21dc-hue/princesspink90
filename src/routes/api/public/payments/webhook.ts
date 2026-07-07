@@ -396,7 +396,7 @@ async function handleCartSession(session: any, env: StripeEnv) {
     null;
   const addr = ship?.address ?? null;
 
-  const cartDiscountPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
+  const requestedCartPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
 
   for (const entry of pantyEntries) {
     const match = /^panty_(24|48|72)hr_aud$/.exec(entry.id);
@@ -404,6 +404,14 @@ async function handleCartSession(session: any, env: StripeEnv) {
     const hours = Number(match[1]);
     const li = takeLineByPredicate((l) => l.price?.lookup_key === entry.id);
     const amountCents = li?.amount_total ?? 0;
+
+    // Re-check per row so a cart that requests the discount on multiple
+    // panty lines only records it on the ones still under the cap.
+    const rowDiscountPercent = await allowedDiscountPercent(
+      userId,
+      env,
+      requestedCartPercent,
+    );
 
     await (getSupabase() as any)
       .from("panty_orders")
@@ -417,7 +425,8 @@ async function handleCartSession(session: any, env: StripeEnv) {
           currency: (session.currency ?? "aud").toLowerCase(),
           environment: env,
           status: "paid",
-          discount_percent: cartDiscountPercent,
+          discount_percent: rowDiscountPercent,
+
           customer_email: session.customer_details?.email ?? null,
           shipping_name: ship?.name ?? session.customer_details?.name ?? null,
           shipping_line1: addr?.line1 ?? null,
