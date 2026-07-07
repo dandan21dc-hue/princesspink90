@@ -60,9 +60,15 @@ function CartCheckoutPage() {
       ? `${window.location.origin}/checkout/return?next=${encodeURIComponent(returnPath)}`
       : `/checkout/return?next=${encodeURIComponent(returnPath)}`;
 
-  const canCheckout = snapshot.length > 0 && !!user;
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
-  const fetchClientSecret = async (): Promise<string> => {
+  // Pre-fetch the Stripe client secret so real server errors (e.g. the
+  // members-only Panty Drawer gate) surface in-page instead of being
+  // swallowed by Stripe's generic "Something went wrong" screen.
+  useEffect(() => {
+    if (!user || snapshot.length === 0 || clientSecret || checkoutError) return;
+    let cancelled = false;
     const fail = (reason: string, message?: string) => {
       track("stripe_checkout_session_failed", {
         kind: "cart",
@@ -74,39 +80,52 @@ function CartCheckoutPage() {
         ...(message && { message: message.slice(0, 200) }),
       });
     };
-    let result;
-    try {
-      const clientOrderRef =
-        typeof window !== "undefined"
-          ? sessionStorage.getItem("pp_cart_client_order_ref") ?? undefined
-          : undefined;
-      result = await createCartCheckoutSession({
-        data: {
-          items: snapshot.map((it) => ({
-            kind: it.kind,
-            id: it.id,
-            quantity: it.quantity,
-          })) as any,
-          customerEmail: user?.email,
-          returnUrl,
-          environment: getStripeEnvironment(),
-          customerCountry: country,
-          ...(clientOrderRef && { clientOrderRef }),
-        },
-      });
-    } catch (e) {
-      fail("exception", (e as Error)?.message);
-      throw e;
-    }
-    if ("error" in result) {
-      fail("server_error", String(result.error));
-      throw new Error(result.error);
-    }
-    if (!result.clientSecret) {
-      fail("no_client_secret");
-      throw new Error("Stripe did not return a client secret");
-    }
-    return result.clientSecret;
+    (async () => {
+      try {
+        const clientOrderRef =
+          typeof window !== "undefined"
+            ? sessionStorage.getItem("pp_cart_client_order_ref") ?? undefined
+            : undefined;
+        const result = await createCartCheckoutSession({
+          data: {
+            items: snapshot.map((it) => ({
+              kind: it.kind,
+              id: it.id,
+              quantity: it.quantity,
+            })) as any,
+            customerEmail: user.email,
+            returnUrl,
+            environment: getStripeEnvironment(),
+            customerCountry: country,
+            ...(clientOrderRef && { clientOrderRef }),
+          },
+        });
+        if (cancelled) return;
+        if ("error" in result) {
+          fail("server_error", String(result.error));
+          setCheckoutError(String(result.error));
+          return;
+        }
+        if (!result.clientSecret) {
+          fail("no_client_secret");
+          setCheckoutError("Stripe did not return a client secret.");
+          return;
+        }
+        setClientSecret(result.clientSecret);
+      } catch (e) {
+        const msg = (e as Error)?.message || "Failed to start checkout.";
+        fail("exception", msg);
+        if (!cancelled) setCheckoutError(msg);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, snapshot, country, returnUrl, clientSecret, checkoutError]);
+
+  const fetchClientSecret = async (): Promise<string> => {
+    if (clientSecret) return clientSecret;
+    throw new Error(checkoutError ?? "Checkout is not ready yet.");
   };
 
   if (snapshot.length === 0 && items.length === 0) {
@@ -159,14 +178,41 @@ function CartCheckoutPage() {
 
         <div className="mt-8 grid gap-8 md:grid-cols-[1fr_360px]">
           <div className="min-h-[520px] rounded-2xl border border-border/60 bg-card p-4">
-            {canCheckout ? (
+            {checkoutError ? (
+              <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+                <div className="text-[10px] uppercase tracking-[0.3em] text-destructive">
+                  Can't start checkout
+                </div>
+                <p className="max-w-md text-sm text-foreground/90">{checkoutError}</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Link
+                    to="/store"
+                    className="rounded-md border border-primary/60 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
+                  >
+                    Back to store
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCheckoutError(null);
+                      setClientSecret(null);
+                    }}
+                    className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            ) : user && clientSecret ? (
               <EmbeddedCheckoutProvider stripe={getStripe()} options={{ fetchClientSecret }}>
                 <EmbeddedCheckout />
               </EmbeddedCheckoutProvider>
-            ) : user === undefined ? (
+            ) : (
               <div className="p-10 text-center text-sm text-muted-foreground">Loading…</div>
-            ) : null}
+            )}
           </div>
+
+
 
           <aside className="h-fit rounded-2xl border border-border/60 bg-card/60 p-5">
             <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Order summary</div>
