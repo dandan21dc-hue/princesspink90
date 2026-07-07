@@ -86,6 +86,30 @@ function BookingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
 
+  // Deep-link support: /bookings?booking=<id>&action=reschedule|cancel
+  // Opens the matching sheet once the booking list has loaded, then strips
+  // the params so refreshes/back-navigation don't re-trigger the action.
+  const allBookings = bookings.data ?? [];
+  useEffect(() => {
+    if (!bookingParam || !actionParam) return;
+    const match = allBookings.find((b) => b.id === bookingParam);
+    if (!match) return;
+    if (actionParam === "reschedule") {
+      setReschedulingId(bookingParam);
+      setConfirmCancelId(null);
+    } else if (actionParam === "cancel") {
+      setConfirmCancelId(bookingParam);
+      setReschedulingId(null);
+    }
+    setError(null);
+    setSuccess(null);
+    void navigate({
+      search: (prev) => ({ ...prev, booking: undefined, action: undefined }),
+      replace: true,
+    });
+  }, [bookingParam, actionParam, allBookings, navigate]);
+
+
   const cancelMutation = useMutation({
     mutationFn: (id: string) =>
       cancelFn({
