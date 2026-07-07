@@ -155,11 +155,12 @@ function PrivateRoomPage() {
         }
       }
       if (found) {
+        jumpingToSlotRef.current = found;
         setSelectedDate(startOfDay(found));
-        setJumpingToSlot(found);
       } else {
         window.alert("No available slots in the next 30 days.");
       }
+
 
     } finally {
       setFinding(false);
