@@ -275,7 +275,7 @@ function AllAccessCard() {
             );
 
             return (
-              <li key={p.plan} className={isLifetime ? "pt-2" : ""}>
+              <li key={p.plan} className={isLifetime ? "" : ""}>
                 {isLifetime ? (
                   <div className={lifetimeWrapClass}>
                     <span className="animate-badge-shimmer absolute -top-2 -right-2 z-10 rounded-full bg-gold-gradient px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-black shadow-lg">
