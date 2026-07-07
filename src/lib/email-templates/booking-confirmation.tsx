@@ -72,13 +72,18 @@ const Email = ({
         )}
 
         <Section style={{ textAlign: 'center' as const, margin: '24px 0 8px' }}>
-          <Button href={icsUrl} style={button}>
+          <Button href={dashboardUrl} style={button}>
+            Go to dashboard
+          </Button>
+        </Section>
+        <Section style={{ textAlign: 'center' as const, margin: '8px 0' }}>
+          <Button href={icsUrl} style={secondaryButton}>
             Add to calendar (.ics)
           </Button>
         </Section>
         <Text style={fineprint}>
-          The button above downloads a calendar file you can import into Apple
-          Calendar, Google Calendar, Outlook or any iCal-compatible app.
+          The calendar button downloads a file you can import into Apple Calendar,
+          Google Calendar, Outlook or any iCal-compatible app.
         </Text>
 
         <Text style={sig}>— Princess Pink</Text>
