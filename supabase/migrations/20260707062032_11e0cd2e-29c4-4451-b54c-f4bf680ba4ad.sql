@@ -1,0 +1,2 @@
+ALTER TABLE public.panty_orders ADD COLUMN IF NOT EXISTS discount_percent integer NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_panty_orders_user_discount ON public.panty_orders (user_id, environment, status) WHERE discount_percent > 0;
