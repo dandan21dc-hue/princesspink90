@@ -142,7 +142,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-noir">
+      <div className="min-h-screen overflow-x-hidden bg-noir">
         <AccountBanners />
         <SiteHeader />
         <Outlet />
