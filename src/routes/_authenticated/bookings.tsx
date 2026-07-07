@@ -217,6 +217,11 @@ function BookingsPage() {
           </ul>
         </div>
       )}
+
+      <BookingDetailsDrawer
+        booking={rows.find((r) => r.id === detailsId) ?? null}
+        onClose={() => setDetailsId(null)}
+      />
     </section>
   );
 }
