@@ -361,7 +361,10 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
           </div>
         </div>
 
+        <PantyGallery />
+
         <div className="mt-6 grid gap-4 md:grid-cols-4">
+
           {(
             [
               { key: "panty_24hr_aud", label: "24 Hours Worn", fallbackCents: 6000, perks: ["Worn 24 hours", "Sealed pouch", "Signed thank-you note"], cta: "Buy 24hr", highlight: undefined as string | undefined },
