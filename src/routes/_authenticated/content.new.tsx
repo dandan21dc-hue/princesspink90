@@ -479,36 +479,54 @@ function UploadRow({
 }) {
   const pct = item.size > 0 ? Math.min(100, Math.round((item.loaded / item.size) * 100)) : 0;
   const failed = item.status === "error" || item.status === "stalled";
-  const barColor =
-    item.status === "done"
-      ? "bg-primary"
-      : failed
-      ? "bg-destructive"
-      : "bg-primary/70";
+  const done = item.status === "done";
+  const barColor = done ? "bg-primary" : failed ? "bg-destructive" : "bg-primary/70";
   const statusLabel =
     item.status === "uploading"
       ? `${pct}%`
-      : item.status === "done"
+      : done
       ? "Done"
       : item.status === "stalled"
       ? "Stalled"
       : "Failed";
+  const icon = done ? "✓" : failed ? "✕" : "⋯";
+  const iconClass = done
+    ? "bg-primary/20 text-primary"
+    : failed
+    ? "bg-destructive/20 text-destructive"
+    : "bg-muted text-muted-foreground animate-pulse";
 
   return (
     <li className="space-y-1">
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span className="truncate">
-          <span className="font-medium">{item.name}</span>
-          <span className="text-muted-foreground"> · {item.type} · {formatBytes(item.size)}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            aria-hidden="true"
+            className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${iconClass}`}
+          >
+            {icon}
+          </span>
+          <span className="truncate">
+            <span className="font-medium">{item.name}</span>
+            <span className="text-muted-foreground"> · {item.type} · {formatBytes(item.size)}</span>
+          </span>
         </span>
-        <span className={failed ? "text-destructive" : "text-muted-foreground"}>
+        <span
+          className={
+            done
+              ? "text-primary font-semibold"
+              : failed
+              ? "text-destructive font-semibold"
+              : "text-muted-foreground"
+          }
+        >
           {statusLabel}
         </span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={`h-full transition-all ${barColor}`}
-          style={{ width: item.status === "done" ? "100%" : `${pct}%` }}
+          style={{ width: done ? "100%" : `${pct}%` }}
         />
       </div>
       {failed && item.message && (
@@ -526,7 +544,7 @@ function UploadRow({
             Retry
           </button>
         )}
-        {item.status !== "done" && (
+        {!done && (
           <button
             type="button"
             onClick={() => onCancel(item.id)}
@@ -539,6 +557,7 @@ function UploadRow({
     </li>
   );
 }
+
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
