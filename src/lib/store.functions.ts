@@ -863,8 +863,10 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         if (!listing.price_cents || listing.price_cents < 50) throw new Error("Listing has no valid price");
 
         const applyDiscount =
-          (await countDiscountedPantyOrders(context.supabase, data.userId!, data.environment))
+          (await hasSubscriberAccess(context.supabase, data.userId!, data.environment))
+          && (await countDiscountedPantyOrders(context.supabase, data.userId!, data.environment))
             < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
 
         const listingParams: Stripe.Checkout.SessionCreateParams = {
           line_items: [
