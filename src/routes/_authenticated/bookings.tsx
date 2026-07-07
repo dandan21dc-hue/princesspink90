@@ -104,7 +104,7 @@ function BookingsPage() {
     setError(null);
     setSuccess(null);
     void navigate({
-      search: (prev) => ({ ...prev, booking: undefined, action: undefined }),
+      search: (prev: Record<string, unknown>) => ({ ...prev, booking: undefined, action: undefined }),
       replace: true,
     });
   }, [bookingParam, actionParam, allBookings, navigate]);
