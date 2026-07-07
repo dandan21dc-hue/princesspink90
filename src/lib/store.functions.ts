@@ -487,6 +487,9 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             }),
             managed_payments: useManagedPayments ? "true" : "false",
             ...(customerCountry && { customer_country: customerCountry }),
+            ...(isPanty && applyPantyDiscount && {
+              subscriber_discount_percent: String(SUBSCRIBER_DISCOUNT_PERCENT),
+            }),
           },
 
           ...(isRecurring && data.userId && {
