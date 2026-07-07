@@ -5,6 +5,7 @@ import { TermsAgreementGate } from "@/components/TermsAgreementGate";
 interface CheckoutOptions {
   priceId?: string;
   contentItemId?: string;
+  pantyListingId?: string;
   returnUrl?: string;
   userId?: string;
   customerEmail?: string;
