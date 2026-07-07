@@ -265,11 +265,13 @@ function EditModal(props: {
             />
           </Field>
 
-          <Field label="Description">
+          <Field label="Description (optional)">
             <textarea
               value={value.description ?? ""}
               onChange={(e) => onChange({ ...value, description: e.target.value })}
-              rows={3}
+              rows={4}
+              maxLength={2000}
+              placeholder="Optional — size, fabric, wear notes, or anything else buyers should know."
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
           </Field>

@@ -230,6 +230,14 @@ function PantyDrawerPage() {
                         {[l.color, l.style, l.size].filter(Boolean).join(" · ")}
                       </div>
                     )}
+                    {l.description && l.description.trim().length > 0 && (
+                      <p
+                        className="mt-2 text-sm text-muted-foreground/90 whitespace-pre-line line-clamp-3 transition-[max-height,opacity] group-hover:line-clamp-none"
+                        title={l.description}
+                      >
+                        {l.description}
+                      </p>
+                    )}
                   </div>
                   <div className="mt-auto flex items-end justify-between gap-3">
                     <div className="font-display text-2xl font-extrabold">
