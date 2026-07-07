@@ -77,11 +77,22 @@ async function stubBackend(page: Page, status: SubStatus) {
     return route.fulfill({
       status: 200,
       headers: { "content-type": "application/json" },
+      body: JSON.stringify(FAKE_USER),
+    });
+  });
+  // Any auth-token refresh — return the same session, freshly dated.
+  await page.route("**/auth/v1/token**", async (route: Route) => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60;
+    return route.fulfill({
+      status: 200,
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        id: "00000000-0000-0000-0000-000000000001",
-        aud: "authenticated",
-        role: "authenticated",
-        email: "test@example.com",
+        access_token: "test-access-token",
+        refresh_token: "test-refresh-token",
+        token_type: "bearer",
+        expires_in: 3600,
+        expires_at: expiresAt,
+        user: FAKE_USER,
       }),
     });
   });
