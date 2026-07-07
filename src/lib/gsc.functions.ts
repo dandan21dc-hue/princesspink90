@@ -272,9 +272,10 @@ export const getSitemapReport = createServerFn({ method: "POST" })
       entries.push({
         path,
         label: fullUrl,
-        urlInspection: "data" in result ? result.data : null,
-        error: "error" in result ? result.error : null,
+        urlInspection: "data" in result ? result.data ?? null : null,
+        error: "error" in result ? result.error ?? null : null,
       });
+
 
     }
 
