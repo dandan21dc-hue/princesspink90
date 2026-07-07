@@ -207,9 +207,106 @@ function ConnectPage() {
         </ol>
       </section>
 
+      <section className="mt-12">
+        <h2 className="font-display text-2xl font-bold">Troubleshooting</h2>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Common issues when connecting an assistant to the Princess Pink MCP server.
+        </p>
+
+        <div className="mt-6 space-y-5">
+          <details className="rounded-2xl border border-border/60 bg-card/40 p-5">
+            <summary className="cursor-pointer font-medium">
+              “Test connection” shows Unreachable / network error
+            </summary>
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <p>
+                The browser could not reach <code>/mcp</code>. Refresh the page so the URL is
+                re-derived from the live origin, then retry. If it still fails, the deployment
+                may be mid-restart — wait a moment and test again.
+              </p>
+              <p>Confirm the URL ends with <code>/mcp</code> and uses <code>https://</code>.</p>
+            </div>
+          </details>
+
+          <details className="rounded-2xl border border-border/60 bg-card/40 p-5">
+            <summary className="cursor-pointer font-medium">
+              HTTP 406 “Not Acceptable” from the assistant
+            </summary>
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <p>
+                The MCP spec requires clients to send{' '}
+                <code>Accept: application/json, text/event-stream</code>. ChatGPT and Claude do
+                this automatically. If you're wiring a custom client or proxy (for example a
+                Supabase edge function), add that <code>Accept</code> header to every POST.
+              </p>
+            </div>
+          </details>
+
+          <details className="rounded-2xl border border-border/60 bg-card/40 p-5">
+            <summary className="cursor-pointer font-medium">
+              HTTP 405 “Method Not Allowed”
+            </summary>
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <p>
+                The MCP endpoint only accepts <strong>POST</strong> with a JSON-RPC body. A
+                plain browser visit to <code>/mcp</code> returns 405 — that's expected, not a
+                bug. Use the Test connection button above instead.
+              </p>
+            </div>
+          </details>
+
+          <details className="rounded-2xl border border-border/60 bg-card/40 p-5">
+            <summary className="cursor-pointer font-medium">
+              CORS error (“No 'Access-Control-Allow-Origin' header”)
+            </summary>
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <p>
+                Real MCP clients (ChatGPT, Claude, Cursor) call the server from their own
+                backend, so CORS never applies to them. You'll only see CORS errors when
+                calling <code>/mcp</code> from a browser on a different origin.
+              </p>
+              <p>
+                Fix: call from the same origin as the app, or proxy through your own server
+                and forward the request with the correct <code>Content-Type</code> and{' '}
+                <code>Accept</code> headers.
+              </p>
+            </div>
+          </details>
+
+          <details className="rounded-2xl border border-border/60 bg-card/40 p-5">
+            <summary className="cursor-pointer font-medium">
+              Assistant says it can't see the tools
+            </summary>
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <p>
+                Make sure the connector is toggled on <em>inside the chat composer</em> for
+                the current conversation, not just added in settings. In ChatGPT, also confirm
+                Developer mode is enabled both globally and in the composer's <strong>+</strong>{' '}
+                menu.
+              </p>
+              <p>Then start a new message so the assistant re-reads the tool list.</p>
+            </div>
+          </details>
+
+          <details className="rounded-2xl border border-border/60 bg-card/40 p-5">
+            <summary className="cursor-pointer font-medium">
+              HTTP 401 / 403 Unauthorized
+            </summary>
+            <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+              <p>
+                The Princess Pink MCP server is public — no token is required. A 401 or 403
+                means the request went to a different URL. Re-copy the URL above and paste it
+                into the connector settings.
+              </p>
+            </div>
+          </details>
+        </div>
+      </section>
+
       <p className="mt-10 text-sm text-muted-foreground">
         The assistant discovers the available tools automatically once connected.
       </p>
+
     </main>
   )
 }
