@@ -23,6 +23,7 @@ export const listStoreItems = createServerFn({ method: "GET" }).handler(async ()
     .from("content_items")
     .select("id,kind,title,description,cover_url,media_urls,price_cents,currency,subscribers_only,sizes,materials,created_at")
     .eq("published", true)
+    .eq("moderation_status", "approved")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -42,6 +43,7 @@ export const getStoreItem = createServerFn({ method: "GET" })
       .select("id,kind,title,description,cover_url,media_urls,price_cents,currency,subscribers_only,sizes,materials,created_at")
       .eq("id", data.id)
       .eq("published", true)
+      .eq("moderation_status", "approved")
       .maybeSingle();
     if (error) throw new Error(error.message);
     return row;
@@ -972,4 +974,88 @@ export const getCheckoutSession = createServerFn({ method: "POST" })
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }
+  });
+
+// ---------- Admin moderation queue ----------
+
+export const adminListModerationQueue = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { status?: "pending" | "approved" | "rejected" | "all" }) => data ?? {})
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(roleErr.message);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    let q = supabaseAdmin
+      .from("content_items")
+      .select(
+        "id,kind,title,description,cover_url,media_urls,creator_id,published,moderation_status,moderation_notes,moderation_reviewed_at,moderation_reviewed_by,moderation_submitted_at,created_at",
+      )
+      .order("moderation_submitted_at", { ascending: false });
+    const status = data.status ?? "pending";
+    if (status !== "all") q = q.eq("moderation_status", status);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return rows ?? [];
+  });
+
+export const adminModerateContentItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { id: string; decision: "approved" | "rejected" | "pending"; notes?: string }) => {
+      if (!data.id) throw new Error("id required");
+      if (!["approved", "rejected", "pending"].includes(data.decision)) {
+        throw new Error("Invalid decision");
+      }
+      if (data.notes && data.notes.length > 2000) throw new Error("Notes too long");
+      return data;
+    },
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(roleErr.message);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("content_items")
+      .update({
+        moderation_status: data.decision,
+        moderation_notes: data.notes?.trim() || null,
+        moderation_reviewed_by: context.userId,
+        moderation_reviewed_at: new Date().toISOString(),
+      } as any)
+      .eq("id", data.id)
+      .select("id,moderation_status")
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const adminGetModerationMediaUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { path: string }) => {
+    if (!data.path) throw new Error("path required");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(roleErr.message);
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage
+      .from("content-media")
+      .createSignedUrl(data.path, 60 * 10);
+    if (error || !signed) throw new Error(error?.message ?? "Sign failed");
+    return { url: signed.signedUrl };
   });
