@@ -37,6 +37,13 @@ function CartCheckoutPage() {
   const { items, subtotalCents, hasPanty, currency } = useCart();
   const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const [country, setCountry] = useState<string | undefined>(undefined);
+  const subStatus = useQuery({
+    queryKey: ["subscriber-status", getStripeEnvironment(), user?.id ?? null],
+    queryFn: () => getSubscriberStatus({ data: { environment: getStripeEnvironment() } }),
+    enabled: !!user && hasPanty,
+    staleTime: 30_000,
+  });
+
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) =>
