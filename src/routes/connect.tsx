@@ -377,7 +377,39 @@ function ConnectPage() {
             {status === 'testing' ? 'Testing…' : 'Test connection'}
           </button>
         </div>
+
+        {authAction?.kind === 'signin' && (
+          <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm">
+              <div className="font-medium text-amber-200">Sign in to approve the connector</div>
+              <div className="text-xs text-amber-100/80">
+                Redirecting to sign-in in {authAction.countdown}s so the OAuth consent screen
+                works when ChatGPT opens it.
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  cancelAuthRedirect()
+                  router.navigate({ to: '/auth', search: { next: '/connect' } })
+                }}
+                className="rounded-md bg-amber-500 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-black hover:bg-amber-400 transition"
+              >
+                Sign in now
+              </button>
+              <button
+                type="button"
+                onClick={cancelAuthRedirect}
+                className="rounded-md border border-amber-500/50 px-3 py-2 text-xs uppercase tracking-wider text-amber-100 hover:bg-amber-500/10 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </section>
+
 
 
       <section className="mt-10">
