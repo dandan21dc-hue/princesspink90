@@ -10,7 +10,7 @@ import { formatBookingDateTime } from "@/lib/booking-format";
  */
 export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { bookingId: string; resend?: boolean }) => {
+  .inputValidator((data: { bookingId: string; resend?: boolean; timeZone?: string }) => {
     if (!/^[0-9a-f-]{36}$/i.test(data.bookingId)) throw new Error("Invalid bookingId");
     return data;
   })
