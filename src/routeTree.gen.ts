@@ -81,6 +81,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicHooksVeriffWebhookRouteImport } from './routes/api/public/hooks/veriff-webhook'
 import { Route as ApiPublicHooksVenueComplianceRemindersRouteImport } from './routes/api/public/hooks/venue-compliance-reminders'
 import { Route as ApiPublicHooksTestReminderEmailRouteImport } from './routes/api/public/hooks/test-reminder-email'
 import { Route as ApiPublicHooksReminderRetriesRouteImport } from './routes/api/public/hooks/reminder-retries'
@@ -490,6 +491,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksVeriffWebhookRoute =
+  ApiPublicHooksVeriffWebhookRouteImport.update({
+    id: '/api/public/hooks/veriff-webhook',
+    path: '/api/public/hooks/veriff-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksVenueComplianceRemindersRoute =
   ApiPublicHooksVenueComplianceRemindersRouteImport.update({
     id: '/api/public/hooks/venue-compliance-reminders',
@@ -659,6 +666,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
+  '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -746,6 +754,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
+  '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -836,6 +845,7 @@ export interface FileRoutesById {
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
+  '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -926,6 +936,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
+    | '/api/public/hooks/veriff-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1013,6 +1024,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
+    | '/api/public/hooks/veriff-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1102,6 +1114,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/reminder-retries'
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
+    | '/api/public/hooks/veriff-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1147,6 +1160,7 @@ export interface RootRouteChildren {
   ApiPublicHooksReminderRetriesRoute: typeof ApiPublicHooksReminderRetriesRoute
   ApiPublicHooksTestReminderEmailRoute: typeof ApiPublicHooksTestReminderEmailRoute
   ApiPublicHooksVenueComplianceRemindersRoute: typeof ApiPublicHooksVenueComplianceRemindersRoute
+  ApiPublicHooksVeriffWebhookRoute: typeof ApiPublicHooksVeriffWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1662,6 +1676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/veriff-webhook': {
+      id: '/api/public/hooks/veriff-webhook'
+      path: '/api/public/hooks/veriff-webhook'
+      fullPath: '/api/public/hooks/veriff-webhook'
+      preLoaderRoute: typeof ApiPublicHooksVeriffWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/venue-compliance-reminders': {
       id: '/api/public/hooks/venue-compliance-reminders'
       path: '/api/public/hooks/venue-compliance-reminders'
@@ -1965,6 +1986,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksTestReminderEmailRoute: ApiPublicHooksTestReminderEmailRoute,
   ApiPublicHooksVenueComplianceRemindersRoute:
     ApiPublicHooksVenueComplianceRemindersRoute,
+  ApiPublicHooksVeriffWebhookRoute: ApiPublicHooksVeriffWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
@@ -1976,13 +1998,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
