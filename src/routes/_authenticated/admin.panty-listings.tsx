@@ -223,6 +223,40 @@ function AdminPantyListings() {
           saving={save.isPending}
         />
       )}
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o && !remove.isPending) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this pair?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `"${pendingDelete.title}" will be permanently removed from the panty drawer. This cannot be undone.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={remove.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={remove.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!pendingDelete) return;
+                remove.mutate(pendingDelete.id, {
+                  onSettled: () => setPendingDelete(null),
+                });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {remove.isPending ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
