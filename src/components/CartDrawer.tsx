@@ -115,7 +115,7 @@ function CartBody({ onClose, onCheckoutStart }: { onClose: () => void; onCheckou
             >
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-secondary/40">
                 {it.cover_url ? (
-                  <img src={it.cover_url} alt="" className="h-full w-full object-cover" />
+                  <img src={resolveMediaUrl(it.cover_url) ?? ""} alt="" onError={onImgError} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-[10px] uppercase text-muted-foreground">
                     {it.kind === "panty" ? "🩲" : "PP"}
