@@ -451,6 +451,182 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
   );
 }
 
+function PantyGallery() {
+  const q = useQuery({
+    queryKey: ["panty-listings-public"],
+    queryFn: () => listPantyListingsPublic(),
+    staleTime: 60_000,
+  });
+  const [lightbox, setLightbox] = useState<PantyListing | null>(null);
+  const listings = q.data ?? [];
+
+  if (!q.isLoading && listings.length === 0) return null;
+
+  return (
+    <div className="mt-6">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h3 className="font-display text-xl font-bold">Available pairs</h3>
+          <p className="text-xs text-muted-foreground">
+            Real pairs currently in the drawer. Tap a pair to preview, then buy below by wear time.
+          </p>
+        </div>
+        {listings.length > 0 && (
+          <span className="text-[10px] uppercase tracking-widest text-primary">
+            {listings.length} available
+          </span>
+        )}
+      </div>
+
+      {q.isLoading ? (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="aspect-square animate-pulse rounded-lg bg-muted/30" />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {listings.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => {
+                setLightbox(l);
+                track("panty_listing_open", { listing_id: l.id });
+              }}
+              className="group overflow-hidden rounded-lg border border-primary/30 bg-card/40 text-left hover:border-primary"
+            >
+              <div className="aspect-square bg-muted/20">
+                {l.cover_url ? (
+                  <img
+                    src={l.cover_url}
+                    alt={l.title}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+                  />
+                ) : (
+                  <div className="grid h-full place-items-center text-xs text-muted-foreground">
+                    No photo
+                  </div>
+                )}
+              </div>
+              <div className="p-2">
+                <div className="truncate text-xs font-semibold">{l.title}</div>
+                <div className="truncate text-[10px] text-muted-foreground">
+                  {[l.color, l.style, l.size].filter(Boolean).join(" · ") || "\u00a0"}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {lightbox && (
+        <PantyLightbox listing={lightbox} onClose={() => setLightbox(null)} />
+      )}
+    </div>
+  );
+}
+
+function PantyLightbox({
+  listing,
+  onClose,
+}: {
+  listing: PantyListing;
+  onClose: () => void;
+}) {
+  const [idx, setIdx] = useState(0);
+  const gallery = [
+    ...(listing.cover_url ? [listing.cover_url] : []),
+    ...listing.media_urls,
+  ];
+  const current = gallery[idx] ?? listing.cover_url;
+  const scrollToCards = () => {
+    onClose();
+    setTimeout(() => {
+      document
+        .getElementById("panty-buy-cards")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-3xl overflow-auto rounded-lg border border-border bg-background"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative aspect-square w-full bg-black">
+          {current && (
+            <img
+              src={current}
+              alt={listing.title}
+              className="h-full w-full object-contain"
+            />
+          )}
+          {gallery.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setIdx((i) => (i - 1 + gallery.length) % gallery.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={() => setIdx((i) => (i + 1) % gallery.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white"
+              >
+                ›
+              </button>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white">
+                {idx + 1} / {gallery.length}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="font-display text-xl font-bold">{listing.title}</h4>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {[listing.color, listing.style, listing.size].filter(Boolean).join(" · ") || "—"}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Close
+            </button>
+          </div>
+          {listing.description && (
+            <p className="mt-3 whitespace-pre-line text-sm text-muted-foreground">
+              {listing.description}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={scrollToCards}
+            className="mt-5 w-full rounded-md bg-primary px-4 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90"
+          >
+            Pick a wear time & buy
+          </button>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Once sold, this pair is removed from the gallery.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 function PassCard({
   label,
   price,
