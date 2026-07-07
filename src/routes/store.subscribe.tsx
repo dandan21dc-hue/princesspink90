@@ -223,12 +223,15 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
   });
   const isSubscriber = subStatus.data?.isSubscriber === true;
   const discountPercent = subStatus.data?.discountPercent ?? SUBSCRIBER_DISCOUNT_PERCENT;
+  const discountedOrdersRemaining = subStatus.data?.discountedOrdersRemaining ?? 0;
+  const discountedOrdersMax = subStatus.data?.discountedOrdersMax ?? 3;
+  const hasActiveDiscount = isSubscriber && discountPercent > 0;
 
   function pantyPriceDisplay(fallbackCents: number, priceObj?: SubscribePrice) {
     const currency = (priceObj?.currency ?? "aud").toLowerCase();
     const unitCents = priceObj?.unit_amount ?? fallbackCents;
     const original = formatMoney(unitCents, currency);
-    if (!isSubscriber) return { display: original, original: null as string | null };
+    if (!hasActiveDiscount) return { display: original, original: null as string | null };
     const discounted = Math.round(unitCents * (100 - discountPercent) / 100);
     return { display: formatMoney(discounted, currency), original };
   }
@@ -375,12 +378,16 @@ function Passes({ onBuy, pending }: { onBuy: (id: PriceId, autoRenew?: boolean) 
                 label={p.label}
                 price={display}
                 originalPrice={original ?? undefined}
-                subscriberBadge={isSubscriber}
+                subscriberBadge={hasActiveDiscount}
                 cadence="+ shipping"
                 highlight={p.highlight}
                 perks={[
                   ...p.perks,
-                  ...(isSubscriber ? [`Subscriber ${discountPercent}% off applied at checkout`] : []),
+                  ...(hasActiveDiscount
+                    ? [`Subscriber ${discountPercent}% off — ${discountedOrdersRemaining} of ${discountedOrdersMax} discounted orders left`]
+                    : isSubscriber
+                      ? [`You've used all ${discountedOrdersMax} subscriber-discount orders — now at full price`]
+                      : []),
                 ]}
                 cta={p.cta}
                 loading={busy(p.key)}

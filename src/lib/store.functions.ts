@@ -168,12 +168,14 @@ async function assertPantyAccess(
 
 // ---------- Subscriber discount (Panty Drawer) ----------
 //
-// Active subscribers/members already gate through assertPantyAccess to buy
-// panties at all. As a thank-you, every panty checkout gets a persistent
-// 15% Stripe coupon applied. The coupon is created once per Stripe
-// environment on first use (idempotent by id) and re-used forever after.
+// Active subscribers/members get a 15% Stripe coupon on their FIRST THREE
+// panty purchases as a thank-you. After 3 paid orders the discount is no
+// longer applied automatically — full price at checkout. The coupon is
+// created once per Stripe environment on first use (idempotent by id)
+// and re-used forever after.
 
 export const SUBSCRIBER_DISCOUNT_PERCENT = 15;
+export const SUBSCRIBER_DISCOUNT_MAX_ORDERS = 3;
 const SUBSCRIBER_COUPON_ID = "subscriber_pantry_15";
 
 async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
@@ -188,7 +190,7 @@ async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
         id: SUBSCRIBER_COUPON_ID,
         percent_off: SUBSCRIBER_DISCOUNT_PERCENT,
         duration: "forever",
-        name: `Subscriber ${SUBSCRIBER_DISCOUNT_PERCENT}% off (Panty Drawer)`,
+        name: `Subscriber ${SUBSCRIBER_DISCOUNT_PERCENT}% off (first ${SUBSCRIBER_DISCOUNT_MAX_ORDERS} Panty Drawer orders)`,
       });
     } else {
       throw err;
@@ -196,6 +198,28 @@ async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
   }
   return SUBSCRIBER_COUPON_ID;
 }
+
+/**
+ * Count of PAID panty orders for a user in the given env. Used to decide
+ * whether the 15% subscriber discount still applies (first 3 purchases only).
+ * Uses the RLS-scoped supabase client — users can read their own orders.
+ */
+async function countPaidPantyOrders(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  env: StripeEnv,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("panty_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("environment", env)
+    .eq("status", "paid");
+  if (error) return 0;
+  return count ?? 0;
+}
+
 
 /**
  * Non-throwing subscriber check for UI use (mirrors assertPantyAccess).
@@ -212,7 +236,9 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
       const token = authHeader.toLowerCase().startsWith("bearer ")
         ? authHeader.slice(7).trim()
         : "";
-      if (!token) return { isSubscriber: false, discountPercent: 0 };
+      if (!token) {
+        return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
+      }
 
       const { createClient } = await import("@supabase/supabase-js");
       const supabase = createClient(
@@ -225,12 +251,21 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
       );
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
-      if (!userId) return { isSubscriber: false, discountPercent: 0 };
+      if (!userId) {
+        return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
+      }
 
       await assertPantyAccess(supabase, userId, data.environment);
-      return { isSubscriber: true, discountPercent: SUBSCRIBER_DISCOUNT_PERCENT };
+      const used = await countPaidPantyOrders(supabase, userId, data.environment);
+      const remaining = Math.max(0, SUBSCRIBER_DISCOUNT_MAX_ORDERS - used);
+      return {
+        isSubscriber: true,
+        discountPercent: remaining > 0 ? SUBSCRIBER_DISCOUNT_PERCENT : 0,
+        discountedOrdersRemaining: remaining,
+        discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS,
+      };
     } catch {
-      return { isSubscriber: false, discountPercent: 0 };
+      return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
     }
   });
 
@@ -404,6 +439,14 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         // orders fall back to automatic_tax so tax is still calculated.
         const useManagedPayments = isEligibleForManagedPayments(data.priceId);
 
+        // Panty subscriber discount: only applies to the first
+        // SUBSCRIBER_DISCOUNT_MAX_ORDERS paid panty orders per user.
+        const applyPantyDiscount =
+          isPanty
+          && !!data.userId
+          && (await countPaidPantyOrders(context.supabase, data.userId, data.environment))
+             < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
         const baseParams: Stripe.Checkout.SessionCreateParams = {
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
@@ -424,9 +467,10 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
                 },
               },
             ],
-            // Every panty checkout is gated to active subscribers/members,
-            // so unconditionally apply the subscriber thank-you discount.
-            discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
+            // Subscriber thank-you: 15% off, first 3 paid panty orders only.
+            ...(applyPantyDiscount && {
+              discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
+            }),
           }),
           metadata: {
             ...(data.userId && { userId: data.userId }),
@@ -704,6 +748,13 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
       // present → automatic_tax so shipping tax is still calculated.
       const useManagedPayments = !hasPanty;
 
+      // Panty subscriber discount: only applies to the first
+      // SUBSCRIBER_DISCOUNT_MAX_ORDERS paid panty orders per user.
+      const applyPantyDiscount =
+        hasPanty
+        && (await countPaidPantyOrders(context.supabase, userId, data.environment))
+           < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
       const baseParams: Stripe.Checkout.SessionCreateParams = {
         line_items: lineItems,
         mode: "payment",
@@ -724,9 +775,10 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
               },
             },
           ],
-          // Panty items in the cart are gated to subscribers; apply the
-          // subscriber thank-you discount to the whole order.
-          discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
+          // Subscriber thank-you: 15% off, first 3 paid panty orders only.
+          ...(applyPantyDiscount && {
+            discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
+          }),
         }),
         metadata: {
           userId,
