@@ -141,6 +141,9 @@ const OPEN_TEMPLATE = {
 // ---- Tests --------------------------------------------------------------
 
 describe('POST /lovable/email/transactional/send — authorization', () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>
+  let infoSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(async () => {
     knobs.userResult = {
       data: { user: { id: 'user-123', email: 'u@example.com' } },
@@ -150,7 +153,13 @@ describe('POST /lovable/email/transactional/send — authorization', () => {
     knobs.hasRoleCalled = 0
     knobs.suppressed = false
     await setTemplates({ open: OPEN_TEMPLATE, fixed: FIXED_TEMPLATE })
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
   })
+
+  const auditCalls = (spy: ReturnType<typeof vi.spyOn>, event: string) =>
+    spy.mock.calls.filter(([tag]) => tag === `[audit] ${event}`)
+
 
   it('rejects requests without a bearer token (401) and does not check roles', async () => {
     const handler = await loadHandler()
