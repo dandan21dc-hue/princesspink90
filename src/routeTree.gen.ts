@@ -55,6 +55,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminPerksRouteImport } from './routes/_authenticated/admin.perks'
 import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_authenticated/admin.partnerships'
+import { Route as AuthenticatedAdminPantyListingsRouteImport } from './routes/_authenticated/admin.panty-listings'
 import { Route as AuthenticatedAdminMediaModerationRouteImport } from './routes/_authenticated/admin.media-moderation'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
@@ -332,6 +333,12 @@ const AuthenticatedAdminPartnershipsRoute =
     path: '/admin/partnerships',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminPantyListingsRoute =
+  AuthenticatedAdminPantyListingsRouteImport.update({
+    id: '/admin/panty-listings',
+    path: '/admin/panty-listings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminMediaModerationRoute =
   AuthenticatedAdminMediaModerationRouteImport.update({
     id: '/admin/media-moderation',
@@ -585,6 +592,7 @@ export interface FileRoutesByFullPath {
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
@@ -666,6 +674,7 @@ export interface FileRoutesByTo {
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
@@ -750,6 +759,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/_authenticated/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/_authenticated/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
@@ -834,6 +844,7 @@ export interface FileRouteTypes {
     | '/admin/health-reminders'
     | '/admin/lifetime'
     | '/admin/media-moderation'
+    | '/admin/panty-listings'
     | '/admin/partnerships'
     | '/admin/perks'
     | '/admin/safety-incidents'
@@ -915,6 +926,7 @@ export interface FileRouteTypes {
     | '/admin/health-reminders'
     | '/admin/lifetime'
     | '/admin/media-moderation'
+    | '/admin/panty-listings'
     | '/admin/partnerships'
     | '/admin/perks'
     | '/admin/safety-incidents'
@@ -998,6 +1010,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/health-reminders'
     | '/_authenticated/admin/lifetime'
     | '/_authenticated/admin/media-moderation'
+    | '/_authenticated/admin/panty-listings'
     | '/_authenticated/admin/partnerships'
     | '/_authenticated/admin/perks'
     | '/_authenticated/admin/safety-incidents'
@@ -1402,6 +1415,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPartnershipsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/panty-listings': {
+      id: '/_authenticated/admin/panty-listings'
+      path: '/admin/panty-listings'
+      fullPath: '/admin/panty-listings'
+      preLoaderRoute: typeof AuthenticatedAdminPantyListingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/media-moderation': {
       id: '/_authenticated/admin/media-moderation'
       path: '/admin/media-moderation'
@@ -1715,6 +1735,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
   AuthenticatedAdminMediaModerationRoute: typeof AuthenticatedAdminMediaModerationRoute
+  AuthenticatedAdminPantyListingsRoute: typeof AuthenticatedAdminPantyListingsRoute
   AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRouteWithChildren
   AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
@@ -1762,6 +1783,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
   AuthenticatedAdminMediaModerationRoute:
     AuthenticatedAdminMediaModerationRoute,
+  AuthenticatedAdminPantyListingsRoute: AuthenticatedAdminPantyListingsRoute,
   AuthenticatedAdminPartnershipsRoute:
     AuthenticatedAdminPartnershipsRouteWithChildren,
   AuthenticatedAdminPerksRoute: AuthenticatedAdminPerksRoute,

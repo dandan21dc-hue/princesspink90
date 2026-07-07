@@ -74,6 +74,12 @@ function Dashboard() {
                 Verifications
               </Link>
               <Link
+                to="/admin/panty-listings"
+                className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
+              >
+                Panty listings
+              </Link>
+              <Link
                 to="/admin/cohosts"
                 className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
               >
