@@ -45,13 +45,72 @@ export const Route = createFileRoute("/store")({
     links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/store" }],
   }),
   component: StorePage,
-  errorComponent: ({ error }) => (
-    <div className="p-10 text-center text-sm text-muted-foreground">
-      Something went wrong loading the store. {error.message}
-    </div>
-  ),
-  notFoundComponent: () => <div className="p-10 text-center">Not found.</div>,
+  pendingComponent: PagePending,
+  errorComponent: PageError,
+  notFoundComponent: PageNotFound,
 });
+
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <PaymentTestModeBanner />
+      <section className="mx-auto max-w-6xl px-5 pt-10 pb-10">
+        <div className="max-w-2xl">
+          <div className="text-xs uppercase tracking-[0.3em] text-primary">Boutique</div>
+          <h1 className="mt-2 font-display text-4xl font-extrabold">
+            Buy my <span className="text-neon">pictures &amp; videos</span>
+          </h1>
+        </div>
+        {children}
+      </section>
+    </>
+  );
+}
+
+function PagePending() {
+  return (
+    <PageShell>
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-busy="true" aria-live="polite">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="aspect-[4/3] animate-pulse rounded-3xl bg-muted/30" />
+        ))}
+        <span className="sr-only">Loading the boutique…</span>
+      </div>
+    </PageShell>
+  );
+}
+
+function PageError({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <PageShell>
+      <div role="alert" className="mt-8 rounded-2xl border border-destructive/40 bg-destructive/5 p-6">
+        <div className="text-xs uppercase tracking-[0.3em] text-destructive">
+          Couldn't load the store
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {error?.message ?? "Something went wrong loading the store."}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            reset();
+          }}
+          className="mt-4 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:brightness-110"
+        >
+          Try again
+        </button>
+      </div>
+    </PageShell>
+  );
+}
+
+function PageNotFound() {
+  return (
+    <PageShell>
+      <p className="mt-8 text-sm text-muted-foreground">This page could not be found.</p>
+    </PageShell>
+  );
+}
 
 function StorePage() {
 
@@ -94,6 +153,7 @@ function StorePage() {
     </>
   );
 }
+
 
 /**
  * Three top-level entry points on the boutique landing: All-Access Pass,
