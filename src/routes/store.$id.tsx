@@ -8,6 +8,7 @@ import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cart } from "@/lib/cart";
 import { buildAudOffer } from "@/lib/aud";
+import { onImgError, resolveMediaUrl } from "@/lib/media-url";
 
 const itemQuery = (id: string) =>
   queryOptions({
