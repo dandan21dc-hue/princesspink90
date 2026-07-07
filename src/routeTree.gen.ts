@@ -16,10 +16,12 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivateRoomRouteImport } from './routes/private-room'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PartnershipsRouteImport } from './routes/partnerships'
+import { Route as PantyDrawerRouteImport } from './routes/panty-drawer'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AllAccessPassRouteImport } from './routes/all-access-pass'
 import { Route as AgeGateRouteImport } from './routes/age-gate'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -128,6 +130,11 @@ const PartnershipsRoute = PartnershipsRouteImport.update({
   path: '/partnerships',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PantyDrawerRoute = PantyDrawerRouteImport.update({
+  id: '/panty-drawer',
+  path: '/panty-drawer',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegalRoute = LegalRouteImport.update({
   id: '/legal',
   path: '/legal',
@@ -146,6 +153,11 @@ const ComplianceRoute = ComplianceRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AllAccessPassRoute = AllAccessPassRouteImport.update({
+  id: '/all-access-pass',
+  path: '/all-access-pass',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgeGateRoute = AgeGateRouteImport.update({
@@ -557,10 +569,12 @@ const AuthenticatedEventsIdCheckinPrintRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/age-gate': typeof AgeGateRoute
+  '/all-access-pass': typeof AllAccessPassRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
@@ -641,10 +655,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/age-gate': typeof AgeGateRoute
+  '/all-access-pass': typeof AllAccessPassRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
@@ -726,10 +742,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/age-gate': typeof AgeGateRoute
+  '/all-access-pass': typeof AllAccessPassRoute
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
@@ -812,10 +830,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/age-gate'
+    | '/all-access-pass'
     | '/auth'
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
@@ -896,10 +916,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/age-gate'
+    | '/all-access-pass'
     | '/auth'
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
@@ -980,10 +1002,12 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/age-gate'
+    | '/all-access-pass'
     | '/auth'
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
@@ -1066,10 +1090,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AgeGateRoute: typeof AgeGateRoute
+  AllAccessPassRoute: typeof AllAccessPassRoute
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
   LegalRoute: typeof LegalRoute
+  PantyDrawerRoute: typeof PantyDrawerRoute
   PartnershipsRoute: typeof PartnershipsRoute
   PrivacyRoute: typeof PrivacyRoute
   PrivateRoomRoute: typeof PrivateRoomRoute
@@ -1155,6 +1181,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PartnershipsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/panty-drawer': {
+      id: '/panty-drawer'
+      path: '/panty-drawer'
+      fullPath: '/panty-drawer'
+      preLoaderRoute: typeof PantyDrawerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal': {
       id: '/legal'
       path: '/legal'
@@ -1181,6 +1214,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/all-access-pass': {
+      id: '/all-access-pass'
+      path: '/all-access-pass'
+      fullPath: '/all-access-pass'
+      preLoaderRoute: typeof AllAccessPassRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/age-gate': {
@@ -1846,10 +1886,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AgeGateRoute: AgeGateRoute,
+  AllAccessPassRoute: AllAccessPassRoute,
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
   LegalRoute: LegalRoute,
+  PantyDrawerRoute: PantyDrawerRoute,
   PartnershipsRoute: PartnershipsRoute,
   PrivacyRoute: PrivacyRoute,
   PrivateRoomRoute: PrivateRoomRoute,
