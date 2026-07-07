@@ -615,7 +615,12 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
       session.shipping_details ??
       null;
     const addr = ship?.address ?? null;
-    const singleDiscountPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
+    const requestedSinglePercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
+    const singleDiscountPercent = await allowedDiscountPercent(
+      userId,
+      env,
+      requestedSinglePercent,
+    );
     await (getSupabase() as any)
       .from("panty_orders")
       .upsert(
