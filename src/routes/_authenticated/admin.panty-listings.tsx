@@ -117,6 +117,28 @@ function AdminPantyListings() {
 
       {listings.isLoading && <p className="mt-8 text-sm text-muted-foreground">Loading…</p>}
 
+      {listings.isError && (
+        <div className="mt-8 rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          <div className="font-semibold">Failed to load listings</div>
+          <div className="mt-1 opacity-80">{(listings.error as Error)?.message ?? "Unknown error"}</div>
+          <button
+            type="button"
+            onClick={() => listings.refetch()}
+            className="mt-3 rounded-md border border-destructive/40 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest hover:bg-destructive/20"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!listings.isLoading && !listings.isError && (listings.data ?? []).length === 0 && (
+        <div className="mt-8 rounded-md border border-dashed border-border/60 bg-card/20 p-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            No pairs yet. Click <span className="font-semibold text-foreground">+ New pair</span> above to add your first listing.
+          </p>
+        </div>
+      )}
+
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {(listings.data ?? []).map((l) => (
           <li
