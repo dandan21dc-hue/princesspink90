@@ -4,7 +4,7 @@ import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe
 import { supabase } from "@/integrations/supabase/client";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
 import { createCartCheckoutSession } from "@/lib/store.functions";
-import { useCart, formatMoney, cart as cartStore } from "@/lib/cart";
+import { useCart, formatMoney, cart as cartStore, cartLineKey } from "@/lib/cart";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { track } from "@/lib/track";
 
