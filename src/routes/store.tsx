@@ -389,8 +389,8 @@ function FilteredItemGrid() {
     const cSet = new Set<string>();
     const stSet = new Set<string>();
     for (const it of data as StoreItem[]) {
-      (it.sizes ?? []).forEach((s) => s && sSet.add(s));
-      tokenize(it.materials).forEach((c) => cSet.add(c));
+      ((it.sizes ?? []) as string[]).forEach((s: string) => s && sSet.add(s));
+      tokenize(it.materials as string | null).forEach((c: string) => cSet.add(c));
       if (it.kind) stSet.add(it.kind);
     }
     const sortStr = (a: string, b: string) => a.localeCompare(b);
