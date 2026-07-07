@@ -220,7 +220,17 @@ function NewContentPage() {
 
   function queueFiles(files: FileList | null, type: "image" | "video", slot: "media" | "cover") {
     if (!files?.length) return;
-    const items: UploadItem[] = Array.from(files).map((file) => ({
+    const accepted: File[] = [];
+    for (const file of Array.from(files)) {
+      const err = validateFile(file, type);
+      if (err) {
+        toast.error(err);
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (!accepted.length) return;
+    const items: UploadItem[] = accepted.map((file) => ({
       id: crypto.randomUUID(),
       file,
       name: file.name,
@@ -233,6 +243,7 @@ function NewContentPage() {
     setUploads((list) => [...list, ...items]);
     items.forEach((it) => void startUpload(it));
   }
+
 
   function retry(id: string) {
     const item = uploads.find((u) => u.id === id);
