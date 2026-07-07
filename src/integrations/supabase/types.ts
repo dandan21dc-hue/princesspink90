@@ -1411,27 +1411,36 @@ export type Database = {
       profiles: {
         Row: {
           age_gate_confirmed_at: string | null
+          consents_to_recording: boolean
           created_at: string
           deleted_at: string | null
           display_name: string | null
           pending_deletion_at: string | null
           user_id: string
+          veriff_session_id: string | null
+          verification_status: Database["public"]["Enums"]["verification_status"]
         }
         Insert: {
           age_gate_confirmed_at?: string | null
+          consents_to_recording?: boolean
           created_at?: string
           deleted_at?: string | null
           display_name?: string | null
           pending_deletion_at?: string | null
           user_id: string
+          veriff_session_id?: string | null
+          verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Update: {
           age_gate_confirmed_at?: string | null
+          consents_to_recording?: boolean
           created_at?: string
           deleted_at?: string | null
           display_name?: string | null
           pending_deletion_at?: string | null
           user_id?: string
+          veriff_session_id?: string | null
+          verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Relationships: []
       }
@@ -2165,6 +2174,7 @@ export type Database = {
         | "public_liability_insurance"
         | "event_permit"
         | "other"
+      verification_status: "unverified" | "pending" | "approved" | "declined"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2299,6 +2309,7 @@ export const Constants = {
         "event_permit",
         "other",
       ],
+      verification_status: ["unverified", "pending", "approved", "declined"],
     },
   },
 } as const
