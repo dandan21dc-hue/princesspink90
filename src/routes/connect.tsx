@@ -291,10 +291,12 @@ function ConnectPage() {
   async function runDiagnostics() {
     if (!mcpUrl) return
     setDiagRunning(true)
-    setDiag(null)
-    setDiagSummary(null)
-    const steps: DiagStep[] = []
+    setDiag([])
+    setDiagSummary({})
     const summary: NonNullable<typeof diagSummary> = {}
+
+    const pushStep = (s: DiagStep) =>
+      setDiag((prev) => (prev ? [...prev, s] : [s]))
 
     // 1. Probe /mcp with initialize.
     const mcpStep = await probe('MCP initialize', mcpUrl, {
@@ -314,7 +316,7 @@ function ConnectPage() {
         },
       }),
     })
-    steps.push(mcpStep)
+    pushStep(mcpStep)
 
     // 2. Fetch OAuth protected-resource metadata (same origin as MCP URL).
     let mcpOrigin = ''
@@ -328,7 +330,7 @@ function ConnectPage() {
         'OAuth protected-resource metadata',
         `${mcpOrigin}/.well-known/oauth-protected-resource`,
       )
-      steps.push(prm)
+      pushStep(prm)
       if (prm.body && prm.contentType?.includes('application/json')) {
         try {
           const j = JSON.parse(prm.body) as {
@@ -339,6 +341,7 @@ function ConnectPage() {
           summary.resource = j.resource
           summary.issuers = j.authorization_servers
           summary.scopes = j.scopes_supported
+          setDiagSummary({ ...summary })
         } catch {
           /* ignore */
         }
@@ -352,7 +355,7 @@ function ConnectPage() {
         `Authorization server metadata (${issuer})`,
         `${base}/.well-known/oauth-authorization-server`,
       )
-      steps.push(disc)
+      pushStep(disc)
       if (disc.body && disc.contentType?.includes('application/json')) {
         try {
           const j = JSON.parse(disc.body) as {
@@ -361,16 +364,25 @@ function ConnectPage() {
           }
           if (j.registration_endpoint) summary.registration = j.registration_endpoint
           if (!summary.scopes && j.scopes_supported) summary.scopes = j.scopes_supported
+          setDiagSummary({ ...summary })
         } catch {
           /* ignore */
         }
       }
     }
 
-    setDiag(steps)
-    setDiagSummary(summary)
     setDiagRunning(false)
   }
+
+  // Auto-run once when the MCP URL becomes known.
+  const didAutoRun = useRef(false)
+  useEffect(() => {
+    if (didAutoRun.current || !mcpUrl) return
+    didAutoRun.current = true
+    void runDiagnostics()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mcpUrl])
+
 
   function diagPayload() {
     return JSON.stringify(
