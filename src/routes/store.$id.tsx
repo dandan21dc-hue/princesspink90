@@ -152,10 +152,11 @@ function ItemPage() {
   if (!item) return <div className="p-10 text-center">Not found.</div>;
 
   const canBuyOneTime = !!item.price_cents && !item.subscribers_only;
-  const gallery: string[] = Array.isArray((item as any).media_urls) && (item as any).media_urls.length
-    ? ((item as any).media_urls as string[])
+  const rawMedia = (item as { media_urls?: unknown }).media_urls;
+  const gallery: Array<{ url: string; type: "image" | "video" }> = Array.isArray(rawMedia) && rawMedia.length
+    ? (rawMedia as Array<{ url: string; type: "image" | "video" }>)
     : item.cover_url
-      ? [item.cover_url]
+      ? [{ url: item.cover_url, type: "image" }]
       : [];
   const materials: string | null = (item as any).materials ?? null;
 
