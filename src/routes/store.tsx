@@ -177,7 +177,7 @@ function CategoryCards() {
                 fetchPriority={idx === 0 ? "high" : "auto"}
                 decoding="async"
                 sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                className="h-full w-full object-cover grayscale transition-all duration-700 ease-out group-hover:scale-110 group-hover:grayscale-0 group-focus-visible:scale-110 group-focus-visible:grayscale-0"
+                className="h-full w-full object-cover grayscale transition-all duration-700 ease-out group-hover:scale-110 group-hover:grayscale-0 group-focus-visible:scale-110 group-focus-visible:grayscale-0 motion-reduce:transition-none motion-reduce:grayscale-0 motion-reduce:group-hover:scale-100 motion-reduce:group-focus-visible:scale-100"
               />
             </picture>
             <div
@@ -375,7 +375,7 @@ function FilteredItemGrid() {
                       loading="lazy"
                       decoding="async"
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                      className="h-full w-full object-cover transition group-hover:scale-105"
+                      className="h-full w-full object-cover transition group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">No cover</div>
