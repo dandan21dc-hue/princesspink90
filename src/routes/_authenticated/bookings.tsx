@@ -10,6 +10,13 @@ import {
   listPrivateRoomBusy,
 } from "@/lib/store.functions";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/bookings")({
@@ -52,6 +59,7 @@ function BookingsPage() {
 
   const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const [detailsId, setDetailsId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -165,6 +173,7 @@ function BookingsPage() {
                   rescheduleMutation.mutate({ id: b.id, startsAt })
                 }
                 reschedulePending={rescheduleMutation.isPending}
+                onOpenDetails={() => setDetailsId(b.id)}
               />
             ))}
           </ul>
@@ -192,13 +201,27 @@ function BookingsPage() {
                       {b.party_size ? ` · party of ${b.party_size}` : ""}
                     </div>
                   </div>
-                  <StatusBadge status={b.status} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={b.status} />
+                    <button
+                      type="button"
+                      onClick={() => setDetailsId(b.id)}
+                      className="rounded-md border border-border/60 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+                    >
+                      View details
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      <BookingDetailsDrawer
+        booking={rows.find((r) => r.id === detailsId) ?? null}
+        onClose={() => setDetailsId(null)}
+      />
     </section>
   );
 }
@@ -233,6 +256,7 @@ function BookingCard(props: {
   cancelPending: boolean;
   onReschedule: (startsAt: string) => void;
   reschedulePending: boolean;
+  onOpenDetails: () => void;
 }) {
   const b = props.booking;
   const starts = new Date(b.starts_at);
@@ -278,6 +302,13 @@ function BookingCard(props: {
               title={canCancel ? "" : "Bookings must be cancelled at least 2 hours ahead"}
             >
               Cancel
+            </button>
+            <button
+              type="button"
+              onClick={props.onOpenDetails}
+              className="rounded-md border border-border/60 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted/30 hover:text-foreground"
+            >
+              View details
             </button>
           </>
         )}
@@ -448,3 +479,146 @@ function ReschedulePicker(props: {
     </div>
   );
 }
+
+function BookingDetailsDrawer({
+  booking,
+  onClose,
+}: {
+  booking: Booking | null;
+  onClose: () => void;
+}) {
+  const open = booking !== null;
+  const b = booking;
+
+  // Base rates for the private room (kept in sync with private-room.tsx).
+  const RATE_AUD_CENTS = { 30: 15000, 60: 27500 } as const;
+  const durationKey =
+    b && (b.duration_minutes === 30 || b.duration_minutes === 60)
+      ? (b.duration_minutes as 30 | 60)
+      : null;
+  const currency = (b?.currency ?? "aud").toUpperCase();
+  const fmtMoney = (cents: number) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency }).format(cents / 100);
+
+  const baseCents = durationKey ? RATE_AUD_CENTS[durationKey] : null;
+  const totalCents = b?.amount_cents ?? null;
+  // If Stripe billed more than the base (e.g. GST-inclusive processing),
+  // surface the delta as a "Taxes & fees" line so the totals reconcile.
+  const feeCents =
+    baseCents != null && totalCents != null && totalCents > baseCents
+      ? totalCents - baseCents
+      : null;
+
+  return (
+    <Sheet open={open} onOpenChange={(next) => !next && onClose()}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
+        {b && (
+          <>
+            <SheetHeader className="text-left">
+              <SheetTitle className="font-display text-2xl">
+                Booking details
+              </SheetTitle>
+              <SheetDescription>
+                {format(new Date(b.starts_at), "EEEE d MMMM yyyy · HH:mm")}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6 space-y-6 text-sm">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Status
+                </div>
+                <div className="mt-2">
+                  <StatusBadge status={b.status} />
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Session
+                </div>
+                <dl className="mt-2 space-y-1.5">
+                  <DetailRow label="Duration">{b.duration_minutes} min</DetailRow>
+                  <DetailRow label="Party size">
+                    {b.party_size ?? 1}{" "}
+                    {(b.party_size ?? 1) === 1 ? "guest" : "guests"}
+                  </DetailRow>
+                  <DetailRow label="Booked by">
+                    {b.customer_email ?? "—"}
+                  </DetailRow>
+                  <DetailRow label="Booking ID">
+                    <span className="font-mono text-[11px]">
+                      {b.id.slice(0, 8)}
+                    </span>
+                  </DetailRow>
+                  <DetailRow label="Created">
+                    {format(new Date(b.created_at), "d MMM yyyy · HH:mm")}
+                  </DetailRow>
+                </dl>
+              </div>
+
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Notes
+                </div>
+                {b.notes ? (
+                  <div className="mt-2 whitespace-pre-wrap rounded-md border border-border/60 bg-muted/20 px-3 py-2">
+                    {b.notes}
+                  </div>
+                ) : (
+                  <div className="mt-2 text-muted-foreground">No notes provided.</div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Pricing
+                </div>
+                <dl className="mt-2 space-y-1.5">
+                  {baseCents != null && (
+                    <DetailRow
+                      label={`${b.duration_minutes}-min session`}
+                    >
+                      {fmtMoney(baseCents)}
+                    </DetailRow>
+                  )}
+                  {feeCents != null && feeCents > 0 && (
+                    <DetailRow label="Taxes & fees">
+                      {fmtMoney(feeCents)}
+                    </DetailRow>
+                  )}
+                  <div className="mt-2 flex items-center justify-between border-t border-border/60 pt-2 font-semibold">
+                    <span>{b.status === "cancelled" ? "Amount (cancelled)" : "Total paid"}</span>
+                    <span>
+                      {totalCents != null
+                        ? fmtMoney(totalCents)
+                        : baseCents != null
+                          ? fmtMoney(baseCents)
+                          : "—"}
+                    </span>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DetailRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium">{children}</dd>
+    </div>
+  );
+}
+
