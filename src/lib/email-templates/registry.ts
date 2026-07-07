@@ -4,6 +4,7 @@ import { template as partnershipConfirmation } from './partnership-confirmation'
 import { template as partnershipNotification } from './partnership-notification'
 import { template as partnershipReply } from './partnership-reply'
 import { template as bookingConfirmation } from './booking-confirmation'
+import { template as bookingCancelled } from './booking-cancelled'
 
 export interface TemplateEntry {
   component: ComponentType<any>
