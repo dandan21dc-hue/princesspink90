@@ -439,6 +439,14 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         // orders fall back to automatic_tax so tax is still calculated.
         const useManagedPayments = isEligibleForManagedPayments(data.priceId);
 
+        // Panty subscriber discount: only applies to the first
+        // SUBSCRIBER_DISCOUNT_MAX_ORDERS paid panty orders per user.
+        const applyPantyDiscount =
+          isPanty
+          && !!data.userId
+          && (await countPaidPantyOrders(context.supabase, data.userId, data.environment))
+             < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
         const baseParams: Stripe.Checkout.SessionCreateParams = {
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
           mode: isRecurring ? "subscription" : "payment",
@@ -459,9 +467,10 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
                 },
               },
             ],
-            // Every panty checkout is gated to active subscribers/members,
-            // so unconditionally apply the subscriber thank-you discount.
-            discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
+            // Subscriber thank-you: 15% off, first 3 paid panty orders only.
+            ...(applyPantyDiscount && {
+              discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
+            }),
           }),
           metadata: {
             ...(data.userId && { userId: data.userId }),
