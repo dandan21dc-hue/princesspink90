@@ -395,16 +395,59 @@ function NewContentPage() {
           </div>
         </Field>
 
-        {uploads.length > 0 && (
-          <div className="space-y-2 rounded-md border border-input p-3">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">
-              Uploads
+        {uploads.length > 0 && (() => {
+          const done = uploads.filter((u) => u.status === "done").length;
+          const failedCount = uploads.filter((u) => u.status === "error" || u.status === "stalled").length;
+          const uploadingCount = uploads.filter((u) => u.status === "uploading").length;
+          return (
+            <div className="space-y-3 rounded-md border border-input p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground">Uploads</div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="text-muted-foreground">
+                    {done}/{uploads.length} complete
+                  </span>
+                  {uploadingCount > 0 && (
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-primary">
+                      {uploadingCount} uploading
+                    </span>
+                  )}
+                  {failedCount > 0 && (
+                    <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-destructive">
+                      {failedCount} failed
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ul className="space-y-3">
+                {uploads.map((u) => (
+                  <UploadRow key={u.id} item={u} onRetry={retry} onCancel={cancel} />
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-3">
-              {uploads.map((u) => (
-                <UploadRow key={u.id} item={u} onRetry={retry} onCancel={cancel} />
-              ))}
-            </ul>
+          );
+        })()}
+
+        {create.isError && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          >
+            <span aria-hidden="true">✕</span>
+            <div>
+              <div className="font-semibold">Couldn't publish item</div>
+              <div className="mt-0.5 opacity-90">{create.error?.message ?? "Unknown error"}</div>
+            </div>
+          </div>
+        )}
+
+        {create.isSuccess && (
+          <div
+            role="status"
+            className="flex items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-3 py-2 text-xs text-primary"
+          >
+            <span aria-hidden="true">✓</span>
+            <span>Published — redirecting…</span>
           </div>
         )}
 
@@ -413,12 +456,17 @@ function NewContentPage() {
           disabled={create.isPending || busyUploads}
           className="w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] disabled:opacity-50"
         >
-          {create.isPending ? "Saving…" : busyUploads ? "Uploading…" : "Publish item"}
+          {create.isPending
+            ? "Saving…"
+            : busyUploads
+            ? `Uploading… (${uploads.filter((u) => u.status === "done").length}/${uploads.length})`
+            : "Publish item"}
         </button>
       </form>
     </section>
   );
 }
+
 
 function UploadRow({
   item,
@@ -431,36 +479,54 @@ function UploadRow({
 }) {
   const pct = item.size > 0 ? Math.min(100, Math.round((item.loaded / item.size) * 100)) : 0;
   const failed = item.status === "error" || item.status === "stalled";
-  const barColor =
-    item.status === "done"
-      ? "bg-primary"
-      : failed
-      ? "bg-destructive"
-      : "bg-primary/70";
+  const done = item.status === "done";
+  const barColor = done ? "bg-primary" : failed ? "bg-destructive" : "bg-primary/70";
   const statusLabel =
     item.status === "uploading"
       ? `${pct}%`
-      : item.status === "done"
+      : done
       ? "Done"
       : item.status === "stalled"
       ? "Stalled"
       : "Failed";
+  const icon = done ? "✓" : failed ? "✕" : "⋯";
+  const iconClass = done
+    ? "bg-primary/20 text-primary"
+    : failed
+    ? "bg-destructive/20 text-destructive"
+    : "bg-muted text-muted-foreground animate-pulse";
 
   return (
     <li className="space-y-1">
       <div className="flex items-center justify-between gap-2 text-xs">
-        <span className="truncate">
-          <span className="font-medium">{item.name}</span>
-          <span className="text-muted-foreground"> · {item.type} · {formatBytes(item.size)}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          <span
+            aria-hidden="true"
+            className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${iconClass}`}
+          >
+            {icon}
+          </span>
+          <span className="truncate">
+            <span className="font-medium">{item.name}</span>
+            <span className="text-muted-foreground"> · {item.type} · {formatBytes(item.size)}</span>
+          </span>
         </span>
-        <span className={failed ? "text-destructive" : "text-muted-foreground"}>
+        <span
+          className={
+            done
+              ? "text-primary font-semibold"
+              : failed
+              ? "text-destructive font-semibold"
+              : "text-muted-foreground"
+          }
+        >
           {statusLabel}
         </span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
           className={`h-full transition-all ${barColor}`}
-          style={{ width: item.status === "done" ? "100%" : `${pct}%` }}
+          style={{ width: done ? "100%" : `${pct}%` }}
         />
       </div>
       {failed && item.message && (
@@ -478,7 +544,7 @@ function UploadRow({
             Retry
           </button>
         )}
-        {item.status !== "done" && (
+        {!done && (
           <button
             type="button"
             onClick={() => onCancel(item.id)}
@@ -491,6 +557,7 @@ function UploadRow({
     </li>
   );
 }
+
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
