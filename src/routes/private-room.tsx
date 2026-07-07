@@ -300,12 +300,33 @@ function PrivateRoomPage() {
                   </div>
                   <button
                     onClick={confirm}
-                    disabled={!selectedSlot || pending}
+                    disabled={pending || (!!user && !selectedSlot)}
                     className="min-h-11 rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {pending ? "Processing…" : `Book · A$${duration === 30 ? "150" : "275"}`}
+                    {pending
+                      ? "Processing…"
+                      : !user
+                        ? "Sign in to book"
+                        : `Book · A$${duration === 30 ? "150" : "275"}`}
                   </button>
                 </div>
+
+                {!user && (
+                  <div
+                    role="status"
+                    className="mt-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-xs text-primary"
+                  >
+                    You need an account to submit a private room booking.{" "}
+                    <Link
+                      to="/auth"
+                      search={{ next: "/private-room" }}
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      Sign in or create one
+                    </Link>{" "}
+                    to continue.
+                  </div>
+                )}
 
                 <p className="mt-4 text-[11px] text-muted-foreground">
                   18+ only. Bookings must be at least 1 hour in advance. Slots
