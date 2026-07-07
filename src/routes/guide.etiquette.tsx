@@ -154,6 +154,23 @@ function EtiquettePage() {
         </p>
       </section>
 
+      <section className="mt-10 space-y-4">
+        <h2 className="font-display text-2xl font-semibold">Frequently asked questions</h2>
+        <div className="divide-y divide-border rounded-lg border border-border">
+          {FAQS.map((f) => (
+            <details key={f.q} className="group p-4 open:bg-card/50">
+              <summary className="cursor-pointer list-none font-semibold marker:hidden">
+                <span className="mr-2 text-neon">Q.</span>
+                {f.q}
+              </summary>
+              <p className="mt-3 text-muted-foreground">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+
+
       <section className="mt-10 rounded-lg border border-border bg-card p-6">
         <h2 className="font-display text-xl font-semibold">Ready for a first party?</h2>
         <p className="mt-2 text-sm text-muted-foreground">
