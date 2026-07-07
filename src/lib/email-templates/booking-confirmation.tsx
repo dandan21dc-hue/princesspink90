@@ -85,9 +85,25 @@ const Email = ({
             Add to calendar (.ics)
           </Button>
         </Section>
+
+        <Section style={{ textAlign: 'center' as const, margin: '16px 0 4px' }}>
+          <Text style={manageLabel}>Need to change plans?</Text>
+        </Section>
+        <Section style={{ textAlign: 'center' as const, margin: '4px 0' }}>
+          <Button href={rescheduleUrl} style={secondaryButton}>
+            Reschedule
+          </Button>
+        </Section>
+        <Section style={{ textAlign: 'center' as const, margin: '8px 0 16px' }}>
+          <Button href={cancelUrl} style={dangerButton}>
+            Cancel booking
+          </Button>
+        </Section>
+
         <Text style={fineprint}>
           The calendar button downloads a file you can import into Apple Calendar,
-          Google Calendar, Outlook or any iCal-compatible app.
+          Google Calendar, Outlook or any iCal-compatible app. Cancellations
+          must be made at least 2 hours before your session.
         </Text>
 
         <Text style={sig}>— Princess Pink</Text>
