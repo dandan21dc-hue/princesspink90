@@ -168,12 +168,14 @@ async function assertPantyAccess(
 
 // ---------- Subscriber discount (Panty Drawer) ----------
 //
-// Active subscribers/members already gate through assertPantyAccess to buy
-// panties at all. As a thank-you, every panty checkout gets a persistent
-// 15% Stripe coupon applied. The coupon is created once per Stripe
-// environment on first use (idempotent by id) and re-used forever after.
+// Active subscribers/members get a 15% Stripe coupon on their FIRST THREE
+// panty purchases as a thank-you. After 3 paid orders the discount is no
+// longer applied automatically — full price at checkout. The coupon is
+// created once per Stripe environment on first use (idempotent by id)
+// and re-used forever after.
 
 export const SUBSCRIBER_DISCOUNT_PERCENT = 15;
+export const SUBSCRIBER_DISCOUNT_MAX_ORDERS = 3;
 const SUBSCRIBER_COUPON_ID = "subscriber_pantry_15";
 
 async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
@@ -188,7 +190,7 @@ async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
         id: SUBSCRIBER_COUPON_ID,
         percent_off: SUBSCRIBER_DISCOUNT_PERCENT,
         duration: "forever",
-        name: `Subscriber ${SUBSCRIBER_DISCOUNT_PERCENT}% off (Panty Drawer)`,
+        name: `Subscriber ${SUBSCRIBER_DISCOUNT_PERCENT}% off (first ${SUBSCRIBER_DISCOUNT_MAX_ORDERS} Panty Drawer orders)`,
       });
     } else {
       throw err;
@@ -196,6 +198,28 @@ async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
   }
   return SUBSCRIBER_COUPON_ID;
 }
+
+/**
+ * Count of PAID panty orders for a user in the given env. Used to decide
+ * whether the 15% subscriber discount still applies (first 3 purchases only).
+ * Uses the RLS-scoped supabase client — users can read their own orders.
+ */
+async function countPaidPantyOrders(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string,
+  env: StripeEnv,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("panty_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("environment", env)
+    .eq("status", "paid");
+  if (error) return 0;
+  return count ?? 0;
+}
+
 
 /**
  * Non-throwing subscriber check for UI use (mirrors assertPantyAccess).
