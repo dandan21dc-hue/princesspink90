@@ -328,14 +328,24 @@ function PrivateRoomPage() {
                   <div className="font-display text-lg">
                     {selectedDate ? format(selectedDate, "EEEE, d MMMM") : "Pick a date"}
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={bookNextAvailable}
+                      disabled={finding}
+                      aria-label="Find and book the next available private room slot"
+                      className="min-h-9 rounded-md bg-primary px-3 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {finding ? "Finding…" : "Book next available"}
+                    </button>
                     <button
                       type="button"
                       onClick={jumpToNextAvailable}
                       disabled={finding}
-                      className="text-xs uppercase tracking-widest text-primary hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Jump to the next available slot in the grid"
+                      className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      {finding ? "Finding…" : "Next available"}
+                      Show next
                     </button>
                     <div className="text-xs text-muted-foreground">
                       {busyQuery.isFetching ? "Checking availability…" : `${slots.filter((s) => !slotConflicts(s)).length} slots free`}
