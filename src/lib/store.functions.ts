@@ -559,7 +559,7 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
         return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
       }
 
-      await assertPantyAccess_REMOVED();
+      
       const isSub = await hasSubscriberAccess(supabase, userId, data.environment);
       if (!isSub) {
         return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
