@@ -1227,7 +1227,6 @@ export const createContentItem = createServerFn({ method: "POST" })
       }
       return data;
     },
-    },
   )
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
