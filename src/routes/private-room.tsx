@@ -167,6 +167,7 @@ function PrivateRoomPage() {
 
   async function jumpToNextAvailable() {
     setNoSlotsMessage(null);
+    setHighlightedSlot(null);
     setFinding(true);
     try {
       const found = await findNextAvailableSlot();
@@ -183,6 +184,7 @@ function PrivateRoomPage() {
 
   async function bookNextAvailable() {
     setNoSlotsMessage(null);
+    setHighlightedSlot(null);
     setFinding(true);
     try {
       const found = await findNextAvailableSlot();
