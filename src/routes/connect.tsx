@@ -25,6 +25,8 @@ export const Route = createFileRoute('/connect')({
 function ConnectPage() {
   const [mcpUrl, setMcpUrl] = useState('')
   const [copied, setCopied] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle')
+  const [statusDetail, setStatusDetail] = useState<string>('')
 
   useEffect(() => {
     setMcpUrl(new URL('/mcp', window.location.origin).toString())
@@ -40,6 +42,68 @@ function ConnectPage() {
       /* ignore */
     }
   }
+
+  async function testConnection() {
+    if (!mcpUrl) return
+    setStatus('testing')
+    setStatusDetail('')
+    try {
+      const res = await fetch(mcpUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json, text/event-stream',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2025-06-18',
+            capabilities: {},
+            clientInfo: { name: 'princess-pink-connect-page', version: '1.0.0' },
+          },
+        }),
+      })
+      if (!res.ok) {
+        setStatus('error')
+        setStatusDetail(`HTTP ${res.status}`)
+        return
+      }
+      const text = await res.text()
+      if (text.includes('"result"') && text.includes('serverInfo')) {
+        setStatus('ok')
+        setStatusDetail('Server responded to initialize')
+      } else if (text.includes('"error"')) {
+        setStatus('error')
+        setStatusDetail('Server returned a JSON-RPC error')
+      } else {
+        setStatus('ok')
+        setStatusDetail('Server reachable')
+      }
+    } catch (err) {
+      setStatus('error')
+      setStatusDetail(err instanceof Error ? err.message : 'Network error')
+    }
+  }
+
+  const dotClass =
+    status === 'ok'
+      ? 'bg-emerald-500'
+      : status === 'error'
+        ? 'bg-red-500'
+        : status === 'testing'
+          ? 'bg-amber-400 animate-pulse'
+          : 'bg-muted-foreground/40'
+  const statusLabel =
+    status === 'ok'
+      ? 'Online'
+      : status === 'error'
+        ? 'Unreachable'
+        : status === 'testing'
+          ? 'Testing…'
+          : 'Not tested'
+
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-16">
