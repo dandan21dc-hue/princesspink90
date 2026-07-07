@@ -212,9 +212,10 @@ function PantyDrawerPage() {
                 <div className="relative aspect-[3/4] w-full overflow-hidden bg-muted/20">
                   {l.cover_url ? (
                     <img
-                      src={l.cover_url}
+                      src={resolveMediaUrl(l.cover_url) ?? ""}
                       alt={l.title}
                       loading="lazy"
+                      onError={onImgError}
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
                     />
                   ) : (
