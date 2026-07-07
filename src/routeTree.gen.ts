@@ -25,6 +25,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
 import { Route as StorePrivateRoomRouteImport } from './routes/store.private-room'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
+import { Route as GuideEtiquetteRouteImport } from './routes/guide.etiquette'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
@@ -166,6 +167,11 @@ const StoreIdRoute = StoreIdRouteImport.update({
   id: '/$id',
   path: '/$id',
   getParentRoute: () => StoreRoute,
+} as any)
+const GuideEtiquetteRoute = GuideEtiquetteRouteImport.update({
+  id: '/guide/etiquette',
+  path: '/guide/etiquette',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const EventsIdRoute = EventsIdRouteImport.update({
   id: '/events/$id',
@@ -546,6 +552,7 @@ export interface FileRoutesByFullPath {
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
+  '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -624,6 +631,7 @@ export interface FileRoutesByTo {
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
+  '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -705,6 +713,7 @@ export interface FileRoutesById {
   '/checkout/return': typeof CheckoutReturnRoute
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
+  '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
   '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
@@ -786,6 +795,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/events/$id'
+    | '/guide/etiquette'
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
@@ -864,6 +874,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/events/$id'
+    | '/guide/etiquette'
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
@@ -944,6 +955,7 @@ export interface FileRouteTypes {
     | '/checkout/return'
     | '/email/unsubscribe'
     | '/events/$id'
+    | '/guide/etiquette'
     | '/store/$id'
     | '/store/private-room'
     | '/store/subscribe'
@@ -1018,6 +1030,7 @@ export interface RootRouteChildren {
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventsIdRoute: typeof EventsIdRoute
+  GuideEtiquetteRoute: typeof GuideEtiquetteRoute
   ApiPublicAgeGateEventRoute: typeof ApiPublicAgeGateEventRoute
   ApiPublicPartnershipRoute: typeof ApiPublicPartnershipRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
@@ -1151,6 +1164,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/store/$id'
       preLoaderRoute: typeof StoreIdRouteImport
       parentRoute: typeof StoreRoute
+    }
+    '/guide/etiquette': {
+      id: '/guide/etiquette'
+      path: '/guide/etiquette'
+      fullPath: '/guide/etiquette'
+      preLoaderRoute: typeof GuideEtiquetteRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/events/$id': {
       id: '/events/$id'
@@ -1764,6 +1784,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutReturnRoute: CheckoutReturnRoute,
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventsIdRoute: EventsIdRoute,
+  GuideEtiquetteRoute: GuideEtiquetteRoute,
   ApiPublicAgeGateEventRoute: ApiPublicAgeGateEventRoute,
   ApiPublicPartnershipRoute: ApiPublicPartnershipRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
