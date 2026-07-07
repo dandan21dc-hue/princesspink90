@@ -302,6 +302,7 @@ function AllAccessCard() {
               <Link
                 to="/store/subscribe"
                 search={{ plan: p.plan }}
+                aria-label={ariaLabel}
                 onClick={() => {
                   track("all_access_tier_click", { plan: p.plan, change: changeLabel ?? "new" });
                   track("boutique_tier_click", { ...trackPayload, action: "navigate" });
