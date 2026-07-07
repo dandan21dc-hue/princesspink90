@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Props {
   priceId?: string;
   contentItemId?: string;
+  pantyListingId?: string;
   returnUrl?: string;
   userId?: string;
   customerEmail?: string;
@@ -173,6 +174,7 @@ export function StripeEmbeddedCheckout(props: Props) {
         data: {
           priceId: p.priceId,
           contentItemId: p.contentItemId,
+          pantyListingId: p.pantyListingId,
           userId: p.userId,
           customerEmail: p.customerEmail,
           returnUrl: p.returnUrl || window.location.href,

@@ -540,6 +540,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
     (data: {
       priceId?: string;
       contentItemId?: string;
+      pantyListingId?: string;
       quantity?: number;
       customerEmail?: string;
       userId?: string;
@@ -551,9 +552,12 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       customerCountry?: string;
       autoRenew?: boolean;
     }) => {
-      if (!data.priceId && !data.contentItemId) throw new Error("priceId or contentItemId required");
+      if (!data.priceId && !data.contentItemId && !data.pantyListingId) {
+        throw new Error("priceId, contentItemId, or pantyListingId required");
+      }
       if (data.priceId && !/^[a-zA-Z0-9_-]+$/.test(data.priceId)) throw new Error("Invalid priceId");
       if (data.contentItemId && !/^[a-f0-9-]+$/i.test(data.contentItemId)) throw new Error("Invalid item id");
+      if (data.pantyListingId && !/^[a-f0-9-]{36}$/i.test(data.pantyListingId)) throw new Error("Invalid listing id");
       if (data.bookingPartySize !== undefined) {
         if (!Number.isInteger(data.bookingPartySize) || data.bookingPartySize < 1 || data.bookingPartySize > 10) {
           throw new Error("Party size must be between 1 and 10");
@@ -760,7 +764,85 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         return { clientSecret: session.client_secret ?? "" };
       }
 
+      // ---------- Panty Drawer listing checkout (per-item, dynamic price) ----------
+      if (data.pantyListingId) {
+        // Members-only gate — same rule as the tier flow.
+        await assertPantyAccess(context.supabase, data.userId!, data.environment);
+
+        const { createClient } = await import("@supabase/supabase-js");
+        const sb = createClient(
+          process.env.SUPABASE_URL!,
+          process.env.SUPABASE_PUBLISHABLE_KEY!,
+          { auth: { persistSession: false, autoRefreshToken: false } },
+        );
+        const { data: listing, error: listingErr } = await sb
+          .from("panty_listings")
+          .select("id,title,description,cover_url,price_cents,published,sold")
+          .eq("id", data.pantyListingId)
+          .eq("published", true)
+          .eq("sold", false)
+          .maybeSingle();
+        if (listingErr) throw new Error(listingErr.message);
+        if (!listing) throw new Error("This pair is no longer available");
+        if (!listing.price_cents || listing.price_cents < 50) throw new Error("Listing has no valid price");
+
+        const applyDiscount =
+          (await countDiscountedPantyOrders(context.supabase, data.userId!, data.environment))
+            < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
+        const listingParams: Stripe.Checkout.SessionCreateParams = {
+          line_items: [
+            {
+              price_data: {
+                currency: "aud",
+                product_data: {
+                  name: listing.title,
+                  ...(listing.description && { description: listing.description.slice(0, 500) }),
+                  ...(listing.cover_url && { images: [listing.cover_url] }),
+                  tax_code: TAX_CODES.physical_goods,
+                },
+                unit_amount: listing.price_cents,
+              },
+              quantity: 1,
+            },
+          ],
+          mode: "payment",
+          ui_mode: "embedded_page",
+          return_url: ensureSessionIdInReturnUrl(data.returnUrl),
+          ...(customerId && { customer: customerId, customer_update: { address: "auto" } }),
+          payment_intent_data: { description: `Panty Drawer: ${listing.title}` },
+          shipping_address_collection: { allowed_countries: ["AU"] },
+          shipping_options: [
+            {
+              shipping_rate_data: {
+                type: "fixed_amount",
+                display_name: "Discreet AU shipping",
+                fixed_amount: { amount: 1500, currency: "aud" },
+              },
+            },
+          ],
+          ...(applyDiscount && {
+            discounts: [{ coupon: await ensureSubscriberCoupon(stripe) }],
+          }),
+          automatic_tax: { enabled: true },
+          metadata: {
+            userId: data.userId!,
+            panty_listing_id: listing.id,
+            panty_listing_title: listing.title.slice(0, 200),
+            managed_payments: "false",
+            ...(customerCountry && { customer_country: customerCountry }),
+            ...(applyDiscount && {
+              subscriber_discount_percent: String(SUBSCRIBER_DISCOUNT_PERCENT),
+            }),
+          },
+        };
+
+        const session = await stripe.checkout.sessions.create(listingParams);
+        return { clientSecret: session.client_secret ?? "" };
+      }
+
       // One-time item checkout via contentItemId + dynamic price_data.
+
       // Currency is read from the item, not hardcoded.
       const { createClient } = await import("@supabase/supabase-js");
       const supabase = createClient(

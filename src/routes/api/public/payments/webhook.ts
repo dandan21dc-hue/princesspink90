@@ -656,9 +656,67 @@ async function handleCheckoutCompleted(session: any, env: StripeEnv) {
     return;
   }
 
+  // Panty Drawer per-item listing purchase (dynamic price_data checkout).
+  const pantyListingId = session.metadata?.panty_listing_id as string | undefined;
+  if (pantyListingId) {
+    const ship2 =
+      session.collected_information?.shipping_details ??
+      session.shipping_details ??
+      null;
+    const addr2 = ship2?.address ?? null;
+    const requestedListingPercent = Number(session.metadata?.subscriber_discount_percent ?? 0) || 0;
+    const listingDiscountPercent = await allowedDiscountPercent(
+      userId,
+      env,
+      requestedListingPercent,
+    );
+    await (getSupabase() as any)
+      .from("panty_orders")
+      .upsert(
+        {
+          user_id: userId,
+          variant: "listing",
+          hours: 0,
+          panty_listing_id: pantyListingId,
+          stripe_session_id: session.id,
+          amount_cents: session.amount_total ?? 0,
+          currency: (session.currency ?? "aud").toLowerCase(),
+          environment: env,
+          status: "paid",
+          discount_percent: listingDiscountPercent,
+          customer_email: session.customer_details?.email ?? null,
+          shipping_name: ship2?.name ?? session.customer_details?.name ?? null,
+          shipping_line1: addr2?.line1 ?? null,
+          shipping_line2: addr2?.line2 ?? null,
+          shipping_city: addr2?.city ?? null,
+          shipping_state: addr2?.state ?? null,
+          shipping_postal_code: addr2?.postal_code ?? null,
+          shipping_country: addr2?.country ?? null,
+        },
+        { onConflict: "stripe_session_id" },
+      );
+    // Mark the listing sold so it disappears from the public gallery.
+    await getSupabase()
+      .from("panty_listings")
+      .update({ sold: true })
+      .eq("id", pantyListingId);
+
+    const amount = ((session.amount_total ?? 0) / 100).toFixed(2);
+    const title = (session.metadata?.panty_listing_title as string | undefined) ?? "a listed pair";
+    await notifyAllCreators({
+      kind: "panty_order",
+      title: `Panty Drawer listing sold — $${amount} 🩲`,
+      body: `Sold: ${title}. Ship discreetly to the address on file.`,
+      link_url: "/dashboard",
+      metadata: { session_id: session.id, env, panty_listing_id: pantyListingId } as any,
+    });
+    return;
+  }
+
   // One-time content-item purchase
   const contentItemId = session.metadata?.content_item_id;
   if (!contentItemId) return;
+
 
 
   await getSupabase()
