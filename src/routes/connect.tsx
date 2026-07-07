@@ -770,6 +770,31 @@ function ConnectPage() {
           </div>
         </div>
 
+        {diagnosis && !diagRunning && (
+          <div
+            className={`mt-5 rounded-2xl border p-4 ${
+              diagnosis.tone === 'ok'
+                ? 'border-emerald-500/40 bg-emerald-500/10'
+                : diagnosis.tone === 'error'
+                  ? 'border-red-500/40 bg-red-500/10'
+                  : diagnosis.tone === 'warn'
+                    ? 'border-amber-500/40 bg-amber-500/10'
+                    : 'border-primary/40 bg-primary/10'
+            }`}
+          >
+            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              Most likely cause
+            </div>
+            <div className="mt-1 font-medium">{diagnosis.title}</div>
+            <p className="mt-1 text-sm text-muted-foreground">{diagnosis.detail}</p>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
+              {diagnosis.checklist.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {diagSummary && (
           <dl className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
             <div className="rounded-lg border border-border/50 bg-background/40 p-3">
