@@ -324,6 +324,7 @@ function AllAccessCard() {
         <div className="mt-1 text-xs text-muted-foreground">Worn, sealed, shipped discreetly across Australia.</div>
       </Link>
     </div>
+    </TooltipProvider>
   );
 }
 
