@@ -693,6 +693,12 @@ function PrivateRoomConfirmation({
               Go to your dashboard
             </Link>
           </>
+        ) : outcome === "confirmed" && b && starts ? (
+          <ConfirmedBookingActions
+            bookingId={b.id}
+            startsAt={starts}
+            onCancelled={() => q.refetch()}
+          />
         ) : (
           <>
             <Link
