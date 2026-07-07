@@ -1219,13 +1219,16 @@ export const createContentItem = createServerFn({ method: "POST" })
       if (!data.title.trim() || data.title.length > 160) throw new Error("Title required (max 160 chars)");
       if (data.price_cents != null && (data.price_cents < 0 || data.price_cents > 1_000_00)) throw new Error("Price out of range");
       // Currency is AUD-only. Reject any other value (notably "usd", any
-      // casing) so no admin action can create a non-AUD price.
-      if (data.currency !== undefined) {
-        const normalized = String(data.currency).trim().toLowerCase();
+      // casing) so no admin action can create a non-AUD price. Any missing
+      // or blank value is coerced to "aud"; the DB also enforces a CHECK
+      // constraint as a last line of defence.
+      const raw = data.currency;
+      if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
+        const normalized = String(raw).trim().toLowerCase();
         if (normalized === "usd") throw new Error("USD is not supported — prices must be AUD");
         if (normalized !== "aud") throw new Error("Currency must be AUD");
-        data.currency = "aud";
       }
+      data.currency = "aud";
       return data;
     },
   )
@@ -1240,7 +1243,7 @@ export const createContentItem = createServerFn({ method: "POST" })
         description: data.description?.trim() || null,
         cover_url: data.cover_url || null,
         price_cents: data.price_cents ?? null,
-        currency: data.currency ?? "aud",
+        currency: "aud",
         subscribers_only: data.subscribers_only ?? false,
         media_urls: (data.media_urls ?? []) as any,
         published: data.published ?? true,
@@ -1248,6 +1251,7 @@ export const createContentItem = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (error) throw new Error(error.message);
+
     return row;
   });
 
