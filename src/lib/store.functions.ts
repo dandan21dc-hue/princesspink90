@@ -19,7 +19,7 @@ type CheckoutResult = { clientSecret: string } | { error: string };
 type MediaEntry = { url: string; type: "image" | "video" };
 
 async function signContentMediaUrls(
-  supabase: ReturnType<typeof import("@supabase/supabase-js").createClient>,
+  supabase: any,
   paths: string[],
 ): Promise<Map<string, string>> {
   const map = new Map<string, string>();
@@ -45,7 +45,7 @@ function guessMediaType(url: string): "image" | "video" {
 async function hydrateItemMedia<
   T extends { cover_url: string | null; media_urls: unknown },
 >(
-  supabase: ReturnType<typeof import("@supabase/supabase-js").createClient>,
+  supabase: any,
   items: T[],
 ): Promise<Array<T & { media_urls: MediaEntry[] }>> {
   // Normalize media_urls into MediaEntry[] regardless of legacy shape.
