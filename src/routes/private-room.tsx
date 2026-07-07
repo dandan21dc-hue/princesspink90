@@ -48,6 +48,7 @@ function PrivateRoomPage() {
   const [pending, setPending] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [finding, setFinding] = useState(false);
+  const [noSlotsMessage, setNoSlotsMessage] = useState<string | null>(null);
   const jumpingToSlotRef = useRef<Date | null>(null);
   const pendingAutoReviewRef = useRef(false);
 
@@ -61,6 +62,7 @@ function PrivateRoomPage() {
   // Reset the picked slot when the day or duration changes, unless we're
   // jumping to a found "next available" slot.
   useEffect(() => {
+    setNoSlotsMessage(null);
     if (
       jumpingToSlotRef.current &&
       selectedDate &&
@@ -161,6 +163,7 @@ function PrivateRoomPage() {
   }
 
   async function jumpToNextAvailable() {
+    setNoSlotsMessage(null);
     setFinding(true);
     try {
       const found = await findNextAvailableSlot();
@@ -168,7 +171,7 @@ function PrivateRoomPage() {
         jumpingToSlotRef.current = found;
         setSelectedDate(startOfDay(found));
       } else {
-        window.alert("No available slots in the next 30 days.");
+        setNoSlotsMessage("No open slots in the next 30 days. Try a different duration or check back later.");
       }
     } finally {
       setFinding(false);
@@ -176,11 +179,12 @@ function PrivateRoomPage() {
   }
 
   async function bookNextAvailable() {
+    setNoSlotsMessage(null);
     setFinding(true);
     try {
       const found = await findNextAvailableSlot();
       if (!found) {
-        window.alert("No available slots in the next 30 days.");
+        setNoSlotsMessage("No open slots in the next 30 days. Try a different duration or check back later.");
         return;
       }
       pendingAutoReviewRef.current = true;
@@ -353,6 +357,14 @@ function PrivateRoomPage() {
                   </div>
                 </div>
 
+                {noSlotsMessage && (
+                  <div
+                    role="alert"
+                    className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                  >
+                    {noSlotsMessage}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {slots.map((s) => {
