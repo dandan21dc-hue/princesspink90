@@ -728,7 +728,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         mode: "payment",
         ui_mode: "embedded_page",
         return_url: ensureSessionIdInReturnUrl(data.returnUrl),
-        ...(customerId && { customer: customerId }),
+        ...(customerId && { customer: customerId, customer_update: { address: "auto" } }),
         metadata: {
           ...(data.userId && { userId: data.userId }),
           content_item_id: item.id,
