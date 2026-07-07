@@ -157,6 +157,9 @@ describe('POST /lovable/email/transactional/send — authorization', () => {
     infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {})
   })
 
+  afterEach(() => {
+    vi.restoreAllMocks()
+
   const auditCalls = (spy: ReturnType<typeof vi.spyOn>, event: string) =>
     (spy.mock.calls as unknown[][]).filter((call) => call[0] === `[audit] ${event}`)
 
