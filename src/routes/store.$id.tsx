@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getStoreItem } from "@/lib/store.functions";
-import { supabase } from "@/integrations/supabase/client";
+
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cart } from "@/lib/cart";
