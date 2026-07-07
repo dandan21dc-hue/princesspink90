@@ -19,6 +19,7 @@ import {
   listPrivateRoomBusy,
   listMyPrivateRoomBookingHistory,
 } from "@/lib/store.functions";
+import { sendBookingConfirmationEmail } from "@/lib/booking-email.functions";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Sheet,
