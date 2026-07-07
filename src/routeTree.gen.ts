@@ -54,6 +54,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminPerksRouteImport } from './routes/_authenticated/admin.perks'
 import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_authenticated/admin.partnerships'
+import { Route as AuthenticatedAdminMediaModerationRouteImport } from './routes/_authenticated/admin.media-moderation'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
@@ -324,6 +325,12 @@ const AuthenticatedAdminPartnershipsRoute =
     path: '/admin/partnerships',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminMediaModerationRoute =
+  AuthenticatedAdminMediaModerationRouteImport.update({
+    id: '/admin/media-moderation',
+    path: '/admin/media-moderation',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminLifetimeRoute =
   AuthenticatedAdminLifetimeRouteImport.update({
     id: '/admin/lifetime',
@@ -570,6 +577,7 @@ export interface FileRoutesByFullPath {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
@@ -649,6 +657,7 @@ export interface FileRoutesByTo {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
@@ -731,6 +740,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/_authenticated/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
   '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
@@ -813,6 +823,7 @@ export interface FileRouteTypes {
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
+    | '/admin/media-moderation'
     | '/admin/partnerships'
     | '/admin/perks'
     | '/admin/safety-incidents'
@@ -892,6 +903,7 @@ export interface FileRouteTypes {
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
+    | '/admin/media-moderation'
     | '/admin/partnerships'
     | '/admin/perks'
     | '/admin/safety-incidents'
@@ -973,6 +985,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/health-purge'
     | '/_authenticated/admin/health-reminders'
     | '/_authenticated/admin/lifetime'
+    | '/_authenticated/admin/media-moderation'
     | '/_authenticated/admin/partnerships'
     | '/_authenticated/admin/perks'
     | '/_authenticated/admin/safety-incidents'
@@ -1368,6 +1381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPartnershipsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/media-moderation': {
+      id: '/_authenticated/admin/media-moderation'
+      path: '/admin/media-moderation'
+      fullPath: '/admin/media-moderation'
+      preLoaderRoute: typeof AuthenticatedAdminMediaModerationRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/lifetime': {
       id: '/_authenticated/admin/lifetime'
       path: '/admin/lifetime'
@@ -1684,6 +1704,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
+  AuthenticatedAdminMediaModerationRoute: typeof AuthenticatedAdminMediaModerationRoute
   AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRouteWithChildren
   AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
@@ -1727,6 +1748,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminHealthRemindersRoute:
     AuthenticatedAdminHealthRemindersRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
+  AuthenticatedAdminMediaModerationRoute:
+    AuthenticatedAdminMediaModerationRoute,
   AuthenticatedAdminPartnershipsRoute:
     AuthenticatedAdminPartnershipsRouteWithChildren,
   AuthenticatedAdminPerksRoute: AuthenticatedAdminPerksRoute,
