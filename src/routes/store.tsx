@@ -197,14 +197,30 @@ function AllAccessCard() {
                   </span>
                 </div>
                 {p.perk && !disabled && !changeLabel && (
-                  <span
-                    className={cn(
-                      "text-[10px] text-primary/90",
-                      isLifetime && "text-[11px] font-medium text-gold",
-                    )}
-                  >
-                    {p.perk}
-                  </span>
+                  p.plan === "all_access_6mo_monthly_aud" ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="inline-flex items-center gap-1 text-[10px] text-primary/90 cursor-help"
+                        >
+                          {p.perk}
+                          <HelpCircle className="h-3 w-3" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-[260px] text-center leading-relaxed">
+                        The 6-month plan auto-renews every 6 months. You can cancel or switch plans anytime via the billing portal — changes take effect at your next renewal.
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <span
+                      className={cn(
+                        "text-[10px] text-primary/90",
+                        isLifetime && "text-[11px] font-medium text-gold",
+                      )}
+                    >
+                      {p.perk}
+                    </span>
+                  )
                 )}
                 {badge && (
                   <span className="text-[10px] text-primary/90">{badge}</span>
