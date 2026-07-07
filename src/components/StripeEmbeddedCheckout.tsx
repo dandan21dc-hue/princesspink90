@@ -14,6 +14,8 @@ interface Props {
   userId?: string;
   customerEmail?: string;
   bookingStartsAt?: string;
+  bookingPartySize?: number;
+  bookingNotes?: string;
   autoRenew?: boolean;
 }
 
