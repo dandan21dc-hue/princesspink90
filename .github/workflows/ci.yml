@@ -33,6 +33,13 @@ jobs:
       - name: Run tests
         run: bun run test
 
+      # AUD is the sole surface currency for this project. This scanner
+      # renders every email template and greps UI/JSON-LD sources for
+      # "USD" / "US$", blocking a merge that would ship a non-AUD price
+      # label in copy, JSON-LD, or an email body.
+      - name: Scan UI + emails for USD strings
+        run: bun run lint:usd
+
   supabase_security_config_validate:
     name: Supabase / Config Validate
     runs-on: ubuntu-latest
