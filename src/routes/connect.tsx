@@ -23,6 +23,26 @@ export const Route = createFileRoute('/connect')({
 })
 
 const STORAGE_KEY = 'princess-pink:mcp-url'
+const AUTH_STORAGE_KEY = 'princess-pink:mcp-auth'
+
+type AuthConfig = {
+  bearer: string
+  headers: string // raw text: "Key: value" per line
+}
+
+function parseHeaderLines(raw: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const line of raw.split(/\r?\n/)) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    const idx = trimmed.indexOf(':')
+    if (idx <= 0) continue
+    const key = trimmed.slice(0, idx).trim()
+    const value = trimmed.slice(idx + 1).trim()
+    if (key) out[key] = value
+  }
+  return out
+}
 
 function ConnectPage() {
   const [defaultUrl, setDefaultUrl] = useState('')
@@ -31,6 +51,8 @@ function ConnectPage() {
   const [copied, setCopied] = useState(false)
   const [status, setStatus] = useState<'idle' | 'testing' | 'ok' | 'error'>('idle')
   const [statusDetail, setStatusDetail] = useState<string>('')
+  const [auth, setAuth] = useState<AuthConfig>({ bearer: '', headers: '' })
+  const [authSaved, setAuthSaved] = useState(false)
 
   useEffect(() => {
     const derived = new URL('/mcp', window.location.origin).toString()
@@ -38,7 +60,39 @@ function ConnectPage() {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     setMcpUrl(stored && stored.trim() ? stored.trim() : derived)
     if (stored && stored.trim()) setSaved(true)
+    const storedAuth = window.localStorage.getItem(AUTH_STORAGE_KEY)
+    if (storedAuth) {
+      try {
+        const parsed = JSON.parse(storedAuth) as Partial<AuthConfig>
+        setAuth({ bearer: parsed.bearer ?? '', headers: parsed.headers ?? '' })
+        setAuthSaved(true)
+      } catch {
+        /* ignore */
+      }
+    }
   }, [])
+
+  function updateAuth(next: AuthConfig) {
+    setAuth(next)
+    const hasValue = next.bearer.trim() !== '' || next.headers.trim() !== ''
+    if (hasValue) {
+      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next))
+      setAuthSaved(true)
+    } else {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY)
+      setAuthSaved(false)
+    }
+    setStatus('idle')
+    setStatusDetail('')
+  }
+
+  function clearAuth() {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY)
+    setAuth({ bearer: '', headers: '' })
+    setAuthSaved(false)
+    setStatus('idle')
+    setStatusDetail('')
+  }
 
   function saveUrl(next: string) {
     const trimmed = next.trim()
