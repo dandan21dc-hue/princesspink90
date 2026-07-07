@@ -477,8 +477,18 @@ function EditModal(props: {
           <button
             type="button"
             onClick={props.onSave}
-            disabled={props.saving || uploading}
-            className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+            disabled={
+              props.saving ||
+              uploading ||
+              describing ||
+              !(value.description ?? "").trim()
+            }
+            title={
+              !(value.description ?? "").trim()
+                ? "Add a description (or use ✨ AI Auto-Describe) before saving"
+                : undefined
+            }
+            className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {props.saving ? "Saving…" : "Save"}
           </button>
