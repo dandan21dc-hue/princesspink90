@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { listPrivateRoomBusy } from "@/lib/store.functions";
 
-export const Route = createFileRoute("/store/private-room")({
+export const Route = createFileRoute("/private-room")({
   head: () => ({
     meta: [
       { title: "Private Room Booking — Princess Pink" },
