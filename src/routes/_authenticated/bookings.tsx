@@ -372,6 +372,10 @@ function BookingCard(props: {
 function ReschedulePicker(props: {
   durationMinutes: number;
   currentBookingId: string;
+  currentStartsAt: string;
+  amountCents: number | null;
+  currency: string;
+  partySize: number | null;
   pending: boolean;
   onCancel: () => void;
   onSubmit: (startsAt: string) => void;
@@ -380,6 +384,7 @@ function ReschedulePicker(props: {
     startOfDay(addDays(new Date(), 1)),
   );
   const [slot, setSlot] = useState<Date | null>(null);
+  const [reviewing, setReviewing] = useState(false);
 
   const dayRange = useMemo(() => {
     if (!date) return null;
