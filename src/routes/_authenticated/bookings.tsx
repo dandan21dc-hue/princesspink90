@@ -558,6 +558,8 @@ function BookingDetailsDrawer({
                 </dl>
               </div>
 
+              <BookingStatusTimeline bookingId={b.id} />
+
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                   Notes
