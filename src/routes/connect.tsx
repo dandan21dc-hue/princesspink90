@@ -555,6 +555,124 @@ function ConnectPage() {
         )}
       </section>
 
+      <section className="mt-10 rounded-3xl border border-border/60 bg-card/40 p-6 sm:p-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">
+              Diagnostics
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Probes <code>/mcp</code>, OAuth protected-resource metadata, and each
+              advertised authorization server. Share the copied output when asking for help.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={runDiagnostics}
+              disabled={!mcpUrl || diagRunning}
+              className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition disabled:opacity-50"
+            >
+              {diagRunning ? 'Running…' : 'Run diagnostics'}
+            </button>
+            {diag && (
+              <button
+                type="button"
+                onClick={copyDiag}
+                className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-wider hover:bg-secondary/50 transition"
+              >
+                Copy JSON
+              </button>
+            )}
+          </div>
+        </div>
+
+        {diagSummary && (
+          <dl className="mt-5 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+            <div className="rounded-lg border border-border/50 bg-background/40 p-3">
+              <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Resource
+              </dt>
+              <dd className="mt-1 break-all font-mono text-xs">
+                {diagSummary.resource ?? '—'}
+              </dd>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/40 p-3">
+              <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Issuer(s)
+              </dt>
+              <dd className="mt-1 break-all font-mono text-xs">
+                {diagSummary.issuers?.length ? diagSummary.issuers.join('\n') : '—'}
+              </dd>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/40 p-3">
+              <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Requested scopes
+              </dt>
+              <dd className="mt-1 break-all font-mono text-xs">
+                {diagSummary.scopes?.length ? diagSummary.scopes.join(' ') : '—'}
+              </dd>
+            </div>
+            <div className="rounded-lg border border-border/50 bg-background/40 p-3">
+              <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Dynamic client registration
+              </dt>
+              <dd className="mt-1 break-all font-mono text-xs">
+                {diagSummary.registration ?? 'not advertised'}
+              </dd>
+            </div>
+          </dl>
+        )}
+
+        {diag && (
+          <div className="mt-6 space-y-4">
+            {diag.map((step, i) => {
+              const statusColor = step.error
+                ? 'text-red-400'
+                : step.ok
+                  ? 'text-emerald-400'
+                  : 'text-amber-400'
+              return (
+                <details
+                  key={i}
+                  open={!step.ok || !!step.error}
+                  className="rounded-2xl border border-border/50 bg-background/40 p-4"
+                >
+                  <summary className="cursor-pointer">
+                    <span className="font-medium">{step.label}</span>{' '}
+                    <span className={`font-mono text-xs ${statusColor}`}>
+                      {step.error ? 'ERROR' : `HTTP ${step.status}`}
+                    </span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {step.method} · {step.ms}ms
+                    </span>
+                  </summary>
+                  <div className="mt-3 space-y-2 text-xs">
+                    <div className="break-all font-mono text-muted-foreground">{step.url}</div>
+                    {step.contentType && (
+                      <div className="text-muted-foreground">
+                        content-type: <code>{step.contentType}</code>
+                      </div>
+                    )}
+                    {step.error && (
+                      <pre className="whitespace-pre-wrap rounded bg-red-500/10 p-3 text-red-300">
+                        {step.error}
+                      </pre>
+                    )}
+                    {step.body && (
+                      <pre className="max-h-80 overflow-auto whitespace-pre-wrap rounded bg-background/60 p-3 font-mono">
+                        {step.body}
+                      </pre>
+                    )}
+                  </div>
+                </details>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+
 
 
       <section className="mt-10">
