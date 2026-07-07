@@ -27,11 +27,11 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
       event_id: z.string().uuid(),
       guest_count: z.number().int().min(1).max(10).default(1),
       age_confirmed: z.literal(true, {
-        errorMap: () => ({ message: "You must confirm you are 18+." }),
+        error: "You must confirm you are 18+.",
       }),
       video_consent: videoConsentSchema,
       waiver_accepted: z.literal(true, {
-        errorMap: () => ({ message: "You must accept the liability waiver to RSVP." }),
+        error: "You must accept the liability waiver to RSVP.",
       }),
       waiver_signature: z.string().trim().min(2, "Type your full legal name to sign.").max(120),
       waiver_text_hash: z.string().regex(/^[a-f0-9]{64}$/, "Waiver signature is invalid — please refresh."),
