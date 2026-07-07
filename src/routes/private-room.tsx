@@ -62,6 +62,7 @@ function PrivateRoomPage() {
   // Reset the picked slot when the day or duration changes, unless we're
   // jumping to a found "next available" slot.
   useEffect(() => {
+    setNoSlotsMessage(null);
     if (
       jumpingToSlotRef.current &&
       selectedDate &&
