@@ -420,18 +420,17 @@ export function ensureSessionIdInReturnUrl(rawUrl: string): string {
 }
 
 /**
- * Server-side gate: Panty Drawer purchases require an active all-access
- * subscription, an active term pass, or a lifetime membership in the same
- * environment. Frontend UI is never trusted for this — every panty checkout
- * path (single-item + cart) MUST call this before creating a Stripe session.
- * Uses the request-scoped supabase client (RLS as the caller).
+ * Non-throwing check: does the user currently qualify for the subscriber
+ * discount on the Panty Drawer? Panty Drawer purchases themselves are open
+ * to the public — this helper is only used to decide whether to apply the
+ * 15% subscriber coupon.
  */
-async function assertPantyAccess(
+async function hasSubscriberAccess(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
   env: StripeEnv,
-): Promise<void> {
+): Promise<boolean> {
   const nowIso = new Date().toISOString();
 
   const sub = await supabase
@@ -443,7 +442,7 @@ async function assertPantyAccess(
     .limit(1)
     .maybeSingle();
 
-  if (sub.error) throw new Error(sub.error.message);
+  if (sub.error) return false;
   const s = sub.data as { status: string; current_period_end: string | null } | null;
   const subActive = !!s && (
     (["active", "trialing", "past_due"].includes(s.status)
@@ -451,7 +450,7 @@ async function assertPantyAccess(
     || (s.status === "canceled" && !!s.current_period_end && s.current_period_end > nowIso)
   );
 
-  if (subActive) return;
+  if (subActive) return true;
 
   const mem = await supabase
     .from("memberships")
@@ -459,19 +458,14 @@ async function assertPantyAccess(
     .eq("user_id", userId)
     .eq("environment", env);
 
-  if (mem.error) throw new Error(mem.error.message);
+  if (mem.error) return false;
   const rows = (mem.data ?? []) as Array<{ kind: string; expires_at: string | null }>;
-  const memActive = rows.some((m) =>
+  return rows.some((m) =>
     m.kind === "lifetime"
     || (m.kind.startsWith("term_pass_") && !!m.expires_at && m.expires_at > nowIso),
   );
-
-  if (!memActive) {
-    throw new Error(
-      "The Panty Drawer is a members-only perk — grab an all-access pass or lifetime membership first.",
-    );
-  }
 }
+
 
 // ---------- Subscriber discount (Panty Drawer) ----------
 //
@@ -565,9 +559,14 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
         return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
       }
 
-      await assertPantyAccess(supabase, userId, data.environment);
+      
+      const isSub = await hasSubscriberAccess(supabase, userId, data.environment);
+      if (!isSub) {
+        return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
+      }
       const used = await countDiscountedPantyOrders(supabase, userId, data.environment);
       const remaining = Math.max(0, SUBSCRIBER_DISCOUNT_MAX_ORDERS - used);
+
       return {
         isSubscriber: true,
         discountPercent: remaining > 0 ? SUBSCRIBER_DISCOUNT_PERCENT : 0,
@@ -709,11 +708,8 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
 
 
 
-        // Members-only gate for the Panty Drawer. Never trust the client —
-        // enforce active subscription/membership before creating the session.
-        if (isPanty) {
-          await assertPantyAccess(context.supabase, context.userId, data.environment);
-        }
+        // Panty Drawer is open to the public — no access gate here.
+
 
         // Tax codes are set once via scripts/sync-stripe-tax-codes.mjs.
         // We no longer patch them per checkout — that hid API failures and
@@ -766,13 +762,15 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         // orders fall back to automatic_tax so tax is still calculated.
         const useManagedPayments = isEligibleForManagedPayments(data.priceId);
 
-        // Panty subscriber discount: only applies to the first
-        // SUBSCRIBER_DISCOUNT_MAX_ORDERS paid panty orders per user.
+        // Panty subscriber discount: only for active subscribers/members,
+        // and only on the first SUBSCRIBER_DISCOUNT_MAX_ORDERS paid orders.
         const applyPantyDiscount =
           isPanty
           && !!data.userId
+          && (await hasSubscriberAccess(context.supabase, data.userId, data.environment))
           && (await countDiscountedPantyOrders(context.supabase, data.userId, data.environment))
              < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
 
         const baseParams: Stripe.Checkout.SessionCreateParams = {
           line_items: [{ price: stripePrice.id, quantity: data.quantity || 1 }],
@@ -843,8 +841,9 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
 
       // ---------- Panty Drawer listing checkout (per-item, dynamic price) ----------
       if (data.pantyListingId) {
-        // Members-only gate — same rule as the tier flow.
-        await assertPantyAccess(context.supabase, data.userId!, data.environment);
+        // Panty Drawer is open to the public — no access gate here.
+
+
 
         const { createClient } = await import("@supabase/supabase-js");
         const sb = createClient(
@@ -864,8 +863,10 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         if (!listing.price_cents || listing.price_cents < 50) throw new Error("Listing has no valid price");
 
         const applyDiscount =
-          (await countDiscountedPantyOrders(context.supabase, data.userId!, data.environment))
+          (await hasSubscriberAccess(context.supabase, data.userId!, data.environment))
+          && (await countDiscountedPantyOrders(context.supabase, data.userId!, data.environment))
             < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
 
         const listingParams: Stripe.Checkout.SessionCreateParams = {
           line_items: [
@@ -1068,12 +1069,8 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
         quantity: number;
       }>;
 
-      // Members-only gate: any panty item in the cart requires an active
-      // subscription/membership. Verified against the authenticated user's
-      // RLS-scoped client, never trusting the frontend cart contents.
-      if (pantyItems.length > 0) {
-        await assertPantyAccess(context.supabase, userId, data.environment);
-      }
+      // Panty Drawer is open to the public — no access gate here.
+
 
 
 
@@ -1157,12 +1154,14 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
       // present → automatic_tax so shipping tax is still calculated.
       const useManagedPayments = !hasPanty;
 
-      // Panty subscriber discount: only applies to the first
-      // SUBSCRIBER_DISCOUNT_MAX_ORDERS paid panty orders per user.
+      // Panty subscriber discount: only for active subscribers/members,
+      // and only on the first SUBSCRIBER_DISCOUNT_MAX_ORDERS paid orders.
       const applyPantyDiscount =
         hasPanty
+        && (await hasSubscriberAccess(context.supabase, userId, data.environment))
         && (await countDiscountedPantyOrders(context.supabase, userId, data.environment))
            < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
 
       const baseParams: Stripe.Checkout.SessionCreateParams = {
         line_items: lineItems,
