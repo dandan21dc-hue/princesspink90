@@ -8,6 +8,7 @@ import {
   cancelMyPrivateRoomBooking,
   rescheduleMyPrivateRoomBooking,
   listPrivateRoomBusy,
+  listMyPrivateRoomBookingHistory,
 } from "@/lib/store.functions";
 import { Calendar } from "@/components/ui/calendar";
 import {
