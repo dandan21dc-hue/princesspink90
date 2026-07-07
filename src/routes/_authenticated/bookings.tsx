@@ -256,6 +256,7 @@ function BookingCard(props: {
   cancelPending: boolean;
   onReschedule: (startsAt: string) => void;
   reschedulePending: boolean;
+  onOpenDetails: () => void;
 }) {
   const b = props.booking;
   const starts = new Date(b.starts_at);
