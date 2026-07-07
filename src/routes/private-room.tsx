@@ -64,6 +64,7 @@ function PrivateRoomPage() {
   // jumping to a found "next available" slot.
   useEffect(() => {
     setNoSlotsMessage(null);
+    setHighlightedSlot(null);
     if (
       jumpingToSlotRef.current &&
       selectedDate &&
@@ -71,6 +72,7 @@ function PrivateRoomPage() {
     ) {
       const slot = jumpingToSlotRef.current;
       setSelectedSlot(new Date(slot.getTime()));
+      setHighlightedSlot(new Date(slot.getTime()));
       const el = document.getElementById(`slot-${slot.getTime()}`);
       el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       jumpingToSlotRef.current = null;
