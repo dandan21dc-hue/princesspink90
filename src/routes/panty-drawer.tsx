@@ -156,22 +156,40 @@ function PantyDrawerPage() {
 
   return (
     <>
-      <PaymentTestModeBanner />
-      <section className="mx-auto max-w-6xl px-5 pt-10 pb-16">
-        <div className="text-xs uppercase tracking-[0.3em] text-primary">The Panty Drawer</div>
-        <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
-          For your <span className="text-neon">extra kinky side</span> 💋
-        </h1>
+      <PageShell>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
           Each pair is one-of-one — photographed, sealed, and shipped discreetly across Australia.
           A$15 shipping added at checkout. Subscriber discount applies automatically.
         </p>
 
         {q.isLoading ? (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-busy="true" aria-live="polite">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-muted/30" />
             ))}
+            <span className="sr-only">Loading listings…</span>
+          </div>
+        ) : q.isError ? (
+          <div
+            role="alert"
+            className="mt-8 rounded-2xl border border-destructive/40 bg-destructive/5 p-6"
+          >
+            <div className="text-xs uppercase tracking-[0.3em] text-destructive">
+              Couldn't load the drawer
+            </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {q.error instanceof Error
+                ? q.error.message
+                : "Something went wrong while loading listings."}
+            </p>
+            <button
+              type="button"
+              onClick={() => void q.refetch()}
+              disabled={q.isFetching}
+              className="mt-4 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {q.isFetching ? "Retrying…" : "Try again"}
+            </button>
           </div>
         ) : listings.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-dashed border-primary/40 bg-primary/5 p-10 text-center">
@@ -235,19 +253,10 @@ function PantyDrawerPage() {
           </div>
         )}
 
-        <div className="mt-10 flex flex-wrap items-center gap-3">
-          <Link
-            to="/store"
-            className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-          >
-            ← Back to store
-          </Link>
-        </div>
-
         <p className="mt-6 text-[11px] text-muted-foreground">
           18+ only. Australia-only shipping. All sales final; discreet plain packaging.
         </p>
-      </section>
+      </PageShell>
 
       {isOpen && (
         <div
