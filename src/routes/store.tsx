@@ -161,7 +161,7 @@ function CategoryCards() {
             })
           }
           aria-label={`${c.title} — ${c.cta}`}
-          className="group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card/60 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_40px_-10px_hsl(var(--primary)/0.45)] focus:outline-none focus-visible:shadow-[0_0_0_4px_hsl(var(--background)),0_0_0_6px_hsl(var(--primary))] focus-visible:border-primary"
+          className="group relative flex flex-col overflow-hidden rounded-3xl border-2 border-border bg-card/60 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_40px_-10px_hsl(var(--primary)/0.45)] focus:outline-none focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_hsl(var(--primary)/0.55)]"
         >
           <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
             <picture>
