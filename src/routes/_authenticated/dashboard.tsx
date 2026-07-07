@@ -71,6 +71,12 @@ function Dashboard() {
           {admin.data?.isAdmin && (
             <>
               <Link
+                to="/admin/user-management"
+                className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
+              >
+                User management
+              </Link>
+              <Link
                 to="/admin/settings"
                 className="rounded-md border border-neon/40 bg-neon/10 px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-neon hover:bg-neon/20"
               >
