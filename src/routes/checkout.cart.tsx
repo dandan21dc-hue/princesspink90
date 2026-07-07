@@ -187,32 +187,7 @@ function CartCheckoutPage() {
 
         <div className="mt-8 grid gap-8 md:grid-cols-[1fr_360px]">
           <div className="min-h-[520px] rounded-2xl border border-border/60 bg-card p-4">
-            {checkoutError ? (
-              <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-                <div className="text-[10px] uppercase tracking-[0.3em] text-destructive">
-                  Can't start checkout
-                </div>
-                <p className="max-w-md text-sm text-foreground/90">{checkoutError}</p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  <Link
-                    to="/store"
-                    className="rounded-md border border-primary/60 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
-                  >
-                    Back to store
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCheckoutError(null);
-                      setClientSecret(null);
-                    }}
-                    className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground"
-                  >
-                    Try again
-                  </button>
-                </div>
-              </div>
-            ) : user && clientSecret ? (
+            {user && clientSecret ? (
               <EmbeddedCheckoutProvider stripe={getStripe()} options={{ fetchClientSecret }}>
                 <EmbeddedCheckout />
               </EmbeddedCheckoutProvider>
@@ -220,6 +195,7 @@ function CartCheckoutPage() {
               <div className="p-10 text-center text-sm text-muted-foreground">Loading…</div>
             )}
           </div>
+
 
 
 
