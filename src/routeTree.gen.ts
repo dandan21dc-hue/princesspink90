@@ -17,6 +17,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PartnershipsRouteImport } from './routes/partnerships'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LegalRouteImport } from './routes/legal'
+import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -130,6 +131,11 @@ const McpRoute = McpRouteImport.update({
 const LegalRoute = LegalRouteImport.update({
   id: '/legal',
   path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConnectRoute = ConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConductRoute = ConductRouteImport.update({
@@ -554,6 +560,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/connect': typeof ConnectRoute
   '/legal': typeof LegalRoute
   '/mcp': typeof McpRoute
   '/partnerships': typeof PartnershipsRoute
@@ -637,6 +644,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/connect': typeof ConnectRoute
   '/legal': typeof LegalRoute
   '/mcp': typeof McpRoute
   '/partnerships': typeof PartnershipsRoute
@@ -721,6 +729,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/connect': typeof ConnectRoute
   '/legal': typeof LegalRoute
   '/mcp': typeof McpRoute
   '/partnerships': typeof PartnershipsRoute
@@ -806,6 +815,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/connect'
     | '/legal'
     | '/mcp'
     | '/partnerships'
@@ -889,6 +899,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/connect'
     | '/legal'
     | '/mcp'
     | '/partnerships'
@@ -972,6 +983,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/connect'
     | '/legal'
     | '/mcp'
     | '/partnerships'
@@ -1057,6 +1069,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
+  ConnectRoute: typeof ConnectRoute
   LegalRoute: typeof LegalRoute
   McpRoute: typeof McpRoute
   PartnershipsRoute: typeof PartnershipsRoute
@@ -1149,6 +1162,13 @@ declare module '@tanstack/react-router' {
       path: '/legal'
       fullPath: '/legal'
       preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/connect': {
+      id: '/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof ConnectRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conduct': {
@@ -1835,6 +1855,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
+  ConnectRoute: ConnectRoute,
   LegalRoute: LegalRoute,
   McpRoute: McpRoute,
   PartnershipsRoute: PartnershipsRoute,
