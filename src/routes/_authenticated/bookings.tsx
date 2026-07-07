@@ -424,6 +424,76 @@ function ReschedulePicker(props: {
   const now = Date.now();
   const leadMs = 60 * 60 * 1000;
 
+  const currencyUpper = (props.currency ?? "aud").toUpperCase();
+  const fmtMoney = (cents: number) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency: currencyUpper }).format(
+      cents / 100,
+    );
+  const currentStart = new Date(props.currentStartsAt);
+
+  if (reviewing && slot) {
+    return (
+      <div className="mt-4 rounded-md border border-primary/40 bg-primary/5 p-4">
+        <div className="text-xs uppercase tracking-widest text-primary">
+          Confirm reschedule
+        </div>
+        <dl className="mt-3 space-y-2 text-sm">
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted-foreground">Current time</dt>
+            <dd className="text-right line-through opacity-70">
+              {format(currentStart, "EEE d MMM · HH:mm")}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted-foreground">New time</dt>
+            <dd className="text-right font-semibold">
+              {format(slot, "EEE d MMM yyyy · HH:mm")}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <dt className="text-muted-foreground">Duration</dt>
+            <dd className="text-right">{props.durationMinutes} min</dd>
+          </div>
+          {props.partySize != null && (
+            <div className="flex items-center justify-between gap-3">
+              <dt className="text-muted-foreground">Party size</dt>
+              <dd className="text-right">{props.partySize}</dd>
+            </div>
+          )}
+          <div className="mt-2 flex items-center justify-between gap-3 border-t border-border/60 pt-2 font-semibold">
+            <dt>Total</dt>
+            <dd className="text-right">
+              {props.amountCents != null ? fmtMoney(props.amountCents) : "—"}
+            </dd>
+          </div>
+        </dl>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {props.amountCents != null
+            ? "No additional charge — your original payment moves to the new time."
+            : "You may be redirected to checkout to confirm your new time."}
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={props.pending}
+            onClick={() => props.onSubmit(slot.toISOString())}
+            className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+          >
+            {props.pending ? "Rescheduling…" : "Confirm & reschedule"}
+          </button>
+          <button
+            type="button"
+            disabled={props.pending}
+            onClick={() => setReviewing(false)}
+            className="rounded-md border border-border px-4 py-2 text-xs font-semibold uppercase tracking-widest hover:bg-muted/30"
+          >
+            ← Back to pick a time
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4 rounded-md border border-border/60 bg-background/40 p-4">
       <div className="grid gap-4 md:grid-cols-[auto_1fr]">
@@ -482,10 +552,10 @@ function ReschedulePicker(props: {
         <button
           type="button"
           disabled={!slot || props.pending}
-          onClick={() => slot && props.onSubmit(slot.toISOString())}
+          onClick={() => slot && setReviewing(true)}
           className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
         >
-          {props.pending ? "Rescheduling…" : "Confirm new time"}
+          Review new time
         </button>
         <button
           type="button"
