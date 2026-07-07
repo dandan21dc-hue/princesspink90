@@ -159,9 +159,11 @@ describe('POST /lovable/email/transactional/send — authorization', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+  })
 
   const auditCalls = (spy: ReturnType<typeof vi.spyOn>, event: string) =>
     (spy.mock.calls as unknown[][]).filter((call) => call[0] === `[audit] ${event}`)
+
 
 
   it('rejects requests without a bearer token (401) and does not check roles', async () => {
