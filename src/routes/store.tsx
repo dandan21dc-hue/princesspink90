@@ -135,7 +135,7 @@ function AllAccessCard() {
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full md:w-[280px]">
+    <div className="flex flex-col gap-3 w-full">
       <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
         <div className="flex items-center justify-between">
           <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
@@ -145,7 +145,7 @@ function AllAccessCard() {
             </span>
           )}
         </div>
-        <ul className="mt-2 space-y-1 text-sm">
+        <ul className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-5">
           {passes.map((p) => {
             const owned = tiers.active[p.plan];
             // Lifetime supersedes everything else; disable lower tiers.
@@ -275,7 +275,7 @@ function AllAccessCard() {
             );
 
             return (
-              <li key={p.plan} className={isLifetime ? "pt-2" : ""}>
+              <li key={p.plan} className={isLifetime ? "" : ""}>
                 {isLifetime ? (
                   <div className={lifetimeWrapClass}>
                     <span className="animate-badge-shimmer absolute -top-2 -right-2 z-10 rounded-full bg-gold-gradient px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-black shadow-lg">
