@@ -69,7 +69,7 @@ export const Route = createFileRoute("/events/$id")({
               ? {
                   "@type": "Offer",
                   price: (loaderData.ticket_price_cents / 100).toFixed(2),
-                  priceCurrency: "USD",
+                  priceCurrency: "AUD",
                   url,
                   availability: "https://schema.org/InStock",
                 }

@@ -52,7 +52,7 @@ export const Route = createFileRoute("/store/$id")({
               ? {
                   "@type": "Offer",
                   price: (loaderData.price_cents / 100).toFixed(2),
-                  priceCurrency: "USD",
+                  priceCurrency: "AUD",
                   availability: "https://schema.org/InStock",
                   url,
                 }

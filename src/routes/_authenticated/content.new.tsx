@@ -343,7 +343,7 @@ function NewContentPage() {
 
 
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Price (USD)">
+          <Field label="Price (AUD)">
             <input
               type="number"
               step="0.01"
