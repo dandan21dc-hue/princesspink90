@@ -607,6 +607,13 @@ function PrivateRoomConfirmation({
                 ? `${format(starts, "h:mm a")} – ${format(ends, "h:mm a")}`
                 : "—"}
             </ConfRow>
+            <ConfRow label="Duration">
+              {b.duration_minutes === 60
+                ? "1 hour"
+                : b.duration_minutes === 30
+                  ? "30 minutes"
+                  : `${b.duration_minutes} minutes`}
+            </ConfRow>
             <ConfRow label="Party size">
               {b.party_size ?? 1} {(b.party_size ?? 1) === 1 ? "guest" : "guests"}
             </ConfRow>
