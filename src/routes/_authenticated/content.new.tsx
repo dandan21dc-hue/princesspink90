@@ -353,12 +353,12 @@ function NewContentPage() {
         </div>
 
         <Field label="Media files">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">Photos</label>
               <input
                 type="file"
-                accept="image/*"
+                accept={IMAGE_TYPES.join(",")}
                 multiple
                 onChange={(e) => {
                   queueFiles(e.target.files, "image", "media");
@@ -366,12 +366,15 @@ function NewContentPage() {
                 }}
                 className="mt-1 block text-sm"
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                JPG, PNG, WEBP, GIF, or AVIF · up to 15 MB each.
+              </p>
             </div>
             <div>
               <label className="text-xs uppercase tracking-widest text-muted-foreground">Videos</label>
               <input
                 type="file"
-                accept="video/*"
+                accept={VIDEO_TYPES.join(",")}
                 multiple
                 onChange={(e) => {
                   queueFiles(e.target.files, "video", "media");
@@ -379,12 +382,16 @@ function NewContentPage() {
                 }}
                 className="mt-1 block text-sm"
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                MP4, WEBM, or MOV · up to 500 MB each.
+              </p>
             </div>
             {media.length > 0 && (
               <div className="text-xs text-muted-foreground">
                 {media.length} file(s) attached
               </div>
             )}
+
           </div>
         </Field>
 
