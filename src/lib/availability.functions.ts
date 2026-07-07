@@ -103,7 +103,12 @@ export const updateSessionSlot = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      start_time?: string;
+      end_time?: string;
+      is_booked?: boolean;
+      notes?: string | null;
+    } = {};
     if (data.startTime !== undefined) patch.start_time = data.startTime;
     if (data.endTime !== undefined) patch.end_time = data.endTime;
     if (data.isBooked !== undefined) patch.is_booked = data.isBooked;
