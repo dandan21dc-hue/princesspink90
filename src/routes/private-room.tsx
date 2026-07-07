@@ -236,7 +236,19 @@ function PrivateRoomPage() {
             partySize={partySize}
             notes={notes}
             pending={pending}
-            onEdit={() => setReviewing(false)}
+            onEdit={() => {
+              setReviewing(false);
+              // Preserve the picked slot/date/duration/party size/notes and
+              // scroll back to the slot the user had highlighted so they can
+              // see their selection right away.
+              const slot = selectedSlot;
+              if (slot) {
+                requestAnimationFrame(() => {
+                  const el = document.getElementById(`slot-${slot.getTime()}`);
+                  el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                });
+              }
+            }}
             onConfirm={confirm}
           />
         ) : (
