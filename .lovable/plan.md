@@ -1,95 +1,56 @@
+# Refactor `/panty-drawer` to an item-only gallery
 
-# Stabilization Plan
+## Goal
+Replace the current 24/48/72-hour tier page with a clean grid of the panty items admins upload in **Admin → Panty Listings** (`panty_listings` table). Each card shows the uploaded image, title, and price, and its Buy button uses a standard per-item Stripe checkout for that exact listing at its own price — not the old 24/48/72hr tier prices.
 
-Five items, processed in order. Each ships behind small, reviewable changes.
+## What changes for the user
+- No more static "24 Hours Worn / 48 Hours / 72 Hours" tier cards or "Worn Hours" copy.
+- The page shows only pairs uploaded in your admin panty-listings manager that are `published = true` and `sold = false`.
+- If nothing is uploaded (or everything sold), the page shows: **"New items coming soon — check back shortly."**
+- Each card: cover image, title, price (AUD), and a Buy button that opens Stripe embedded checkout for that individual listing.
+- Members-only rule stays: buying still requires an active All-Access subscription or lifetime membership (same guard as today), so members-only messaging remains.
+- Shipping A$15 and subscriber discount continue to apply automatically at checkout.
 
----
+## Technical outline
 
-## 1. Unresponsive buttons + loading states
+### Frontend
+- Rewrite `src/routes/panty-drawer.tsx`:
+  - Fetch `listPantyListingsPublic()` with TanStack Query.
+  - Loading: skeleton grid. Empty: the "coming soon" placeholder. Populated: responsive grid of cards (image, title, price, Buy).
+  - Buy button uses `useStripeCheckout()` with a new server-fn call `createPantyListingCheckout({ listingId, userId, customerEmail, returnUrl, environment })`.
+  - Keep `PaymentTestModeBanner` and the existing head/OG metadata (updated wording to drop "24/48/72" phrasing).
 
-**Investigate first** (no code yet):
-- Reproduce Add to Cart and Subscribe in a headless browser, capture console + network, screenshot the failing element with `getBoundingClientRect` / `elementFromPoint` to confirm whether a transparent overlay is stealing clicks vs. handler silently failing.
-- Read `src/routes/store.subscribe.tsx`, `src/lib/cart.ts`, `src/components/CartDrawer.tsx`, and any `useMutation` around checkout.
+### Backend (server function)
+Add `createPantyListingCheckout` in `src/lib/store.functions.ts` alongside the existing store checkout code:
+- Auth-gated with `requireSupabaseAuth`.
+- Verify the user has an active All-Access subscription, lifetime membership, or active term pass (reuse the same members-only helper the existing panty flow uses).
+- Read the listing from `panty_listings` where `id = listingId AND published AND NOT sold`. Reject otherwise.
+- Build a Stripe Checkout Session with dynamic `price_data`:
+  - `currency: "aud"` (hardcoded — AUD-only rule).
+  - `unit_amount: listing.price_cents`, `product_data.name: listing.title`, tax code `TAX_CODES.tangible_goods` (matches panties).
+  - `mode: "payment"`, `ui_mode: "embedded_page"`.
+  - `shipping_address_collection: { allowed_countries: ["AU"] }` + the same A$15 discreet AU shipping rate used by panty cart checkout.
+  - Reuse `resolveOrCreateCustomer` and `automatic_tax: { enabled: true }` (panty flow is not eligible for managed_payments).
+  - Apply the subscriber discount coupon when eligible (same helper the current panty checkout uses).
+  - Metadata: `userId`, `panty_listing_id: listing.id`, `panty_listing_title`.
+- Return `{ clientSecret }` or `{ error }`.
 
-**Fix pattern (applied per button):**
-- Wrap click handlers in `try / catch / finally`.
-- On entry: `setPending(true)`, `console.log('[checkout] click', { plan, ref })`.
-- On error: `toast.error(err.message)` + `console.error('[checkout] failed', err)`.
-- On finish: `setPending(false)`.
-- Button gets `disabled={pending}` and swaps label to `Loading…` / `Adding…` / `Opening checkout…`.
-- If overlay found: fix stacking (`relative z-10` on interactive card, `pointer-events-none` on decorative overlay).
+### Webhook / order write
+- `src/routes/api/public/payments/webhook.ts` already inserts a `panty_orders` row for panty purchases. Extend the handler to recognize sessions carrying `metadata.panty_listing_id`:
+  - Insert a `panty_orders` row with `panty_listing_id`, price/currency from the session, and shipping info.
+  - Mark the corresponding `panty_listings.sold = true` so it disappears from the gallery on the next load.
 
-**Server-fn logging:**
-- In `createCheckoutSession` and cart mutations, `console.log('[server:checkout]', { userId, plan, env })` on entry, log the returned Stripe error message on catch. Viewable via `server-function-logs`.
+### Cleanup
+- Remove the `<PantyGallery>` block from `/store/subscribe` (or make it link back to `/panty-drawer`) so item-level browsing lives in one place. The 24/48/72hr tier buy cards on `/store/subscribe` are left untouched — the request only refactors `/panty-drawer`.
+- No changes to `panty_listings` schema, RLS, or the admin uploader.
 
----
+## Files touched
+- `src/routes/panty-drawer.tsx` — full rewrite.
+- `src/lib/store.functions.ts` — add `createPantyListingCheckout`.
+- `src/routes/api/public/payments/webhook.ts` — handle the new metadata and mark listing sold.
+- `src/routes/store.subscribe.tsx` — small: drop or link the gallery block (optional, only if you want it deduped).
 
-## 2. Missing `term_pass_12` and Lifetime perks
-
-**Root cause hypothesis:** the webhook writes `subscriptions` but does not insert the perk-bearing `memberships` row for 12-mo (`term_pass_12` + free event entry) or Lifetime (free event entry + free private-room session).
-
-**Fix in `src/routes/api/public/payments/webhook.ts`:**
-- On `customer.subscription.created` / `.updated` for `price.lookup_key === 'all_access_12mo_monthly_aud'`, upsert a `memberships` row: `kind = 'term_pass_12'`, `term_months = 12`, `expires_at = current_period_end + 12 months` (or `+ term_months * interval`), `environment = env`. Perk fields: leave `event_ticket_used_at = null` so it can be redeemed once.
-- On `checkout.session.completed` (or `.subscription.created`) for `lifetime_onetime_aud`, upsert `memberships` row `kind = 'lifetime'`, plus initialise `event_ticket_used_at = null` and `private_session_requested_at = null` so both perks are redeemable.
-- Idempotency: upsert on `(user_id, kind, environment)` (add a unique index in a migration if missing).
-
-**Backfill migration:** one-off SQL that scans existing `subscriptions` with the 12-mo `price_id` / lifetime checkout and inserts missing membership rows. Log to `stripe_webhook_events` with a synthetic `event_type = 'backfill.membership'` for auditability.
-
----
-
-## 3. Automated checkout tests
-
-**Approach:** Vitest suite `src/routes/store.subscribe.checkout.test.ts` covering the five plans by mocking `createCheckoutSession` and asserting:
-- Correct `lookup_key` sent to Stripe.
-- `client_order_ref` generated and attached.
-- Tracking events fired: `boutique_tier_click`, `checkout_start`, `panty_checkout_confirmed` (where applicable).
-
-**End-to-end webhook test:** a `scripts/test-checkout-flow.ts` runnable via `bun` that, for each plan, POSTs a signed synthetic Stripe event to `/api/public/payments/webhook?env=sandbox`, then asserts the expected rows exist in `subscriptions` and `memberships`. Uses `PAYMENTS_SANDBOX_WEBHOOK_SECRET`.
-
-Runs on demand — not in the automatic build — to avoid hitting the DB during CI.
-
----
-
-## 4. Admin tracking / reconciliation page
-
-New route: `src/routes/_authenticated/admin.tracking.tsx` (admin-gated via `has_role`).
-
-Requires a lightweight tracking sink. Two pieces:
-
-**Migration:** new `public.tracking_events` table (`event_name`, `props jsonb`, `user_id`, `client_order_ref`, `environment`, `created_at`). RLS: users insert their own, admins select all. GRANTs per rules.
-
-**Server fn:** `logTrackingEvent` (unauth-friendly, rate-limited by `client_order_ref`) — called from the existing `track()` helper in `src/lib/track.ts` in addition to whatever it does today.
-
-**Admin page shows:**
-- Aggregate counts of `boutique_tier_click` grouped by `plan` (last 24h / 7d / 30d).
-- A funnel per `client_order_ref`: Start → Confirmed → Webhook-received → Membership-created, with the missing step highlighted red.
-- Filter by plan, env, date range. Click a row to see raw event props + linked `stripe_webhook_events`.
-
----
-
-## 5. Post-checkout confirmation screen
-
-New route: `src/routes/store.subscribe.confirmed.tsx`.
-- Reached from Stripe `success_url` with `?session_id=cs_…&plan=…`.
-- Loader calls a new server fn `getCheckoutConfirmation({ sessionId })` that:
-  - Retrieves the Stripe session, resolves the `lookup_key` and period dates.
-  - Falls back to polling `subscriptions` / `memberships` for up to ~10s if the webhook hasn't landed yet (with a friendly "finalising your access…" state).
-- Renders: tier label, "Access starts: {start}", "Next renewal / Ends: {end}" or "Never expires — Lifetime", perks summary (free event entry, private session for lifetime), and CTAs to `/library` and `/store`.
-
-Update `createCheckoutSession` `success_url` to point at the new route.
-
----
-
-## Order of delivery
-
-1. Item 1 (buttons + logging) — smallest, unblocks testers immediately.
-2. Item 5 (confirmation screen) — user-visible win, uses existing data.
-3. Item 2 (webhook perks + backfill migration) — data-correctness.
-4. Item 4 (tracking table + admin page) — needs a migration.
-5. Item 3 (test flow) — locks in the fixes.
-
-Each item is a separate commit-sized change so you can review / roll back independently.
-
-## Confirm before I start
-
-Reply "go" to proceed with item 1, or tell me which items to drop / reorder.
+## Out of scope
+- Adding new fields to `panty_listings` (already has `title`, `cover_url`, `price_cents`, `published`, `sold`).
+- Changing the admin uploader UI.
+- Changing 24/48/72hr tier checkout on `/store/subscribe`.
