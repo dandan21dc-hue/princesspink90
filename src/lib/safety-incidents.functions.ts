@@ -27,19 +27,30 @@ export const listSafetyIncidents = createServerFn({ method: "GET" })
     await assertAdmin(context.supabase, context.userId);
     const sb = context.supabase as any;
 
+    // Sanitize search: strip PostgREST .or() structural chars (comma, parens,
+    // dot) so input can't inject extra filter clauses, and escape LIKE
+    // wildcards (%, _, \) so it can't widen the match.
+    const sanitizeSearch = (v: string) =>
+      v
+        .replace(/[,()]/g, " ")
+        .replace(/([\\%_])/g, "\\$1")
+        .trim();
+
     // If searching, first find incident IDs whose attachments match the query
     let attachmentIncidentIds: string[] = [];
     if (data.search) {
-      const s = data.search.replace(/[%,]/g, " ").trim();
-      const like = `%${s}%`;
-      const { data: att, error: aErr } = await sb
-        .from("safety_incident_attachments")
-        .select("incident_id")
-        .or(`file_name.ilike.${like},description.ilike.${like}`);
-      if (aErr) throw aErr;
-      attachmentIncidentIds = Array.from(
-        new Set((att ?? []).map((r: any) => r.incident_id)),
-      );
+      const s = sanitizeSearch(data.search);
+      if (s) {
+        const like = `%${s}%`;
+        const { data: att, error: aErr } = await sb
+          .from("safety_incident_attachments")
+          .select("incident_id")
+          .or(`file_name.ilike.${like},description.ilike.${like}`);
+        if (aErr) throw aErr;
+        attachmentIncidentIds = Array.from(
+          new Set((att ?? []).map((r: any) => r.incident_id)),
+        );
+      }
     }
 
     let q = sb
@@ -61,19 +72,21 @@ export const listSafetyIncidents = createServerFn({ method: "GET" })
 
 
     if (data.search) {
-      const s = data.search.replace(/[%,]/g, " ").trim();
-      const like = `%${s}%`;
-      const orClauses = [
-        `venue.ilike.${like}`,
-        `involved_party.ilike.${like}`,
-        `nature_of_incident.ilike.${like}`,
-        `resolution_taken.ilike.${like}`,
-        `archive_reason.ilike.${like}`,
-      ];
-      if (attachmentIncidentIds.length > 0) {
-        orClauses.push(`id.in.(${attachmentIncidentIds.join(",")})`);
+      const s = sanitizeSearch(data.search);
+      if (s) {
+        const like = `%${s}%`;
+        const orClauses = [
+          `venue.ilike.${like}`,
+          `involved_party.ilike.${like}`,
+          `nature_of_incident.ilike.${like}`,
+          `resolution_taken.ilike.${like}`,
+          `archive_reason.ilike.${like}`,
+        ];
+        if (attachmentIncidentIds.length > 0) {
+          orClauses.push(`id.in.(${attachmentIncidentIds.join(",")})`);
+        }
+        q = q.or(orClauses.join(","));
       }
-      q = q.or(orClauses.join(","));
     }
     const { data: rows, error } = await q;
     if (error) throw error;
