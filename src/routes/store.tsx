@@ -431,10 +431,11 @@ function FilteredItemGrid() {
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-secondary/30">
                   {item.cover_url ? (
                     <img
-                      src={item.cover_url}
+                      src={resolveMediaUrl(item.cover_url) ?? ""}
                       alt={item.title}
                       loading="lazy"
                       decoding="async"
+                      onError={onImgError}
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                       className="h-full w-full object-cover transition group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                     />
