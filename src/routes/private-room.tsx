@@ -100,7 +100,58 @@ function PrivateRoomPage() {
 
   const now = Date.now();
 
+  async function jumpToNextAvailable() {
+    setFinding(true);
+    try {
+      const from = new Date();
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(from.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const busy = await listPrivateRoomBusy({
+        data: { from: from.toISOString(), to: to.toISOString() },
+      });
+      const ranges = busy.map((b) => {
+        const start = new Date(b.starts_at).getTime();
+        const end = start + b.duration_minutes * 60_000;
+        return { start, end };
+      });
+      const earliest = Date.now() + 60 * 60 * 1000;
+      let found: Date | null = null;
+      for (let d = 0; d < 30 && !found; d++) {
+        const day = startOfDay(addDays(new Date(), d));
+        for (
+          let m = DAY_START_HOUR * 60;
+          m + duration <= DAY_END_HOUR * 60;
+          m += SLOT_STEP_MIN
+        ) {
+          const slot = new Date(day);
+          slot.setHours(0, 0, 0, 0);
+          slot.setMinutes(m);
+          const s = slot.getTime();
+          if (s < earliest) continue;
+          const e = s + duration * 60_000;
+          if (!ranges.some((b) => b.start < e && b.end > s)) {
+            found = slot;
+            break;
+          }
+        }
+      }
+      if (found) {
+        setSelectedDate(startOfDay(found));
+        setTimeout(() => {
+          setSelectedSlot(found);
+          const el = document.getElementById(`slot-${found!.getTime()}`);
+          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 0);
+      } else {
+        window.alert("No available slots in the next 30 days.");
+      }
+    } finally {
+      setFinding(false);
+    }
+  }
+
   function slotConflicts(start: Date) {
+
     const s = start.getTime();
     const e = s + duration * 60_000;
     if (s < now + 60 * 60 * 1000) return true; // 1h lead time
