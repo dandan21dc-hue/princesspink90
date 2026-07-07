@@ -9,7 +9,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
+import { type StripeEnv, createStripeClient, getStripeErrorMessage, assertAudCurrency } from "@/lib/stripe.server";
 import { TAX_CODES } from "@/lib/stripe-tax-codes";
 import { EXPECTED_PLAN_PRICES } from "@/lib/planPriceValidation.server";
 
