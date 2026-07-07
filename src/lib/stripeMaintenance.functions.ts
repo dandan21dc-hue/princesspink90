@@ -50,13 +50,8 @@ const PLAN_PRODUCT_CATALOGUE: Record<
 };
 
 
-const USD_LOOKUP_KEYS = [
-  "all_access_monthly",
-  "all_access_3mo_onetime",
-  "all_access_6mo_onetime",
-  "all_access_12mo_onetime",
-  "lifetime_onetime",
-] as const;
+
+
 
 async function assertAdmin(context: { supabase: any; userId: string }) {
   const { data } = await context.supabase.rpc("has_role", {
