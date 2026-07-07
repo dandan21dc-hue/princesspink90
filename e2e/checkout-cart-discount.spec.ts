@@ -196,7 +196,7 @@ test("subscriber with 1 remaining, 1-item cart → 'last discounted order' warni
 
   const aside = page.locator("aside");
   await expect(aside.getByText(/^\s*1\s*\/\s*3\s*$/)).toBeVisible();
-  await expect(aside.getByText("Last discount")).toBeVisible();
+  await expect(aside.getByText("Last discount", { exact: true })).toBeVisible();
   await expect(
     aside.getByText(/This is your last discounted order/),
   ).toBeVisible();
