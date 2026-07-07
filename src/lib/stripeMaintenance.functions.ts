@@ -118,18 +118,46 @@ export const syncStripeTaxCodes = createServerFn({ method: "POST" })
     }
   });
 
+/**
+ * Full USD audit: walks every active Stripe price (paginated) and
+ * deactivates any denominated in USD, regardless of lookup_key. AUD is the
+ * only supported surface currency; any USD price is legacy and unsafe to
+ * leave active. Returns per-price detail so admins can confirm what was
+ * touched.
+ */
 export const archiveUsdPrices = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { environment: StripeEnv }) => data)
-  .handler(async ({ data, context }): Promise<{ archived: number; alreadyInactive: number } | { error: string }> => {
+  .handler(async ({ data, context }): Promise<
+    | {
+        archived: number;
+        alreadyInactive: number;
+        scanned: number;
+        details: Array<{ priceId: string; lookupKey: string | null; productId: string | null; amount: number | null }>;
+      }
+    | { error: string }
+  > => {
     try {
       await assertAdmin(context);
       const stripe = createStripeClient(data.environment);
       let archived = 0;
       let alreadyInactive = 0;
-      for (const key of USD_LOOKUP_KEYS) {
-        const found = await stripe.prices.list({ lookup_keys: [key], active: true, limit: 5 });
-        for (const price of found.data) {
+      let scanned = 0;
+      const details: Array<{ priceId: string; lookupKey: string | null; productId: string | null; amount: number | null }> = [];
+      let hasMore = true;
+      let starting_after: string | undefined;
+      while (hasMore) {
+        const page: any = await stripe.prices.list({ active: true, limit: 100, ...(starting_after && { starting_after }) });
+        for (const price of page.data) {
+          scanned++;
+          if ((price.currency ?? "").toLowerCase() !== "usd") continue;
+          const productId = typeof price.product === "string" ? price.product : price.product?.id ?? null;
+          details.push({
+            priceId: price.id,
+            lookupKey: price.lookup_key ?? null,
+            productId,
+            amount: price.unit_amount ?? null,
+          });
           if (!price.active) {
             alreadyInactive++;
             continue;
@@ -137,12 +165,15 @@ export const archiveUsdPrices = createServerFn({ method: "POST" })
           await stripe.prices.update(price.id, { active: false });
           archived++;
         }
+        hasMore = page.has_more;
+        starting_after = page.data[page.data.length - 1]?.id;
       }
-      return { archived, alreadyInactive };
+      return { archived, alreadyInactive, scanned, details };
     } catch (error) {
       return { error: getStripeErrorMessage(error) };
     }
   });
+
 
 export type SyncMissingResult =
   | {
