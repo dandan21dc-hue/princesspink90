@@ -256,8 +256,13 @@ function CheckoutReturn() {
           metadata={session!.metadata ?? {}}
           destination={destination}
         />
-      ) : isComplete && isPrivateRoomPurchase ? (
-        <PrivateRoomConfirmation sessionId={sessionId!} />
+      ) : isPrivateRoomPurchase ? (
+        <PrivateRoomConfirmation
+          sessionId={sessionId!}
+          sessionStatus={session?.status ?? null}
+          sessionComplete={isComplete}
+        />
+
       ) : isComplete ? (
         <>
           <h1 className="text-2xl font-medium">Thank you! 🎉</h1>
