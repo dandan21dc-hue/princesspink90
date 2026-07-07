@@ -132,8 +132,56 @@ function ConnectPage() {
   }
 
 
+  function cancelAuthRedirect() {
+    if (redirectTimer.current !== null) {
+      window.clearInterval(redirectTimer.current)
+      redirectTimer.current = null
+    }
+    setAuthAction(null)
+  }
+
+  async function handleUnauthorized(statusCode: number) {
+    setStatus('error')
+    // If the user already supplied their own bearer/headers, don't hijack — that's a token problem.
+    if (auth.bearer.trim() || auth.headers.trim()) {
+      setStatusDetail(`HTTP ${statusCode} — check bearer token / auth headers`)
+      return
+    }
+    const { data } = await supabase.auth.getSession()
+    if (data.session) {
+      setStatusDetail(
+        `HTTP ${statusCode} — expected: /mcp requires OAuth. ChatGPT/Claude will complete the handshake for you.`,
+      )
+      return
+    }
+    // Not signed in — auto-redirect to sign in so the consent flow won't detour later.
+    setStatusDetail(`HTTP ${statusCode} — sign in first so the OAuth consent screen works.`)
+    setAuthAction({ kind: 'signin', countdown: 5 })
+    redirectTimer.current = window.setInterval(() => {
+      setAuthAction((prev) => {
+        if (!prev) return prev
+        if (prev.countdown <= 1) {
+          if (redirectTimer.current !== null) {
+            window.clearInterval(redirectTimer.current)
+            redirectTimer.current = null
+          }
+          router.navigate({ to: '/auth', search: { next: '/connect' } })
+          return null
+        }
+        return { ...prev, countdown: prev.countdown - 1 }
+      })
+    }, 1000)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current !== null) window.clearInterval(redirectTimer.current)
+    }
+  }, [])
+
   async function testConnection() {
     if (!mcpUrl) return
+    cancelAuthRedirect()
     setStatus('testing')
     setStatusDetail('')
     try {
@@ -160,12 +208,12 @@ function ConnectPage() {
         }),
       })
       if (!res.ok) {
-        setStatus('error')
-        setStatusDetail(
-          res.status === 401 || res.status === 403
-            ? `HTTP ${res.status} — check bearer token / auth headers`
-            : `HTTP ${res.status}`,
-        )
+        if (res.status === 401 || res.status === 403) {
+          await handleUnauthorized(res.status)
+        } else {
+          setStatus('error')
+          setStatusDetail(`HTTP ${res.status}`)
+        }
         return
       }
       const text = await res.text()
@@ -184,6 +232,7 @@ function ConnectPage() {
       setStatusDetail(err instanceof Error ? err.message : 'Network error')
     }
   }
+
 
   const dotClass =
     status === 'ok'
