@@ -13,6 +13,7 @@ import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as PrivateRoomRouteImport } from './routes/private-room'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PartnershipsRouteImport } from './routes/partnerships'
 import { Route as LegalRouteImport } from './routes/legal'
@@ -23,7 +24,6 @@ import { Route as AgeGateRouteImport } from './routes/age-gate'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
-import { Route as StorePrivateRoomRouteImport } from './routes/store.private-room'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as GuideEtiquetteRouteImport } from './routes/guide.etiquette'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
@@ -110,6 +110,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivateRoomRoute = PrivateRoomRouteImport.update({
+  id: '/private-room',
+  path: '/private-room',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -157,11 +162,6 @@ const IndexRoute = IndexRouteImport.update({
 const StoreSubscribeRoute = StoreSubscribeRouteImport.update({
   id: '/subscribe',
   path: '/subscribe',
-  getParentRoute: () => StoreRoute,
-} as any)
-const StorePrivateRoomRoute = StorePrivateRoomRouteImport.update({
-  id: '/private-room',
-  path: '/private-room',
   getParentRoute: () => StoreRoute,
 } as any)
 const StoreIdRoute = StoreIdRouteImport.update({
@@ -543,6 +543,7 @@ export interface FileRoutesByFullPath {
   '/legal': typeof LegalRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
+  '/private-room': typeof PrivateRoomRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -561,7 +562,6 @@ export interface FileRoutesByFullPath {
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
-  '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -624,6 +624,7 @@ export interface FileRoutesByTo {
   '/legal': typeof LegalRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
+  '/private-room': typeof PrivateRoomRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -641,7 +642,6 @@ export interface FileRoutesByTo {
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
-  '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -706,6 +706,7 @@ export interface FileRoutesById {
   '/legal': typeof LegalRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
+  '/private-room': typeof PrivateRoomRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -724,7 +725,6 @@ export interface FileRoutesById {
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
-  '/store/private-room': typeof StorePrivateRoomRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -789,6 +789,7 @@ export interface FileRouteTypes {
     | '/legal'
     | '/partnerships'
     | '/privacy'
+    | '/private-room'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -807,7 +808,6 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/guide/etiquette'
     | '/store/$id'
-    | '/store/private-room'
     | '/store/subscribe'
     | '/account/billing'
     | '/admin/analytics'
@@ -870,6 +870,7 @@ export interface FileRouteTypes {
     | '/legal'
     | '/partnerships'
     | '/privacy'
+    | '/private-room'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -887,7 +888,6 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/guide/etiquette'
     | '/store/$id'
-    | '/store/private-room'
     | '/store/subscribe'
     | '/account/billing'
     | '/admin/analytics'
@@ -951,6 +951,7 @@ export interface FileRouteTypes {
     | '/legal'
     | '/partnerships'
     | '/privacy'
+    | '/private-room'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -969,7 +970,6 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/guide/etiquette'
     | '/store/$id'
-    | '/store/private-room'
     | '/store/subscribe'
     | '/_authenticated/account/billing'
     | '/_authenticated/admin/analytics'
@@ -1034,6 +1034,7 @@ export interface RootRouteChildren {
   LegalRoute: typeof LegalRoute
   PartnershipsRoute: typeof PartnershipsRoute
   PrivacyRoute: typeof PrivacyRoute
+  PrivateRoomRoute: typeof PrivateRoomRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
   TermsRoute: typeof TermsRoute
@@ -1092,6 +1093,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/private-room': {
+      id: '/private-room'
+      path: '/private-room'
+      fullPath: '/private-room'
+      preLoaderRoute: typeof PrivateRoomRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -1162,13 +1170,6 @@ declare module '@tanstack/react-router' {
       path: '/subscribe'
       fullPath: '/store/subscribe'
       preLoaderRoute: typeof StoreSubscribeRouteImport
-      parentRoute: typeof StoreRoute
-    }
-    '/store/private-room': {
-      id: '/store/private-room'
-      path: '/private-room'
-      fullPath: '/store/private-room'
-      preLoaderRoute: typeof StorePrivateRoomRouteImport
       parentRoute: typeof StoreRoute
     }
     '/store/$id': {
@@ -1776,13 +1777,11 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface StoreRouteChildren {
   StoreIdRoute: typeof StoreIdRoute
-  StorePrivateRoomRoute: typeof StorePrivateRoomRoute
   StoreSubscribeRoute: typeof StoreSubscribeRoute
 }
 
 const StoreRouteChildren: StoreRouteChildren = {
   StoreIdRoute: StoreIdRoute,
-  StorePrivateRoomRoute: StorePrivateRoomRoute,
   StoreSubscribeRoute: StoreSubscribeRoute,
 }
 
@@ -1798,6 +1797,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalRoute: LegalRoute,
   PartnershipsRoute: PartnershipsRoute,
   PrivacyRoute: PrivacyRoute,
+  PrivateRoomRoute: PrivateRoomRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
   TermsRoute: TermsRoute,

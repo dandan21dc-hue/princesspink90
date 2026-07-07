@@ -300,7 +300,7 @@ function AllAccessCard() {
       </div>
       {currentPlan && <ManageBillingButton />}
       <Link
-        to="/store/private-room"
+        to="/private-room"
         className="group rounded-2xl border border-primary/50 bg-background/40 p-5 hover:border-primary hover:bg-primary/5"
       >
         <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Private Room</div>
