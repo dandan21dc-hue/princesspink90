@@ -297,17 +297,64 @@ function CartCheckoutPage() {
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-semibold tabular-nums">
-                {formatMoney(subtotalCents, currency)}
-              </span>
-            </div>
-            {hasPanty && (
-              <p className="mt-3 text-[11px] text-muted-foreground">
-                Discreet AU shipping (A$15) is added at checkout.
-              </p>
-            )}
+            {(() => {
+              const status = subStatus.data;
+              const eligible =
+                hasPanty && !!status?.isSubscriber && (status?.discountedOrdersRemaining ?? 0) > 0;
+              const discountPercent = status?.discountPercent ?? 15;
+              const discountCents = eligible
+                ? Math.round((subtotalCents * discountPercent) / 100)
+                : 0;
+              const estimatedTotal = subtotalCents - discountCents;
+              const notAppliedReason = !hasPanty
+                ? null
+                : !status
+                  ? null
+                  : !status.isSubscriber
+                    ? "Subscribers only"
+                    : status.discountedOrdersRemaining <= 0
+                      ? `${status.discountedOrdersMax}/${status.discountedOrdersMax} discounted orders used`
+                      : null;
+
+              return (
+                <>
+                  <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3 text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span className="font-semibold tabular-nums">
+                      {formatMoney(subtotalCents, currency)}
+                    </span>
+                  </div>
+                  {eligible && (
+                    <div className="mt-1 flex items-center justify-between text-sm">
+                      <span className="text-primary">Subscriber discount ({discountPercent}%)</span>
+                      <span className="font-semibold tabular-nums text-primary">
+                        −{formatMoney(discountCents, currency)}
+                      </span>
+                    </div>
+                  )}
+                  {!eligible && notAppliedReason && (
+                    <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Subscriber discount ({discountPercent}%)</span>
+                      <span className="italic">Not applied · {notAppliedReason}</span>
+                    </div>
+                  )}
+                  {eligible && (
+                    <div className="mt-2 flex items-center justify-between border-t border-border/40 pt-2 text-sm">
+                      <span className="text-muted-foreground">Estimated total</span>
+                      <span className="font-semibold tabular-nums">
+                        {formatMoney(estimatedTotal, currency)}
+                      </span>
+                    </div>
+                  )}
+                  {hasPanty && (
+                    <p className="mt-3 text-[11px] text-muted-foreground">
+                      Discreet AU shipping (A$15) is added at checkout.
+                    </p>
+                  )}
+                </>
+              );
+            })()}
+
             {hasPanty && subStatus.data && (() => {
               const pantyQty = snapshot
                 .filter((it) => it.kind === "panty")
