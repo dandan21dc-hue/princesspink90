@@ -162,6 +162,7 @@ function PrivateRoomPage() {
   }
 
   async function jumpToNextAvailable() {
+    setNoSlotsMessage(null);
     setFinding(true);
     try {
       const found = await findNextAvailableSlot();
@@ -169,7 +170,7 @@ function PrivateRoomPage() {
         jumpingToSlotRef.current = found;
         setSelectedDate(startOfDay(found));
       } else {
-        window.alert("No available slots in the next 30 days.");
+        setNoSlotsMessage("No open slots in the next 30 days. Try a different duration or check back later.");
       }
     } finally {
       setFinding(false);
@@ -177,11 +178,12 @@ function PrivateRoomPage() {
   }
 
   async function bookNextAvailable() {
+    setNoSlotsMessage(null);
     setFinding(true);
     try {
       const found = await findNextAvailableSlot();
       if (!found) {
-        window.alert("No available slots in the next 30 days.");
+        setNoSlotsMessage("No open slots in the next 30 days. Try a different duration or check back later.");
         return;
       }
       pendingAutoReviewRef.current = true;
