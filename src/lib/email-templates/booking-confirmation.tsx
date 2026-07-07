@@ -59,7 +59,7 @@ const Email = ({
             value={`${partySize} ${partySize === 1 ? 'guest' : 'guests'}`}
           />
           {amount && <Row label="Amount paid" value={amount} />}
-          <Row label="Booking ID" value={bookingId.slice(0, 8)} />
+          <Row label="Booking ID" value={bookingId} />
         </Section>
 
         {notes && (
