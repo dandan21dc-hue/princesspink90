@@ -435,3 +435,125 @@ function MembershipConfirmation({
   );
 }
 
+/**
+ * Post-checkout summary for private-room bookings. Reads the booking row
+ * (RLS-scoped to the current user) that the checkout flow held before
+ * payment. Shows date, time, duration, party size, notes, and amount —
+ * with a friendly "finalising" state while the webhook flips the row from
+ * `pending` to `confirmed`.
+ */
+function PrivateRoomConfirmation({ sessionId }: { sessionId: string }) {
+  const q = useQuery({
+    queryKey: ["private-room-booking", sessionId],
+    retry: 3,
+    refetchInterval: (query) => {
+      const data = query.state.data as { status?: string } | null | undefined;
+      return data && data.status === "confirmed" ? false : 3000;
+    },
+    queryFn: () => getMyPrivateRoomBookingBySession({ data: { sessionId } }),
+  });
+
+  const b = q.data;
+  const starts = b ? new Date(b.starts_at) : null;
+  const ends = b && starts ? new Date(starts.getTime() + b.duration_minutes * 60_000) : null;
+  const amount =
+    b?.amount_cents != null
+      ? new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency: (b.currency ?? "aud").toUpperCase(),
+        }).format(b.amount_cents / 100)
+      : null;
+
+  return (
+    <>
+      <h1 className="text-2xl font-medium">You're booked in! 🎉</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Payment confirmed. A calendar invite and receipt are on their way.
+      </p>
+
+      {q.isLoading ? (
+        <p className="mt-6 text-sm text-muted-foreground">Loading booking details…</p>
+      ) : q.isError || !b ? (
+        <p className="mt-6 text-sm text-muted-foreground">
+          We couldn't load your booking details. Check your dashboard shortly — it
+          will appear as soon as our server finishes processing.
+        </p>
+      ) : (
+        <div className="mt-6 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-left shadow-[var(--shadow-glow-pink)]">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
+            Your private room booking
+          </div>
+          <div className="mt-1 font-display text-2xl font-extrabold">
+            {b.duration_minutes === 30 ? "30-minute session" : "1-hour session"}
+          </div>
+
+          <dl className="mt-5 space-y-3 text-sm">
+            <ConfRow label="Date">
+              {starts ? format(starts, "EEEE, d MMMM yyyy") : "—"}
+            </ConfRow>
+            <ConfRow label="Time">
+              {starts && ends
+                ? `${format(starts, "h:mm a")} – ${format(ends, "h:mm a")}`
+                : "—"}
+            </ConfRow>
+            <ConfRow label="Party size">
+              {b.party_size ?? 1} {(b.party_size ?? 1) === 1 ? "guest" : "guests"}
+            </ConfRow>
+            {amount && <ConfRow label="Amount paid">{amount}</ConfRow>}
+            <ConfRow label="Status">
+              <span
+                className={
+                  b.status === "confirmed"
+                    ? "rounded-full bg-primary/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-primary"
+                    : "rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
+                }
+              >
+                {b.status === "confirmed" ? "Confirmed" : "Finalising…"}
+              </span>
+            </ConfRow>
+            <ConfRow label="Booking ID">
+              <span className="font-mono text-[11px]">{b.id.slice(0, 8)}</span>
+            </ConfRow>
+          </dl>
+
+          {b.notes && (
+            <div className="mt-5">
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                Your notes
+              </div>
+              <div className="mt-1 whitespace-pre-wrap rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm">
+                {b.notes}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-6 flex flex-col gap-2">
+        <Link
+          to="/dashboard"
+          className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+        >
+          Go to your dashboard
+        </Link>
+        <Link
+          to="/private-room"
+          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
+          Book another session
+        </Link>
+      </div>
+    </>
+  );
+}
+
+function ConfRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium text-right">{children}</dd>
+    </div>
+  );
+}
+
+
