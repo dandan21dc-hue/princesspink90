@@ -1292,6 +1292,41 @@ export type Database = {
           },
         ]
       }
+      private_room_booking_status_events: {
+        Row: {
+          booking_id: string
+          changed_at: string
+          created_at: string
+          id: string
+          note: string | null
+          status: string
+        }
+        Insert: {
+          booking_id: string
+          changed_at?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          status: string
+        }
+        Update: {
+          booking_id?: string
+          changed_at?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "private_room_booking_status_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "private_room_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       private_room_bookings: {
         Row: {
           amount_cents: number | null
