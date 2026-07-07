@@ -1,0 +1,1 @@
+ALTER TABLE public.private_room_bookings ADD COLUMN IF NOT EXISTS party_size integer CHECK (party_size IS NULL OR (party_size >= 1 AND party_size <= 10));
