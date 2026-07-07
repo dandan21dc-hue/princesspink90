@@ -1154,12 +1154,14 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
       // present → automatic_tax so shipping tax is still calculated.
       const useManagedPayments = !hasPanty;
 
-      // Panty subscriber discount: only applies to the first
-      // SUBSCRIBER_DISCOUNT_MAX_ORDERS paid panty orders per user.
+      // Panty subscriber discount: only for active subscribers/members,
+      // and only on the first SUBSCRIBER_DISCOUNT_MAX_ORDERS paid orders.
       const applyPantyDiscount =
         hasPanty
+        && (await hasSubscriberAccess(context.supabase, userId, data.environment))
         && (await countDiscountedPantyOrders(context.supabase, userId, data.environment))
            < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
+
 
       const baseParams: Stripe.Checkout.SessionCreateParams = {
         line_items: lineItems,
