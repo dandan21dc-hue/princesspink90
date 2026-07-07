@@ -12,6 +12,7 @@ import {
 import { useCart, formatMoney, cart as cartStore, cartLineKey } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/track";
+import { onImgError, resolveMediaUrl } from "@/lib/media-url";
 
 export function CartButton() {
   const { count } = useCart();
