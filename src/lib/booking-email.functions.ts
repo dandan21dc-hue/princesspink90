@@ -9,7 +9,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { bookingId: string }) => {
+  .inputValidator((data: { bookingId: string; resend?: boolean }) => {
     if (!/^[0-9a-f-]{36}$/i.test(data.bookingId)) throw new Error("Invalid bookingId");
     return data;
   })
@@ -71,10 +71,15 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
     const dashboardUrl = `${origin}/bookings`;
 
     const { enqueueTemplateEmail } = await import("@/lib/email/enqueue.server");
+    // A fresh idempotency key for explicit resends lets the user trigger a new
+    // confirmation email; the default key still deduplicates automatic sends.
+    const idempotencyKey = data.resend
+      ? `booking-confirm-${booking.id}-${crypto.randomUUID()}`
+      : `booking-confirm-${booking.id}`;
     const result = await enqueueTemplateEmail({
       templateName: "booking-confirmation",
       recipientEmail: recipient,
-      idempotencyKey: `booking-confirm-${booking.id}`,
+      idempotencyKey,
       templateData: {
         dateLabel,
         timeLabel,

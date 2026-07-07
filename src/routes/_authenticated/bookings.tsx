@@ -19,6 +19,7 @@ import {
   listPrivateRoomBusy,
   listMyPrivateRoomBookingHistory,
 } from "@/lib/store.functions";
+import { sendBookingConfirmationEmail } from "@/lib/booking-email.functions";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Sheet,
@@ -69,6 +70,7 @@ function BookingsPage() {
   const listFn = useServerFn(listMyPrivateRoomBookings);
   const cancelFn = useServerFn(cancelMyPrivateRoomBooking);
   const rescheduleFn = useServerFn(rescheduleMyPrivateRoomBooking);
+  const resendEmailFn = useServerFn(sendBookingConfirmationEmail);
   const qc = useQueryClient();
   const bookings = useQuery({
     queryKey: ["my-private-room-bookings"],
@@ -80,6 +82,7 @@ function BookingsPage() {
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [resendingEmailId, setResendingEmailId] = useState<string | null>(null);
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => cancelFn({ data: { id } }),
@@ -106,6 +109,31 @@ function BookingsPage() {
     onError: (e: Error) => {
       setError(e.message);
       setSuccess(null);
+    },
+  });
+
+  const resendEmailMutation = useMutation({
+    mutationFn: (id: string) => resendEmailFn({ data: { bookingId: id, resend: true } }),
+    onSuccess: (result) => {
+      if (result.success) {
+        setSuccess("Confirmation email resent.");
+        setError(null);
+      } else if (result.reason === "not_confirmed") {
+        setError("Only confirmed bookings can receive a confirmation email.");
+        setSuccess(null);
+      } else if (result.reason === "no_recipient") {
+        setError("No email address found for this booking.");
+        setSuccess(null);
+      } else {
+        setError("Could not resend confirmation email. Please try again later.");
+        setSuccess(null);
+      }
+      setResendingEmailId(null);
+    },
+    onError: (e: Error) => {
+      setError(e.message);
+      setSuccess(null);
+      setResendingEmailId(null);
     },
   });
 
@@ -251,11 +279,13 @@ function BookingsPage() {
                 booking={b}
                 isRescheduling={reschedulingId === b.id}
                 confirmCancel={confirmCancelId === b.id}
+                resendEmailPending={resendingEmailId === b.id && resendEmailMutation.isPending}
                 onStartReschedule={() => {
                   setReschedulingId(b.id);
                   setConfirmCancelId(null);
                   setError(null);
                   setSuccess(null);
+                  setResendingEmailId(null);
                 }}
                 onCloseReschedule={() => setReschedulingId(null)}
                 onRequestCancel={() => {
@@ -263,6 +293,7 @@ function BookingsPage() {
                   setReschedulingId(null);
                   setError(null);
                   setSuccess(null);
+                  setResendingEmailId(null);
                 }}
                 onDismissCancel={() => setConfirmCancelId(null)}
                 onConfirmCancel={() => cancelMutation.mutate(b.id)}
@@ -272,6 +303,12 @@ function BookingsPage() {
                 }
                 reschedulePending={rescheduleMutation.isPending}
                 onOpenDetails={() => setDetailsId(b.id)}
+                onResendEmail={() => {
+                  setResendingEmailId(b.id);
+                  setError(null);
+                  setSuccess(null);
+                  resendEmailMutation.mutate(b.id);
+                }}
               />
             ))}
           </ul>
@@ -346,6 +383,7 @@ function BookingCard(props: {
   booking: Booking;
   isRescheduling: boolean;
   confirmCancel: boolean;
+  resendEmailPending: boolean;
   onStartReschedule: () => void;
   onCloseReschedule: () => void;
   onRequestCancel: () => void;
@@ -355,6 +393,7 @@ function BookingCard(props: {
   onReschedule: (startsAt: string) => void;
   reschedulePending: boolean;
   onOpenDetails: () => void;
+  onResendEmail: () => void;
 }) {
   const b = props.booking;
   const starts = new Date(b.starts_at);
@@ -402,13 +441,23 @@ function BookingCard(props: {
               Cancel
             </button>
             {b.status === "confirmed" && (
-              <a
-                href={`/api/public/bookings/${b.id}/ics`}
-                download={`booking-${b.id.slice(0, 8)}.ics`}
-                className="rounded-md border border-primary/40 bg-primary/5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/15"
-              >
-                Add to calendar
-              </a>
+              <>
+                <a
+                  href={`/api/public/bookings/${b.id}/ics`}
+                  download={`booking-${b.id.slice(0, 8)}.ics`}
+                  className="rounded-md border border-primary/40 bg-primary/5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/15"
+                >
+                  Add to calendar
+                </a>
+                <button
+                  type="button"
+                  onClick={props.onResendEmail}
+                  disabled={props.resendEmailPending}
+                  className="rounded-md border border-primary/40 bg-primary/5 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/15 disabled:opacity-60"
+                >
+                  {props.resendEmailPending ? "Resending…" : "Resend confirmation email"}
+                </button>
+              </>
             )}
             <button
               type="button"
