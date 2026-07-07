@@ -43,6 +43,7 @@ export const getStoreItem = createServerFn({ method: "GET" })
       .select("id,kind,title,description,cover_url,media_urls,price_cents,currency,subscribers_only,sizes,materials,created_at")
       .eq("id", data.id)
       .eq("published", true)
+      .eq("moderation_status", "approved")
       .maybeSingle();
     if (error) throw new Error(error.message);
     return row;
