@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, addDays, startOfDay } from "date-fns";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
@@ -342,25 +343,36 @@ function PrivateRoomPage() {
                       type="button"
                       onClick={bookNextAvailable}
                       disabled={finding}
+                      aria-busy={finding}
                       aria-label="Find and book the next available private room slot"
-                      className="min-h-9 rounded-md bg-primary px-3 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="min-h-9 inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      {finding ? "Finding…" : "Book next available"}
+                      {finding && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+                      {finding ? "Scanning…" : "Book next available"}
                     </button>
                     <button
                       type="button"
                       onClick={jumpToNextAvailable}
                       disabled={finding}
+                      aria-busy={finding}
                       aria-label="Jump to the next available slot in the grid"
-                      className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                      className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      Show next
+                      {finding && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
+                      {finding ? "Scanning…" : "Show next"}
                     </button>
                     <div className="text-xs text-muted-foreground">
                       {busyQuery.isFetching ? "Checking availability…" : `${slots.filter((s) => !slotConflicts(s)).length} slots free`}
                     </div>
                   </div>
                 </div>
+
+                {finding && (
+                  <div className="mb-3 inline-flex items-center gap-2 text-xs text-primary">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                    Scanning the next 30 days for the soonest open slot…
+                  </div>
+                )}
 
                 {noSlotsMessage && (
                   <div
