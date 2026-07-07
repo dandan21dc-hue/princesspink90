@@ -295,7 +295,7 @@ function AllAccessCard() {
             ? hasLifetime
               ? "You have Lifetime — everything's unlocked."
               : "Change plan anytime — upgrades and downgrades take effect at your next renewal."
-            : "Everything in the library — pick your term."}
+            : "Everything in the library."}
         </div>
       </div>
       {currentPlan && <ManageBillingButton />}
