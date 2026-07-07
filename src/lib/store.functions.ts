@@ -559,9 +559,14 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
         return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
       }
 
-      await assertPantyAccess(supabase, userId, data.environment);
+      await assertPantyAccess_REMOVED();
+      const isSub = await hasSubscriberAccess(supabase, userId, data.environment);
+      if (!isSub) {
+        return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
+      }
       const used = await countDiscountedPantyOrders(supabase, userId, data.environment);
       const remaining = Math.max(0, SUBSCRIBER_DISCOUNT_MAX_ORDERS - used);
+
       return {
         isSubscriber: true,
         discountPercent: remaining > 0 ? SUBSCRIBER_DISCOUNT_PERCENT : 0,
