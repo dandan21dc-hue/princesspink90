@@ -4,16 +4,10 @@ import { Suspense, useMemo, useState } from "react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { listStoreItems } from "@/lib/store.functions";
-import { createBillingPortalSession } from "@/lib/billing.functions";
-import { getStripeEnvironment } from "@/lib/stripe";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
-import { track } from "@/lib/track";
-import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 import { cn } from "@/lib/utils";
-import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
-import { X, SlidersHorizontal, HelpCircle } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { X, SlidersHorizontal } from "lucide-react";
+
 
 export const storeQuery = queryOptions({
   queryKey: ["store-items"],

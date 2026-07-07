@@ -16,6 +16,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as PrivateRoomRouteImport } from './routes/private-room'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PartnershipsRouteImport } from './routes/partnerships'
+import { Route as PantyDrawerRouteImport } from './routes/panty-drawer'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
@@ -127,6 +128,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const PartnershipsRoute = PartnershipsRouteImport.update({
   id: '/partnerships',
   path: '/partnerships',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PantyDrawerRoute = PantyDrawerRouteImport.update({
+  id: '/panty-drawer',
+  path: '/panty-drawer',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LegalRoute = LegalRouteImport.update({
@@ -568,6 +574,7 @@ export interface FileRoutesByFullPath {
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
@@ -653,6 +660,7 @@ export interface FileRoutesByTo {
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
@@ -739,6 +747,7 @@ export interface FileRoutesById {
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
   '/legal': typeof LegalRoute
+  '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
@@ -826,6 +835,7 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
@@ -911,6 +921,7 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
@@ -996,6 +1007,7 @@ export interface FileRouteTypes {
     | '/compliance'
     | '/conduct'
     | '/legal'
+    | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
@@ -1083,6 +1095,7 @@ export interface RootRouteChildren {
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
   LegalRoute: typeof LegalRoute
+  PantyDrawerRoute: typeof PantyDrawerRoute
   PartnershipsRoute: typeof PartnershipsRoute
   PrivacyRoute: typeof PrivacyRoute
   PrivateRoomRoute: typeof PrivateRoomRoute
@@ -1166,6 +1179,13 @@ declare module '@tanstack/react-router' {
       path: '/partnerships'
       fullPath: '/partnerships'
       preLoaderRoute: typeof PartnershipsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/panty-drawer': {
+      id: '/panty-drawer'
+      path: '/panty-drawer'
+      fullPath: '/panty-drawer'
+      preLoaderRoute: typeof PantyDrawerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/legal': {
@@ -1871,6 +1891,7 @@ const rootRouteChildren: RootRouteChildren = {
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
   LegalRoute: LegalRoute,
+  PantyDrawerRoute: PantyDrawerRoute,
   PartnershipsRoute: PartnershipsRoute,
   PrivacyRoute: PrivacyRoute,
   PrivateRoomRoute: PrivateRoomRoute,
