@@ -112,6 +112,31 @@ function BookingsPage() {
     },
   });
 
+  const resendEmailMutation = useMutation({
+    mutationFn: (id: string) => resendEmailFn({ data: { bookingId: id, resend: true } }),
+    onSuccess: (result) => {
+      if (result.success) {
+        setSuccess("Confirmation email resent.");
+        setError(null);
+      } else if (result.reason === "not_confirmed") {
+        setError("Only confirmed bookings can receive a confirmation email.");
+        setSuccess(null);
+      } else if (result.reason === "no_recipient") {
+        setError("No email address found for this booking.");
+        setSuccess(null);
+      } else {
+        setError("Could not resend confirmation email. Please try again later.");
+        setSuccess(null);
+      }
+      setResendingEmailId(null);
+    },
+    onError: (e: Error) => {
+      setError(e.message);
+      setSuccess(null);
+      setResendingEmailId(null);
+    },
+  });
+
   const rows: Booking[] = (bookings.data ?? []) as Booking[];
 
   const filteredRows = useMemo(() => {
