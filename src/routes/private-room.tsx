@@ -126,47 +126,66 @@ function PrivateRoomPage() {
 
   const now = Date.now();
 
+  async function findNextAvailableSlot() {
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    const to = new Date(from.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const busy = await listPrivateRoomBusy({
+      data: { from: from.toISOString(), to: to.toISOString() },
+    });
+    const ranges = busy.map((b) => {
+      const start = new Date(b.starts_at).getTime();
+      const end = start + b.duration_minutes * 60_000;
+      return { start, end };
+    });
+    const earliest = Date.now() + 60 * 60 * 1000;
+    for (let d = 0; d < 30; d++) {
+      const day = startOfDay(addDays(new Date(), d));
+      for (
+        let m = DAY_START_HOUR * 60;
+        m + duration <= DAY_END_HOUR * 60;
+        m += SLOT_STEP_MIN
+      ) {
+        const slot = new Date(day);
+        slot.setHours(0, 0, 0, 0);
+        slot.setMinutes(m);
+        const s = slot.getTime();
+        if (s < earliest) continue;
+        const e = s + duration * 60_000;
+        if (!ranges.some((b) => b.start < e && b.end > s)) {
+          return slot;
+        }
+      }
+    }
+    return null;
+  }
+
   async function jumpToNextAvailable() {
     setFinding(true);
     try {
-      const from = new Date();
-      from.setHours(0, 0, 0, 0);
-      const to = new Date(from.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const busy = await listPrivateRoomBusy({
-        data: { from: from.toISOString(), to: to.toISOString() },
-      });
-      const ranges = busy.map((b) => {
-        const start = new Date(b.starts_at).getTime();
-        const end = start + b.duration_minutes * 60_000;
-        return { start, end };
-      });
-      const earliest = Date.now() + 60 * 60 * 1000;
-      let found: Date | null = null;
-      for (let d = 0; d < 30 && !found; d++) {
-        const day = startOfDay(addDays(new Date(), d));
-        for (
-          let m = DAY_START_HOUR * 60;
-          m + duration <= DAY_END_HOUR * 60;
-          m += SLOT_STEP_MIN
-        ) {
-          const slot = new Date(day);
-          slot.setHours(0, 0, 0, 0);
-          slot.setMinutes(m);
-          const s = slot.getTime();
-          if (s < earliest) continue;
-          const e = s + duration * 60_000;
-          if (!ranges.some((b) => b.start < e && b.end > s)) {
-            found = slot;
-            break;
-          }
-        }
-      }
+      const found = await findNextAvailableSlot();
       if (found) {
         jumpingToSlotRef.current = found;
         setSelectedDate(startOfDay(found));
       } else {
         window.alert("No available slots in the next 30 days.");
       }
+    } finally {
+      setFinding(false);
+    }
+  }
+
+  async function bookNextAvailable() {
+    setFinding(true);
+    try {
+      const found = await findNextAvailableSlot();
+      if (!found) {
+        window.alert("No available slots in the next 30 days.");
+        return;
+      }
+      pendingAutoReviewRef.current = true;
+      jumpingToSlotRef.current = found;
+      setSelectedDate(startOfDay(found));
     } finally {
       setFinding(false);
     }
