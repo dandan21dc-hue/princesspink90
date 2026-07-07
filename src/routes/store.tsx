@@ -145,7 +145,7 @@ function AllAccessCard() {
             </span>
           )}
         </div>
-        <ul className="mt-2 space-y-1 text-sm">
+        <ul className="mt-2 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-5">
           {passes.map((p) => {
             const owned = tiers.active[p.plan];
             // Lifetime supersedes everything else; disable lower tiers.
