@@ -669,7 +669,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
               duration_minutes: privateRoomMinutes,
               status: "pending",
               amount_cents: stripePrice.unit_amount ?? 0,
-              currency: (stripePrice.currency ?? "aud").toLowerCase(),
+              currency: "aud",
               environment: env,
               customer_email: data.customerEmail ?? null,
               party_size: data.bookingPartySize ?? null,
@@ -778,7 +778,8 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       if (!item) throw new Error("Item not found");
       if (!item.price_cents || item.price_cents < 50) throw new Error("Item is not for individual sale");
 
-      const itemCurrency = (item.currency ?? "aud").toLowerCase();
+      // AUD-only: pricing is enforced in AUD regardless of what may be stored on the row.
+      const itemCurrency = "aud";
 
       const contentParams: Stripe.Checkout.SessionCreateParams = {
         line_items: [
@@ -965,7 +966,7 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
           }
           lineItems.push({
             price_data: {
-              currency: (row.currency ?? "aud").toLowerCase(),
+              currency: "aud",
               product_data: {
                 name: row.title,
                 ...(row.description && { description: row.description.slice(0, 500) }),
@@ -1127,14 +1128,14 @@ export const createContentItem = createServerFn({ method: "POST" })
       description?: string;
       cover_url?: string;
       price_cents?: number | null;
-      currency?: "aud" | "usd";
+      currency?: "aud";
       subscribers_only?: boolean;
       media_urls?: Array<{ url: string; type: "image" | "video" }>;
       published?: boolean;
     }) => {
       if (!data.title.trim() || data.title.length > 160) throw new Error("Title required (max 160 chars)");
       if (data.price_cents != null && (data.price_cents < 0 || data.price_cents > 1_000_00)) throw new Error("Price out of range");
-      if (data.currency && !["aud", "usd"].includes(data.currency)) throw new Error("Currency must be AUD or USD");
+      if (data.currency && data.currency !== "aud") throw new Error("Currency must be AUD");
       return data;
     },
   )
