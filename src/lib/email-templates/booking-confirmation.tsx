@@ -78,13 +78,18 @@ const Email = ({
         )}
 
         <Section style={{ textAlign: 'center' as const, margin: '24px 0 8px' }}>
-          <Button href={dashboardUrl} style={button}>
-            Go to dashboard
+          <Button href={bookingUrl} style={button}>
+            View this booking
           </Button>
         </Section>
         <Section style={{ textAlign: 'center' as const, margin: '8px 0' }}>
           <Button href={icsUrl} style={secondaryButton}>
             Add to calendar (.ics)
+          </Button>
+        </Section>
+        <Section style={{ textAlign: 'center' as const, margin: '8px 0' }}>
+          <Button href={dashboardUrl} style={secondaryButton}>
+            All my bookings
           </Button>
         </Section>
 
