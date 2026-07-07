@@ -1085,6 +1085,7 @@ export type Database = {
           created_at: string
           currency: string
           customer_email: string | null
+          discount_percent: number
           environment: string
           hours: number
           id: string
@@ -1107,6 +1108,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_email?: string | null
+          discount_percent?: number
           environment?: string
           hours: number
           id?: string
@@ -1129,6 +1131,7 @@ export type Database = {
           created_at?: string
           currency?: string
           customer_email?: string | null
+          discount_percent?: number
           environment?: string
           hours?: number
           id?: string
