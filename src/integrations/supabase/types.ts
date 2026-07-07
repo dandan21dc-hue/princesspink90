@@ -1234,6 +1234,7 @@ export type Database = {
           environment: string
           id: string
           notes: string | null
+          party_size: number | null
           starts_at: string
           status: string
           stripe_session_id: string | null
@@ -1249,6 +1250,7 @@ export type Database = {
           environment?: string
           id?: string
           notes?: string | null
+          party_size?: number | null
           starts_at: string
           status?: string
           stripe_session_id?: string | null
@@ -1264,6 +1266,7 @@ export type Database = {
           environment?: string
           id?: string
           notes?: string | null
+          party_size?: number | null
           starts_at?: string
           status?: string
           stripe_session_id?: string | null

@@ -42,6 +42,8 @@ function PrivateRoomPage() {
   );
   const [duration, setDuration] = useState<Duration>(60);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
+  const [partySize, setPartySize] = useState<number>(1);
+  const [notes, setNotes] = useState<string>("");
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState(false);
 
@@ -109,6 +111,8 @@ function PrivateRoomPage() {
       navigate({ to: "/auth" });
       return;
     }
+    if (partySize < 1 || partySize > 10) return;
+    if (notes.length > 1000) return;
     setPending(true);
     const priceId = duration === 30 ? "private_room_30min_aud" : "private_room_60min_aud";
     openCheckout({
@@ -116,6 +120,8 @@ function PrivateRoomPage() {
       userId: user.id,
       customerEmail: user.email,
       bookingStartsAt: selectedSlot.toISOString(),
+      bookingPartySize: partySize,
+      bookingNotes: notes.trim() || undefined,
       returnUrl: `${window.location.origin}/checkout/return?next=%2Fdashboard`,
     });
   }
@@ -227,6 +233,56 @@ function PrivateRoomPage() {
                     );
                   })}
                 </div>
+
+                <div className="mt-8 grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="party-size" className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Party size
+                    </label>
+                    <select
+                      id="party-size"
+                      value={partySize}
+                      onChange={(e) => setPartySize(Number(e.target.value))}
+                      className="mt-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                    >
+                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>
+                          {n} {n === 1 ? "guest" : "guests"}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="duration-summary" className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Duration
+                    </label>
+                    <div
+                      id="duration-summary"
+                      className="mt-2 rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
+                    >
+                      {duration === 30 ? "30 minutes · A$150" : "1 hour · A$275"}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <label htmlFor="booking-notes" className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Notes for Princess (optional)
+                  </label>
+                  <textarea
+                    id="booking-notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value.slice(0, 1000))}
+                    rows={4}
+                    maxLength={1000}
+                    placeholder="Requests, preferences, occasion, anything I should know…"
+                    className="mt-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+                  />
+                  <div className="mt-1 text-right text-[11px] text-muted-foreground">
+                    {notes.length}/1000
+                  </div>
+                </div>
+
 
                 <div className="mt-8 flex flex-wrap items-center gap-4">
                   <div className="text-sm">
