@@ -173,6 +173,7 @@ function BookingsPage() {
                   rescheduleMutation.mutate({ id: b.id, startsAt })
                 }
                 reschedulePending={rescheduleMutation.isPending}
+                onOpenDetails={() => setDetailsId(b.id)}
               />
             ))}
           </ul>
