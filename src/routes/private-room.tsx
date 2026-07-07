@@ -46,6 +46,7 @@ function PrivateRoomPage() {
   const [notes, setNotes] = useState<string>("");
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
