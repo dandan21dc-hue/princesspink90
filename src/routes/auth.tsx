@@ -26,7 +26,18 @@ function Auth() {
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const go = () => router.navigate({ to: (search.next as string) || "/" });
+  // Only accept same-origin relative paths for `next` so OAuth consent returns work
+  // without opening an open-redirect.
+  const nextParam =
+    typeof search.next === "string" && search.next.startsWith("/") && !search.next.startsWith("//")
+      ? search.next
+      : "";
+  const returnTo =
+    typeof window !== "undefined"
+      ? window.location.origin + (nextParam || "/")
+      : nextParam || "/";
+
+  const go = () => router.navigate({ to: nextParam || "/" });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,7 +51,7 @@ function Auth() {
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: returnTo,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
@@ -63,7 +74,7 @@ function Auth() {
   async function google() {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: returnTo,
     });
     if (result.error) { toast.error("Google sign-in failed"); setLoading(false); return; }
     if (result.redirected) return;
