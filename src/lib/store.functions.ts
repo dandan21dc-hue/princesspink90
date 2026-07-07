@@ -13,6 +13,80 @@ type CheckoutResult = { clientSecret: string } | { error: string };
 
 // ---------- Public reads ----------
 
+// Media in `content-media` is stored as bucket-relative paths (e.g.
+// "<user>/<uuid>.jpg"), not full URLs. Public store pages need real URLs.
+// Sign any non-URL path so <img>/<video src=...> is always a valid URL.
+type MediaEntry = { url: string; type: "image" | "video" };
+
+async function signContentMediaUrls(
+  supabase: ReturnType<typeof import("@supabase/supabase-js").createClient>,
+  paths: string[],
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  const needsSigning = Array.from(new Set(paths.filter((p) => p && !/^https?:\/\//i.test(p))));
+  if (!needsSigning.length) return map;
+  const { data, error } = await supabase.storage
+    .from("content-media")
+    .createSignedUrls(needsSigning, 60 * 60 * 24); // 24h
+  if (error) {
+    console.error("signContentMediaUrls failed", error.message);
+    return map;
+  }
+  for (const row of data ?? []) {
+    if (row.path && row.signedUrl) map.set(row.path, row.signedUrl);
+  }
+  return map;
+}
+
+function guessMediaType(url: string): "image" | "video" {
+  return /\.(mp4|webm|mov|m4v|ogv)(\?|$)/i.test(url) ? "video" : "image";
+}
+
+async function hydrateItemMedia<
+  T extends { cover_url: string | null; media_urls: unknown },
+>(
+  supabase: ReturnType<typeof import("@supabase/supabase-js").createClient>,
+  items: T[],
+): Promise<Array<T & { media_urls: MediaEntry[] }>> {
+  // Normalize media_urls into MediaEntry[] regardless of legacy shape.
+  const normalized = items.map((item) => {
+    const raw = item.media_urls;
+    let entries: MediaEntry[] = [];
+    if (Array.isArray(raw)) {
+      entries = raw
+        .map((m): MediaEntry | null => {
+          if (typeof m === "string") return { url: m, type: guessMediaType(m) };
+          if (m && typeof m === "object" && typeof (m as { url?: unknown }).url === "string") {
+            const url = (m as { url: string }).url;
+            const type = (m as { type?: string }).type === "video" ? "video" : (m as { type?: string }).type === "image" ? "image" : guessMediaType(url);
+            return { url, type };
+          }
+          return null;
+        })
+        .filter((m): m is MediaEntry => !!m);
+    }
+    return { item, entries };
+  });
+
+  const allPaths: string[] = [];
+  for (const { item, entries } of normalized) {
+    if (item.cover_url) allPaths.push(item.cover_url);
+    for (const e of entries) allPaths.push(e.url);
+  }
+  const signed = await signContentMediaUrls(supabase, allPaths);
+
+  return normalized.map(({ item, entries }) => ({
+    ...item,
+    cover_url: item.cover_url
+      ? signed.get(item.cover_url) ?? item.cover_url
+      : null,
+    media_urls: entries.map((e) => ({
+      url: signed.get(e.url) ?? e.url,
+      type: e.type,
+    })),
+  }));
+}
+
 export const listStoreItems = createServerFn({ method: "GET" }).handler(async () => {
   const { createClient } = await import("@supabase/supabase-js");
   const supabase = createClient(
@@ -27,7 +101,7 @@ export const listStoreItems = createServerFn({ method: "GET" }).handler(async ()
     .eq("moderation_status", "approved")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return hydrateItemMedia(supabase, data ?? []);
 });
 
 export const getStoreItem = createServerFn({ method: "GET" })
@@ -47,7 +121,9 @@ export const getStoreItem = createServerFn({ method: "GET" })
       .eq("moderation_status", "approved")
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return row;
+    if (!row) return null;
+    const [hydrated] = await hydrateItemMedia(supabase, [row]);
+    return hydrated;
   });
 
 // Public read: busy time ranges for the private room within [from, to].
