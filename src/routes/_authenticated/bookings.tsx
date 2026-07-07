@@ -8,6 +8,7 @@ import {
   cancelMyPrivateRoomBooking,
   rescheduleMyPrivateRoomBooking,
   listPrivateRoomBusy,
+  listMyPrivateRoomBookingHistory,
 } from "@/lib/store.functions";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -557,6 +558,8 @@ function BookingDetailsDrawer({
                 </dl>
               </div>
 
+              <BookingStatusTimeline bookingId={b.id} />
+
               <div>
                 <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
                   Notes
@@ -621,4 +624,68 @@ function DetailRow({
     </div>
   );
 }
+
+const STATUS_TIMELINE_LABEL: Record<string, string> = {
+  pending: "Held",
+  confirmed: "Confirmed",
+  cancelled: "Cancelled",
+};
+
+const STATUS_TIMELINE_DOT: Record<string, string> = {
+  pending: "bg-amber-500",
+  confirmed: "bg-emerald-500",
+  cancelled: "bg-muted-foreground",
+};
+
+function BookingStatusTimeline({ bookingId }: { bookingId: string }) {
+  const historyFn = useServerFn(listMyPrivateRoomBookingHistory);
+  const q = useQuery({
+    queryKey: ["private-room-booking-history", bookingId],
+    queryFn: () => historyFn({ data: { id: bookingId } }),
+    staleTime: 30_000,
+  });
+  const events = q.data ?? [];
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+        Status timeline
+      </div>
+      {q.isLoading ? (
+        <div className="mt-2 text-xs text-muted-foreground">Loading history…</div>
+      ) : events.length === 0 ? (
+        <div className="mt-2 text-xs text-muted-foreground">No status changes yet.</div>
+      ) : (
+        <ol className="mt-3 space-y-3">
+          {events.map((e, i) => {
+            const isLast = i === events.length - 1;
+            return (
+              <li key={e.id} className="relative flex gap-3">
+                <div className="flex flex-col items-center">
+                  <span
+                    className={cn(
+                      "mt-1 h-2.5 w-2.5 rounded-full ring-2 ring-background",
+                      STATUS_TIMELINE_DOT[e.status] ?? "bg-muted-foreground",
+                    )}
+                  />
+                  {!isLast && (
+                    <span className="mt-1 w-px flex-1 bg-border/60" aria-hidden />
+                  )}
+                </div>
+                <div className="pb-1">
+                  <div className="text-sm font-medium">
+                    {STATUS_TIMELINE_LABEL[e.status] ?? e.status}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(e.changed_at), "d MMM yyyy · HH:mm")}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
 
