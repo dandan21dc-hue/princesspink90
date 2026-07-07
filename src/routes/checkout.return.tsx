@@ -5,6 +5,7 @@ import {
   getCheckoutSession,
   getMyPrivateRoomBookingBySession,
 } from "@/lib/store.functions";
+import { sendBookingConfirmationEmail } from "@/lib/booking-email.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { cart as cartStore } from "@/lib/cart";
 import { track } from "@/lib/track";
