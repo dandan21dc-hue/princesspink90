@@ -9,7 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useCart, formatMoney, cart as cartStore } from "@/lib/cart";
+import { useCart, formatMoney, cart as cartStore, cartLineKey } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/track";
 
