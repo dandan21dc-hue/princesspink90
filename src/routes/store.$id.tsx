@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cart } from "@/lib/cart";
+import { buildAudOffer } from "@/lib/aud";
 
 const itemQuery = (id: string) =>
   queryOptions({
