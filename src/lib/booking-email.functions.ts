@@ -61,6 +61,8 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
       "https://princesspink90.com";
     const icsUrl = `${origin}/api/public/bookings/${booking.id}/ics`;
     const dashboardUrl = `${origin}/bookings`;
+    const rescheduleUrl = `${origin}/bookings?booking=${booking.id}&action=reschedule`;
+    const cancelUrl = `${origin}/bookings?booking=${booking.id}&action=cancel`;
 
     const { enqueueTemplateEmail } = await import("@/lib/email/enqueue.server");
     // A fresh idempotency key for explicit resends lets the user trigger a new
@@ -82,6 +84,8 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
         bookingId: booking.id as string,
         icsUrl,
         dashboardUrl,
+        rescheduleUrl,
+        cancelUrl,
       },
     });
 
