@@ -212,6 +212,7 @@ export const createSetupSession = createServerFn({ method: "POST" })
         mode: "setup",
         ui_mode: "embedded_page",
         customer: sub.stripe_customer_id,
+        customer_update: { address: "auto" },
         return_url: ensureSessionIdInReturnUrl(data.returnUrl),
         metadata: { userId: context.userId, purpose: "update_default_pm" },
       });
