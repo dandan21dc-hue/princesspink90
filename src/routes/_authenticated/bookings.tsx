@@ -356,6 +356,10 @@ function BookingCard(props: {
         <ReschedulePicker
           durationMinutes={b.duration_minutes}
           currentBookingId={b.id}
+          currentStartsAt={b.starts_at}
+          amountCents={b.amount_cents}
+          currency={b.currency}
+          partySize={b.party_size}
           pending={props.reschedulePending}
           onCancel={props.onCloseReschedule}
           onSubmit={props.onReschedule}
