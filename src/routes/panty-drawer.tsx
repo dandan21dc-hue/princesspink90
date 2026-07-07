@@ -7,6 +7,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { listPantyListingsPublic, type PantyListing } from "@/lib/pantyListings.functions";
 import { track } from "@/lib/track";
+import { onImgError, resolveMediaUrl } from "@/lib/media-url";
 
 export const Route = createFileRoute("/panty-drawer")({
   head: () => ({
