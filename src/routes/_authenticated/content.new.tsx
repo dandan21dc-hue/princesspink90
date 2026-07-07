@@ -395,16 +395,59 @@ function NewContentPage() {
           </div>
         </Field>
 
-        {uploads.length > 0 && (
-          <div className="space-y-2 rounded-md border border-input p-3">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">
-              Uploads
+        {uploads.length > 0 && (() => {
+          const done = uploads.filter((u) => u.status === "done").length;
+          const failedCount = uploads.filter((u) => u.status === "error" || u.status === "stalled").length;
+          const uploadingCount = uploads.filter((u) => u.status === "uploading").length;
+          return (
+            <div className="space-y-3 rounded-md border border-input p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground">Uploads</div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <span className="text-muted-foreground">
+                    {done}/{uploads.length} complete
+                  </span>
+                  {uploadingCount > 0 && (
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-primary">
+                      {uploadingCount} uploading
+                    </span>
+                  )}
+                  {failedCount > 0 && (
+                    <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-destructive">
+                      {failedCount} failed
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ul className="space-y-3">
+                {uploads.map((u) => (
+                  <UploadRow key={u.id} item={u} onRetry={retry} onCancel={cancel} />
+                ))}
+              </ul>
             </div>
-            <ul className="space-y-3">
-              {uploads.map((u) => (
-                <UploadRow key={u.id} item={u} onRetry={retry} onCancel={cancel} />
-              ))}
-            </ul>
+          );
+        })()}
+
+        {create.isError && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          >
+            <span aria-hidden="true">✕</span>
+            <div>
+              <div className="font-semibold">Couldn't publish item</div>
+              <div className="mt-0.5 opacity-90">{create.error?.message ?? "Unknown error"}</div>
+            </div>
+          </div>
+        )}
+
+        {create.isSuccess && (
+          <div
+            role="status"
+            className="flex items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-3 py-2 text-xs text-primary"
+          >
+            <span aria-hidden="true">✓</span>
+            <span>Published — redirecting…</span>
           </div>
         )}
 
@@ -413,12 +456,17 @@ function NewContentPage() {
           disabled={create.isPending || busyUploads}
           className="w-full rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] disabled:opacity-50"
         >
-          {create.isPending ? "Saving…" : busyUploads ? "Uploading…" : "Publish item"}
+          {create.isPending
+            ? "Saving…"
+            : busyUploads
+            ? `Uploading… (${uploads.filter((u) => u.status === "done").length}/${uploads.length})`
+            : "Publish item"}
         </button>
       </form>
     </section>
   );
 }
+
 
 function UploadRow({
   item,
