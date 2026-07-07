@@ -151,6 +151,52 @@ function BookingsPage() {
         </Link>
       </div>
 
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <Select
+          value={status}
+          onValueChange={(value) =>
+            navigate({ search: (prev) => ({ ...prev, status: value as typeof status }) })
+          }
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={dateFilter}
+          onValueChange={(value) =>
+            navigate({ search: (prev) => ({ ...prev, date: value as typeof dateFilter }) })
+          }
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Date" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All dates</SelectItem>
+            <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="week">Next 7 days</SelectItem>
+            <SelectItem value="month">Next 30 days</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {(status !== "all" || dateFilter !== "all") && (
+          <button
+            type="button"
+            onClick={() => navigate({ search: { status: "all", date: "all" } })}
+            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
       {error && (
         <div className="mt-6 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {error}
