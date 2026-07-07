@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { formatBookingDateTime } from "@/lib/booking-format";
 
 /**
  * Send the private-room booking confirmation email to the signed-in user.
