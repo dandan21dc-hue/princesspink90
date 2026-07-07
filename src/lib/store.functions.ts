@@ -839,8 +839,9 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
 
       // ---------- Panty Drawer listing checkout (per-item, dynamic price) ----------
       if (data.pantyListingId) {
-        // Members-only gate — same rule as the tier flow.
-        await assertPantyAccess(context.supabase, data.userId!, data.environment);
+        // Panty Drawer is open to the public — no access gate here.
+
+
 
         const { createClient } = await import("@supabase/supabase-js");
         const sb = createClient(
