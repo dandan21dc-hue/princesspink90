@@ -61,11 +61,71 @@ export const Route = createFileRoute("/store/$id")({
     };
   },
   component: ItemPage,
-  errorComponent: ({ error }) => (
-    <div className="p-10 text-center text-sm text-muted-foreground">{error.message}</div>
-  ),
-  notFoundComponent: () => <div className="p-10 text-center">Item not found.</div>,
+  pendingComponent: PagePending,
+  errorComponent: PageError,
+  notFoundComponent: PageNotFound,
 });
+
+function PageShell({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <PaymentTestModeBanner />
+      <section className="mx-auto max-w-4xl px-5 pt-8 pb-16">
+        <Link to="/store" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
+          ← Store
+        </Link>
+        {children}
+      </section>
+    </>
+  );
+}
+
+function PagePending() {
+  return (
+    <PageShell>
+      <div className="mt-6 grid gap-8 md:grid-cols-2" role="status" aria-busy="true" aria-live="polite">
+        <div className="aspect-[4/5] animate-pulse rounded-2xl bg-muted/30" />
+        <div className="space-y-4">
+          <div className="h-4 w-24 animate-pulse rounded bg-muted/40" />
+          <div className="h-8 w-3/4 animate-pulse rounded bg-muted/40" />
+          <div className="h-6 w-32 animate-pulse rounded bg-muted/40" />
+          <div className="h-24 animate-pulse rounded bg-muted/30" />
+        </div>
+        <span className="sr-only">Loading item…</span>
+      </div>
+    </PageShell>
+  );
+}
+
+function PageError({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <PageShell>
+      <div role="alert" className="mt-8 rounded-2xl border border-destructive/40 bg-destructive/5 p-6">
+        <div className="text-xs uppercase tracking-[0.3em] text-destructive">
+          Couldn't load this item
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {error?.message ?? "Something went wrong loading this item."}
+        </p>
+        <button
+          type="button"
+          onClick={() => reset()}
+          className="mt-4 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:brightness-110"
+        >
+          Try again
+        </button>
+      </div>
+    </PageShell>
+  );
+}
+
+function PageNotFound() {
+  return (
+    <PageShell>
+      <p className="mt-8 text-sm text-muted-foreground">This item could not be found.</p>
+    </PageShell>
+  );
+}
 
 function ItemPage() {
   const { id } = Route.useParams();
