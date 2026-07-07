@@ -442,6 +442,8 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
               currency: (stripePrice.currency ?? "aud").toLowerCase(),
               environment: env,
               customer_email: data.customerEmail ?? null,
+              party_size: data.bookingPartySize ?? null,
+              notes: data.bookingNotes?.trim() ? data.bookingNotes.trim() : null,
             })
             .select("id")
             .single();
