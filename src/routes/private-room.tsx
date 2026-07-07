@@ -49,6 +49,7 @@ function PrivateRoomPage() {
   const [reviewing, setReviewing] = useState(false);
   const [finding, setFinding] = useState(false);
   const jumpingToSlotRef = useRef<Date | null>(null);
+  const pendingAutoReviewRef = useRef(false);
 
   useEffect(() => {
 
@@ -70,6 +71,15 @@ function PrivateRoomPage() {
       const el = document.getElementById(`slot-${slot.getTime()}`);
       el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       jumpingToSlotRef.current = null;
+
+      if (pendingAutoReviewRef.current) {
+        pendingAutoReviewRef.current = false;
+        if (!user) {
+          navigate({ to: "/auth", search: { next: "/private-room" } });
+        } else if (partySize >= 1 && partySize <= 10 && notes.length <= 1000) {
+          setReviewing(true);
+        }
+      }
       return;
     }
 
