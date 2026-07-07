@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { formatBookingDateTime } from "@/lib/booking-format";
 
 /**
  * Send the private-room booking confirmation email to the signed-in user.
@@ -9,7 +10,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { bookingId: string; resend?: boolean }) => {
+  .inputValidator((data: { bookingId: string; resend?: boolean; timeZone?: string }) => {
     if (!/^[0-9a-f-]{36}$/i.test(data.bookingId)) throw new Error("Invalid bookingId");
     return data;
   })
@@ -37,22 +38,12 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
     const recipient = (booking.customer_email as string | null) ?? claimEmail;
     if (!recipient) return { success: false, reason: "no_recipient" as const };
 
-    const starts = new Date(booking.starts_at as string);
     const durationMinutes = booking.duration_minutes as number;
-    const ends = new Date(starts.getTime() + durationMinutes * 60_000);
-
-    const dateLabel = new Intl.DateTimeFormat("en-AU", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(starts);
-    const timeFmt = new Intl.DateTimeFormat("en-AU", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-    const timeLabel = `${timeFmt.format(starts)} – ${timeFmt.format(ends)}`;
+    const { dateLabel, timeLabel } = formatBookingDateTime(
+      booking.starts_at as string,
+      durationMinutes,
+      data.timeZone,
+    );
     const durationLabel = durationMinutes === 30 ? "30-minute session" : "1-hour session";
 
     const amount =
@@ -103,7 +94,7 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
  */
 export const sendBookingCancelledEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { bookingId: string }) => {
+  .inputValidator((data: { bookingId: string; timeZone?: string }) => {
     if (!/^[0-9a-f-]{36}$/i.test(data.bookingId)) throw new Error("Invalid bookingId");
     return data;
   })
@@ -127,22 +118,12 @@ export const sendBookingCancelledEmail = createServerFn({ method: "POST" })
     const recipient = (booking.customer_email as string | null) ?? claimEmail;
     if (!recipient) return { success: false, reason: "no_recipient" as const };
 
-    const starts = new Date(booking.starts_at as string);
     const durationMinutes = booking.duration_minutes as number;
-    const ends = new Date(starts.getTime() + durationMinutes * 60_000);
-
-    const dateLabel = new Intl.DateTimeFormat("en-AU", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(starts);
-    const timeFmt = new Intl.DateTimeFormat("en-AU", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-    const timeLabel = `${timeFmt.format(starts)} – ${timeFmt.format(ends)}`;
+    const { dateLabel, timeLabel } = formatBookingDateTime(
+      booking.starts_at as string,
+      durationMinutes,
+      data.timeZone,
+    );
     const durationLabel = durationMinutes === 30 ? "30-minute session" : "1-hour session";
 
     const amount =
