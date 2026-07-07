@@ -164,6 +164,16 @@ function PrivateRoomPage() {
             </div>
             {checkoutElement}
           </div>
+        ) : reviewing && selectedSlot ? (
+          <ReviewBookingCard
+            selectedSlot={selectedSlot}
+            duration={duration}
+            partySize={partySize}
+            notes={notes}
+            pending={pending}
+            onEdit={() => setReviewing(false)}
+            onConfirm={confirm}
+          />
         ) : (
           <>
             <div className="mt-4">
