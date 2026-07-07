@@ -76,6 +76,8 @@ function ItemPage() {
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState<null | "buy" | "subscribe" | "cart">(null);
+  const [activeImage, setActiveImage] = useState(0);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const busy = pending !== null;
 
   useEffect(() => {
@@ -83,6 +85,11 @@ function ItemPage() {
     // the buttons come back to life without needing a page reload.
     if (!isOpen && pending && pending !== "cart") setPending(null);
   }, [isOpen, pending]);
+
+  const sizes: string[] = Array.isArray((item as any)?.sizes) ? ((item as any).sizes as string[]) : [];
+  useEffect(() => {
+    if (selectedSize === null && sizes.length) setSelectedSize(sizes[0]);
+  }, [sizes, selectedSize]);
 
   if (!item) return <div className="p-10 text-center">Not found.</div>;
 
@@ -92,10 +99,8 @@ function ItemPage() {
     : item.cover_url
       ? [item.cover_url]
       : [];
-  const [activeImage, setActiveImage] = useState(0);
-  const sizes: string[] = Array.isArray((item as any).sizes) ? ((item as any).sizes as string[]) : [];
   const materials: string | null = (item as any).materials ?? null;
-  const [selectedSize, setSelectedSize] = useState<string | null>(sizes[0] ?? null);
+
 
 
   function buyThis() {
