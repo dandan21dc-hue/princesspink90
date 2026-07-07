@@ -494,7 +494,12 @@ function PrivateRoomConfirmation({
     if (!b || b.status !== "confirmed") return;
     if (emailSentRef.current === b.id) return;
     emailSentRef.current = b.id;
-    sendBookingConfirmationEmail({ data: { bookingId: b.id } }).catch((err) => {
+    sendBookingConfirmationEmail({
+      data: {
+        bookingId: b.id,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    }).catch((err) => {
       // Non-fatal — the confirmation UI + dashboard both show the booking.
       console.warn("booking confirmation email send failed", err);
       emailSentRef.current = null;
