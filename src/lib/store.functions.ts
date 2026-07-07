@@ -259,7 +259,7 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
       }
 
       await assertPantyAccess(supabase, userId, data.environment);
-      const used = await countPaidPantyOrders(supabase, userId, data.environment);
+      const used = await countDiscountedPantyOrders(supabase, userId, data.environment);
       const remaining = Math.max(0, SUBSCRIBER_DISCOUNT_MAX_ORDERS - used);
       return {
         isSubscriber: true,
@@ -447,7 +447,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
         const applyPantyDiscount =
           isPanty
           && !!data.userId
-          && (await countPaidPantyOrders(context.supabase, data.userId, data.environment))
+          && (await countDiscountedPantyOrders(context.supabase, data.userId, data.environment))
              < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
 
         const baseParams: Stripe.Checkout.SessionCreateParams = {
@@ -755,7 +755,7 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
       // SUBSCRIBER_DISCOUNT_MAX_ORDERS paid panty orders per user.
       const applyPantyDiscount =
         hasPanty
-        && (await countPaidPantyOrders(context.supabase, userId, data.environment))
+        && (await countDiscountedPantyOrders(context.supabase, userId, data.environment))
            < SUBSCRIBER_DISCOUNT_MAX_ORDERS;
 
       const baseParams: Stripe.Checkout.SessionCreateParams = {
