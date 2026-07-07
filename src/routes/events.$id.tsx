@@ -66,15 +66,12 @@ export const Route = createFileRoute("/events/$id")({
               name: loaderData.venue_name,
               address: [loaderData.address, loaderData.city].filter(Boolean).join(", ") || undefined,
             },
-            offers: loaderData.ticket_price_cents
-              ? {
-                  "@type": "Offer",
-                  price: (loaderData.ticket_price_cents / 100).toFixed(2),
-                  priceCurrency: "AUD",
-                  url,
-                  availability: "https://schema.org/InStock",
-                }
-              : undefined,
+            offers: buildAudOffer({
+              cents: loaderData.ticket_price_cents,
+              url,
+              availability: "https://schema.org/InStock",
+              currency: (loaderData as { currency?: string | null }).currency ?? null,
+            }) ?? undefined,
           }),
         },
       ],
