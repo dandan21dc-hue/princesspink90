@@ -1,4 +1,3 @@
-import * as React from 'react'; void React;
 import {
   Body,
   Container,
