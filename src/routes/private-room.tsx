@@ -571,9 +571,12 @@ function ReviewBookingCard({
           disabled={pending}
           className="min-h-11 rounded-md border border-border/60 bg-background px-4 py-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground hover:text-foreground disabled:opacity-40"
         >
-          Edit
+          ← Back to edit
         </button>
       </div>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        Your date, time, party size, and notes are kept if you go back.
+      </p>
     </div>
   );
 }
