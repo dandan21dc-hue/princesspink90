@@ -198,8 +198,9 @@ function CheckoutReturn() {
     session?.metadata?.membership === "lifetime" ||
     session?.metadata?.membership === "term_pass" ||
     !!session?.metadata?.subscription;
+  const isPrivateRoomPurchase = session?.metadata?.booking === "private_room";
   useEffect(() => {
-    if (!isComplete || isMembershipPurchase) return;
+    if (!isComplete || isMembershipPurchase || isPrivateRoomPurchase) return;
     // Cart mode: successful payment → wipe the local cart so the shopping bag
     // in the header resets and the user isn't offered a re-purchase.
     if (session?.metadata?.cart_mode === "1") {
@@ -214,7 +215,7 @@ function CheckoutReturn() {
       navigate({ to: destination });
     }, 1500);
     return () => clearTimeout(t);
-  }, [isComplete, destination, navigate, session?.metadata?.cart_mode, isMembershipPurchase]);
+  }, [isComplete, destination, navigate, session?.metadata?.cart_mode, isMembershipPurchase, isPrivateRoomPurchase]);
 
   return (
     <section className="mx-auto max-w-md px-5 py-24 text-center">
