@@ -12,7 +12,8 @@ import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 import { cn } from "@/lib/utils";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { X, SlidersHorizontal } from "lucide-react";
+import { X, SlidersHorizontal, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 export const storeQuery = queryOptions({
   queryKey: ["store-items"],
