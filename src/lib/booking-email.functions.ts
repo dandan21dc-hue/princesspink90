@@ -85,6 +85,7 @@ export const sendBookingConfirmationEmail = createServerFn({ method: "POST" })
         bookingId: booking.id as string,
         icsUrl,
         dashboardUrl,
+        bookingUrl,
         rescheduleUrl,
         cancelUrl,
       },
