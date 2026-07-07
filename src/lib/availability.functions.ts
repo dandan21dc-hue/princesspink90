@@ -139,3 +139,86 @@ export const deleteSessionSlot = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
+
+/**
+ * Admin: bulk-insert a batch of proposed slots.
+ * Any proposed slot that overlaps an existing slot in the covered window
+ * (booked or available) is skipped — this treats existing rows as the
+ * "closed / unavailable" markers for the range.
+ */
+export const bulkCreateSessionSlots = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (data: { slots: Array<{ startTime: string; endTime: string }> }) => {
+      if (!Array.isArray(data?.slots) || data.slots.length === 0) {
+        throw new Error("No slots to create");
+      }
+      if (data.slots.length > 500) throw new Error("Too many slots (max 500)");
+      for (const s of data.slots) {
+        if (!validIso(s.startTime) || !validIso(s.endTime)) {
+          throw new Error("Invalid slot time");
+        }
+        if (new Date(s.endTime).getTime() <= new Date(s.startTime).getTime()) {
+          throw new Error("End time must be after start time");
+        }
+      }
+      return data;
+    },
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const proposed = data.slots
+      .map((s) => ({
+        start: new Date(s.startTime).getTime(),
+        end: new Date(s.endTime).getTime(),
+        startIso: s.startTime,
+        endIso: s.endTime,
+      }))
+      .sort((a, b) => a.start - b.start);
+
+    const windowStart = new Date(proposed[0].start).toISOString();
+    const windowEnd = new Date(proposed[proposed.length - 1].end).toISOString();
+
+    const { data: existing, error: exErr } = await context.supabase
+      .from("private_session_slots")
+      .select("start_time,end_time")
+      .lt("start_time", windowEnd)
+      .gt("end_time", windowStart);
+    if (exErr) throw new Error(exErr.message);
+
+    const existingRanges = (existing ?? []).map((r: any) => ({
+      start: new Date(r.start_time).getTime(),
+      end: new Date(r.end_time).getTime(),
+    }));
+
+    const toInsert: Array<{ start_time: string; end_time: string; is_booked: boolean }> = [];
+    let skipped = 0;
+    const accepted: Array<{ start: number; end: number }> = [];
+    const overlaps = (
+      a: { start: number; end: number },
+      b: { start: number; end: number },
+    ) => a.start < b.end && b.start < a.end;
+
+    for (const p of proposed) {
+      const clash =
+        existingRanges.some((r) => overlaps(p, r)) ||
+        accepted.some((r) => overlaps(p, r));
+      if (clash) {
+        skipped++;
+        continue;
+      }
+      accepted.push({ start: p.start, end: p.end });
+      toInsert.push({ start_time: p.startIso, end_time: p.endIso, is_booked: false });
+    }
+
+    let created = 0;
+    if (toInsert.length > 0) {
+      const { error: insErr, count } = await context.supabase
+        .from("private_session_slots")
+        .insert(toInsert, { count: "exact" });
+      if (insErr) throw new Error(insErr.message);
+      created = count ?? toInsert.length;
+    }
+
+    return { created, skipped, total: proposed.length };
+  });
