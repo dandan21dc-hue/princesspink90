@@ -133,12 +133,17 @@ function ConnectPage() {
     setStatus('testing')
     setStatusDetail('')
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+        ...parseHeaderLines(auth.headers),
+      }
+      if (auth.bearer.trim()) {
+        headers.Authorization = `Bearer ${auth.bearer.trim()}`
+      }
       const res = await fetch(mcpUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json, text/event-stream',
-        },
+        headers,
         body: JSON.stringify({
           jsonrpc: '2.0',
           id: 1,
@@ -152,7 +157,11 @@ function ConnectPage() {
       })
       if (!res.ok) {
         setStatus('error')
-        setStatusDetail(`HTTP ${res.status}`)
+        setStatusDetail(
+          res.status === 401 || res.status === 403
+            ? `HTTP ${res.status} — check bearer token / auth headers`
+            : `HTTP ${res.status}`,
+        )
         return
       }
       const text = await res.text()
