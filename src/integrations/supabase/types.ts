@@ -378,6 +378,11 @@ export type Database = {
           kind: string
           materials: string | null
           media_urls: Json
+          moderation_notes: string | null
+          moderation_reviewed_at: string | null
+          moderation_reviewed_by: string | null
+          moderation_status: string
+          moderation_submitted_at: string
           price_cents: number | null
           published: boolean
           sizes: string[]
@@ -395,6 +400,11 @@ export type Database = {
           kind: string
           materials?: string | null
           media_urls?: Json
+          moderation_notes?: string | null
+          moderation_reviewed_at?: string | null
+          moderation_reviewed_by?: string | null
+          moderation_status?: string
+          moderation_submitted_at?: string
           price_cents?: number | null
           published?: boolean
           sizes?: string[]
@@ -412,6 +422,11 @@ export type Database = {
           kind?: string
           materials?: string | null
           media_urls?: Json
+          moderation_notes?: string | null
+          moderation_reviewed_at?: string | null
+          moderation_reviewed_by?: string | null
+          moderation_status?: string
+          moderation_submitted_at?: string
           price_cents?: number | null
           published?: boolean
           sizes?: string[]
