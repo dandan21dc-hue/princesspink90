@@ -54,6 +54,7 @@ function AvailabilityAdmin() {
   });
 
   const [editing, setEditing] = useState<PrivateSessionSlot | "new" | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-availability-slots"] });
