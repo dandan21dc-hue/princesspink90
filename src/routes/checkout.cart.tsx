@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripe, getStripeEnvironment } from "@/lib/stripe";
-import { createCartCheckoutSession } from "@/lib/store.functions";
+import { createCartCheckoutSession, getSubscriberStatus } from "@/lib/store.functions";
 import { useCart, formatMoney, cart as cartStore, cartLineKey } from "@/lib/cart";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { track } from "@/lib/track";
+
 
 export const Route = createFileRoute("/checkout/cart")({
   ssr: false,
@@ -35,6 +37,13 @@ function CartCheckoutPage() {
   const { items, subtotalCents, hasPanty, currency } = useCart();
   const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const [country, setCountry] = useState<string | undefined>(undefined);
+  const subStatus = useQuery({
+    queryKey: ["subscriber-status", getStripeEnvironment(), user?.id ?? null],
+    queryFn: () => getSubscriberStatus({ data: { environment: getStripeEnvironment() } }),
+    enabled: !!user && hasPanty,
+    staleTime: 30_000,
+  });
+
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) =>
@@ -242,6 +251,52 @@ function CartCheckoutPage() {
                 Discreet AU shipping (A$15) is added at checkout.
               </p>
             )}
+            {hasPanty && subStatus.data && (() => {
+              const pantyQty = snapshot
+                .filter((it) => it.kind === "panty")
+                .reduce((n, it) => n + it.quantity, 0);
+              const { isSubscriber, discountPercent, discountedOrdersRemaining, discountedOrdersMax } = subStatus.data;
+              if (!isSubscriber) {
+                return (
+                  <div className="mt-3 rounded-md border border-border/60 bg-muted/30 p-3 text-[11px] leading-relaxed text-muted-foreground">
+                    <span className="font-semibold text-foreground">Subscribers save 15%</span> on their first {discountedOrdersMax} Panty Drawer orders.{" "}
+                    <Link to="/store/subscribe" className="text-primary underline underline-offset-2">
+                      Subscribe to unlock
+                    </Link>.
+                  </div>
+                );
+              }
+              if (discountedOrdersRemaining <= 0) {
+                return (
+                  <div className="mt-3 rounded-md border border-border/60 bg-muted/30 p-3 text-[11px] leading-relaxed text-muted-foreground">
+                    You've used all {discountedOrdersMax} subscriber-discount Panty Drawer orders. This order is charged at full price.
+                  </div>
+                );
+              }
+              const discountedThisOrder = Math.min(pantyQty, discountedOrdersRemaining);
+              const afterOrder = Math.max(0, discountedOrdersRemaining - discountedThisOrder);
+              return (
+                <div className="mt-3 rounded-md border border-primary/40 bg-primary/5 p-3 text-[11px] leading-relaxed text-foreground/90">
+                  <div className="font-semibold text-primary">
+                    Subscriber {discountPercent}% off applied
+                  </div>
+                  <p className="mt-1">
+                    Discount applies to your first {discountedOrdersMax} Panty Drawer orders. You have{" "}
+                    <span className="font-semibold text-foreground">{discountedOrdersRemaining} of {discountedOrdersMax}</span> discounted orders remaining.
+                  </p>
+                  <p className="mt-1">
+                    {pantyQty > discountedOrdersRemaining ? (
+                      <>Only {discountedOrdersRemaining} item{discountedOrdersRemaining === 1 ? "" : "s"} in this cart qualify — Stripe will apply the 15% to those and charge the rest at full price.</>
+                    ) : afterOrder > 0 ? (
+                      <>After this order you'll have <span className="font-semibold text-foreground">{afterOrder}</span> discounted order{afterOrder === 1 ? "" : "s"} left.</>
+                    ) : (
+                      <>This is your last discounted order — future Panty Drawer purchases will be at full price.</>
+                    )}
+                  </p>
+                </div>
+              );
+            })()}
+
           </aside>
         </div>
       </section>
