@@ -39,6 +39,7 @@ const Email = ({
   bookingId,
   icsUrl,
   dashboardUrl,
+  bookingUrl,
   rescheduleUrl,
   cancelUrl,
 }: Props) => (
