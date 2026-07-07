@@ -253,6 +253,8 @@ function StripeCatalogueSyncSection() {
         </ul>
       )}
       <ConvertTermPassesSection />
+      <ArchiveUsdPricesSection />
+
     </section>
   );
 }
