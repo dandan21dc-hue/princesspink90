@@ -104,18 +104,32 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
         // Authorization: if the template does not have a fixed `to`, only admins
         // may specify an arbitrary recipient. This prevents authenticated users
         // from using the send endpoint as an email relay for phishing/spam.
-        if (!template.to) {
+        //
+        // Every decision below emits a structured audit line prefixed with
+        // `[audit] email_send.*` so the sensitive privileged path is traceable
+        // in worker logs. Search worker logs with the `email_send.` prefix (or
+        // one of the specific event names) to review the trail.
+        const isOpenRecipient = !template.to
+        let adminOverride = false
+        if (isOpenRecipient) {
           const { data: isAdmin, error: roleError } = await supabase.rpc('has_role', {
             _user_id: user.id,
             _role: 'admin',
           })
           if (roleError || !isAdmin) {
-            console.warn('Non-admin attempted open-recipient template send', {
+            console.warn('[audit] email_send.forbidden_non_admin_open_recipient', {
+              at: new Date().toISOString(),
+              messageId,
+              idempotencyKey,
               templateName,
-              userId: user.id,
+              actorUserId: user.id,
+              recipient_redacted: redactEmail(recipientEmail),
+              roleErrorCode: roleError?.code ?? null,
+              roleErrorMessage: roleError?.message ?? null,
             })
             return Response.json({ error: 'Forbidden' }, { status: 403 })
           }
+          adminOverride = true
         }
 
         // Resolve effective recipient: template-level `to` takes precedence over
@@ -131,6 +145,25 @@ export const Route = createFileRoute("/lovable/email/transactional/send")({
             { status: 400 }
           )
         }
+
+        // Audit trail — an admin used the open-recipient path. Logged BEFORE
+        // suppression/render/enqueue so we always capture the intent even if a
+        // downstream step fails. Recipient is redacted; the full address is
+        // recoverable from email_send_log via messageId.
+        if (adminOverride) {
+          console.info('[audit] email_send.admin_recipient_override', {
+            at: new Date().toISOString(),
+            messageId,
+            idempotencyKey,
+            templateName,
+            actorUserId: user.id,
+            actorEmail_redacted: redactEmail(user.email ?? null),
+            recipient_redacted: redactEmail(effectiveRecipient),
+            recipientDomain: effectiveRecipient.split('@')[1] ?? null,
+            templateDataKeys: Object.keys(templateData).sort(),
+          })
+        }
+
 
         // 2. Check suppression list (fail-closed: if we can't verify, don't send)
         const { data: suppressed, error: suppressionError } = await supabase
