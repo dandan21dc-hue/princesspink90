@@ -274,6 +274,17 @@ function AvailabilityAdmin() {
           }}
         />
       )}
+
+      {bulkOpen && (
+        <BulkAddDialog
+          pending={bulkMut.isPending}
+          onCancel={() => setBulkOpen(false)}
+          onSubmit={(slots) => {
+            setError(null);
+            bulkMut.mutate(slots);
+          }}
+        />
+      )}
     </Shell>
   );
 }
