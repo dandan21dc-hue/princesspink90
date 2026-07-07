@@ -24,6 +24,23 @@ export const amIAdmin = createServerFn({ method: "GET" })
     return { isAdmin: Boolean(data) };
   });
 
+export const getMyRoles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    const roles = (data ?? []).map((r: { role: string }) => r.role);
+    return {
+      roles,
+      isAdmin: roles.includes("admin"),
+      isCoHost: roles.includes("co_host"),
+      canAccessDashboard: roles.includes("admin") || roles.includes("co_host"),
+    };
+  });
+
 export const listLifetimeMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
