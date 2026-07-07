@@ -420,18 +420,17 @@ export function ensureSessionIdInReturnUrl(rawUrl: string): string {
 }
 
 /**
- * Server-side gate: Panty Drawer purchases require an active all-access
- * subscription, an active term pass, or a lifetime membership in the same
- * environment. Frontend UI is never trusted for this — every panty checkout
- * path (single-item + cart) MUST call this before creating a Stripe session.
- * Uses the request-scoped supabase client (RLS as the caller).
+ * Non-throwing check: does the user currently qualify for the subscriber
+ * discount on the Panty Drawer? Panty Drawer purchases themselves are open
+ * to the public — this helper is only used to decide whether to apply the
+ * 15% subscriber coupon.
  */
-async function assertPantyAccess(
+async function hasSubscriberAccess(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
   env: StripeEnv,
-): Promise<void> {
+): Promise<boolean> {
   const nowIso = new Date().toISOString();
 
   const sub = await supabase
@@ -443,7 +442,7 @@ async function assertPantyAccess(
     .limit(1)
     .maybeSingle();
 
-  if (sub.error) throw new Error(sub.error.message);
+  if (sub.error) return false;
   const s = sub.data as { status: string; current_period_end: string | null } | null;
   const subActive = !!s && (
     (["active", "trialing", "past_due"].includes(s.status)
@@ -451,7 +450,7 @@ async function assertPantyAccess(
     || (s.status === "canceled" && !!s.current_period_end && s.current_period_end > nowIso)
   );
 
-  if (subActive) return;
+  if (subActive) return true;
 
   const mem = await supabase
     .from("memberships")
@@ -459,19 +458,14 @@ async function assertPantyAccess(
     .eq("user_id", userId)
     .eq("environment", env);
 
-  if (mem.error) throw new Error(mem.error.message);
+  if (mem.error) return false;
   const rows = (mem.data ?? []) as Array<{ kind: string; expires_at: string | null }>;
-  const memActive = rows.some((m) =>
+  return rows.some((m) =>
     m.kind === "lifetime"
     || (m.kind.startsWith("term_pass_") && !!m.expires_at && m.expires_at > nowIso),
   );
-
-  if (!memActive) {
-    throw new Error(
-      "The Panty Drawer is a members-only perk — grab an all-access pass or lifetime membership first.",
-    );
-  }
 }
+
 
 // ---------- Subscriber discount (Panty Drawer) ----------
 //
