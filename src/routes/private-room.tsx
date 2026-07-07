@@ -76,10 +76,8 @@ function PrivateRoomPage() {
     setSelectedSlot(null);
   }, [selectedDate, duration]);
 
-
-
-
   const dayRange = useMemo(() => {
+
     if (!selectedDate) return null;
     const from = new Date(selectedDate);
     from.setHours(0, 0, 0, 0);
