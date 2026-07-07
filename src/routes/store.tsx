@@ -108,7 +108,7 @@ function CategoryCards() {
     price: string;
     priceSuffix: string;
     blurb: string;
-    image: string;
+    image: PictureImport;
     imageAlt: string;
     cta: string;
   }> = [
@@ -164,14 +164,22 @@ function CategoryCards() {
           className="group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card/60 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_40px_-10px_hsl(var(--primary)/0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
-            <img
-              src={c.image}
-              alt={c.imageAlt}
-              width={1024}
-              height={768}
-              loading="lazy"
-              className="h-full w-full object-cover grayscale transition-all duration-700 ease-out group-hover:scale-110 group-hover:grayscale-0 group-focus-visible:scale-110 group-focus-visible:grayscale-0"
-            />
+            <picture>
+              {Object.entries(c.image.sources).map(([format, srcset]) => (
+                <source key={format} type={`image/${format}`} srcSet={srcset} sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
+              ))}
+              <img
+                src={c.image.img.src}
+                alt={c.imageAlt}
+                width={c.image.img.w}
+                height={c.image.img.h}
+                loading={idx === 0 ? "eager" : "lazy"}
+                fetchPriority={idx === 0 ? "high" : "auto"}
+                decoding="async"
+                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                className="h-full w-full object-cover grayscale transition-all duration-700 ease-out group-hover:scale-110 group-hover:grayscale-0 group-focus-visible:scale-110 group-focus-visible:grayscale-0"
+              />
+            </picture>
             <div
               aria-hidden="true"
               className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent"
