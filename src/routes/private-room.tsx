@@ -50,9 +50,8 @@ function PrivateRoomPage() {
   const [finding, setFinding] = useState(false);
   const jumpingToSlotRef = useRef<Date | null>(null);
 
-
-
   useEffect(() => {
+
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUser({ id: data.user.id, email: data.user.email ?? undefined });
     });
