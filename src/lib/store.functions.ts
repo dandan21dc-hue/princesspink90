@@ -236,7 +236,9 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
       const token = authHeader.toLowerCase().startsWith("bearer ")
         ? authHeader.slice(7).trim()
         : "";
-      if (!token) return { isSubscriber: false, discountPercent: 0 };
+      if (!token) {
+        return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
+      }
 
       const { createClient } = await import("@supabase/supabase-js");
       const supabase = createClient(
@@ -249,12 +251,21 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
       );
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
-      if (!userId) return { isSubscriber: false, discountPercent: 0 };
+      if (!userId) {
+        return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
+      }
 
       await assertPantyAccess(supabase, userId, data.environment);
-      return { isSubscriber: true, discountPercent: SUBSCRIBER_DISCOUNT_PERCENT };
+      const used = await countPaidPantyOrders(supabase, userId, data.environment);
+      const remaining = Math.max(0, SUBSCRIBER_DISCOUNT_MAX_ORDERS - used);
+      return {
+        isSubscriber: true,
+        discountPercent: remaining > 0 ? SUBSCRIBER_DISCOUNT_PERCENT : 0,
+        discountedOrdersRemaining: remaining,
+        discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS,
+      };
     } catch {
-      return { isSubscriber: false, discountPercent: 0 };
+      return { isSubscriber: false, discountPercent: 0, discountedOrdersRemaining: 0, discountedOrdersMax: SUBSCRIBER_DISCOUNT_MAX_ORDERS };
     }
   });
 
