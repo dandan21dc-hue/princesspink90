@@ -110,10 +110,29 @@ function BookingsPage() {
   });
 
   const rows: Booking[] = (bookings.data ?? []) as Booking[];
-  const upcoming = rows.filter(
+
+  const filteredRows = useMemo(() => {
+    const today = startOfDay(new Date());
+    return rows.filter((b) => {
+      if (status !== "all" && b.status !== status) return false;
+      const starts = new Date(b.starts_at);
+      if (dateFilter === "today") return isSameDay(starts, today);
+      if (dateFilter === "week") {
+        const end = addDays(today, 7);
+        return isWithinInterval(starts, { start: today, end });
+      }
+      if (dateFilter === "month") {
+        const end = addDays(today, 30);
+        return isWithinInterval(starts, { start: today, end });
+      }
+      return true;
+    });
+  }, [rows, status, dateFilter]);
+
+  const upcoming = filteredRows.filter(
     (b) => b.status !== "cancelled" && new Date(b.starts_at).getTime() > Date.now(),
   );
-  const past = rows.filter(
+  const past = filteredRows.filter(
     (b) => b.status === "cancelled" || new Date(b.starts_at).getTime() <= Date.now(),
   );
 
