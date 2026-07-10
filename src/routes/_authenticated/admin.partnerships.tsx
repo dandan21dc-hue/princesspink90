@@ -370,7 +370,7 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
     queryFn: () => emailEventsFn({ data: { inquiryId: inquiry.id } }),
   })
 
-  const [subject, setSubject] = useState(`Re: your Princess Pink enquiry`)
+  const [subject, setSubject] = useState(`Re: your Midnight Glory enquiry`)
   const [body, setBody] = useState('')
 
   const sendMut = useMutation({
@@ -431,7 +431,7 @@ function InquiryDetail({ inquiry, onClose }: { inquiry: Inquiry; onClose: () => 
       </div>
 
       <div className="mt-6">
-        <div className="mb-2 text-xs uppercase tracking-widest text-neon">Reply from your Princess Pink address</div>
+        <div className="mb-2 text-xs uppercase tracking-widest text-neon">Reply from your Midnight Glory address</div>
         <input
           value={subject}
           onChange={(e) => setSubject(e.target.value)}

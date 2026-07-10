@@ -47,9 +47,9 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
     `View in browser: ${portalUrl}`,
     '',
     'With love,',
-    'Princess Pink',
+    'Midnight Glory',
     '',
-    '— This is an automated reminder from Princess Pink. Reply to this email if you need help.',
+    '— This is an automated reminder from Midnight Glory. Reply to this email if you need help.',
   ]
     .filter(Boolean)
     .join('\n')
@@ -68,7 +68,7 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
           <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border:1px solid #f2d6e4;border-radius:16px;overflow:hidden;">
             <tr>
               <td style="background:linear-gradient(135deg,#ff6fae 0%,#c94b8b 100%);padding:28px 32px;color:#ffffff;">
-                <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.9;">Princess Pink</div>
+                <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.9;">Midnight Glory</div>
                 <div style="font-size:22px;font-weight:700;margin-top:6px;">Health screening reminder</div>
               </td>
             </tr>
@@ -132,12 +132,12 @@ export function renderHealthScreeningReminder(args: HealthReminderTemplateArgs):
             <tr>
               <td style="padding:0 32px 28px 32px;font-size:14px;color:#555;line-height:1.5;">
                 <p style="margin:0 0 6px 0;">With love,</p>
-                <p style="margin:0;">Princess Pink</p>
+                <p style="margin:0;">Midnight Glory</p>
               </td>
             </tr>
             <tr>
               <td style="background:#fdf3f8;padding:16px 32px;font-size:12px;color:#8a5b74;line-height:1.5;">
-                This is an automated reminder from Princess Pink. Reply to this email if you need help.
+                This is an automated reminder from Midnight Glory. Reply to this email if you need help.
               </td>
             </tr>
           </table>

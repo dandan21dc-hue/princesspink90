@@ -10,16 +10,16 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { listPrivateRoomBusy } from "@/lib/store.functions";
 
-export const Route = createFileRoute("/private-room")({
+export const Route = createFileRoute("/glory-holes")({
   head: () => ({
     meta: [
-      { title: "Private Room Booking — Midnight Glory" },
+      { title: "Glory Holes Booking — Midnight Glory" },
       {
         name: "description",
         content:
-          "Book a private-room session with Midnight Glory — 30 minutes or 1 hour. Pick a date and time, pay securely.",
+          "Book a glory hole session with Midnight Glory — 30 minutes or 1 hour. Pick a date and time, pay securely.",
       },
-      { property: "og:title", content: "Private Room Booking · Midnight Glory" },
+      { property: "og:title", content: "Glory Holes Booking · Midnight Glory" },
       {
         property: "og:description",
         content: "Reserve a 30-minute or 1-hour private session.",
@@ -81,7 +81,7 @@ function PrivateRoomPage() {
       if (pendingAutoReviewRef.current) {
         pendingAutoReviewRef.current = false;
         if (!user) {
-          navigate({ to: "/auth", search: { next: "/private-room" } });
+          navigate({ to: "/auth", search: { next: "/glory-holes" } });
         } else if (partySize >= 1 && partySize <= 10 && notes.length <= 1000) {
           setReviewing(true);
         }
@@ -211,7 +211,7 @@ function PrivateRoomPage() {
 
   function review() {
     if (!user) {
-      navigate({ to: "/auth", search: { next: "/private-room" } });
+      navigate({ to: "/auth", search: { next: "/glory-holes" } });
       return;
     }
     if (!selectedSlot) return;
@@ -294,10 +294,10 @@ function PrivateRoomPage() {
           <>
             <div className="mt-4">
               <div className="text-xs uppercase tracking-[0.3em] text-primary">
-                Private Room
+                Glory Holes
               </div>
               <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
-                Book a private session
+                Book a glory hole session
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                 Pick your length, your day, and your time. Slot is held while you
@@ -523,10 +523,10 @@ function PrivateRoomPage() {
                     role="status"
                     className="mt-3 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-xs text-primary"
                   >
-                    You need an account to submit a private room booking.{" "}
+                    You need an account to submit a glory hole booking.{" "}
                     <Link
                       to="/auth"
-                      search={{ next: "/private-room" }}
+                      search={{ next: "/glory-holes" }}
                       className="font-semibold underline underline-offset-2"
                     >
                       Sign in or create one
@@ -571,7 +571,7 @@ function DurationCard({
     >
       <div>
         <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
-          Private Room
+          Glory Holes
         </div>
         <div className="mt-1 font-display text-2xl font-extrabold">{label}</div>
       </div>

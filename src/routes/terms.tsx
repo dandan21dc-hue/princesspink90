@@ -3,17 +3,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/terms")({
   head: () => ({
     meta: [
-      { title: "Terms of Service · PRINCESS PINK" },
+      { title: "Terms of Service · MIDNIGHT GLORY" },
       {
         name: "description",
         content:
-          "Terms of Service governing use of PRINCESS PINK — the members-only adult content library, ticketed events, and private-room sessions.",
+          "Terms of Service governing use of MIDNIGHT GLORY — the members-only adult content library, ticketed events, and private-room sessions.",
       },
-      { property: "og:title", content: "Terms of Service · PRINCESS PINK" },
+      { property: "og:title", content: "Terms of Service · MIDNIGHT GLORY" },
       {
         property: "og:description",
         content:
-          "Terms of Service governing use of PRINCESS PINK — members-only adult content, ticketed events, and private-room sessions.",
+          "Terms of Service governing use of MIDNIGHT GLORY — members-only adult content, ticketed events, and private-room sessions.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -34,7 +34,7 @@ function Terms() {
       <div className="mt-8 space-y-6">
         <p>
           By creating an account, purchasing content, subscribing to a pass, or
-          booking any session with PRINCESS PINK (the "Service"), you agree to
+          booking any session with MIDNIGHT GLORY (the "Service"), you agree to
           these Terms of Service and to our{" "}
           <Link to="/privacy" className="text-primary underline">Privacy Policy</Link>{" "}
           and{" "}
@@ -109,7 +109,7 @@ function Terms() {
         <section>
           <h2 className="font-display text-2xl font-semibold text-foreground">7. Platform responsibility</h2>
           <p className="mt-2">
-            PRINCESS PINK curates events and acts as an intermediary. While we vet
+            MIDNIGHT GLORY curates events and acts as an intermediary. While we vet
             venues and guests, we are not liable for individual actions taken within
             private event spaces. Attendees are responsible for their own conduct and
             for following venue-specific rules.

@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 export const Route = createFileRoute('/unsubscribe')({
   head: () => ({
     meta: [
-      { title: 'Unsubscribe — Princess Pink' },
-      { name: 'description', content: 'Unsubscribe from Princess Pink emails.' },
+      { title: 'Unsubscribe — Midnight Glory' },
+      { name: 'description', content: 'Unsubscribe from Midnight Glory emails.' },
       { name: 'robots', content: 'noindex' },
     ],
   }),
@@ -84,7 +84,7 @@ function UnsubscribePage() {
           {state.kind === 'already' && <p>You're already unsubscribed. No further emails will be sent.</p>}
           {state.kind === 'confirm' && (
             <>
-              <p>Click below to unsubscribe from all Princess Pink emails.</p>
+              <p>Click below to unsubscribe from all Midnight Glory emails.</p>
               <button
                 onClick={confirm}
                 className="mt-6 rounded-md bg-primary px-6 py-2.5 text-sm font-semibold uppercase tracking-widest text-primary-foreground hover:brightness-110"

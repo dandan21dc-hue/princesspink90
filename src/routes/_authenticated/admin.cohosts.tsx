@@ -179,7 +179,7 @@ function ResourcesSection() {
       </div>
 
       <p className="mt-2 text-sm text-muted-foreground">
-        The Princess Pink Co-Host Handbook covers guest verification, consent,
+        The Midnight Glory Co-Host Handbook covers guest verification, consent,
         safety, compliance and confidentiality. You must read and acknowledge it
         before you are cleared to manage an event.
       </p>
@@ -212,7 +212,7 @@ function ResourcesSection() {
           }}
         />
         <span>
-          I confirm I have read and understood the Princess Pink Co-Host
+          I confirm I have read and understood the Midnight Glory Co-Host
           Handbook (v{HANDBOOK_VERSION}) and agree to follow it while managing
           any event.
           {!acknowledged && (

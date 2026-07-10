@@ -649,7 +649,7 @@ function PrivateRoomConfirmation({
             onClick={() => {
               const ics = buildIcs({
                 uid: `booking-${b.id}@princesspink90`,
-                title: `Princess Pink · Private room (${b.duration_minutes} min)`,
+                title: `Midnight Glory · Private room (${b.duration_minutes} min)`,
                 description: [
                   `Party size: ${b.party_size ?? 1}`,
                   b.notes ? `Notes: ${b.notes}` : null,

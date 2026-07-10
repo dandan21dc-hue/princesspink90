@@ -14,10 +14,10 @@ import { PaymentFailedRetryEmail } from "@/lib/email-templates/payment-failed-re
 import { PaymentFailedUrgentEmail } from "@/lib/email-templates/payment-failed-urgent";
 import { PaymentFailedFinalEmail } from "@/lib/email-templates/payment-failed-final";
 
-const SITE_NAME = "Princess Pink";
+const SITE_NAME = "Midnight Glory";
 const SITE_URL = "https://princesspink90.lovable.app";
 const BILLING_URL = `${SITE_URL}/account/billing`;
-const FROM = "Princess Pink <notify@princesspink90.lovable.app>";
+const FROM = "Midnight Glory <notify@princesspink90.lovable.app>";
 
 type Stage = "day_3" | "day_7" | "day_14" | "done" | "canceled";
 const NEXT_STAGE: Record<Stage, { stage: Stage; hours: number } | null> = {

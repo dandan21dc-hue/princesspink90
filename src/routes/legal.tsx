@@ -7,7 +7,7 @@ export const Route = createFileRoute("/legal")({
       {
         name: "description",
         content:
-          "Community rules and privacy commitments for every guest, host, and event on Princess Pink.",
+          "Community rules and privacy commitments for every guest, host, and event on Midnight Glory.",
       },
       { property: "og:title", content: "Code of Conduct & Privacy Policy" },
       {

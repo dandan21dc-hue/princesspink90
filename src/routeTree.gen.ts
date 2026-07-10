@@ -18,6 +18,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PartnershipsRouteImport } from './routes/partnerships'
 import { Route as PantyDrawerRouteImport } from './routes/panty-drawer'
 import { Route as LegalRouteImport } from './routes/legal'
+import { Route as GloryHolesRouteImport } from './routes/glory-holes'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -141,6 +142,11 @@ const PantyDrawerRoute = PantyDrawerRouteImport.update({
 const LegalRoute = LegalRouteImport.update({
   id: '/legal',
   path: '/legal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GloryHolesRoute = GloryHolesRouteImport.update({
+  id: '/glory-holes',
+  path: '/glory-holes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConductRoute = ConductRouteImport.update({
@@ -594,6 +600,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/glory-holes': typeof GloryHolesRoute
   '/legal': typeof LegalRoute
   '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
@@ -683,6 +690,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/glory-holes': typeof GloryHolesRoute
   '/legal': typeof LegalRoute
   '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
@@ -773,6 +781,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/glory-holes': typeof GloryHolesRoute
   '/legal': typeof LegalRoute
   '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
@@ -864,6 +873,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/glory-holes'
     | '/legal'
     | '/panty-drawer'
     | '/partnerships'
@@ -953,6 +963,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/glory-holes'
     | '/legal'
     | '/panty-drawer'
     | '/partnerships'
@@ -1042,6 +1053,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/glory-holes'
     | '/legal'
     | '/panty-drawer'
     | '/partnerships'
@@ -1133,6 +1145,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
+  GloryHolesRoute: typeof GloryHolesRoute
   LegalRoute: typeof LegalRoute
   PantyDrawerRoute: typeof PantyDrawerRoute
   PartnershipsRoute: typeof PartnershipsRoute
@@ -1233,6 +1246,13 @@ declare module '@tanstack/react-router' {
       path: '/legal'
       fullPath: '/legal'
       preLoaderRoute: typeof LegalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/glory-holes': {
+      id: '/glory-holes'
+      path: '/glory-holes'
+      fullPath: '/glory-holes'
+      preLoaderRoute: typeof GloryHolesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conduct': {
@@ -1955,6 +1975,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
+  GloryHolesRoute: GloryHolesRoute,
   LegalRoute: LegalRoute,
   PantyDrawerRoute: PantyDrawerRoute,
   PartnershipsRoute: PartnershipsRoute,
@@ -1998,13 +2019,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

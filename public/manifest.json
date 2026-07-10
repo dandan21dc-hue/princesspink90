@@ -1,7 +1,7 @@
 {
-  "name": "Princess Pink",
-  "short_name": "Princess Pink",
-  "description": "Princess Pink hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only.",
+  "name": "Midnight Glory",
+  "short_name": "Midnight Glory",
+  "description": "Midnight Glory hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -55,7 +55,7 @@
     {
       "name": "Browse Events",
       "short_name": "Events",
-      "description": "Browse upcoming Princess Pink events",
+      "description": "Browse upcoming Midnight Glory events",
       "url": "/",
       "icons": [
         {

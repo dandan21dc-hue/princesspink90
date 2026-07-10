@@ -9,7 +9,7 @@ export type SiteSettings = {
 };
 
 const DEFAULTS: SiteSettings = {
-  email: "princesspink9014@gmail.com",
+  email: "midnight-glory@princesspink90.com",
   fetlife_handle: "pink_princess90",
   reddit_handle: "19pink-princess90",
 };

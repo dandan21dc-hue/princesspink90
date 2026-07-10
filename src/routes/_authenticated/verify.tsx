@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/verify")({
   component: VerifyPage,
 });
 
-const RECORDING_CONSENT_COPY = `I want to opt in to being recorded at events, and I consent to my session being used as adult content across Princess Pink's platforms. I confirm I am 18 or older and grant Princess Pink and AFTERDARK a non-exclusive, worldwide, royalty-free right to record my likeness at events I attend and to reproduce, edit, distribute, and display those recordings — including as adult-oriented content — across their platforms and marketing channels.`;
+const RECORDING_CONSENT_COPY = `I want to opt in to being recorded at events, and I consent to my session being used as adult content across Midnight Glory's platforms. I confirm I am 18 or older and grant Midnight Glory and AFTERDARK a non-exclusive, worldwide, royalty-free right to record my likeness at events I attend and to reproduce, edit, distribute, and display those recordings — including as adult-oriented content — across their platforms and marketing channels.`;
 
 function VerifyPage() {
   const getFn = useServerFn(getMyVeriffStatus);

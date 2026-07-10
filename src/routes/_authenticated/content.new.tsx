@@ -7,7 +7,7 @@ import { createContentItem } from "@/lib/store.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/content/new")({
-  head: () => ({ meta: [{ title: "New item — Princess Pink" }] }),
+  head: () => ({ meta: [{ title: "New item — Midnight Glory" }] }),
   component: NewContentPage,
 });
 

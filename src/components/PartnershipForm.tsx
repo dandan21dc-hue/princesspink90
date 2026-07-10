@@ -122,7 +122,7 @@ export function PartnershipForm() {
         {submitting ? 'Sending…' : 'Send enquiry'}
       </button>
       <p className="text-xs text-muted-foreground">
-        By sending, you consent to Princess Pink emailing you a reply. We never share
+        By sending, you consent to Midnight Glory emailing you a reply. We never share
         your details.
       </p>
     </form>

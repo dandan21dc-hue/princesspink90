@@ -19,7 +19,7 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 //   - AI can call escalate_to_human to flip the conversation to an admin
 //     inbox; the tool needs no approval — it just marks the row.
 
-const SYSTEM_PROMPT = `You are the support assistant for Princess Pink 90, an events and community platform.
+const SYSTEM_PROMPT = `You are the support assistant for Midnight Glory 90, an events and community platform.
 
 Guidelines:
 - Answer questions about accounts, events, RSVPs, health-screening uploads, membership, and general how-to.

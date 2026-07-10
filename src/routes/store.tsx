@@ -34,12 +34,12 @@ export const Route = createFileRoute("/store")({
   loader: ({ context }) => context.queryClient.ensureQueryData(storeQuery),
   head: () => ({
     meta: [
-      { title: "Store — Princess Pink" },
+      { title: "Store — Midnight Glory" },
       {
         name: "description",
-        content: "Buy photo sets, videos, and bundles — or subscribe for all-access to Princess Pink's library.",
+        content: "Buy photo sets, videos, and bundles — or subscribe for all-access to Midnight Glory's library.",
       },
-      { property: "og:title", content: "Princess Pink · Store" },
+      { property: "og:title", content: "Midnight Glory · Store" },
       { property: "og:description", content: "Photo sets, videos, bundles, and an all-access pass." },
       { property: "og:url", content: "https://princesspink90.lovable.app/store" },
     ],

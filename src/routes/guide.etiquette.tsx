@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 const CANONICAL = "https://princesspink90.lovable.app/guide/etiquette";
 const TITLE = "BDSM Party Dress Code & Etiquette Guide for First-Timers";
 const DESCRIPTION =
-  "What to wear and how to behave at your first BDSM party. Practical outfit ideas, consent rules, and etiquette from Princess Pink. 18+ only.";
+  "What to wear and how to behave at your first BDSM party. Practical outfit ideas, consent rules, and etiquette from Midnight Glory. 18+ only.";
 
 const FAQS: { q: string; a: string }[] = [
   {
@@ -52,8 +52,8 @@ export const Route = createFileRoute("/guide/etiquette")({
           "@type": "Article",
           headline: TITLE,
           description: DESCRIPTION,
-          author: { "@type": "Organization", name: "Princess Pink" },
-          publisher: { "@type": "Organization", name: "Princess Pink" },
+          author: { "@type": "Organization", name: "Midnight Glory" },
+          publisher: { "@type": "Organization", name: "Midnight Glory" },
           mainEntityOfPage: CANONICAL,
         }),
       },
@@ -80,7 +80,7 @@ export const Route = createFileRoute("/guide/etiquette")({
           inLanguage: "en",
           isPartOf: {
             "@type": "WebSite",
-            name: "Princess Pink",
+            name: "Midnight Glory",
             url: "https://princesspink90.lovable.app",
           },
           primaryImageOfPage: undefined,
@@ -128,7 +128,7 @@ function EtiquettePage() {
       <p className="mt-4 text-lg text-muted-foreground">
         Your first BDSM party is exciting, a little nerve-wracking, and totally survivable.
         Here is what to wear, how to behave, and how consent actually works on the floor —
-        written for real first-timers heading to a Princess Pink night.
+        written for real first-timers heading to a Midnight Glory night.
       </p>
 
       <section className="mt-10 space-y-4">
@@ -218,7 +218,7 @@ function EtiquettePage() {
       <section className="mt-10 rounded-lg border border-border bg-card p-6">
         <h2 className="font-display text-xl font-semibold">Ready for a first party?</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Princess Pink runs 18+ consent-first nights — glory holes, private rooms, and
+          Midnight Glory runs 18+ consent-first nights — glory holes, private rooms, and
           adult theatre takeovers. Check what's on and grab a ticket.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">

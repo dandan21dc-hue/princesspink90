@@ -98,7 +98,7 @@ function PartnershipDetailPage() {
     enabled: !!inquiry,
   })
 
-  const [subject, setSubject] = useState('Re: your Princess Pink enquiry')
+  const [subject, setSubject] = useState('Re: your Midnight Glory enquiry')
   const [body, setBody] = useState('')
   const [notes, setNotes] = useState<string | null>(null)
 

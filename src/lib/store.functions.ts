@@ -1171,7 +1171,7 @@ export const createCartCheckoutSession = createServerFn({ method: "POST" })
         customer: customerId,
         customer_update: { address: "auto" },
         ...(!useManagedPayments && {
-          payment_intent_data: { description: "Princess Pink cart order" },
+          payment_intent_data: { description: "Midnight Glory cart order" },
         }),
         ...(hasPanty && {
           shipping_address_collection: { allowed_countries: ["AU"] },

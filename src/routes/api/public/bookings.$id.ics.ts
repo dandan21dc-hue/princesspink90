@@ -39,7 +39,7 @@ export const Route = createFileRoute('/api/public/bookings/$id/ics')({
 
         const ics = buildIcs({
           uid: `booking-${booking.id}@princesspink90`,
-          title: `Princess Pink · Private room (${booking.duration_minutes} min)`,
+          title: `Midnight Glory · Private room (${booking.duration_minutes} min)`,
           description: [
             `Party size: ${booking.party_size ?? 1}`,
             booking.notes ? `Notes: ${booking.notes}` : null,

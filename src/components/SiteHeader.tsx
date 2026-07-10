@@ -18,45 +18,27 @@ export function SiteHeader() {
     router.navigate({ to: "/" });
   }
 
+  const linkCls = "px-3 py-2 text-muted-foreground hover:text-foreground transition";
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
         <Link to="/" className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary shadow-[var(--shadow-glow-pink)] animate-neon" />
           <span className="font-display text-lg font-semibold tracking-tight">
-            PRINCESS <span className="text-neon">PINK</span>
+            MIDNIGHT <span className="text-neon">GLORY</span>
           </span>
         </Link>
         <nav className="flex items-center gap-1 text-sm">
-          <Link
-            to="/"
-            className="px-3 py-2 text-muted-foreground hover:text-foreground transition"
-            activeProps={{ className: "px-3 py-2 text-foreground" }}
-          >
-            Events
-          </Link>
-          <Link
-            to="/store"
-            className="px-3 py-2 text-muted-foreground hover:text-foreground transition"
-          >
-            Store
-          </Link>
-          <Link
-            to="/privacy"
-            className="hidden sm:inline-block px-3 py-2 text-muted-foreground hover:text-foreground transition"
-          >
-            Privacy
-          </Link>
+          <Link to="/glory-holes" className={linkCls}>Glory Holes</Link>
+          <Link to="/private-room" className={linkCls}>Private Rooms</Link>
+          <Link to="/all-access-pass" className={linkCls}>All-Access Passes</Link>
+          <Link to="/panty-drawer" className={linkCls}>Panty Drawer</Link>
 
           <CartButton />
           {authed ? (
             <>
-              <Link
-                to="/library"
-                className="px-3 py-2 text-muted-foreground hover:text-foreground transition"
-              >
-                Library
-              </Link>
+              <Link to="/library" className={linkCls}>Library</Link>
               <Link
                 to="/dashboard"
                 className="hidden sm:inline-block px-3 py-2 text-muted-foreground hover:text-foreground transition"
