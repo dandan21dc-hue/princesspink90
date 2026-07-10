@@ -32,6 +32,7 @@ export function SiteHeader() {
         <nav className="flex items-center gap-1 text-sm">
           <Link to="/glory-holes" className={linkCls}>Glory Holes</Link>
           <Link to="/private-room" className={linkCls}>Private Rooms</Link>
+          <Link to="/store" className={linkCls}>Media Boutique</Link>
           <Link to="/all-access-pass" className={linkCls}>All-Access Passes</Link>
           <Link to="/panty-drawer" className={linkCls}>Panty Drawer</Link>
 

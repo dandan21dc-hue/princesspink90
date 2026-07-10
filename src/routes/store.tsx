@@ -34,13 +34,13 @@ export const Route = createFileRoute("/store")({
   loader: ({ context }) => context.queryClient.ensureQueryData(storeQuery),
   head: () => ({
     meta: [
-      { title: "Store — Midnight Glory" },
+      { title: "Media Boutique — Midnight Glory" },
       {
         name: "description",
-        content: "Buy photo sets, videos, and bundles — or subscribe for all-access to Midnight Glory's library.",
+        content: "Browse and buy individual photo sets and video clips from Midnight Glory's Media Boutique.",
       },
-      { property: "og:title", content: "Midnight Glory · Store" },
-      { property: "og:description", content: "Photo sets, videos, bundles, and an all-access pass." },
+      { property: "og:title", content: "Media Boutique · Midnight Glory" },
+      { property: "og:description", content: "Individual photo sets and video clips — buy securely." },
       { property: "og:url", content: "https://princesspink90.lovable.app/store" },
     ],
     links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/store" }],
@@ -57,9 +57,9 @@ function PageShell({ children }: { children: React.ReactNode }) {
       <PaymentTestModeBanner />
       <section className="mx-auto max-w-6xl px-5 pt-10 pb-10">
         <div className="max-w-2xl">
-          <div className="text-xs uppercase tracking-[0.3em] text-primary">Boutique</div>
+          <div className="text-xs uppercase tracking-[0.3em] text-primary">Media Boutique</div>
           <h1 className="mt-2 font-display text-4xl font-extrabold">
-            Buy my <span className="text-neon">pictures &amp; videos</span>
+            Individual <span className="text-neon">pictures &amp; videos</span>
           </h1>
         </div>
         {children}
