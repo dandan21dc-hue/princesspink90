@@ -661,7 +661,7 @@ function PrivateRoomConfirmation({
                 end: ends,
                 url: typeof window !== "undefined" ? window.location.origin + "/dashboard" : undefined,
               });
-              downloadIcs(`princess-pink-booking-${b.id.slice(0, 8)}.ics`, ics);
+              downloadIcs(`midnight-glory-booking-${b.id.slice(0, 8)}.ics`, ics);
             }}
             className="rounded-md border border-primary/50 bg-background px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
           >
@@ -682,7 +682,7 @@ function PrivateRoomConfirmation({
                 amountFormatted: amount,
                 notes: b.notes,
               });
-              downloadPdf(`princess-pink-receipt-${b.id.slice(0, 8)}.pdf`, bytes);
+              downloadPdf(`midnight-glory-receipt-${b.id.slice(0, 8)}.pdf`, bytes);
             }}
             className="rounded-md border border-primary/50 bg-background px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
           >

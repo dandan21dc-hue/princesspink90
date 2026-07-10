@@ -187,7 +187,7 @@ function ResourcesSection() {
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <a
           href={handbookAsset.url}
-          download="Princess-Pink-Co-Host-Handbook.pdf"
+          download="Midnight-Glory-Co-Host-Handbook.pdf"
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-md border border-primary/50 bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/20"
