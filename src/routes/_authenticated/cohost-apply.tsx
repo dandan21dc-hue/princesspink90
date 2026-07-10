@@ -350,7 +350,7 @@ function CohostApply() {
             </p>
             <a
               href={handbookAsset.url}
-              download="Princess-Pink-Co-Host-Handbook.pdf"
+              download="Midnight-Glory-Co-Host-Handbook.pdf"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setHandbookDownloaded(true)}

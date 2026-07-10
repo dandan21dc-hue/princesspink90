@@ -156,7 +156,7 @@ function HostBlock() {
       <div className="rounded-3xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background p-8 sm:p-12 shadow-[var(--shadow-glow-pink)]">
         <div className="text-xs uppercase tracking-[0.3em] text-primary">Your host</div>
         <h2 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
-          Princess <span className="text-neon">Pink</span>
+          Midnight <span className="text-neon">Glory</span>
         </h2>
         <p className="mt-5 max-w-2xl text-muted-foreground leading-relaxed">
           I curate discreet, consent-first nights at adult theatres and private

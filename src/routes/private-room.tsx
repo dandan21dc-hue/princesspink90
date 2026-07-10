@@ -478,7 +478,7 @@ function PrivateRoomPage() {
 
                 <div className="mt-5">
                   <label htmlFor="booking-notes" className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Notes for Princess (optional)
+                    Notes for host (optional)
                   </label>
                   <textarea
                     id="booking-notes"
