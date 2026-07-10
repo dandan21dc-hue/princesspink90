@@ -81,7 +81,7 @@ function Home() {
           </h2>
           <p className="mt-4 max-w-xl text-sm text-muted-foreground leading-relaxed">
             Pitch a takeover night, sponsorship, media feature, or collab. Every
-            enquiry is read personally and answered from my Princess Pink address.
+            enquiry is read personally and answered from my Midnight Glory address.
           </p>
           <div className="mt-8">
             <PartnershipForm />
@@ -228,14 +228,14 @@ function Hero() {
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.25em] text-primary">
             <span className="h-1.5 w-1.5 rounded-full bg-primary animate-neon" />
-            Hosted by Princess Pink · 18+
+            Hosted by Midnight Glory · 18+
           </div>
           <h1 className="mt-6 font-display text-5xl font-extrabold leading-[1.05] sm:text-7xl">
             Glory holes, private rooms,{" "}
             <span className="text-neon animate-neon">and the theatre after dark.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted-foreground leading-relaxed">
-            Princess Pink curates discreet, consent-first nights at adult
+            Midnight Glory curates discreet, consent-first nights at adult
             theatres and private venues. Browse the public marquee below.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

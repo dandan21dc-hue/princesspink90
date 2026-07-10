@@ -3,7 +3,7 @@
 
 const RESEND_URL = 'https://api.resend.com/emails'
 
-export const RESEND_FROM = 'Princess Pink Support <support@princesspink90.com>'
+export const RESEND_FROM = 'Midnight Glory Support <support@princesspink90.com>'
 export const RESEND_REPLY_TO = 'support@princesspink90.com'
 
 export interface SendEmailArgs {

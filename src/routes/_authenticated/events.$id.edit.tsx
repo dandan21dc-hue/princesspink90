@@ -119,7 +119,7 @@ function EditEvent() {
         <h1 className="mt-2 font-display text-3xl font-semibold">Handbook acknowledgement required</h1>
         <p className="mt-4 text-sm text-muted-foreground">
           Before you can manage an event you must read and acknowledge the
-          Princess Pink Co-Host Handbook. Head to the Co-Host Management page,
+          Midnight Glory Co-Host Handbook. Head to the Co-Host Management page,
           download the handbook, and tick the acknowledgement checkbox.
         </p>
         <div className="mt-6 flex justify-center gap-3">

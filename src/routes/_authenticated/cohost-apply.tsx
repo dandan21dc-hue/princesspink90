@@ -344,7 +344,7 @@ function CohostApply() {
               </span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              You must download and read the Princess Pink Co-Host Handbook,
+              You must download and read the Midnight Glory Co-Host Handbook,
               then digitally sign this acknowledgement. Your signature and the
               timestamp are stored as a permanent audit record.
             </p>
@@ -399,7 +399,7 @@ function CohostApply() {
               />
               <span>
                 By ticking this box and typing my name above, I confirm I have
-                downloaded, read, and understood the Princess Pink Co-Host
+                downloaded, read, and understood the Midnight Glory Co-Host
                 Handbook (v{HANDBOOK_VERSION}) and agree to abide by it. I
                 understand this constitutes a legally binding electronic
                 signature and that the date and time will be recorded.

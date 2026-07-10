@@ -41,7 +41,7 @@ const Email = ({ name, email, organization, inquiryType, message, inquiryId }: P
         </Section>
         <Text style={hint}>
           Reply from the admin dashboard at <strong>/admin/partnerships</strong> to send
-          a response from your Princess Pink address.
+          a response from your Midnight Glory address.
         </Text>
       </Container>
     </Body>

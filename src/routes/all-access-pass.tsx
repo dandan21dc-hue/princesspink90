@@ -5,13 +5,13 @@ import { AllAccessCard } from "@/components/AllAccessCard";
 export const Route = createFileRoute("/all-access-pass")({
   head: () => ({
     meta: [
-      { title: "All-Access Pass — Princess Pink" },
+      { title: "All-Access Pass — Midnight Glory" },
       {
         name: "description",
         content:
-          "Unlock everything Princess Pink — monthly, term, or lifetime plans. Full library access to photo sets, videos, and bundles.",
+          "Unlock everything Midnight Glory — monthly, term, or lifetime plans. Full library access to photo sets, videos, and bundles.",
       },
-      { property: "og:title", content: "All-Access Pass · Princess Pink" },
+      { property: "og:title", content: "All-Access Pass · Midnight Glory" },
       {
         property: "og:description",
         content: "Choose monthly, 3/6/12-month, or lifetime access to the full library.",

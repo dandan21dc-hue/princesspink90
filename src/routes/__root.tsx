@@ -68,23 +68,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Princess Pink — Glory holes, private rooms & theatre nights" },
+      { title: "Midnight Glory — Glory holes, private rooms & theatre nights" },
       {
         name: "description",
         content:
-          "Princess Pink hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only.",
+          "Midnight Glory hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only.",
       },
-      { property: "og:title", content: "Princess Pink — Glory holes, private rooms & theatre nights" },
+      { property: "og:title", content: "Midnight Glory — Glory holes, private rooms & theatre nights" },
       {
         property: "og:description",
-        content: "Glory holes, private rooms, and adult theatre takeovers hosted by Princess Pink. 18+ only.",
+        content: "Glory holes, private rooms, and adult theatre takeovers hosted by Midnight Glory. 18+ only.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "Princess Pink" },
+      { property: "og:site_name", content: "Midnight Glory" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#0a0a0f" },
-      { name: "twitter:title", content: "Princess Pink — Glory holes, private rooms & theatre nights" },
-      { name: "twitter:description", content: "Princess Pink hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only." },
+      { name: "twitter:title", content: "Midnight Glory — Glory holes, private rooms & theatre nights" },
+      { name: "twitter:description", content: "Midnight Glory hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only." },
       { property: "og:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
       { name: "twitter:image", content: "https://id-preview--2ea7609b-c928-4ad6-b438-a4db3aadd458.lovable.app/og.jpg" },
       { name: "google-site-verification", content: "L6cxAJZao3yrM4xXKeBrsyMdFa94p4LVYXQ-tdjqmus" },
@@ -102,8 +102,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [
-            { "@type": "Organization", name: "Princess Pink", url: "https://princesspink90.lovable.app" },
-            { "@type": "WebSite", name: "Princess Pink", url: "https://princesspink90.lovable.app" },
+            { "@type": "Organization", name: "Midnight Glory", url: "https://princesspink90.lovable.app" },
+            { "@type": "WebSite", name: "Midnight Glory", url: "https://princesspink90.lovable.app" },
           ],
         }),
       },
@@ -147,7 +147,7 @@ function RootComponent() {
         <SiteHeader />
         <Outlet />
         <footer className="border-t border-border/50 mt-24 py-10 text-center text-xs text-muted-foreground">
-          <div>PRINCESS PINK · Adults only · 18+ · Consent, safety and discretion are non-negotiable.</div>
+          <div>MIDNIGHT GLORY · Adults only · 18+ · Consent, safety and discretion are non-negotiable.</div>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <Link to="/conduct" className="hover:text-foreground transition">Our Standards</Link>
             <span aria-hidden="true" className="opacity-40">·</span>

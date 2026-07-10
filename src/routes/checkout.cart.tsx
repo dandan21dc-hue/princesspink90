@@ -14,7 +14,7 @@ export const Route = createFileRoute("/checkout/cart")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Checkout — Princess Pink" },
+      { title: "Checkout — Midnight Glory" },
       { name: "robots", content: "noindex" },
     ],
   }),

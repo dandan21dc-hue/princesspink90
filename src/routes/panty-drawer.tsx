@@ -12,13 +12,13 @@ import { onImgError, resolveMediaUrl } from "@/lib/media-url";
 export const Route = createFileRoute("/panty-drawer")({
   head: () => ({
     meta: [
-      { title: "The Panty Drawer — Princess Pink" },
+      { title: "The Panty Drawer — Midnight Glory" },
       {
         name: "description",
         content:
           "Individually listed pairs from the drawer. Sealed pouch, discreet Australia-wide shipping.",
       },
-      { property: "og:title", content: "The Panty Drawer · Princess Pink" },
+      { property: "og:title", content: "The Panty Drawer · Midnight Glory" },
       {
         property: "og:description",
         content: "Hand-picked pairs — each with its own photo and price. Discreet AU shipping.",

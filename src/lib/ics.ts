@@ -46,7 +46,7 @@ export function buildIcs(event: IcsEvent): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Princess Pink//Bookings//EN",
+    "PRODID:-//Midnight Glory//Bookings//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

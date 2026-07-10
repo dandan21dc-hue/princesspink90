@@ -4,18 +4,18 @@ import { PartnershipForm } from '@/components/PartnershipForm'
 export const Route = createFileRoute('/partnerships')({
   head: () => ({
     meta: [
-      { title: 'Partner with Princess Pink — venues, sponsors, collabs' },
+      { title: 'Partner with Midnight Glory — venues, sponsors, collabs' },
       {
         name: 'description',
         content:
-          'Pitch a venue takeover, sponsorship, media feature, or collab with Princess Pink. Every enquiry is read personally.',
+          'Pitch a venue takeover, sponsorship, media feature, or collab with Midnight Glory. Every enquiry is read personally.',
       },
-      { property: 'og:title', content: 'Partner with Princess Pink' },
+      { property: 'og:title', content: 'Partner with Midnight Glory' },
       { property: 'og:description', content: 'Venue takeovers, sponsors, media, collabs. Every enquiry read personally.' },
       { property: 'og:type', content: 'website' },
       { property: 'og:url', content: 'https://princesspink90.lovable.app/partnerships' },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: 'Partner with Princess Pink' },
+      { name: 'twitter:title', content: 'Partner with Midnight Glory' },
       { name: 'twitter:description', content: 'Venue takeovers, sponsors, media, collabs. Every enquiry read personally.' },
     ],
     links: [{ rel: 'canonical', href: 'https://princesspink90.lovable.app/partnerships' }],
@@ -32,7 +32,7 @@ function PartnershipsPage() {
       </h1>
       <p className="mt-5 text-muted-foreground leading-relaxed">
         Adult-friendly venue, sponsor, media outlet, or fellow creator? I read every
-        partnership enquiry personally and reply from my Princess Pink address.
+        partnership enquiry personally and reply from my Midnight Glory address.
         Tell me who you are and what you're thinking.
       </p>
       <div className="mt-10 rounded-3xl border border-primary/30 bg-card/40 p-6 sm:p-8">

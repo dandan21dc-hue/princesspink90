@@ -27,7 +27,7 @@ const typeLabel: Record<string, string> = {
 const Email = ({ name, inquiryType, message }: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Thanks for reaching out to Princess Pink — I've got your message.</Preview>
+    <Preview>Thanks for reaching out to Midnight Glory — I've got your message.</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Thanks{name ? `, ${name}` : ''} — I've got your message.</Heading>
@@ -51,9 +51,9 @@ const Email = ({ name, inquiryType, message }: Props) => (
           In the meantime, everything I do is on <strong>princesspink90.com</strong> —
           have a look around.
         </Text>
-        <Text style={sig}>— Princess Pink</Text>
+        <Text style={sig}>— Midnight Glory</Text>
         <Text style={footer}>
-          Princess Pink · Adults only · 18+ · Consent, safety and discretion are non-negotiable.
+          Midnight Glory · Adults only · 18+ · Consent, safety and discretion are non-negotiable.
         </Text>
       </Container>
     </Body>
@@ -62,7 +62,7 @@ const Email = ({ name, inquiryType, message }: Props) => (
 
 export const template = {
   component: Email,
-  subject: 'Thanks — your partnership enquiry with Princess Pink',
+  subject: 'Thanks — your partnership enquiry with Midnight Glory',
   displayName: 'Partnership — confirmation to sender',
   previewData: {
     name: 'Jamie',

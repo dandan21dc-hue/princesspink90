@@ -30,11 +30,11 @@ import { MessageCircleHeart } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/support")({
   head: () => ({
     meta: [
-      { title: "Support chat — Princess Pink 90" },
+      { title: "Support chat — Midnight Glory 90" },
       {
         name: "description",
         content:
-          "Chat with the Princess Pink 90 support assistant for help with your account, events, RSVPs, and more. Escalates to a human when needed.",
+          "Chat with the Midnight Glory 90 support assistant for help with your account, events, RSVPs, and more. Escalates to a human when needed.",
       },
     ],
   }),

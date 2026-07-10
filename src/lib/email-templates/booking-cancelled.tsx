@@ -69,9 +69,9 @@ const Email = ({
           dashboard to make a new reservation.
         </Text>
 
-        <Text style={sig}>— Princess Pink</Text>
+        <Text style={sig}>— Midnight Glory</Text>
         <Text style={footer}>
-          Princess Pink · Adults only · 18+ · Consent, safety and discretion are non-negotiable.
+          Midnight Glory · Adults only · 18+ · Consent, safety and discretion are non-negotiable.
         </Text>
       </Container>
     </Body>
@@ -89,7 +89,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export const template = {
   component: Email,
-  subject: 'Your Princess Pink private-room booking is cancelled',
+  subject: 'Your Midnight Glory private-room booking is cancelled',
   displayName: 'Private room — booking cancelled',
   previewData: {
     name: 'Jamie',

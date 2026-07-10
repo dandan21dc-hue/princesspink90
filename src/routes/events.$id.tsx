@@ -415,7 +415,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
       <div>
         <div className="mb-2 text-[10px] uppercase tracking-[0.25em] text-primary">Video consent</div>
         <div className="space-y-1.5 text-sm">
-          <Check label="Private archive only (Princess Pink's records)" checked={consent.private_archive} onChange={toggle("private_archive")} />
+          <Check label="Private archive only (Midnight Glory's records)" checked={consent.private_archive} onChange={toggle("private_archive")} />
           <Check label="OK to use in public promo / social" checked={consent.public_promo} onChange={toggle("public_promo")} />
           <Check label="Only if my face is blurred" checked={consent.face_blurred_only} onChange={toggle("face_blurred_only")} />
           <Check label="Do not film me at all" checked={consent.no_filming} onChange={toggle("no_filming")} />
@@ -506,7 +506,7 @@ function RsvpBox({ eventId }: { eventId: string }) {
           className="mt-1"
         />
         <span>
-          I have read and agree to the Princess Pink{" "}
+          I have read and agree to the Midnight Glory{" "}
           <Link
             to="/privacy"
             target="_blank"

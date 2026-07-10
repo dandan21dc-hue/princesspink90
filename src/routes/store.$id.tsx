@@ -31,8 +31,8 @@ export const Route = createFileRoute("/store/$id")({
     }
     return {
       meta: [
-        { title: `${loaderData.title} — Princess Pink store` },
-        { name: "description", content: loaderData.description ?? "Buy on Princess Pink's store." },
+        { title: `${loaderData.title} — Midnight Glory store` },
+        { name: "description", content: loaderData.description ?? "Buy on Midnight Glory's store." },
         { property: "og:title", content: loaderData.title },
         { property: "og:description", content: loaderData.description ?? "" },
         { property: "og:type", content: "product" },

@@ -18,12 +18,12 @@ interface Props {
 const Email = ({ name, body, originalMessage }: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>{body ? body.slice(0, 120) : 'A reply from Princess Pink'}</Preview>
+    <Preview>{body ? body.slice(0, 120) : 'A reply from Midnight Glory'}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Hi{name ? ` ${name}` : ''},</Heading>
         <Text style={text} className="whitespace-pre-wrap">{body}</Text>
-        <Text style={sig}>— Princess Pink</Text>
+        <Text style={sig}>— Midnight Glory</Text>
         {originalMessage && (
           <>
             <hr style={hr} />
@@ -38,7 +38,7 @@ const Email = ({ name, body, originalMessage }: Props) => (
 
 export const template = {
   component: Email,
-  subject: (data: Record<string, any>) => data.subject || 'A reply from Princess Pink',
+  subject: (data: Record<string, any>) => data.subject || 'A reply from Midnight Glory',
   displayName: 'Partnership — admin reply',
   previewData: {
     name: 'Jamie',

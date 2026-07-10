@@ -72,7 +72,7 @@ export const Route = createFileRoute("/store/subscribe")({
   },
   head: () => ({
     meta: [
-      { title: "All-Access Pass — Princess Pink" },
+      { title: "All-Access Pass — Midnight Glory" },
       {
         name: "description",
         content:

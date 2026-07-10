@@ -23,7 +23,7 @@ export async function buildBookingReceiptPdf(input: BookingReceiptInput): Promis
   const muted = rgb(0.42, 0.42, 0.48);
 
   let y = 790;
-  page.drawText("PRINCESS PINK", { x: 48, y, size: 10, font: bold, color: pink });
+  page.drawText("MIDNIGHT GLORY", { x: 48, y, size: 10, font: bold, color: pink });
   y -= 14;
   page.drawText("Booking receipt", { x: 48, y, size: 22, font: bold, color: ink });
 
@@ -69,7 +69,7 @@ export async function buildBookingReceiptPdf(input: BookingReceiptInput): Promis
     { x: 48, y, size: 9, font, color: muted },
   );
   y -= 14;
-  page.drawText("Thank you for booking with Princess Pink.", { x: 48, y, size: 9, font, color: muted });
+  page.drawText("Thank you for booking with Midnight Glory.", { x: 48, y, size: 9, font, color: muted });
 
   return await doc.save();
 }

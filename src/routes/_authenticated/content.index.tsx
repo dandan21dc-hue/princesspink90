@@ -5,7 +5,7 @@ import { listMyContent, deleteContentItem } from "@/lib/store.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/content/")({
-  head: () => ({ meta: [{ title: "My content — Princess Pink" }] }),
+  head: () => ({ meta: [{ title: "My content — Midnight Glory" }] }),
   component: ContentAdminPage,
 });
 

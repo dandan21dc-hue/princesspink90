@@ -7,7 +7,7 @@ import { getMyMembership, requestPrivateSession } from "@/lib/memberships.functi
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 
 export const Route = createFileRoute("/_authenticated/library")({
-  head: () => ({ meta: [{ title: "My library — Princess Pink" }] }),
+  head: () => ({ meta: [{ title: "My library — Midnight Glory" }] }),
   component: LibraryPage,
 });
 

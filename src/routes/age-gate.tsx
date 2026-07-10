@@ -10,7 +10,7 @@ export const Route = createFileRoute("/age-gate")({
   }),
   head: () => ({
     meta: [
-      { title: "18+ confirmation — Princess Pink" },
+      { title: "18+ confirmation — Midnight Glory" },
       { name: "robots", content: "noindex" },
     ],
   }),

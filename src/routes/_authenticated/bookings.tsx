@@ -39,7 +39,7 @@ const bookingSearchSchema = z.object({
 
 export const Route = createFileRoute("/_authenticated/bookings")({
   validateSearch: zodValidator(bookingSearchSchema),
-  head: () => ({ meta: [{ title: "My Bookings · Princess Pink" }] }),
+  head: () => ({ meta: [{ title: "My Bookings · Midnight Glory" }] }),
   component: BookingsPage,
   errorComponent: ({ error }) => (
     <div className="mx-auto max-w-3xl px-5 py-12 text-sm text-destructive">

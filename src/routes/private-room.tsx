@@ -13,13 +13,13 @@ import { listPrivateRoomBusy } from "@/lib/store.functions";
 export const Route = createFileRoute("/private-room")({
   head: () => ({
     meta: [
-      { title: "Private Room Booking — Princess Pink" },
+      { title: "Private Room Booking — Midnight Glory" },
       {
         name: "description",
         content:
-          "Book a private-room session with Princess Pink — 30 minutes or 1 hour. Pick a date and time, pay securely.",
+          "Book a private-room session with Midnight Glory — 30 minutes or 1 hour. Pick a date and time, pay securely.",
       },
-      { property: "og:title", content: "Private Room Booking · Princess Pink" },
+      { property: "og:title", content: "Private Room Booking · Midnight Glory" },
       {
         property: "og:description",
         content: "Reserve a 30-minute or 1-hour private session.",
