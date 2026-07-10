@@ -56,7 +56,7 @@ export const Route = createFileRoute('/api/public/bookings/$id/ics')({
           status: 200,
           headers: {
             'Content-Type': 'text/calendar; charset=utf-8',
-            'Content-Disposition': `attachment; filename="princess-pink-booking-${booking.id.slice(0, 8)}.ics"`,
+            'Content-Disposition': `attachment; filename="midnight-glory-booking-${booking.id.slice(0, 8)}.ics"`,
             'Cache-Control': 'private, no-store',
           },
         })
