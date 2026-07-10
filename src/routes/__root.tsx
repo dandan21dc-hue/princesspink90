@@ -148,6 +148,12 @@ function RootComponent() {
         <Outlet />
         <footer className="border-t border-border/50 mt-24 py-10 text-center text-xs text-muted-foreground">
           <div>MIDNIGHT GLORY · Adults only · 18+ · Consent, safety and discretion are non-negotiable.</div>
+          <div className="mt-1">
+            Hosted by <span className="text-foreground">princesspink90.com</span> ·{" "}
+            <a href="mailto:midnight-glory@princesspink90.com" className="hover:text-foreground transition">
+              midnight-glory@princesspink90.com
+            </a>
+          </div>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <Link to="/conduct" className="hover:text-foreground transition">Our Standards</Link>
             <span aria-hidden="true" className="opacity-40">·</span>
