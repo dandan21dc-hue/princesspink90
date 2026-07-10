@@ -294,7 +294,7 @@ function PrivateRoomPage() {
           <>
             <div className="mt-4">
               <div className="text-xs uppercase tracking-[0.3em] text-primary">
-                Private Room
+                Glory Holes
               </div>
               <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
                 Book a glory hole session
@@ -571,7 +571,7 @@ function DurationCard({
     >
       <div>
         <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
-          Private Room
+          Glory Holes
         </div>
         <div className="mt-1 font-display text-2xl font-extrabold">{label}</div>
       </div>
