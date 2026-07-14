@@ -62,7 +62,7 @@ function AdminAuditPage() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = 50;
+  const [pageSize, setPageSize] = useState<number>(50);
   const [sort, setSort] = useState<"created_at" | "action" | "resource" | "actor_id">("created_at");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (col: typeof sort) => {
@@ -73,6 +73,13 @@ function AdminAuditPage() {
     }
     setPage(1);
   };
+  const applyPreset = (preset: "newest" | "oldest") => {
+    setSort("created_at");
+    setDir(preset === "newest" ? "desc" : "asc");
+    setPage(1);
+  };
+  const isPreset = (preset: "newest" | "oldest") =>
+    sort === "created_at" && dir === (preset === "newest" ? "desc" : "asc");
 
   const toIsoStart = (d: string) => (d ? new Date(d + "T00:00:00").toISOString() : undefined);
   const toIsoEnd = (d: string) => (d ? new Date(d + "T23:59:59.999").toISOString() : undefined);
@@ -456,12 +463,66 @@ function AdminAuditPage() {
           </div>
         </form>
 
-        <div className="mb-3 flex items-center gap-3">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-card/60 p-0.5 text-[11px]">
+            <span className="px-2 text-muted-foreground uppercase tracking-widest">Sort</span>
+            <button
+              type="button"
+              onClick={() => applyPreset("newest")}
+              className={`rounded px-2 py-1 uppercase tracking-widest ${
+                isPreset("newest")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-pressed={isPreset("newest")}
+            >
+              Newest
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset("oldest")}
+              className={`rounded px-2 py-1 uppercase tracking-widest ${
+                isPreset("oldest")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-pressed={isPreset("oldest")}
+            >
+              Oldest
+            </button>
+            {sort !== "created_at" && (
+              <span className="px-2 text-muted-foreground">
+                Sorted by {sort} {dir === "asc" ? "↑" : "↓"}
+              </span>
+            )}
+          </div>
+          <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="uppercase tracking-widest">Per page</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+            >
+              {[25, 50, 100, 200].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="text-xs text-muted-foreground">
             {entries.isLoading
               ? "Loading…"
               : `${total} match${total === 1 ? "" : "es"} · showing ${rows.length}`}
           </div>
+          {(alerts.data ?? []).some((a) => !a.acknowledged_at) && (
+            <span className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-amber-600 dark:text-amber-400">
+              Severity → see integrity alerts above
+            </span>
+          )}
           <button
             onClick={async () => {
               if (exporting) return;
@@ -633,11 +694,42 @@ function AdminAuditPage() {
             </table>
           </div>
         )}
-        <div className="mt-4 flex items-center justify-between gap-3 text-xs">
-          <div className="text-muted-foreground">
-            Page {page} of {totalPages}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <span>
+              Page {page} of {totalPages}
+            </span>
+            {total > 0 && (
+              <span className="hidden sm:inline">
+                · rows {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total.toLocaleString()}
+              </span>
+            )}
+            <label className="inline-flex items-center gap-1">
+              <span className="uppercase tracking-widest">Go to</span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={page}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (!Number.isFinite(n)) return;
+                  setPage(Math.max(1, Math.min(totalPages, Math.floor(n))));
+                }}
+                className="w-16 rounded-md border border-input bg-background px-2 py-1 text-xs"
+              />
+            </label>
           </div>
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage(1)}
+              disabled={page <= 1 || entries.isFetching}
+              className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
+              aria-label="First page"
+            >
+              « First
+            </button>
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -653,6 +745,15 @@ function AdminAuditPage() {
               className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
             >
               Next
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages || entries.isFetching}
+              className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
+              aria-label="Last page"
+            >
+              Last »
             </button>
           </div>
         </div>
