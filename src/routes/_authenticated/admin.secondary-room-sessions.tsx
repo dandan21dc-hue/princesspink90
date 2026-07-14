@@ -526,6 +526,20 @@ function SecondaryRoomSessionsAdmin() {
           }}
         />
       )}
+
+      {confirmAction !== null && (
+        <ConfirmBulkDialog
+          action={confirmAction}
+          count={selected.size}
+          busy={bulkBusy}
+          progress={bulkProgress}
+          onCancel={() => {
+            if (bulkBusy) return;
+            setConfirmAction(null);
+          }}
+          onConfirm={() => runBulk(confirmAction)}
+        />
+      )}
     </Shell>
   );
 }
