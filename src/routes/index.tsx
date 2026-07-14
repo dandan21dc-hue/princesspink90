@@ -80,7 +80,6 @@ function Home() {
         </Link>
       </section>
       <HostBlock />
-      <MapSection />
       <CohostBlock />
       <section id="partnerships" className="mx-auto max-w-3xl px-5 pb-24">
         <div className="rounded-3xl border border-neon/30 bg-gradient-to-br from-neon/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)] sm:p-10">
@@ -97,6 +96,7 @@ function Home() {
           </div>
         </div>
       </section>
+      <MapSection />
 
     </>
   );
