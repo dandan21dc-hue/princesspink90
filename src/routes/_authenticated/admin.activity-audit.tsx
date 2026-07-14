@@ -179,6 +179,14 @@ function AdminAuditPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-alerts"] }),
   });
 
+  const quarantineFn = useServerFn(setAuditEntryQuarantine);
+  const quarantine = useMutation({
+    mutationFn: (v: { id: string; quarantined: boolean; reason?: string }) =>
+      quarantineFn({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-entries"] }),
+  });
+
+
   if (me.isLoading) {
     return (
       <main className="min-h-screen bg-background p-8 text-sm text-muted-foreground">
