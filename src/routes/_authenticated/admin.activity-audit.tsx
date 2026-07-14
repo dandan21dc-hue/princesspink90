@@ -58,6 +58,7 @@ function AdminAuditPage() {
     to: "",
   });
   const [applied, setApplied] = useState(filters);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 50;
   const [sort, setSort] = useState<"created_at" | "action" | "resource" | "actor_id">("created_at");
