@@ -652,6 +652,9 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function PricingAuditSection() {
   const listFn = useServerFn(listPricingAudit);
+  const exportFn = useServerFn(exportPricingAudit);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
