@@ -280,7 +280,7 @@ function AdminOrdersStatusPage() {
                           </td>
                         </tr>
                       ) : null}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
