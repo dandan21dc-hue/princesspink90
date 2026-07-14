@@ -963,3 +963,76 @@ function generateBulkSlots(cfg: {
   }
   return slots;
 }
+
+function ConfirmBulkDialog({
+  action,
+  count,
+  busy,
+  progress,
+  onCancel,
+  onConfirm,
+}: {
+  action: "delete" | "book" | "available";
+  count: number;
+  busy: boolean;
+  progress: { done: number; total: number } | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const isDelete = action === "delete";
+  const title =
+    action === "delete"
+      ? "Delete selected slots?"
+      : action === "book"
+        ? "Mark selected as booked / blocked?"
+        : "Mark selected as available?";
+  const body =
+    action === "delete"
+      ? `This will permanently remove ${count} slot${count === 1 ? "" : "s"}. This can't be undone.`
+      : action === "book"
+        ? `This will hide ${count} slot${count === 1 ? "" : "s"} from the public Glory Holes booking page.`
+        : `This will re-open ${count} slot${count === 1 ? "" : "s"} for public booking.`;
+  const confirmLabel =
+    action === "delete" ? "Delete" : action === "book" ? "Mark booked" : "Mark available";
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur"
+      onClick={onCancel}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl"
+      >
+        <h2 className="font-display text-xl font-semibold">{title}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+        {progress && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Processing {progress.done} / {progress.total}…
+          </p>
+        )}
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest hover:bg-secondary/40 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className={`rounded-md px-4 py-2 text-xs font-semibold uppercase tracking-widest disabled:opacity-60 ${
+              isDelete
+                ? "bg-destructive text-destructive-foreground hover:brightness-110"
+                : "bg-primary text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+            }`}
+          >
+            {busy ? "Working…" : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
