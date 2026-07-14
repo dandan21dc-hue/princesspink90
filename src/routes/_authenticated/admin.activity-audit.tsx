@@ -70,7 +70,17 @@ function AdminAuditPage() {
 
   const purge = useMutation({
     mutationFn: () => purgeFn(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-entries"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-audit-entries"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit-purge-status"] });
+    },
+  });
+
+  const purgeStatus = useQuery({
+    queryKey: ["admin-audit-purge-status"],
+    queryFn: () => statusFn(),
+    enabled: isAdmin,
+    refetchInterval: 60_000,
   });
 
   const alerts = useQuery({
