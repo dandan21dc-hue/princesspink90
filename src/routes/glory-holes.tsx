@@ -252,6 +252,25 @@ function PrivateRoomPage() {
     if (!isOpen && pending) setPending(false);
   }, [isOpen, pending]);
 
+  if (enabledQuery.data && !enabledQuery.data.enabled) {
+    return (
+      <section className="mx-auto max-w-3xl px-5 pt-16 pb-24 text-center">
+        <Link
+          to="/store"
+          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
+          ← Store
+        </Link>
+        <h1 className="mt-6 font-display text-4xl font-extrabold sm:text-5xl">
+          Glory Holes booking is currently unavailable
+        </h1>
+        <p className="mt-4 text-sm text-muted-foreground">
+          This page has been paused by the host. Please check back later.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <>
       <PaymentTestModeBanner />
@@ -262,6 +281,7 @@ function PrivateRoomPage() {
         >
           ← Store
         </Link>
+
 
         {isOpen ? (
           <div className="mt-6 rounded-2xl border border-border/60 bg-card p-4">
