@@ -95,7 +95,7 @@ const updateSchema = z.object({
       message: `Session price must be at most A$${(SESSION_PRICE_MAX_CENTS / 100).toFixed(2)}.`,
     }),
   session_duration_minutes: z
-    .number({ invalid_type_error: "Session duration must be a number." })
+    .number({ error: "Session duration must be a number." })
     .int("Session duration must be a whole number of minutes.")
     .min(SESSION_DURATION_MIN_MINUTES, {
       message: `Session duration must be at least ${SESSION_DURATION_MIN_MINUTES} minutes.`,
