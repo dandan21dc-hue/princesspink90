@@ -2445,6 +2445,12 @@ export type Database = {
         }[]
       }
       run_payment_integrity_checks: { Args: never; Returns: number }
+      search_admin_audit_ids: {
+        Args: { _q: string }
+        Returns: {
+          id: string
+        }[]
+      }
       update_payment_integrity_schedule: {
         Args: { _frequency: string; _timezone: string }
         Returns: {
