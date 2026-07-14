@@ -636,8 +636,8 @@ export type Database = {
           content_item_id: string
           created_at: string
           environment: string
+          external_payment_reference: string | null
           id: string
-          stripe_session_id: string | null
           user_id: string
         }
         Insert: {
@@ -645,8 +645,8 @@ export type Database = {
           content_item_id: string
           created_at?: string
           environment?: string
+          external_payment_reference?: string | null
           id?: string
-          stripe_session_id?: string | null
           user_id: string
         }
         Update: {
@@ -654,8 +654,8 @@ export type Database = {
           content_item_id?: string
           created_at?: string
           environment?: string
+          external_payment_reference?: string | null
           id?: string
-          stripe_session_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -698,48 +698,6 @@ export type Database = {
           message?: string
           resolved_at?: string | null
           severity?: string
-        }
-        Relationships: []
-      }
-      dunning_schedule: {
-        Row: {
-          created_at: string
-          environment: string
-          id: string
-          last_sent_at: string | null
-          last_sent_stage: string | null
-          next_email_at: string
-          stage: string
-          stripe_invoice_id: string
-          stripe_subscription_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          environment: string
-          id?: string
-          last_sent_at?: string | null
-          last_sent_stage?: string | null
-          next_email_at: string
-          stage?: string
-          stripe_invoice_id: string
-          stripe_subscription_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          environment?: string
-          id?: string
-          last_sent_at?: string | null
-          last_sent_stage?: string | null
-          next_email_at?: string
-          stage?: string
-          stripe_invoice_id?: string
-          stripe_subscription_id?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -1213,7 +1171,6 @@ export type Database = {
           private_session_duration_minutes: number
           private_session_fulfilled_at: string | null
           private_session_requested_at: string | null
-          stripe_session_id: string | null
           term_months: number | null
           updated_at: string
           user_id: string
@@ -1233,7 +1190,6 @@ export type Database = {
           private_session_duration_minutes?: number
           private_session_fulfilled_at?: string | null
           private_session_requested_at?: string | null
-          stripe_session_id?: string | null
           term_months?: number | null
           updated_at?: string
           user_id: string
@@ -1253,7 +1209,6 @@ export type Database = {
           private_session_duration_minutes?: number
           private_session_fulfilled_at?: string | null
           private_session_requested_at?: string | null
-          stripe_session_id?: string | null
           term_months?: number | null
           updated_at?: string
           user_id?: string
@@ -1377,6 +1332,7 @@ export type Database = {
           customer_email: string | null
           discount_percent: number
           environment: string
+          external_payment_reference: string | null
           hours: number
           id: string
           panty_listing_id: string | null
@@ -1388,7 +1344,6 @@ export type Database = {
           shipping_postal_code: string | null
           shipping_state: string | null
           status: string
-          stripe_session_id: string | null
           updated_at: string
           user_id: string
           variant: string
@@ -1401,6 +1356,7 @@ export type Database = {
           customer_email?: string | null
           discount_percent?: number
           environment?: string
+          external_payment_reference?: string | null
           hours: number
           id?: string
           panty_listing_id?: string | null
@@ -1412,7 +1368,6 @@ export type Database = {
           shipping_postal_code?: string | null
           shipping_state?: string | null
           status?: string
-          stripe_session_id?: string | null
           updated_at?: string
           user_id: string
           variant: string
@@ -1425,6 +1380,7 @@ export type Database = {
           customer_email?: string | null
           discount_percent?: number
           environment?: string
+          external_payment_reference?: string | null
           hours?: number
           id?: string
           panty_listing_id?: string | null
@@ -1436,7 +1392,6 @@ export type Database = {
           shipping_postal_code?: string | null
           shipping_state?: string | null
           status?: string
-          stripe_session_id?: string | null
           updated_at?: string
           user_id?: string
           variant?: string
@@ -1640,12 +1595,12 @@ export type Database = {
           customer_email: string | null
           duration_minutes: number
           environment: string
+          external_payment_reference: string | null
           id: string
           notes: string | null
           party_size: number | null
           starts_at: string
           status: string
-          stripe_session_id: string | null
           updated_at: string
           user_id: string | null
         }
@@ -1656,12 +1611,12 @@ export type Database = {
           customer_email?: string | null
           duration_minutes: number
           environment?: string
+          external_payment_reference?: string | null
           id?: string
           notes?: string | null
           party_size?: number | null
           starts_at: string
           status?: string
-          stripe_session_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1672,12 +1627,12 @@ export type Database = {
           customer_email?: string | null
           duration_minutes?: number
           environment?: string
+          external_payment_reference?: string | null
           id?: string
           notes?: string | null
           party_size?: number | null
           starts_at?: string
           status?: string
-          stripe_session_id?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -2032,113 +1987,6 @@ export type Database = {
           new_session_price_cents?: number | null
           old_session_duration_minutes?: number | null
           old_session_price_cents?: number | null
-        }
-        Relationships: []
-      }
-      stripe_webhook_events: {
-        Row: {
-          correlation_id: string
-          created_at: string
-          environment: string
-          error_message: string | null
-          event_type: string
-          id: string
-          processed_at: string | null
-          processing_ms: number | null
-          raw_payload: Json
-          received_at: string
-          replay_of_event_id: string | null
-          replayed_at: string | null
-          status: string
-          stripe_event_id: string | null
-        }
-        Insert: {
-          correlation_id?: string
-          created_at?: string
-          environment: string
-          error_message?: string | null
-          event_type: string
-          id?: string
-          processed_at?: string | null
-          processing_ms?: number | null
-          raw_payload: Json
-          received_at?: string
-          replay_of_event_id?: string | null
-          replayed_at?: string | null
-          status?: string
-          stripe_event_id?: string | null
-        }
-        Update: {
-          correlation_id?: string
-          created_at?: string
-          environment?: string
-          error_message?: string | null
-          event_type?: string
-          id?: string
-          processed_at?: string | null
-          processing_ms?: number | null
-          raw_payload?: Json
-          received_at?: string
-          replay_of_event_id?: string | null
-          replayed_at?: string | null
-          status?: string
-          stripe_event_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "stripe_webhook_events_replay_of_event_id_fkey"
-            columns: ["replay_of_event_id"]
-            isOneToOne: false
-            referencedRelation: "stripe_webhook_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      subscriptions: {
-        Row: {
-          cancel_at_period_end: boolean | null
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          environment: string
-          id: string
-          price_id: string
-          product_id: string
-          status: string
-          stripe_customer_id: string
-          stripe_subscription_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          environment?: string
-          id?: string
-          price_id: string
-          product_id: string
-          status?: string
-          stripe_customer_id: string
-          stripe_subscription_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          cancel_at_period_end?: boolean | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          environment?: string
-          id?: string
-          price_id?: string
-          product_id?: string
-          status?: string
-          stripe_customer_id?: string
-          stripe_subscription_id?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -2546,7 +2394,6 @@ export type Database = {
           private_session_duration_minutes: number
           private_session_fulfilled_at: string | null
           private_session_requested_at: string | null
-          stripe_session_id: string | null
           term_months: number | null
           updated_at: string
           user_id: string
