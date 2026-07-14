@@ -528,6 +528,38 @@ function SlotDialog({
           </label>
         </div>
 
+        {rangeInvalid && (
+          <p className="mt-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            End time must be after start time. Move the end time later than {start || "the start"}.
+          </p>
+        )}
+        {!rangeInvalid && overlaps.length > 0 && (
+          <div className="mt-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div className="font-semibold">
+              ⚠ Overlaps {overlaps.length} existing slot{overlaps.length === 1 ? "" : "s"} — fix before saving
+            </div>
+            <ul className="mt-2 space-y-1 text-xs text-foreground">
+              {overlaps.slice(0, 5).map((o) => {
+                const oStart = new Date(o.start_time).getTime();
+                const oEnd = new Date(o.end_time).getTime();
+                const newStart = new Date(startISO).getTime();
+                const suggestion =
+                  newStart >= oStart
+                    ? `start at or after ${fmt(o.end_time)}`
+                    : `end by ${fmt(o.start_time)}`;
+                return (
+                  <li key={o.id}>
+                    Conflicts with {fmt(o.start_time)} → {fmt(o.end_time)}
+                    {o.is_booked ? " (booked/blocked)" : " (available)"}. Try: {suggestion}.
+                  </li>
+                );
+              })}
+              {overlaps.length > 5 && (
+                <li className="text-muted-foreground">…and {overlaps.length - 5} more.</li>
+              )}
+            </ul>
+          </div>
+        )}
         {localErr && (
           <p className="mt-3 text-sm text-destructive">{localErr}</p>
         )}
@@ -542,7 +574,7 @@ function SlotDialog({
           </button>
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || rangeInvalid || overlaps.length > 0}
             className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:opacity-60"
           >
             {pending ? "Saving…" : initial ? "Save changes" : "Create slot"}
