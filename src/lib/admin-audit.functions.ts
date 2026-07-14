@@ -81,8 +81,11 @@ export type AuditSortDir = "asc" | "desc";
 
 export type ListAuditFilters = {
   action?: string;
+  action_match?: "contains" | "exact";
   resource?: string;
+  resource_match?: "contains" | "exact";
   actor_id?: string;
+  actor_name?: string;
   q?: string;
   from?: string;
   to?: string;
