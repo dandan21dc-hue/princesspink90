@@ -258,5 +258,9 @@ export const listWorkspaceBusy = createServerFn({ method: "GET" })
         };
       },
     );
-    return [...busy, ...blockedBusy];
+    const combined: Array<{ starts_at: string; duration_minutes: number }> = [
+      ...busy,
+      ...blockedBusy,
+    ];
+    return combined;
   });
