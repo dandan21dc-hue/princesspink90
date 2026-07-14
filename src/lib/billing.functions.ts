@@ -177,7 +177,7 @@ export const listMyInvoices = createServerFn({ method: "GET" })
         customer: customerId,
         limit: 12,
       });
-      return invoices.data.map((inv) => ({
+      return invoices.data.map((inv: any) => ({
         id: inv.id ?? "",
         number: inv.number ?? null,
         amount_paid: inv.amount_paid ?? 0,

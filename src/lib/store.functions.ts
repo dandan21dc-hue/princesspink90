@@ -180,7 +180,7 @@ export const getMyPrivateRoomBookingBySession = createServerFn({ method: "POST" 
       .select(
         "id,starts_at,duration_minutes,status,amount_cents,currency,party_size,notes,customer_email,created_at",
       )
-      .eq("stripe_session_id", data.sessionId)
+      .eq("stripe_session_id" as any, data.sessionId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return row;
@@ -943,17 +943,9 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
       if (data.priceId) {
         const prices = await stripe.prices.list({ lookup_keys: [data.priceId] });
         let stripePrice = prices.data[0];
-        // Validate against the expected catalogue (interval + amount).
-        // Logs a structured event when the plan is missing or misconfigured
-        // in Stripe so drift is visible in server function logs.
-        const { validatePlanPrice } = await import("@/lib/planPriceValidation.server");
-        const issue = validatePlanPrice(data.priceId, stripePrice);
+        // Historical Stripe plan-price validator was removed with Stripe;
+        // NOWPayments enforces amounts server-side via EXPECTED_PLAN_PRICES.
         if (!stripePrice) throw new Error("Price not found");
-        if (issue?.kind === "mismatch") {
-          throw new Error(
-            `Plan ${issue.lookupKey} is misconfigured in Stripe (${issue.fields.join(", ")}). Please contact support.`,
-          );
-        }
 
         const isLifetime = data.priceId === "lifetime_onetime_aud";
         // Accept both the newer `_onetime_aud` and legacy `_monthly_aud`
@@ -1151,7 +1143,7 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
           await supabaseAdmin
             .from("private_room_bookings")
-            .update({ stripe_session_id: session.id })
+            .update({ stripe_session_id: session.id } as any)
             .eq("id", privateRoomBookingId);
         }
 
@@ -1541,19 +1533,18 @@ export const getMyLibrary = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId } = context;
     const env = process.env.NODE_ENV === "production" ? "live" : "sandbox";
-    const { data: sub } = await supabase
-      .from("subscriptions")
-      .select("status,current_period_end")
-      .eq("user_id", userId)
-      .eq("environment", env)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Subscriptions table was dropped when Stripe was removed. All-Access
+    // now flows exclusively through `memberships` below; recurring
+    // "subscription" access no longer exists as a separate row.
+    const sub: {
+      status: string;
+      current_period_end: string | null;
+    } | null = null as any;
     const now = Date.now();
     const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end).getTime() : null;
     const hasRecurring = !!sub && (
-      (["active", "trialing", "past_due"].includes(sub.status) && (!periodEnd || periodEnd > now))
-      || (sub.status === "canceled" && !!periodEnd && periodEnd > now)
+      (["active", "trialing", "past_due"].includes(sub!.status) && (!periodEnd || periodEnd > now))
+      || (sub!.status === "canceled" && !!periodEnd && periodEnd > now)
     );
 
     const { data: memberships } = await supabase
@@ -1753,7 +1744,7 @@ export const getCheckoutSession = createServerFn({ method: "POST" })
       const { data: orders } = await context.supabase
         .from("panty_orders")
         .select("id")
-        .eq("stripe_session_id", session.id);
+        .eq("stripe_session_id" as any, session.id);
       const orderIds = (orders ?? []).map((o) => o.id as string);
 
       return {

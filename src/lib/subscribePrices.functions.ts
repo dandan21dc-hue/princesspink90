@@ -65,7 +65,7 @@ export const checkPricesExist = createServerFn({ method: "POST" })
         active: true,
         limit: 100,
       });
-      const found = new Set(result.data.map((p) => p.lookup_key).filter(Boolean) as string[]);
+      const found = new Set(result.data.map((p: any) => p.lookup_key).filter(Boolean) as string[]);
       const missing = data.lookupKeys.filter((k) => !found.has(k));
       if (missing.length > 0) {
         console.error("[plan-price-validation] preflight missing", { missing });

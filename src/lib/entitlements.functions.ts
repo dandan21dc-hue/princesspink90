@@ -17,14 +17,11 @@ export const getMyStoreEntitlements = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const e = env();
 
-    const [subsRes, memRes] = await Promise.all([
-      supabase
-        .from("subscriptions")
-        .select("status, current_period_end, price_id")
-        .eq("user_id", userId)
-        .eq("environment", e)
-        .order("created_at", { ascending: false })
-        .limit(1),
+    // Subscriptions table was dropped when Stripe was removed. Recurring
+    // access is no longer tracked as a first-class row — everything flows
+    // through `memberships`, so `sub` is always null here.
+    const [subsRes, memRes]: [{ data: any[] | null }, { data: any }] = await Promise.all([
+      Promise.resolve({ data: null }),
       supabase
         .from("memberships")
         .select("kind, expires_at")
