@@ -410,6 +410,49 @@ function AdminAuditPage() {
 
 
       <section className="mx-auto max-w-5xl px-5 pb-16">
+        {(() => {
+          const trustChips: Array<{ key: "all" | AuditTrustState; label: string; tone: string }> = [
+            { key: "all", label: "All", tone: "text-muted-foreground" },
+            { key: "trusted", label: "Trusted", tone: "text-emerald-600 dark:text-emerald-400" },
+            { key: "untrusted", label: "Untrusted", tone: "text-destructive" },
+            { key: "quarantined", label: "Quarantined", tone: "text-amber-600 dark:text-amber-400" },
+          ];
+          return (
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Trust</span>
+              <div className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-card/60 p-0.5 text-[11px]">
+                {trustChips.map((c) => {
+                  const active = applied.trust === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => {
+                        setFilters((f) => ({ ...f, trust: c.key }));
+                        setApplied((a) => ({ ...a, trust: c.key }));
+                        setPage(1);
+                      }}
+                      className={`rounded px-2 py-1 uppercase tracking-widest ${
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : `${c.tone} hover:text-foreground`
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {quarantine.error && (
+                <span className="text-[11px] text-destructive">
+                  {quarantine.error instanceof Error ? quarantine.error.message : "Failed"}
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
