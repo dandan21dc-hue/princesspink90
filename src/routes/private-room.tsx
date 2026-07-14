@@ -230,12 +230,35 @@ function PrivateRoomPage() {
     return busyRanges.some((b) => b.start < e && b.end > s);
   }
 
+  // Real-time conflict detection for the slot the guest currently has picked.
+  // If the busy list refresh reveals someone else grabbed it (or it slipped
+  // inside the 1-hour lead window while they were reading), surface a clear
+  // message instead of silently letting them try to check out.
+  const selectedConflict = selectedSlot ? slotConflicts(selectedSlot) : false;
+  const selectedConflictReason = useMemo(() => {
+    if (!selectedSlot || !selectedConflict) return null;
+    const s = selectedSlot.getTime();
+    if (s < now + 60 * 60 * 1000) {
+      return "This time is now inside the 1-hour lead window. Please pick a slot at least an hour from now.";
+    }
+    return "This time was just booked or placed on hold by someone else. Please choose another slot.";
+  }, [selectedSlot, selectedConflict, now]);
+
+  // If we're in the review step and the slot becomes unavailable, kick the
+  // guest back to the picker so they can see the grid and the banner together.
+  useEffect(() => {
+    if (reviewing && selectedConflict) {
+      setReviewing(false);
+    }
+  }, [reviewing, selectedConflict]);
+
   function review() {
     if (!user) {
       navigate({ to: "/auth", search: { next: "/private-room" } });
       return;
     }
     if (!selectedSlot) return;
+    if (selectedConflict) return;
     if (notes.length > 1000) return;
     setReviewing(true);
   }
