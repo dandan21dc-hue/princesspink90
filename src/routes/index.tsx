@@ -29,6 +29,7 @@ export const Route = createFileRoute("/")({
     Promise.all([
       context.queryClient.ensureQueryData(eventsQuery),
       context.queryClient.ensureQueryData(settingsQuery),
+      context.queryClient.ensureQueryData(mapPinsQuery),
     ]),
   head: () => ({
     meta: [
