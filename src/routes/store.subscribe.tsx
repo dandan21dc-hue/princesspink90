@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState, Suspense } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { useStripeCheckout, useSubscriptionComingSoon } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { getSubscribePrices, checkPricesExist, type SubscribePrice } from "@/lib/subscribePrices.functions";
 import { getSubscriberStatus, SUBSCRIBER_DISCOUNT_PERCENT } from "@/lib/store.functions";
