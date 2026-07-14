@@ -116,12 +116,24 @@ export type PricingAuditEntry = {
   new_session_duration_minutes: number | null;
 };
 
+export const PRICING_AUDIT_SORT_COLUMNS = [
+  "changed_at",
+  "changed_by_email",
+  "old_session_price_cents",
+  "new_session_price_cents",
+  "old_session_duration_minutes",
+  "new_session_duration_minutes",
+] as const;
+export type PricingAuditSortColumn = (typeof PRICING_AUDIT_SORT_COLUMNS)[number];
+
 const auditQuerySchema = z.object({
   search: z.string().trim().max(255).optional().default(""),
   from: z.string().trim().max(40).optional().default(""),
   to: z.string().trim().max(40).optional().default(""),
   page: z.number().int().min(1).max(10_000).optional().default(1),
   pageSize: z.number().int().min(1).max(100).optional().default(10),
+  sortBy: z.enum(PRICING_AUDIT_SORT_COLUMNS).optional().default("changed_at"),
+  sortDir: z.enum(["asc", "desc"]).optional().default("desc"),
 });
 
 export type PricingAuditQuery = z.input<typeof auditQuerySchema>;
