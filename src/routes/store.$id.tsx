@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getStoreItem } from "@/lib/store.functions";
 
-import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { useStripeCheckout, useSubscriptionComingSoon } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cart } from "@/lib/cart";
 import { buildAudOffer } from "@/lib/aud";
