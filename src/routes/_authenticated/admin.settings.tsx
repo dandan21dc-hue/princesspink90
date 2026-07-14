@@ -843,10 +843,7 @@ function PricingAuditSection() {
           type="button"
           onClick={() => {
             setSearchInput("");
-            setSearch("");
-            setFrom("");
-            setTo("");
-            setPage(1);
+            updateSearch({ q: "", from: "", to: "" });
           }}
           className="mt-2 text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
         >
