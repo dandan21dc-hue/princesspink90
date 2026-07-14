@@ -19,25 +19,64 @@ export type Database = {
           action: string
           actor_id: string
           created_at: string
+          entry_hash: string
           id: string
           metadata: Json
+          prev_hash: string
           resource: string
+          seq: number
         }
         Insert: {
           action: string
           actor_id: string
           created_at?: string
+          entry_hash?: string
           id?: string
           metadata?: Json
+          prev_hash?: string
           resource: string
+          seq?: number
         }
         Update: {
           action?: string
           actor_id?: string
           created_at?: string
+          entry_hash?: string
           id?: string
           metadata?: Json
+          prev_hash?: string
           resource?: string
+          seq?: number
+        }
+        Relationships: []
+      }
+      admin_activity_audit_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          detail: Json
+          detected_at: string
+          id: string
+          kind: string
+          severity: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          detail?: Json
+          detected_at?: string
+          id?: string
+          kind: string
+          severity: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          detail?: Json
+          detected_at?: string
+          id?: string
+          kind?: string
+          severity?: string
         }
         Relationships: []
       }
@@ -2257,6 +2296,7 @@ export type Database = {
         Args: { _content_id: string; _env?: string; _user_id: string }
         Returns: boolean
       }
+      verify_admin_activity_audit_integrity: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "cohost" | "co_host"

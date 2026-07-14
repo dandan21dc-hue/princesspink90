@@ -8,6 +8,9 @@ import {
   updateAuditRetention,
   listAdminAuditEntries,
   purgeExpiredAuditEntries,
+  verifyAuditIntegrity,
+  listAuditAlerts,
+  acknowledgeAuditAlert,
 } from "@/lib/admin-audit.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/activity-audit")({
@@ -30,6 +33,9 @@ function AdminAuditPage() {
   const updateFn = useServerFn(updateAuditRetention);
   const listFn = useServerFn(listAdminAuditEntries);
   const purgeFn = useServerFn(purgeExpiredAuditEntries);
+  const verifyFn = useServerFn(verifyAuditIntegrity);
+  const alertsFn = useServerFn(listAuditAlerts);
+  const ackFn = useServerFn(acknowledgeAuditAlert);
   const qc = useQueryClient();
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
@@ -63,6 +69,26 @@ function AdminAuditPage() {
   const purge = useMutation({
     mutationFn: () => purgeFn(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-entries"] }),
+  });
+
+  const alerts = useQuery({
+    queryKey: ["admin-audit-alerts"],
+    queryFn: () => alertsFn(),
+    enabled: isAdmin,
+    refetchInterval: 60_000,
+  });
+
+  const verify = useMutation({
+    mutationFn: () => verifyFn(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-audit-alerts"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit-entries"] });
+    },
+  });
+
+  const ack = useMutation({
+    mutationFn: (id: string) => ackFn({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-alerts"] }),
   });
 
   if (me.isLoading) {
@@ -104,6 +130,95 @@ function AdminAuditPage() {
       </header>
 
       <section className="mx-auto max-w-5xl px-5 pb-6">
+        {(() => {
+          const openAlerts = (alerts.data ?? []).filter((a) => !a.acknowledged_at);
+          const critical = openAlerts.filter((a) => a.severity === "critical");
+          const banner =
+            critical.length > 0
+              ? {
+                  tone: "border-destructive/50 bg-destructive/10 text-destructive",
+                  label: `${critical.length} critical integrity alert${critical.length === 1 ? "" : "s"}`,
+                }
+              : openAlerts.length > 0
+                ? {
+                    tone: "border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                    label: `${openAlerts.length} unacknowledged integrity alert${openAlerts.length === 1 ? "" : "s"}`,
+                  }
+                : verify.data && verify.data.ok
+                  ? {
+                      tone: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                      label: `Chain verified — ${verify.data.total} entries intact`,
+                    }
+                  : null;
+          return (
+            <div className="mb-4 rounded-2xl border border-border/60 bg-card/60 p-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Integrity
+                </div>
+                <button
+                  onClick={() => verify.mutate()}
+                  disabled={verify.isPending}
+                  className="rounded-md bg-primary px-3 py-2 text-xs font-medium uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+                >
+                  {verify.isPending ? "Verifying…" : "Verify chain now"}
+                </button>
+                <div className="ml-auto text-xs text-muted-foreground">
+                  Nightly automated check at 03:30 UTC
+                </div>
+              </div>
+              {banner && (
+                <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${banner.tone}`}>
+                  {banner.label}
+                </div>
+              )}
+              {verify.error && (
+                <div className="mt-3 text-xs text-destructive">
+                  {verify.error instanceof Error ? verify.error.message : "Verify failed"}
+                </div>
+              )}
+              {openAlerts.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {openAlerts.map((a) => (
+                    <li
+                      key={a.id}
+                      className="flex items-start justify-between gap-3 rounded-md border border-border/50 bg-background/40 p-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${
+                              a.severity === "critical"
+                                ? "bg-destructive/20 text-destructive"
+                                : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                            }`}
+                          >
+                            {a.severity}
+                          </span>
+                          <span className="text-xs font-medium">{a.kind}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(a.detected_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <pre className="mt-1 whitespace-pre-wrap break-words text-[11px] text-muted-foreground">
+                          {JSON.stringify(a.detail)}
+                        </pre>
+                      </div>
+                      <button
+                        onClick={() => ack.mutate(a.id)}
+                        disabled={ack.isPending}
+                        className="shrink-0 rounded-md border border-border px-2 py-1 text-[11px] uppercase tracking-widest disabled:opacity-50"
+                      >
+                        Ack
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })()}
+
         <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">Retention</div>
           <div className="mt-3 flex flex-wrap items-end gap-3">
