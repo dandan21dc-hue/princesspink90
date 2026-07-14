@@ -913,20 +913,50 @@ function AdminAuditPage() {
                               if (r.trust === "quarantined") {
                                 quarantine.mutate({ id: r.id, quarantined: false });
                               } else {
-                                const reason = window.prompt(
-                                  "Quarantine reason (optional):",
+                                // eslint-disable-next-line no-control-regex
+                                const CONTROL_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/;
+                                const reasonRaw = window.prompt(
+                                  `Quarantine reason (required, ${AUDIT_REASON_MIN}–${AUDIT_REASON_MAX} chars):`,
                                   "",
                                 );
-                                if (reason === null) return; // cancelled
-                                const notes = window.prompt(
-                                  "Additional notes for the incident notification (optional):",
+                                if (reasonRaw === null) return; // cancelled
+                                const reason = reasonRaw.trim();
+                                if (reason.length < AUDIT_REASON_MIN) {
+                                  window.alert(
+                                    `Reason must be at least ${AUDIT_REASON_MIN} characters.`,
+                                  );
+                                  return;
+                                }
+                                if (reason.length > AUDIT_REASON_MAX) {
+                                  window.alert(
+                                    `Reason must be ${AUDIT_REASON_MAX} characters or fewer (got ${reason.length}).`,
+                                  );
+                                  return;
+                                }
+                                if (CONTROL_RE.test(reason)) {
+                                  window.alert("Reason contains invalid control characters.");
+                                  return;
+                                }
+                                const notesRaw = window.prompt(
+                                  `Additional notes for the incident notification (optional, up to ${AUDIT_NOTES_MAX} chars):`,
                                   "",
                                 );
-                                if (notes === null) return; // cancelled
+                                if (notesRaw === null) return; // cancelled
+                                const notes = notesRaw.trim();
+                                if (notes.length > AUDIT_NOTES_MAX) {
+                                  window.alert(
+                                    `Notes must be ${AUDIT_NOTES_MAX} characters or fewer (got ${notes.length}).`,
+                                  );
+                                  return;
+                                }
+                                if (notes && CONTROL_RE.test(notes)) {
+                                  window.alert("Notes contain invalid control characters.");
+                                  return;
+                                }
                                 quarantine.mutate({
                                   id: r.id,
                                   quarantined: true,
-                                  reason: reason || undefined,
+                                  reason,
                                   notes: notes || undefined,
                                 });
                               }
