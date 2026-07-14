@@ -93,6 +93,20 @@ function SecondaryRoomSessionsAdmin() {
   const [editing, setEditing] = useState<WorkspaceSlot | "new" | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmAction, setConfirmAction] = useState<null | "delete" | "book" | "available">(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const clearSelection = () => setSelected(new Set());
+
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-workspace-slots"] });
 
