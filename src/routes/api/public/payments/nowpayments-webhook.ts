@@ -89,46 +89,48 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
   return { handled: false, reason: "unhandled_kind" };
 }
 
+export async function handleWebhookRequest(request: Request): Promise<Response> {
+  const secret = process.env.NOWPAYMENTS_IPN_SECRET;
+  if (!secret) {
+    console.error("NOWPAYMENTS_IPN_SECRET is not configured");
+    return new Response("Server misconfigured", { status: 500 });
+  }
+
+  const rawBody = await request.text();
+  const signature = request.headers.get("x-nowpayments-sig");
+
+  if (!verifyNowPaymentsSignature(rawBody, signature, secret)) {
+    console.warn("NOWPayments webhook: invalid signature");
+    return new Response("Invalid signature", { status: 401 });
+  }
+
+  let event: NowPaymentsIpn;
+  try {
+    event = JSON.parse(rawBody) as NowPaymentsIpn;
+  } catch {
+    return new Response("Invalid JSON", { status: 400 });
+  }
+
+  try {
+    const result = await processIpn(event);
+    // Always return 200 for verified events so NOWPayments does not retry
+    // (retries on non-2xx last up to several days).
+    return Response.json({
+      received: true,
+      handled: result.handled,
+      ...(result.reason ? { reason: result.reason } : {}),
+    });
+  } catch (e) {
+    // Only genuine processing errors (e.g. RPC failure) return 5xx so NOWPayments retries.
+    console.error("NOWPayments webhook processing error:", e);
+    return new Response("Webhook processing error", { status: 500 });
+  }
+}
+
 export const Route = createFileRoute("/api/public/payments/nowpayments-webhook")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
-        const secret = process.env.NOWPAYMENTS_IPN_SECRET;
-        if (!secret) {
-          console.error("NOWPAYMENTS_IPN_SECRET is not configured");
-          return new Response("Server misconfigured", { status: 500 });
-        }
-
-        const rawBody = await request.text();
-        const signature = request.headers.get("x-nowpayments-sig");
-
-        if (!verifyNowPaymentsSignature(rawBody, signature, secret)) {
-          console.warn("NOWPayments webhook: invalid signature");
-          return new Response("Invalid signature", { status: 401 });
-        }
-
-        let event: NowPaymentsIpn;
-        try {
-          event = JSON.parse(rawBody) as NowPaymentsIpn;
-        } catch {
-          return new Response("Invalid JSON", { status: 400 });
-        }
-
-        try {
-          const result = await processIpn(event);
-          // Always return 200 for verified events so NOWPayments does not retry
-          // (retries on non-2xx last up to several days).
-          return Response.json({
-            received: true,
-            handled: result.handled,
-            ...(result.reason ? { reason: result.reason } : {}),
-          });
-        } catch (e) {
-          // Only genuine processing errors (e.g. RPC failure) return 5xx so NOWPayments retries.
-          console.error("NOWPayments webhook processing error:", e);
-          return new Response("Webhook processing error", { status: 500 });
-        }
-      },
+      POST: async ({ request }) => handleWebhookRequest(request),
     },
   },
 });
