@@ -82,6 +82,7 @@ function Home() {
       <HostBlock />
       <MapSection />
       <CohostBlock />
+      <section id="partnerships" className="mx-auto max-w-3xl px-5 pb-24">
         <div className="rounded-3xl border border-neon/30 bg-gradient-to-br from-neon/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)] sm:p-10">
           <div className="text-xs uppercase tracking-[0.3em] text-neon">Partnerships</div>
           <h2 className="mt-2 font-display text-3xl font-extrabold sm:text-4xl">
