@@ -11,11 +11,20 @@ import {
 import { syncMissingStripePrices, convertTermPassesToOneTime, archiveUsdPrices } from "@/lib/stripeMaintenance.functions";
 import { refreshUserSubscriptionStatus } from "@/lib/admin.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
+import { RoleGuard } from "@/components/RoleGuard";
 
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Site settings · Admin" }] }),
-  component: AdminSettings,
+  component: AdminSettingsGuarded,
 });
+
+function AdminSettingsGuarded() {
+  return (
+    <RoleGuard allowedRoles={["admin"]} redirectTo="/dashboard" message="Admin access required">
+      <AdminSettings />
+    </RoleGuard>
+  );
+}
 
 function AdminSettings() {
   const meFn = useServerFn(amIAdmin);
