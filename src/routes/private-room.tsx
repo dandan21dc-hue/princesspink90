@@ -122,7 +122,12 @@ function PrivateRoomPage() {
     queryKey: ["private-room-busy", dayRange?.from, dayRange?.to],
     enabled: !!dayRange,
     queryFn: () => listPrivateRoomBusy({ data: dayRange! }),
-    staleTime: 30_000,
+    staleTime: 15_000,
+    // Real-time availability: re-check every 15s so conflicts show up quickly
+    // even if another guest books/holds a slot while this form is open.
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
 
   const slots = useMemo(() => {
