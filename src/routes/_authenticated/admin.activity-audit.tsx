@@ -595,6 +595,234 @@ function AdminAuditPage() {
           </div>
         </div>
       </section>
+      {selectedId && (
+        <AuditEntryDrawer
+          entry={rows.find((r) => r.id === selectedId) ?? null}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </main>
   );
+}
+
+type AuditRow = {
+  id: string;
+  seq?: number;
+  prev_hash?: string;
+  entry_hash?: string;
+  created_at: string;
+  actor_id: string;
+  actor_display_name?: string | null;
+  action: string;
+  resource: string;
+  metadata: unknown;
+};
+
+function AuditEntryDrawer({
+  entry,
+  onClose,
+}: {
+  entry: AuditRow | null;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  if (!entry) return null;
+  const meta = (entry.metadata ?? {}) as Record<string, unknown>;
+  const before = pickPair(meta, ["before", "old", "previous", "prev", "from"]);
+  const after = pickPair(meta, ["after", "new", "next", "to"]);
+  const request = pickPair(meta, ["request", "req", "payload", "input", "params"]);
+  const response = pickPair(meta, ["response", "res", "result", "output"]);
+  const otherMeta: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(meta)) {
+    if (
+      ["before", "old", "previous", "prev", "from", "after", "new", "next", "to",
+        "request", "req", "payload", "input", "params",
+        "response", "res", "result", "output"].includes(k)
+    ) continue;
+    otherMeta[k] = v;
+  }
+  const diff = before && after ? buildDiff(before, after) : null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-background/60 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Audit entry details"
+    >
+      <aside
+        onClick={(e) => e.stopPropagation()}
+        className="h-full w-full max-w-2xl overflow-y-auto border-l border-border/60 bg-card p-6 shadow-2xl"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-xs uppercase tracking-[0.3em] text-primary">Audit entry</div>
+            <h2 className="mt-1 font-display text-xl font-semibold">{entry.action}</h2>
+            <div className="mt-1 text-xs text-muted-foreground">
+              on <span className="text-foreground">{entry.resource}</span> ·{" "}
+              {new Date(entry.created_at).toLocaleString()}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md border border-border px-3 py-1.5 text-xs uppercase tracking-widest hover:bg-muted/40"
+          >
+            Close
+          </button>
+        </div>
+
+        <dl className="mt-5 grid grid-cols-3 gap-3 rounded-lg border border-border/60 bg-background/40 p-4 text-xs">
+          <MetaField label="Entry ID" value={entry.id} mono />
+          <MetaField label="Seq" value={entry.seq != null ? String(entry.seq) : "—"} />
+          <MetaField
+            label="Actor"
+            value={
+              (entry.actor_display_name ? entry.actor_display_name + " · " : "") +
+              entry.actor_id
+            }
+            mono
+          />
+          {entry.prev_hash && <MetaField label="Prev hash" value={entry.prev_hash} mono />}
+          {entry.entry_hash && <MetaField label="Entry hash" value={entry.entry_hash} mono />}
+        </dl>
+
+        {diff && (
+          <Section title={`Diff (${diff.length} change${diff.length === 1 ? "" : "s"})`}>
+            {diff.length === 0 ? (
+              <div className="text-xs text-muted-foreground">No field-level changes recorded.</div>
+            ) : (
+              <ul className="divide-y divide-border/40 rounded-md border border-border/60">
+                {diff.map((d) => (
+                  <li key={d.key} className="grid grid-cols-[8rem,1fr,1fr] gap-2 px-3 py-2 text-xs">
+                    <div className="font-mono text-muted-foreground truncate" title={d.key}>
+                      {d.key}
+                    </div>
+                    <div className="rounded bg-destructive/10 px-2 py-1 font-mono text-[11px] text-destructive">
+                      <div className="text-[9px] uppercase tracking-widest opacity-70">Before</div>
+                      <pre className="whitespace-pre-wrap break-words">{fmtVal(d.before)}</pre>
+                    </div>
+                    <div className="rounded bg-emerald-500/10 px-2 py-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                      <div className="text-[9px] uppercase tracking-widest opacity-70">After</div>
+                      <pre className="whitespace-pre-wrap break-words">{fmtVal(d.after)}</pre>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+        )}
+
+        {before && !diff && <JsonSection title="Before" data={before} tone="destructive" />}
+        {after && !diff && <JsonSection title="After" data={after} tone="emerald" />}
+        {request && <JsonSection title="Request" data={request} />}
+        {response && <JsonSection title="Response" data={response} />}
+        {(Object.keys(otherMeta).length > 0 || (!before && !after && !request && !response)) && (
+          <JsonSection
+            title="Metadata"
+            data={Object.keys(otherMeta).length > 0 ? otherMeta : meta}
+          />
+        )}
+      </aside>
+    </div>
+  );
+}
+
+function MetaField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="col-span-3 sm:col-span-1">
+      <dt className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</dt>
+      <dd className={`mt-0.5 break-all ${mono ? "font-mono text-[11px]" : ""}`}>{value}</dd>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-5">
+      <h3 className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+function JsonSection({
+  title,
+  data,
+  tone,
+}: {
+  title: string;
+  data: unknown;
+  tone?: "destructive" | "emerald";
+}) {
+  const toneCls =
+    tone === "destructive"
+      ? "border-destructive/40 bg-destructive/5"
+      : tone === "emerald"
+        ? "border-emerald-500/40 bg-emerald-500/5"
+        : "border-border/60 bg-background/40";
+  const text = JSON.stringify(data, null, 2);
+  return (
+    <Section title={title}>
+      <div className={`relative rounded-md border ${toneCls}`}>
+        <button
+          type="button"
+          onClick={() => navigator.clipboard?.writeText(text)}
+          className="absolute right-2 top-2 rounded border border-border bg-background/70 px-2 py-0.5 text-[10px] uppercase tracking-widest hover:bg-background"
+        >
+          Copy
+        </button>
+        <pre className="max-h-80 overflow-auto p-3 text-[11px] leading-relaxed whitespace-pre-wrap break-words">
+          {text}
+        </pre>
+      </div>
+    </Section>
+  );
+}
+
+function pickPair(
+  obj: Record<string, unknown>,
+  keys: string[],
+): Record<string, unknown> | null {
+  for (const k of keys) {
+    const v = obj[k];
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      return v as Record<string, unknown>;
+    }
+    if (v !== undefined && v !== null && typeof v !== "object") {
+      return { [k]: v };
+    }
+  }
+  return null;
+}
+
+type DiffRow = { key: string; before: unknown; after: unknown };
+function buildDiff(
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+): DiffRow[] {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  const out: DiffRow[] = [];
+  for (const k of keys) {
+    const b = before[k];
+    const a = after[k];
+    if (JSON.stringify(b) !== JSON.stringify(a)) {
+      out.push({ key: k, before: b, after: a });
+    }
+  }
+  return out.sort((x, y) => x.key.localeCompare(y.key));
+}
+
+function fmtVal(v: unknown): string {
+  if (v === undefined) return "(unset)";
+  if (v === null) return "null";
+  if (typeof v === "string") return v;
+  return JSON.stringify(v, null, 2);
 }
