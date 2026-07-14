@@ -1212,6 +1212,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         const env: StripeEnv = rawEnv;
         const signature = request.headers.get("stripe-signature");
         const body = await request.text();
+        const correlationId = crypto.randomUUID();
 
         // Attempt to peek at type/id even before verification so a failed
         // signature check still produces a useful audit row.
@@ -1229,6 +1230,10 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           /* body isn't JSON — keep raw text preview */
         }
 
+        console.log(
+          `[webhook cid=${correlationId}] received env=${env} type=${peekedType} id=${peekedId ?? "?"}`,
+        );
+
         let event: { id?: string; type: string; data: { object: any } };
         try {
           event = await verifyWebhookBody(body, signature, env);
@@ -1244,8 +1249,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             raw_payload: peekedPayload,
             processing_ms: 0,
             processed_at: new Date().toISOString(),
+            correlation_id: correlationId,
           });
-          console.error("Webhook verify error:", verifyErr);
+          console.error(
+            `[webhook cid=${correlationId}] verify error:`,
+            verifyErr,
+          );
           return new Response("Webhook error", { status: 400 });
         }
 
@@ -1266,10 +1275,11 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             initialStatus === "ignored" ? new Date().toISOString() : null,
           error_message:
             initialStatus === "ignored" ? "no handler for event type" : null,
+          correlation_id: correlationId,
         });
 
         try {
-          const result = await dispatchEvent(event, env);
+          const result = await dispatchEvent(event, env, correlationId);
           if (rowId && initialStatus === "processing") {
             await updateWebhookEvent(rowId, {
               status: result.status,
@@ -1277,10 +1287,13 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               processing_ms: Date.now() - startedAt,
             });
           }
-          return Response.json({ received: true });
+          console.log(
+            `[webhook cid=${correlationId}] done status=${result.status} ms=${Date.now() - startedAt}`,
+          );
+          return Response.json({ received: true, correlation_id: correlationId });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          console.error("Webhook error:", e);
+          console.error(`[webhook cid=${correlationId}] error:`, e);
           if (rowId) {
             await updateWebhookEvent(rowId, {
               status: "failed",
