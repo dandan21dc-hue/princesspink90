@@ -65,22 +65,44 @@ function AdminSettings() {
     }
   }, [settings.data]);
 
+  const priceDollarsNum = parseFloat(sessionPriceDollars);
+  const priceCents = Math.round(priceDollarsNum * 100);
+  const priceMinDollars = SESSION_PRICE_MIN_CENTS / 100;
+  const priceMaxDollars = SESSION_PRICE_MAX_CENTS / 100;
+
+  let priceError: string | null = null;
+  if (sessionPriceDollars.trim() === "" || !Number.isFinite(priceDollarsNum)) {
+    priceError = "Session price is required and must be a number.";
+  } else if (priceCents < SESSION_PRICE_MIN_CENTS) {
+    priceError = `Session price must be at least A$${priceMinDollars.toFixed(2)}.`;
+  } else if (priceCents > SESSION_PRICE_MAX_CENTS) {
+    priceError = `Session price must be at most A$${priceMaxDollars.toFixed(2)}.`;
+  }
+
+  let durationError: string | null = null;
+  if (!Number.isFinite(sessionDurationMinutes)) {
+    durationError = "Session duration is required and must be a number.";
+  } else if (!Number.isInteger(sessionDurationMinutes)) {
+    durationError = "Session duration must be a whole number of minutes.";
+  } else if (sessionDurationMinutes < SESSION_DURATION_MIN_MINUTES) {
+    durationError = `Session duration must be at least ${SESSION_DURATION_MIN_MINUTES} minutes.`;
+  } else if (sessionDurationMinutes > SESSION_DURATION_MAX_MINUTES) {
+    durationError = `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`;
+  }
+
+  const sessionInputsInvalid = priceError !== null || durationError !== null;
+
   const save = useMutation({
     mutationFn: () => {
-      const cents = Math.round(parseFloat(sessionPriceDollars) * 100);
-      if (!Number.isFinite(cents) || cents <= 0) {
-        throw new Error("Enter a valid session price greater than 0.");
-      }
-      if (!Number.isFinite(sessionDurationMinutes) || sessionDurationMinutes <= 0) {
-        throw new Error("Enter a valid duration greater than 0.");
-      }
+      if (priceError) throw new Error(priceError);
+      if (durationError) throw new Error(durationError);
       return updateFn({
         data: {
           email,
           fetlife_handle: fetlife,
           reddit_handle: reddit,
           glory_holes_enabled: gloryHolesEnabled,
-          session_price_cents: cents,
+          session_price_cents: priceCents,
           session_duration_minutes: sessionDurationMinutes,
         },
       });
