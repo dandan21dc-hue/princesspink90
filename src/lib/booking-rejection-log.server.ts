@@ -34,7 +34,7 @@ export async function logBookingRejection(args: LogArgs): Promise<void> {
       reason_message: args.reasonMessage,
       booking_id: args.bookingId ?? null,
       conflict_booking_ids: args.conflictBookingIds ?? [],
-      metadata: args.metadata ?? {},
+      metadata: (args.metadata ?? {}) as never,
     });
     if (error) {
       console.error("[logBookingRejection] insert failed", error.message);
