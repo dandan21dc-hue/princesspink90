@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createHmac, timingSafeEqual } from "crypto";
+import { verifyNowPaymentsSignature } from "@/lib/nowpayments.server";
 
 /**
  * NOWPayments IPN webhook.
@@ -16,7 +16,7 @@ import { createHmac, timingSafeEqual } from "crypto";
  *    NOWPayments `payment_id` is stored as `external_payment_reference` with a unique
  *    constraint, so a webhook redelivered twice grants the pass only once.
  *
- * Order ID contract (set when creating the invoice, see billing.functions.ts):
+ * Order ID contract (set when creating the invoice, see nowpayments.functions.ts):
  *   All-Access Pass:  aap30d:<userId>:<sandbox|live>:<amountCents>
  * Anything else is logged and acknowledged (200) so NOWPayments stops retrying it.
  */
@@ -35,34 +35,6 @@ type NowPaymentsIpn = {
   [k: string]: unknown;
 };
 
-// NOWPayments signs a JSON string with keys sorted alphabetically, recursively.
-function stableStringify(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`).join(",")}}`;
-}
-
-function verifyNowPaymentsSignature(rawBody: string, headerSig: string | null, secret: string): boolean {
-  if (!headerSig) return false;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(rawBody);
-  } catch {
-    return false;
-  }
-  const canonical = stableStringify(parsed);
-  const expected = createHmac("sha512", secret).update(canonical).digest("hex");
-  const a = Buffer.from(expected, "utf8");
-  const b = Buffer.from(headerSig, "utf8");
-  if (a.length !== b.length) return false;
-  try {
-    return timingSafeEqual(a, b);
-  } catch {
-    return false;
-  }
-}
 
 type AapOrder = { kind: "aap30d"; userId: string; environment: "sandbox" | "live"; amountCents: number };
 
