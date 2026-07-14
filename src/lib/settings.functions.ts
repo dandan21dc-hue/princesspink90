@@ -86,7 +86,7 @@ const updateSchema = z.object({
   reddit_handle: z.string().trim().min(1).max(100),
   glory_holes_enabled: z.boolean(),
   session_price_cents: z
-    .number({ invalid_type_error: "Session price must be a number." })
+    .number({ error: "Session price must be a number." })
     .int("Session price must be a whole number of cents.")
     .min(SESSION_PRICE_MIN_CENTS, {
       message: `Session price must be at least A$${(SESSION_PRICE_MIN_CENTS / 100).toFixed(2)}.`,
