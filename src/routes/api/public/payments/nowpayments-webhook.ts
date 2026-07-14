@@ -38,7 +38,7 @@ type NowPaymentsIpn = {
 
 type AapOrder = { kind: "aap30d"; userId: string; environment: "sandbox" | "live"; amountCents: number };
 
-function parseOrderId(orderId: string | undefined): AapOrder | null {
+export function parseOrderId(orderId: string | undefined): AapOrder | null {
   if (!orderId) return null;
   const parts = orderId.split(":");
   if (parts.length !== 4) return null;
@@ -51,7 +51,7 @@ function parseOrderId(orderId: string | undefined): AapOrder | null {
   return { kind: "aap30d", userId, environment: env, amountCents };
 }
 
-async function processIpn(event: NowPaymentsIpn): Promise<{ handled: boolean; reason?: string }> {
+export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: boolean; reason?: string }> {
   const status = String(event.payment_status ?? "").toLowerCase();
 
   // Only grant entitlements on a confirmed, settled payment. All other statuses
