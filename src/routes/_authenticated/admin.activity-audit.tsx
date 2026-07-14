@@ -694,11 +694,42 @@ function AdminAuditPage() {
             </table>
           </div>
         )}
-        <div className="mt-4 flex items-center justify-between gap-3 text-xs">
-          <div className="text-muted-foreground">
-            Page {page} of {totalPages}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <span>
+              Page {page} of {totalPages}
+            </span>
+            {total > 0 && (
+              <span className="hidden sm:inline">
+                · rows {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} of {total.toLocaleString()}
+              </span>
+            )}
+            <label className="inline-flex items-center gap-1">
+              <span className="uppercase tracking-widest">Go to</span>
+              <input
+                type="number"
+                min={1}
+                max={totalPages}
+                value={page}
+                onChange={(e) => {
+                  const n = Number(e.target.value);
+                  if (!Number.isFinite(n)) return;
+                  setPage(Math.max(1, Math.min(totalPages, Math.floor(n))));
+                }}
+                className="w-16 rounded-md border border-input bg-background px-2 py-1 text-xs"
+              />
+            </label>
           </div>
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage(1)}
+              disabled={page <= 1 || entries.isFetching}
+              className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
+              aria-label="First page"
+            >
+              « First
+            </button>
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -714,6 +745,15 @@ function AdminAuditPage() {
               className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
             >
               Next
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage(totalPages)}
+              disabled={page >= totalPages || entries.isFetching}
+              className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
+              aria-label="Last page"
+            >
+              Last »
             </button>
           </div>
         </div>
