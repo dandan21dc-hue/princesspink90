@@ -141,6 +141,31 @@ export const deleteSessionSlot = createServerFn({ method: "POST" })
   });
 
 /**
+ * Public read: admin-defined available windows for the Private Room in
+ * [from, to]. Returned as raw start/end pairs — the customer picker only
+ * offers times that fit fully inside one of these windows. If empty for a
+ * day, that day has no bookable time.
+ * Uses the admin client because private_session_slots is admin-read-only
+ * (only start/end pairs exposed, no PII).
+ */
+export const listPrivateRoomAvailable = createServerFn({ method: "GET" })
+  .inputValidator((data: { from: string; to: string }) => {
+    if (!data.from || !data.to) throw new Error("from/to required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("private_session_slots")
+      .select("start_time,end_time")
+      .eq("is_booked", false)
+      .lt("start_time", data.to)
+      .gt("end_time", data.from);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as Array<{ start_time: string; end_time: string }>;
+  });
+
+/**
  * Admin: bulk-insert a batch of proposed slots.
  * Any proposed slot that overlaps an existing slot in the covered window
  * (booked or available) is skipped — this treats existing rows as the
