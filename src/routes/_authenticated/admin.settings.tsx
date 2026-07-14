@@ -192,42 +192,64 @@ function AdminSettings() {
             checkout is still controlled by your Stripe price catalogue — keep those in sync.
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="Active session price (AUD)" hint="e.g. 275.00">
+            <Field
+              label="Active session price (AUD)"
+              hint={`Between A$${priceMinDollars.toFixed(2)} and A$${priceMaxDollars.toFixed(2)}. e.g. 275.00`}
+            >
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">A$</span>
                 <input
                   type="number"
-                  min={1}
+                  min={priceMinDollars}
+                  max={priceMaxDollars}
                   step="0.01"
                   required
+                  inputMode="decimal"
+                  aria-invalid={priceError !== null}
                   value={sessionPriceDollars}
                   onChange={(e) => setSessionPriceDollars(e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                    priceError ? "border-destructive" : "border-border"
+                  }`}
                 />
               </div>
+              {priceError && (
+                <div className="mt-1 text-[11px] text-destructive">{priceError}</div>
+              )}
             </Field>
-            <Field label="Session duration (minutes)" hint="e.g. 60">
+            <Field
+              label="Session duration (minutes)"
+              hint={`Between ${SESSION_DURATION_MIN_MINUTES} and ${SESSION_DURATION_MAX_MINUTES} minutes. e.g. 60`}
+            >
               <input
                 type="number"
-                min={1}
-                max={480}
+                min={SESSION_DURATION_MIN_MINUTES}
+                max={SESSION_DURATION_MAX_MINUTES}
                 step={5}
                 required
+                inputMode="numeric"
+                aria-invalid={durationError !== null}
                 value={sessionDurationMinutes}
                 onChange={(e) => setSessionDurationMinutes(Number(e.target.value))}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                  durationError ? "border-destructive" : "border-border"
+                }`}
               />
+              {durationError && (
+                <div className="mt-1 text-[11px] text-destructive">{durationError}</div>
+              )}
             </Field>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            disabled={save.isPending || settings.isLoading}
+            disabled={save.isPending || settings.isLoading || sessionInputsInvalid}
             className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
           >
             {save.isPending ? "Saving…" : "Save"}
           </button>
+
           {saved && <span className="text-sm text-primary">Saved ✓</span>}
           {save.error && (
             <span className="text-sm text-destructive">
