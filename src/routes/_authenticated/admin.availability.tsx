@@ -131,6 +131,15 @@ function AvailabilityAdmin() {
   const slots = slotsQ.data ?? [];
   const availableCount = slots.filter((s) => !s.is_booked).length;
   const bookedCount = slots.filter((s) => s.is_booked).length;
+  const conflicts = useMemo(() => findConflicts(slots), [slots]);
+  const conflictIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of conflicts) {
+      set.add(c.a.id);
+      set.add(c.b.id);
+    }
+    return set;
+  }, [conflicts]);
 
   return (
     <Shell>
