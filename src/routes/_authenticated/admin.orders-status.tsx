@@ -129,10 +129,23 @@ function AdminOrdersStatusPage() {
           <button
             type="button"
             onClick={() => query.refetch()}
-            className="rounded-md border border-primary/50 bg-primary/10 px-3 py-2 text-xs font-medium uppercase tracking-widest text-primary hover:bg-primary/20"
+            disabled={query.isFetching}
+            aria-busy={query.isFetching}
+            className="inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/10 px-3 py-2 text-xs font-medium uppercase tracking-widest text-primary hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Refresh
+            <span
+              aria-hidden="true"
+              className={`inline-block h-3 w-3 rounded-full border-2 border-primary/40 border-t-primary ${
+                query.isFetching ? "animate-spin" : ""
+              }`}
+            />
+            {query.isFetching ? "Refreshing…" : "Refresh"}
           </button>
+          {query.dataUpdatedAt ? (
+            <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Updated {fmtDate(new Date(query.dataUpdatedAt).toISOString())}
+            </span>
+          ) : null}
         </div>
       </section>
 
