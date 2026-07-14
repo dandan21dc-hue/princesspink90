@@ -33,7 +33,11 @@ export type StripeWebhookEventRow = {
   received_at: string;
   processed_at: string | null;
   raw_payload: any;
+  correlation_id: string | null;
+  replay_of_event_id: string | null;
+  replayed_at: string | null;
 };
+
 
 export const listStripeWebhookEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
