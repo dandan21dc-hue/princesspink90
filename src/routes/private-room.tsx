@@ -245,7 +245,7 @@ function PrivateRoomPage() {
       userId: user.id,
       customerEmail: user.email,
       bookingStartsAt: selectedSlot.toISOString(),
-      bookingPartySize: partySize,
+      bookingPartySize: 1,
       bookingNotes: notes.trim() || undefined,
       returnUrl: `${window.location.origin}/checkout/return?next=%2Fdashboard`,
     });
