@@ -28,6 +28,14 @@ export const updateAuditRetention = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+
+    const { data: prev } = await context.supabase
+      .from("admin_activity_audit_retention")
+      .select("retention_days")
+      .eq("id", true)
+      .maybeSingle();
+    const oldDays = (prev as { retention_days: number } | null)?.retention_days ?? null;
+
     const { data: row, error } = await context.supabase
       .from("admin_activity_audit_retention")
       .upsert(
@@ -43,12 +51,17 @@ export const updateAuditRetention = createServerFn({ method: "POST" })
       .single();
     if (error) throw error;
 
-    await context.supabase.from("admin_activity_audit").insert({
-      actor_id: context.userId,
-      action: "update_retention",
-      resource: "admin_activity_audit_retention",
-      metadata: { retention_days: data.retention_days },
-    } as never);
+    if (oldDays !== data.retention_days) {
+      await context.supabase.from("admin_activity_audit").insert({
+        actor_id: context.userId,
+        action: "update_retention",
+        resource: "admin_activity_audit_retention",
+        metadata: {
+          old_retention_days: oldDays,
+          new_retention_days: data.retention_days,
+        },
+      } as never);
+    }
 
     return row;
   });
