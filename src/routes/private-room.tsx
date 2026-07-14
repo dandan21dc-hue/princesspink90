@@ -9,6 +9,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { listPrivateRoomBusy } from "@/lib/store.functions";
+import { listPrivateRoomAvailable } from "@/lib/availability.functions";
 import { getSessionPricing } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/private-room")({
