@@ -6,12 +6,14 @@ export type SiteSettings = {
   email: string;
   fetlife_handle: string;
   reddit_handle: string;
+  glory_holes_enabled: boolean;
 };
 
 const DEFAULTS: SiteSettings = {
   email: "midnight-glory@princesspink90.com",
   fetlife_handle: "pink_princess90",
   reddit_handle: "19pink-princess90",
+  glory_holes_enabled: true,
 };
 
 export const getSiteSettings = createServerFn({ method: "GET" }).handler(
@@ -23,10 +25,27 @@ export const getSiteSettings = createServerFn({ method: "GET" }).handler(
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data } = await supabaseAdmin
       .from("site_settings")
-      .select("email, fetlife_handle, reddit_handle")
+      .select("email, fetlife_handle, reddit_handle, glory_holes_enabled")
       .eq("id", "host")
       .maybeSingle();
     return data ?? DEFAULTS;
+  },
+);
+
+/**
+ * Public boolean-only projection of the Glory Holes toggle. Safe to expose
+ * unauthenticated because it contains no PII — used by the public booking
+ * page to hide itself when the admin has disabled it.
+ */
+export const getGloryHolesEnabled = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ enabled: boolean }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("site_settings")
+      .select("glory_holes_enabled")
+      .eq("id", "host")
+      .maybeSingle();
+    return { enabled: data?.glory_holes_enabled ?? true };
   },
 );
 
@@ -34,6 +53,7 @@ const updateSchema = z.object({
   email: z.string().trim().email().max(255),
   fetlife_handle: z.string().trim().min(1).max(100),
   reddit_handle: z.string().trim().min(1).max(100),
+  glory_holes_enabled: z.boolean(),
 });
 
 export const updateSiteSettings = createServerFn({ method: "POST" })
@@ -51,8 +71,10 @@ export const updateSiteSettings = createServerFn({ method: "POST" })
         email: data.email,
         fetlife_handle: data.fetlife_handle,
         reddit_handle: data.reddit_handle,
+        glory_holes_enabled: data.glory_holes_enabled,
       })
       .eq("id", "host");
     if (error) throw error;
     return { ok: true };
   });
+

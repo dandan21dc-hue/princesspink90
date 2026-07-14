@@ -33,6 +33,7 @@ function AdminSettings() {
   const [email, setEmail] = useState("");
   const [fetlife, setFetlife] = useState("");
   const [reddit, setReddit] = useState("");
+  const [gloryHolesEnabled, setGloryHolesEnabled] = useState(true);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -40,18 +41,28 @@ function AdminSettings() {
       setEmail(settings.data.email);
       setFetlife(settings.data.fetlife_handle);
       setReddit(settings.data.reddit_handle);
+      setGloryHolesEnabled(settings.data.glory_holes_enabled);
     }
   }, [settings.data]);
 
   const save = useMutation({
     mutationFn: () =>
-      updateFn({ data: { email, fetlife_handle: fetlife, reddit_handle: reddit } }),
+      updateFn({
+        data: {
+          email,
+          fetlife_handle: fetlife,
+          reddit_handle: reddit,
+          glory_holes_enabled: gloryHolesEnabled,
+        },
+      }),
     onSuccess: () => {
       setSaved(true);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
+      qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       setTimeout(() => setSaved(false), 2500);
     },
   });
+
 
   if (me.isLoading) return <Shell><p className="text-muted-foreground">Loading…</p></Shell>;
   if (!me.data?.isAdmin) {
@@ -104,6 +115,20 @@ function AdminSettings() {
             onChange={(e) => setReddit(e.target.value)}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
+        </Field>
+        <Field
+          label="Glory Holes booking page"
+          hint="When disabled, the public /glory-holes page shows an 'Unavailable' notice instead of the booking form."
+        >
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={gloryHolesEnabled}
+              onChange={(e) => setGloryHolesEnabled(e.target.checked)}
+              className="h-4 w-4 rounded border-border"
+            />
+            <span>{gloryHolesEnabled ? "Enabled — page is live" : "Disabled — page is hidden"}</span>
+          </label>
         </Field>
         <div className="flex items-center gap-3">
           <button

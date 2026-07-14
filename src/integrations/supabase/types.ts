@@ -1668,6 +1668,7 @@ export type Database = {
         Row: {
           email: string
           fetlife_handle: string
+          glory_holes_enabled: boolean
           id: string
           reddit_handle: string
           updated_at: string
@@ -1675,6 +1676,7 @@ export type Database = {
         Insert: {
           email?: string
           fetlife_handle?: string
+          glory_holes_enabled?: boolean
           id?: string
           reddit_handle?: string
           updated_at?: string
@@ -1682,6 +1684,7 @@ export type Database = {
         Update: {
           email?: string
           fetlife_handle?: string
+          glory_holes_enabled?: boolean
           id?: string
           reddit_handle?: string
           updated_at?: string
