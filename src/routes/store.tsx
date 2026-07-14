@@ -125,19 +125,13 @@ function StorePage() {
   return (
     <>
       <PaymentTestModeBanner />
-      <section className="mx-auto max-w-6xl px-5 pt-10 pb-10">
+      <section className="mx-auto max-w-6xl px-5 pt-10 pb-6">
         <div className="max-w-2xl">
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Boutique</div>
           <h1 className="mt-2 font-display text-4xl font-extrabold">
             Buy my <span className="text-neon">pictures &amp; videos</span>
           </h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Individual sets and clips below, or jump into one of the three main
-            experiences.
-          </p>
         </div>
-
-        <CategoryCards />
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-16">
@@ -154,6 +148,7 @@ function StorePage() {
     </>
   );
 }
+
 
 
 /**
