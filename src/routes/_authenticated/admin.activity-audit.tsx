@@ -1006,6 +1006,149 @@ function AdminAuditPage() {
   );
 }
 
+function AuditTimeline({
+  rows,
+  onSelect,
+}: {
+  rows: Array<{
+    id: string;
+    seq: number;
+    actor_id: string;
+    actor_display_name: string | null;
+    action: string;
+    resource: string;
+    metadata: Record<string, string | number | boolean | null>;
+    created_at: string;
+    trust: "trusted" | "untrusted" | "quarantined";
+  }>;
+  onSelect: (id: string) => void;
+}) {
+  // Group by resource; within each, order ascending by time (oldest → newest).
+  const groups = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const key = r.resource || "(unspecified)";
+    const list = groups.get(key) ?? [];
+    list.push(r);
+    groups.set(key, list);
+  }
+  const groupList = Array.from(groups.entries())
+    .map(([resource, entries]) => ({
+      resource,
+      entries: [...entries].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      ),
+    }))
+    .sort((a, b) => {
+      const at = new Date(a.entries[a.entries.length - 1].created_at).getTime();
+      const bt = new Date(b.entries[b.entries.length - 1].created_at).getTime();
+      return bt - at; // most recently touched resource first
+    });
+
+  const dayKey = (iso: string) => new Date(iso).toDateString();
+
+  return (
+    <div className="space-y-6">
+      {groupList.map(({ resource, entries }) => {
+        const first = entries[0];
+        const last = entries[entries.length - 1];
+        return (
+          <section
+            key={resource}
+            className="rounded-2xl border border-border/60 bg-card/60 p-5"
+          >
+            <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Resource
+                </div>
+                <h3 className="font-display text-lg font-semibold">{resource}</h3>
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                {entries.length} {entries.length === 1 ? "action" : "actions"} ·{" "}
+                {new Date(first.created_at).toLocaleDateString()} →{" "}
+                {new Date(last.created_at).toLocaleDateString()}
+              </div>
+            </header>
+            <ol className="relative ml-3 border-l border-border/60 pl-6">
+              {entries.map((r, idx) => {
+                const prev = idx > 0 ? entries[idx - 1] : null;
+                const showDay = !prev || dayKey(prev.created_at) !== dayKey(r.created_at);
+                const trustTone =
+                  r.trust === "trusted"
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : r.trust === "untrusted"
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-amber-500/15 text-amber-600 dark:text-amber-400";
+                const when = new Date(r.created_at);
+                return (
+                  <li key={r.id} className="relative pb-6 last:pb-0">
+                    <span
+                      aria-hidden
+                      className="absolute -left-[30px] top-1.5 inline-block h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-background"
+                    />
+                    {showDay && (
+                      <div className="mb-2 -ml-1 inline-block rounded-md bg-muted/40 px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {when.toLocaleDateString(undefined, {
+                          weekday: "short",
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onSelect(r.id)}
+                      className="block w-full rounded-lg border border-border/50 bg-background/40 p-3 text-left transition hover:border-primary/40 hover:bg-muted/30"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <time
+                          dateTime={r.created_at}
+                          className="text-xs font-medium tabular-nums text-foreground"
+                          title={when.toISOString()}
+                        >
+                          {when.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                          })}
+                        </time>
+                        <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-primary">
+                          {r.action}
+                        </span>
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${trustTone}`}
+                        >
+                          {r.trust}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          seq #{r.seq}
+                        </span>
+                        <span className="ml-auto text-[11px] text-muted-foreground">
+                          by{" "}
+                          <span className="text-foreground">
+                            {r.actor_display_name ?? r.actor_id.slice(0, 8) + "…"}
+                          </span>
+                        </span>
+                      </div>
+                      {r.metadata && Object.keys(r.metadata).length > 0 && (
+                        <pre className="mt-2 line-clamp-2 whitespace-pre-wrap break-words text-[11px] text-muted-foreground">
+                          {JSON.stringify(r.metadata)}
+                        </pre>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+
 type AuditRow = {
   id: string;
   seq?: number;
