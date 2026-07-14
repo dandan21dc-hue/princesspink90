@@ -882,8 +882,8 @@ function AdminAuditPage() {
                   return (
                     <tr
                       key={r.id}
-                      onClick={() => setSelectedId(r.id)}
-                      className="cursor-pointer border-t border-border/40 align-top hover:bg-muted/20"
+                      onClick={canManageAudit ? () => setSelectedId(r.id) : undefined}
+                      className={`border-t border-border/40 align-top ${canManageAudit ? "cursor-pointer hover:bg-muted/20" : ""}`}
                     >
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(r.created_at).toLocaleString()}
