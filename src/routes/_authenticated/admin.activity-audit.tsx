@@ -14,6 +14,9 @@ import {
   getPurgeStatus,
   setAuditEntryQuarantine,
   getMyAuditPermissions,
+  AUDIT_REASON_MIN,
+  AUDIT_REASON_MAX,
+  AUDIT_NOTES_MAX,
   type AuditTrustState,
 } from "@/lib/admin-audit.functions";
 
