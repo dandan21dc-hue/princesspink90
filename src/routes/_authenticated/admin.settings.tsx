@@ -261,13 +261,44 @@ function AdminSettings() {
             </Field>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             type="submit"
             disabled={save.isPending || settings.isLoading || sessionInputsInvalid}
             className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
           >
             {save.isPending ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (settings.data) {
+                setEmail(settings.data.email);
+                setFetlife(settings.data.fetlife_handle);
+                setReddit(settings.data.reddit_handle);
+                setGloryHolesEnabled(settings.data.glory_holes_enabled);
+                setSessionPriceDollars((settings.data.session_price_cents / 100).toFixed(2));
+                setSessionDurationMinutes(settings.data.session_duration_minutes);
+              }
+              setSaved(false);
+            }}
+            disabled={save.isPending || settings.isLoading || !settings.data}
+            className="rounded-md border border-border bg-background px-5 py-2 text-sm font-semibold uppercase tracking-widest text-foreground hover:bg-muted disabled:opacity-50"
+          >
+            Reset changes
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setSessionPriceDollars((SESSION_PRICE_DEFAULT_CENTS / 100).toFixed(2));
+              setSessionDurationMinutes(SESSION_DURATION_DEFAULT_MINUTES);
+              setSaved(false);
+            }}
+            disabled={save.isPending}
+            className="rounded-md border border-border bg-background px-5 py-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted disabled:opacity-50"
+            title={`Restore session price to A$${(SESSION_PRICE_DEFAULT_CENTS / 100).toFixed(2)} and duration to ${SESSION_DURATION_DEFAULT_MINUTES} min`}
+          >
+            Reset session defaults
           </button>
 
           {saved && <span className="text-sm text-primary">Saved ✓</span>}
