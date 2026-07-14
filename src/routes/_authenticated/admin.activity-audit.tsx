@@ -49,15 +49,20 @@ function AdminAuditPage() {
     enabled: isAdmin,
   });
 
-  const [filters, setFilters] = useState({
-    action: "",
-    resource: "",
-    actor_id: "",
+  const emptyFilters = {
     q: "",
+    action: "",
+    action_match: "contains" as "contains" | "exact",
+    resource: "",
+    resource_match: "contains" as "contains" | "exact",
+    actor_id: "",
+    actor_name: "",
     from: "",
     to: "",
-  });
-  const [applied, setApplied] = useState(filters);
+  };
+  const [filters, setFilters] = useState(emptyFilters);
+  const [applied, setApplied] = useState(emptyFilters);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -84,10 +89,16 @@ function AdminAuditPage() {
   const toIsoStart = (d: string) => (d ? new Date(d + "T00:00:00").toISOString() : undefined);
   const toIsoEnd = (d: string) => (d ? new Date(d + "T23:59:59.999").toISOString() : undefined);
 
+  const uuidRe = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  const actorIdValid = !applied.actor_id || uuidRe.test(applied.actor_id);
+
   const listArgs = {
     action: applied.action || undefined,
+    action_match: applied.action ? applied.action_match : undefined,
     resource: applied.resource || undefined,
-    actor_id: applied.actor_id || undefined,
+    resource_match: applied.resource ? applied.resource_match : undefined,
+    actor_id: applied.actor_id && actorIdValid ? applied.actor_id : undefined,
+    actor_name: applied.actor_name || undefined,
     q: applied.q || undefined,
     from: toIsoStart(applied.from),
     to: toIsoEnd(applied.to),
@@ -96,6 +107,15 @@ function AdminAuditPage() {
     sort,
     dir,
   };
+  const activeFilterCount = [
+    applied.q,
+    applied.action,
+    applied.resource,
+    applied.actor_id,
+    applied.actor_name,
+    applied.from,
+    applied.to,
+  ].filter(Boolean).length;
 
   const entries = useQuery({
     queryKey: ["admin-audit-entries", listArgs],
