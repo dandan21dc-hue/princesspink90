@@ -558,6 +558,8 @@ function PrivateRoomPage() {
 function ReviewBookingCard({
   selectedSlot,
   duration,
+  priceLabel,
+  durationLabel,
   partySize,
   notes,
   pending,
@@ -565,14 +567,15 @@ function ReviewBookingCard({
   onConfirm,
 }: {
   selectedSlot: Date;
-  duration: Duration;
+  duration: number;
+  priceLabel: string;
+  durationLabel: string;
   partySize: number;
   notes: string;
   pending: boolean;
   onEdit: () => void;
   onConfirm: () => void;
 }) {
-  const priceLabel = duration === 30 ? "A$150" : "A$275";
   const endsAt = new Date(selectedSlot.getTime() + duration * 60_000);
   return (
     <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-primary/40 bg-card p-6 shadow-[var(--shadow-glow-pink)]">
@@ -592,7 +595,7 @@ function ReviewBookingCard({
         <Row label="Time">
           {format(selectedSlot, "h:mm a")} – {format(endsAt, "h:mm a")}
         </Row>
-        <Row label="Duration">{duration === 30 ? "30 minutes" : "1 hour"}</Row>
+        <Row label="Duration">{durationLabel}</Row>
         <Row label="Party size">
           {partySize} {partySize === 1 ? "guest" : "guests"}
         </Row>
