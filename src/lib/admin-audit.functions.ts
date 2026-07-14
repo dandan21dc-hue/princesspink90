@@ -114,6 +114,36 @@ export const purgeExpiredAuditEntries = createServerFn({ method: "POST" })
     return { purged: (data as number | null) ?? 0 };
   });
 
+export type PurgeStatus = {
+  last_run_at: string | null;
+  last_success_at: string | null;
+  last_purged_count: number | null;
+  last_status: "never" | "success" | "error";
+  last_error: string | null;
+};
+
+export const getPurgeStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PurgeStatus> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("admin_activity_audit_purge_status")
+      .select("last_run_at, last_success_at, last_purged_count, last_status, last_error")
+      .eq("id", true)
+      .maybeSingle();
+    if (error) throw error;
+    return (
+      (data as PurgeStatus | null) ?? {
+        last_run_at: null,
+        last_success_at: null,
+        last_purged_count: null,
+        last_status: "never",
+        last_error: null,
+      }
+    );
+  });
+
+
 export type AuditIntegrityResult = {
   checked_at: string;
   total: number;
