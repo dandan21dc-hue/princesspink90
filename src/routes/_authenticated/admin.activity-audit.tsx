@@ -49,9 +49,35 @@ function AdminAuditPage() {
     enabled: isAdmin,
   });
 
+  const [filters, setFilters] = useState({
+    action: "",
+    resource: "",
+    actor_id: "",
+    q: "",
+    from: "",
+    to: "",
+  });
+  const [applied, setApplied] = useState(filters);
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+
+  const toIsoStart = (d: string) => (d ? new Date(d + "T00:00:00").toISOString() : undefined);
+  const toIsoEnd = (d: string) => (d ? new Date(d + "T23:59:59.999").toISOString() : undefined);
+
+  const listArgs = {
+    action: applied.action || undefined,
+    resource: applied.resource || undefined,
+    actor_id: applied.actor_id || undefined,
+    q: applied.q || undefined,
+    from: toIsoStart(applied.from),
+    to: toIsoEnd(applied.to),
+    page,
+    pageSize,
+  };
+
   const entries = useQuery({
-    queryKey: ["admin-audit-entries"],
-    queryFn: () => listFn({ data: { limit: 300 } }),
+    queryKey: ["admin-audit-entries", listArgs],
+    queryFn: () => listFn({ data: listArgs }),
     enabled: isAdmin,
   });
 
