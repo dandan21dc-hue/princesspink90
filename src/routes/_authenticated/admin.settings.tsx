@@ -880,19 +880,44 @@ function PricingAuditSection() {
             </tr>
           </thead>
           <tbody>
-            {audit.isLoading && rows.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-3 py-4 text-sm text-muted-foreground">
-                  Loading history…
-                </td>
-              </tr>
-            )}
+            {audit.isLoading && rows.length === 0 &&
+              Array.from({ length: Math.min(pageSize, 6) }).map((_, i) => (
+                <tr key={`skeleton-${i}`} className="border-t border-border/60">
+                  <td className="px-3 py-3">
+                    <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-14 animate-pulse rounded bg-muted" />
+                      <span className="text-muted-foreground/40">→</span>
+                      <div className="h-3 w-14 animate-pulse rounded bg-muted" />
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                      <span className="text-muted-foreground/40">→</span>
+                      <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
             {!audit.isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-3 py-4 text-sm text-muted-foreground">
-                  {hasActiveFilter
-                    ? "No changes match your filters."
-                    : "No changes recorded yet."}
+                <td colSpan={4} className="px-3 py-8">
+                  <AuditEmptyState
+                    hasActiveFilter={hasActiveFilter}
+                    search={search}
+                    from={from}
+                    to={to}
+                    onClear={() => {
+                      setSearchInput("");
+                      updateSearch({ q: "", from: "", to: "" });
+                    }}
+                  />
                 </td>
               </tr>
             )}
