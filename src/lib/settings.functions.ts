@@ -116,33 +116,84 @@ export type PricingAuditEntry = {
   new_session_duration_minutes: number | null;
 };
 
+const auditQuerySchema = z.object({
+  search: z.string().trim().max(255).optional().default(""),
+  from: z.string().trim().max(40).optional().default(""),
+  to: z.string().trim().max(40).optional().default(""),
+  page: z.number().int().min(1).max(10_000).optional().default(1),
+  pageSize: z.number().int().min(1).max(100).optional().default(10),
+});
+
+export type PricingAuditQuery = z.input<typeof auditQuerySchema>;
+
+export type PricingAuditPage = {
+  rows: PricingAuditEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+type AuditBuilder = {
+  select: (cols: string, o: { count: "exact" }) => AuditBuilder;
+  order: (col: string, o: { ascending: boolean }) => AuditBuilder;
+  range: (from: number, to: number) => Promise<{ data: PricingAuditEntry[] | null; error: unknown; count: number | null }>;
+  ilike: (col: string, pat: string) => AuditBuilder;
+  gte: (col: string, val: string) => AuditBuilder;
+  lte: (col: string, val: string) => AuditBuilder;
+};
+
 export const listPricingAudit = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<PricingAuditEntry[]> => {
+  .inputValidator((input: PricingAuditQuery) => auditQuerySchema.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<PricingAuditPage> => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Table added post-typegen — cast until types.ts regenerates.
-    const { data, error } = await (supabaseAdmin as unknown as {
-      from: (t: string) => {
-        select: (cols: string) => {
-          order: (col: string, o: { ascending: boolean }) => {
-            limit: (n: number) => Promise<{ data: PricingAuditEntry[] | null; error: unknown }>;
-          };
-        };
-      };
-    })
+
+    const page = data.page;
+    const pageSize = data.pageSize;
+    const fromIdx = (page - 1) * pageSize;
+    const toIdx = fromIdx + pageSize - 1;
+
+    let q = (supabaseAdmin as unknown as { from: (t: string) => AuditBuilder })
       .from("site_settings_pricing_audit")
       .select(
         "id, changed_at, changed_by, changed_by_email, old_session_price_cents, new_session_price_cents, old_session_duration_minutes, new_session_duration_minutes",
+        { count: "exact" },
       )
-      .order("changed_at", { ascending: false })
-      .limit(50);
+      .order("changed_at", { ascending: false });
+
+    if (data.search) {
+      // Escape PostgREST ilike wildcards in user input.
+      const safe = data.search.replace(/[%_,]/g, (m) => `\\${m}`);
+      q = q.ilike("changed_by_email", `%${safe}%`);
+    }
+    if (data.from) {
+      const fromDate = new Date(data.from);
+      if (!isNaN(fromDate.getTime())) q = q.gte("changed_at", fromDate.toISOString());
+    }
+    if (data.to) {
+      const toDate = new Date(data.to);
+      if (!isNaN(toDate.getTime())) {
+        // Treat as inclusive end-of-day when only a date is supplied.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(data.to)) {
+          toDate.setUTCHours(23, 59, 59, 999);
+        }
+        q = q.lte("changed_at", toDate.toISOString());
+      }
+    }
+
+    const { data: rows, error, count } = await q.range(fromIdx, toIdx);
     if (error) throw error as Error;
-    return (data ?? []) as PricingAuditEntry[];
+    return {
+      rows: (rows ?? []) as PricingAuditEntry[],
+      total: count ?? 0,
+      page,
+      pageSize,
+    };
   });
 
 export const updateSiteSettings = createServerFn({ method: "POST" })
