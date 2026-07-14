@@ -116,6 +116,7 @@ function PantyDrawerPage() {
   const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const paymentPending = usePaymentPending();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -140,6 +141,10 @@ function PantyDrawerPage() {
   const listings = q.data ?? [];
 
   const handleBuy = (listing: PantyListing) => {
+    if (paymentPending) {
+      toast.info("A payment is already being confirmed. Please wait for it to complete before starting another.");
+      return;
+    }
     if (!user) {
       toast.error("Please sign in to purchase.");
       return;
@@ -254,10 +259,12 @@ function PantyDrawerPage() {
                     <button
                       type="button"
                       onClick={() => handleBuy(l)}
-                      disabled={pendingId === l.id || !l.price_cents}
+                      disabled={pendingId === l.id || paymentPending || !l.price_cents}
+                      aria-disabled={pendingId === l.id || paymentPending || !l.price_cents}
+                      title={paymentPending ? "A previous payment is still being confirmed" : undefined}
                       className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      {pendingId === l.id ? "Opening…" : "Buy"}
+                      {paymentPending ? "Payment pending…" : pendingId === l.id ? "Opening…" : "Buy"}
                     </button>
                   </div>
                 </div>
