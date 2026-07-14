@@ -1,56 +1,87 @@
-# Refactor `/panty-drawer` to an item-only gallery
+# Remove Stripe, wire NOWPayments, add tests
 
-## Goal
-Replace the current 24/48/72-hour tier page with a clean grid of the panty items admins upload in **Admin → Panty Listings** (`panty_listings` table). Each card shows the uploaded image, title, and price, and its Buy button uses a standard per-item Stripe checkout for that exact listing at its own price — not the old 24/48/72hr tier prices.
+## Scope note (please read)
 
-## What changes for the user
-- No more static "24 Hours Worn / 48 Hours / 72 Hours" tier cards or "Worn Hours" copy.
-- The page shows only pairs uploaded in your admin panty-listings manager that are `published = true` and `sold = false`.
-- If nothing is uploaded (or everything sold), the page shows: **"New items coming soon — check back shortly."**
-- Each card: cover image, title, price (AUD), and a Buy button that opens Stripe embedded checkout for that individual listing.
-- Members-only rule stays: buying still requires an active All-Access subscription or lifetime membership (same guard as today), so members-only messaging remains.
-- Shipping A$15 and subscriber discount continue to apply automatically at checkout.
+This touches ~80 files. To keep it reviewable and avoid a broken preview
+between commits, I'll do it in **three phases** in a single build session,
+verifying types + tests after each. If you'd rather I stop after phase 1
+or 2, say so before I start.
 
-## Technical outline
+## Phase 1 — Build NOWPayments behind the abstraction
 
-### Frontend
-- Rewrite `src/routes/panty-drawer.tsx`:
-  - Fetch `listPantyListingsPublic()` with TanStack Query.
-  - Loading: skeleton grid. Empty: the "coming soon" placeholder. Populated: responsive grid of cards (image, title, price, Buy).
-  - Buy button uses `useStripeCheckout()` with a new server-fn call `createPantyListingCheckout({ listingId, userId, customerEmail, returnUrl, environment })`.
-  - Keep `PaymentTestModeBanner` and the existing head/OG metadata (updated wording to drop "24/48/72" phrasing).
+Add a real `nowpaymentsProvider` implementing the existing
+`PaymentProvider` interface (`src/lib/payments/types.ts`). The provider
+handles both `one_time` and `subscription` intents.
 
-### Backend (server function)
-Add `createPantyListingCheckout` in `src/lib/store.functions.ts` alongside the existing store checkout code:
-- Auth-gated with `requireSupabaseAuth`.
-- Verify the user has an active All-Access subscription, lifetime membership, or active term pass (reuse the same members-only helper the existing panty flow uses).
-- Read the listing from `panty_listings` where `id = listingId AND published AND NOT sold`. Reject otherwise.
-- Build a Stripe Checkout Session with dynamic `price_data`:
-  - `currency: "aud"` (hardcoded — AUD-only rule).
-  - `unit_amount: listing.price_cents`, `product_data.name: listing.title`, tax code `TAX_CODES.tangible_goods` (matches panties).
-  - `mode: "payment"`, `ui_mode: "embedded_page"`.
-  - `shipping_address_collection: { allowed_countries: ["AU"] }` + the same A$15 discreet AU shipping rate used by panty cart checkout.
-  - Reuse `resolveOrCreateCustomer` and `automatic_tax: { enabled: true }` (panty flow is not eligible for managed_payments).
-  - Apply the subscriber discount coupon when eligible (same helper the current panty checkout uses).
-  - Metadata: `userId`, `panty_listing_id: listing.id`, `panty_listing_title`.
-- Return `{ clientSecret }` or `{ error }`.
+Server side:
+- `src/lib/nowpayments.server.ts` — thin HTTP client around
+  `api.nowpayments.io` (invoice create, subscription plan create, status
+  read). Reads `NOWPAYMENTS_API_KEY` from env inside handlers.
+- `src/lib/nowpayments.functions.ts`:
+  - `createNowpaymentsInvoice` — one-time. Resolves price by internal id
+    (same string-key convention we use with Stripe `lookup_key`), creates
+    an NOWPayments invoice, returns `{ invoice_url }`.
+  - `createNowpaymentsSubscription` — recurring. Creates/uses a
+    subscription plan and returns the hosted checkout URL.
+  - Both `.middleware([requireSupabaseAuth])` for user context.
+- `src/routes/api/public/payments/nowpayments-webhook.ts` — verify HMAC
+  (`x-nowpayments-sig`), upsert into `payments` / `subscriptions` tables,
+  return 200 fast. Idempotent by `payment_id` / `subscription_id`.
 
-### Webhook / order write
-- `src/routes/api/public/payments/webhook.ts` already inserts a `panty_orders` row for panty purchases. Extend the handler to recognize sessions carrying `metadata.panty_listing_id`:
-  - Insert a `panty_orders` row with `panty_listing_id`, price/currency from the session, and shipping info.
-  - Mark the corresponding `panty_listings.sold = true` so it disappears from the gallery on the next load.
+Client side:
+- `src/lib/payments/providers/nowpayments.tsx` — hook that calls the
+  server fn, then either redirects to the hosted invoice URL or opens it
+  in a modal iframe (I'll default to redirect; simpler and matches how
+  NOWPayments is designed).
+- `src/lib/payments/config.ts` — flip both intents to
+  `nowpaymentsProvider`.
 
-### Cleanup
-- Remove the `<PantyGallery>` block from `/store/subscribe` (or make it link back to `/panty-drawer`) so item-level browsing lives in one place. The 24/48/72hr tier buy cards on `/store/subscribe` are left untouched — the request only refactors `/panty-drawer`.
-- No changes to `panty_listings` schema, RLS, or the admin uploader.
+Data model:
+- New `payments` table (id, user_id, provider, provider_payment_id,
+  price_key, amount_cents, currency, status, environment, timestamps)
+  with GRANTs + RLS (user reads own, service_role writes).
+- Extend `subscriptions` table: add `provider` column (default `stripe`
+  for existing rows, `nowpayments` going forward). Keep the rest of the
+  schema so historical Stripe rows still render.
 
-## Files touched
-- `src/routes/panty-drawer.tsx` — full rewrite.
-- `src/lib/store.functions.ts` — add `createPantyListingCheckout`.
-- `src/routes/api/public/payments/webhook.ts` — handle the new metadata and mark listing sold.
-- `src/routes/store.subscribe.tsx` — small: drop or link the gallery block (optional, only if you want it deduped).
+## Phase 2 — Delete Stripe
 
-## Out of scope
-- Adding new fields to `panty_listings` (already has `title`, `cover_url`, `price_cents`, `published`, `sold`).
-- Changing the admin uploader UI.
-- Changing 24/48/72hr tier checkout on `/store/subscribe`.
+Files removed:
+- `src/lib/stripe.ts`, `src/lib/stripe.server.ts`, `src/lib/stripe-tax-codes.ts`
+- `src/lib/subscribePrices.functions.ts`, `.shared.ts`, `.server.ts` (rewritten against NOWPayments)
+- `src/lib/stripeMaintenance.functions.ts`, `stripe-webhook-events.functions.ts`, `planPriceValidation.server.ts`, `termPassPriceMapping.test.ts`
+- `src/lib/billing.functions.ts` Stripe-specific branches (portal → account settings link)
+- `src/components/StripeEmbeddedCheckout.tsx` + test, `PaymentTestModeBanner.tsx` (or repurpose)
+- `src/routes/api/public/payments/webhook.ts` (Stripe webhook) + its test
+- `src/routes/_authenticated/admin.webhook-events.tsx`, `admin.checkout-reconciliation.tsx` — kept but re-pointed at NOWPayments data
+- `src/routes/checkout.return.tsx` — replaced with a NOWPayments return page keyed on `payment_id`
+- Stripe imports scrubbed from: `store.subscribe.tsx`, `store.$id.tsx`, `account.billing.tsx`, `panty-drawer.tsx`, `private-room.tsx`, `glory-holes.tsx`, `admin.orders-status.tsx`, `admin.analytics.tsx`, `admin.settings.tsx`, `admin.panty-listings.tsx`, `library.tsx`, `bookings.tsx`, `content.new.tsx`, `content.index.tsx`, `events.$id.checkin.tsx`, `NotificationsBell.tsx`, `AllAccessCard.tsx`, `PerksWidget.tsx`, `SubscriberDiscountPanel.tsx`, `AccountBanners.tsx`, `TermsAgreementGate.tsx`, `SiteHeader.tsx`, `CartDrawer.tsx`, `email-templates/payment-failed-final.tsx`, plus `.env` refs.
+- `useStripeCheckout.tsx` retained as a thin alias to `useCheckout('one_time')` for one release, then deleted.
+- Package removals: `stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js`.
+
+Secrets: I'll ask you to save `NOWPAYMENTS_API_KEY` and `NOWPAYMENTS_IPN_SECRET` via the secure form (not stored in code).
+
+## Phase 3 — Vitest E2E coverage
+
+New tests under `src/**/*.test.ts(x)`, no browser:
+
+1. `nowpayments.server.test.ts` — HMAC signature verify: valid sig → parsed body; bad sig → throw; stale timestamp → throw.
+2. `nowpayments-webhook.test.ts` — POSTs signed fixture payloads through the route handler (imported directly), asserts Supabase upsert calls via a mocked service-role client. Covers: `finished` (one-time → payments row), `partially_paid` (no subscription grant), subscription `active` / `expired` transitions, unknown event (200, no writes), replay (idempotent).
+3. `nowpayments.functions.test.ts` — `createNowpaymentsInvoice` and `createNowpaymentsSubscription` with `fetch` mocked: happy path returns url; upstream 4xx surfaces `{ error }`; unauthenticated caller rejected by middleware.
+4. `payments-abstraction.test.tsx` — renders a component using `useCheckout('one_time')` and `useCheckout('subscription')`, asserts both resolve to `nowpaymentsProvider` and that `openCheckout({...})` triggers the server-fn call (mocked).
+5. `subscription-upgrade.test.ts` — simulates: user on `all_access_monthly_aud` opens upgrade to `all_access_12mo_monthly_aud`, webhook fires `subscription.updated` for new plan, `subscriptions` row updates to new `price_id`, `has_active_subscription` returns true.
+6. `checkout-return.test.tsx` — return page renders success/failure/pending based on `payment_id` status pulled from the DB (mocked).
+
+All tests use `vi.mock` for `@supabase/supabase-js` and `fetch` — no live services, no Playwright. Target runtime under 5s total.
+
+## Verification after each phase
+
+- `bunx tsgo --noEmit`
+- `bunx vitest run`
+- `rg -i "stripe" src/` returns nothing after phase 2 (except this plan and CHANGELOG).
+
+## What I need from you before phase 1
+
+1. Confirm the phased approach is fine (vs. one massive commit).
+2. Confirm you have a NOWPayments account and can save the API key + IPN secret when I request them.
+3. Confirm removing the Stripe customer portal is OK — subscribers will manage cancellations via a NOWPayments-hosted page instead, or via an in-app "cancel" server fn.
