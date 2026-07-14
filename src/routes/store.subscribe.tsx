@@ -245,6 +245,7 @@ function SubscribePage() {
 
   return (
     <>
+      {subComingSoon.element}
       <PaymentTestModeBanner />
       <section className="mx-auto max-w-6xl px-5 pt-10 pb-16">
         <Link
