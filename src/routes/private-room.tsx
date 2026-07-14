@@ -419,6 +419,33 @@ function PrivateRoomPage() {
                   </div>
                 )}
 
+                {selectedConflictReason && (
+                  <div
+                    role="alert"
+                    aria-live="assertive"
+                    className="mb-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                  >
+                    <div className="font-semibold uppercase tracking-widest text-[11px]">
+                      Slot no longer available
+                    </div>
+                    <div className="mt-1">
+                      {selectedSlot && (
+                        <span className="font-medium">
+                          {format(selectedSlot, "EEE d MMM · h:mm a")} —{" "}
+                        </span>
+                      )}
+                      {selectedConflictReason}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSlot(null)}
+                      className="mt-2 inline-flex text-[11px] font-semibold uppercase tracking-widest underline underline-offset-2"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {slots.map((s) => {
                     const disabled = slotConflicts(s);
