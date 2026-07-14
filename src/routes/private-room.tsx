@@ -122,7 +122,12 @@ function PrivateRoomPage() {
     queryKey: ["private-room-busy", dayRange?.from, dayRange?.to],
     enabled: !!dayRange,
     queryFn: () => listPrivateRoomBusy({ data: dayRange! }),
-    staleTime: 30_000,
+    staleTime: 15_000,
+    // Real-time availability: re-check every 15s so conflicts show up quickly
+    // even if another guest books/holds a slot while this form is open.
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
 
   const slots = useMemo(() => {
@@ -225,12 +230,35 @@ function PrivateRoomPage() {
     return busyRanges.some((b) => b.start < e && b.end > s);
   }
 
+  // Real-time conflict detection for the slot the guest currently has picked.
+  // If the busy list refresh reveals someone else grabbed it (or it slipped
+  // inside the 1-hour lead window while they were reading), surface a clear
+  // message instead of silently letting them try to check out.
+  const selectedConflict = selectedSlot ? slotConflicts(selectedSlot) : false;
+  const selectedConflictReason = useMemo(() => {
+    if (!selectedSlot || !selectedConflict) return null;
+    const s = selectedSlot.getTime();
+    if (s < now + 60 * 60 * 1000) {
+      return "This time is now inside the 1-hour lead window. Please pick a slot at least an hour from now.";
+    }
+    return "This time was just booked or placed on hold by someone else. Please choose another slot.";
+  }, [selectedSlot, selectedConflict, now]);
+
+  // If we're in the review step and the slot becomes unavailable, kick the
+  // guest back to the picker so they can see the grid and the banner together.
+  useEffect(() => {
+    if (reviewing && selectedConflict) {
+      setReviewing(false);
+    }
+  }, [reviewing, selectedConflict]);
+
   function review() {
     if (!user) {
       navigate({ to: "/auth", search: { next: "/private-room" } });
       return;
     }
     if (!selectedSlot) return;
+    if (selectedConflict) return;
     if (notes.length > 1000) return;
     setReviewing(true);
   }
@@ -238,6 +266,7 @@ function PrivateRoomPage() {
   function confirm() {
     if (pending) return;
     if (!user || !selectedSlot) return;
+    if (selectedConflict) return;
     setPending(true);
     const priceId = duration <= 30 ? "private_room_30min_aud" : "private_room_60min_aud";
     openCheckout({
@@ -390,6 +419,33 @@ function PrivateRoomPage() {
                   </div>
                 )}
 
+                {selectedConflictReason && (
+                  <div
+                    role="alert"
+                    aria-live="assertive"
+                    className="mb-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                  >
+                    <div className="font-semibold uppercase tracking-widest text-[11px]">
+                      Slot no longer available
+                    </div>
+                    <div className="mt-1">
+                      {selectedSlot && (
+                        <span className="font-medium">
+                          {format(selectedSlot, "EEE d MMM · h:mm a")} —{" "}
+                        </span>
+                      )}
+                      {selectedConflictReason}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedSlot(null)}
+                      className="mt-2 inline-flex text-[11px] font-semibold uppercase tracking-widest underline underline-offset-2"
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
                   {slots.map((s) => {
                     const disabled = slotConflicts(s);
@@ -498,7 +554,7 @@ function PrivateRoomPage() {
                   </div>
                   <button
                     onClick={review}
-                    disabled={!!user && !selectedSlot}
+                    disabled={!!user && (!selectedSlot || selectedConflict)}
                     className="min-h-11 rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {!user ? "Sign in to book" : "Review booking"}
