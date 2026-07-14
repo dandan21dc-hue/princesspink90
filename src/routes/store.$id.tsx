@@ -184,13 +184,7 @@ function ItemPage() {
       navigate({ to: "/auth" });
       return;
     }
-    setPending("subscribe");
-    openCheckout({
-      priceId: "all_access_monthly_aud",
-      userId: user.id,
-      customerEmail: user.email,
-      returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
-    });
+    subComingSoon.show();
   }
 
   return (
