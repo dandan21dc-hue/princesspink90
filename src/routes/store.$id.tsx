@@ -134,6 +134,7 @@ function ItemPage() {
   const navigate = useNavigate();
   const [user] = useState<{ id: string; email?: string } | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const subComingSoon = useSubscriptionComingSoon();
   const [pending, setPending] = useState<null | "buy" | "subscribe" | "cart">(null);
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
