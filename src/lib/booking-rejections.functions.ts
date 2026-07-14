@@ -68,7 +68,19 @@ export const listBookingRejections = createServerFn({ method: "POST" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
-    const list = (rows ?? []) as unknown as BookingRejectionRow[];
+    const list: BookingRejectionRow[] = (rows ?? []).map((r: any) => ({
+      id: r.id,
+      user_id: r.user_id ?? null,
+      attempt_kind: r.attempt_kind,
+      attempted_starts_at: r.attempted_starts_at ?? null,
+      duration_minutes: r.duration_minutes ?? null,
+      reason_code: r.reason_code,
+      reason_message: r.reason_message,
+      booking_id: r.booking_id ?? null,
+      conflict_booking_ids: (r.conflict_booking_ids ?? []) as string[],
+      metadata: normalizeMetadata(r.metadata),
+      created_at: r.created_at,
+    }));
     const summary: BookingRejectionSummary = {
       total: list.length,
       byKind: {},
@@ -81,3 +93,16 @@ export const listBookingRejections = createServerFn({ method: "POST" })
 
     return { rows: list, summary };
   });
+
+function normalizeMetadata(value: unknown): Record<string, string | number | boolean | null> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, string | number | boolean | null> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (v === null || typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+      out[k] = v;
+    } else {
+      out[k] = JSON.stringify(v);
+    }
+  }
+  return out;
+}
