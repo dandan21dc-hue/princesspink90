@@ -8,6 +8,9 @@ import {
   updateAuditRetention,
   listAdminAuditEntries,
   purgeExpiredAuditEntries,
+  verifyAuditIntegrity,
+  listAuditAlerts,
+  acknowledgeAuditAlert,
 } from "@/lib/admin-audit.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/activity-audit")({
