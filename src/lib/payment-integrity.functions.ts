@@ -29,11 +29,12 @@ export type IntegrityFinding = {
   resource_id: string;
   environment: string;
   severity: "info" | "warning" | "critical";
-  detail: Record<string, unknown>;
+  detail: unknown;
   first_seen_at: string;
   last_seen_at: string;
   resolved_at: string | null;
 };
+
 
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {

@@ -60,6 +60,7 @@ import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminPerksRouteImport } from './routes/_authenticated/admin.perks'
+import { Route as AuthenticatedAdminPaymentIntegrityRouteImport } from './routes/_authenticated/admin.payment-integrity'
 import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_authenticated/admin.partnerships'
 import { Route as AuthenticatedAdminPantyListingsRouteImport } from './routes/_authenticated/admin.panty-listings'
 import { Route as AuthenticatedAdminOrdersStatusRouteImport } from './routes/_authenticated/admin.orders-status'
@@ -371,6 +372,12 @@ const AuthenticatedAdminPerksRoute = AuthenticatedAdminPerksRouteImport.update({
   path: '/admin/perks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminPaymentIntegrityRoute =
+  AuthenticatedAdminPaymentIntegrityRouteImport.update({
+    id: '/admin/payment-integrity',
+    path: '/admin/payment-integrity',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminPartnershipsRoute =
   AuthenticatedAdminPartnershipsRouteImport.update({
     id: '/admin/partnerships',
@@ -688,6 +695,7 @@ export interface FileRoutesByFullPath {
   '/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
+  '/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -783,6 +791,7 @@ export interface FileRoutesByTo {
   '/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
+  '/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -881,6 +890,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/_authenticated/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
+  '/_authenticated/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -979,6 +989,7 @@ export interface FileRouteTypes {
     | '/admin/orders-status'
     | '/admin/panty-listings'
     | '/admin/partnerships'
+    | '/admin/payment-integrity'
     | '/admin/perks'
     | '/admin/safety-incidents'
     | '/admin/settings'
@@ -1074,6 +1085,7 @@ export interface FileRouteTypes {
     | '/admin/orders-status'
     | '/admin/panty-listings'
     | '/admin/partnerships'
+    | '/admin/payment-integrity'
     | '/admin/perks'
     | '/admin/safety-incidents'
     | '/admin/settings'
@@ -1171,6 +1183,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/orders-status'
     | '/_authenticated/admin/panty-listings'
     | '/_authenticated/admin/partnerships'
+    | '/_authenticated/admin/payment-integrity'
     | '/_authenticated/admin/perks'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/settings'
@@ -1621,6 +1634,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPerksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/payment-integrity': {
+      id: '/_authenticated/admin/payment-integrity'
+      path: '/admin/payment-integrity'
+      fullPath: '/admin/payment-integrity'
+      preLoaderRoute: typeof AuthenticatedAdminPaymentIntegrityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/partnerships': {
       id: '/_authenticated/admin/partnerships'
       path: '/admin/partnerships'
@@ -2003,6 +2023,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminOrdersStatusRoute: typeof AuthenticatedAdminOrdersStatusRoute
   AuthenticatedAdminPantyListingsRoute: typeof AuthenticatedAdminPantyListingsRoute
   AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRouteWithChildren
+  AuthenticatedAdminPaymentIntegrityRoute: typeof AuthenticatedAdminPaymentIntegrityRoute
   AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -2057,6 +2078,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminPantyListingsRoute: AuthenticatedAdminPantyListingsRoute,
   AuthenticatedAdminPartnershipsRoute:
     AuthenticatedAdminPartnershipsRouteWithChildren,
+  AuthenticatedAdminPaymentIntegrityRoute:
+    AuthenticatedAdminPaymentIntegrityRoute,
   AuthenticatedAdminPerksRoute: AuthenticatedAdminPerksRoute,
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
