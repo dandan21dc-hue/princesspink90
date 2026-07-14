@@ -23,10 +23,6 @@ type MembershipRow = {
 
 const state: { rows: MembershipRow[]; nowMs: number } = { rows: [], nowMs: 0 };
 
-function nowDate() {
-  return new Date(state.nowMs);
-}
-
 // Reproduces the migration's function body semantically.
 function fakeGrantAllAccessPass30d(args: {
   _user_id: string;
