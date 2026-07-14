@@ -789,10 +789,22 @@ function PricingAuditSection() {
         <table className="w-full text-left text-xs">
           <thead className="bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium">When</th>
-              <th className="px-3 py-2 font-medium">Admin</th>
-              <th className="px-3 py-2 font-medium">Price</th>
-              <th className="px-3 py-2 font-medium">Duration</th>
+              <SortableTh label="When" col="changed_at" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+              <SortableTh label="Admin" col="changed_by_email" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+              <th className="px-3 py-2 font-medium">
+                <div className="flex items-center gap-3">
+                  <SortHeaderButton label="Old price" col="old_session_price_cents" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+                  <span className="text-muted-foreground/60">→</span>
+                  <SortHeaderButton label="New price" col="new_session_price_cents" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+                </div>
+              </th>
+              <th className="px-3 py-2 font-medium">
+                <div className="flex items-center gap-3">
+                  <SortHeaderButton label="Old duration" col="old_session_duration_minutes" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+                  <span className="text-muted-foreground/60">→</span>
+                  <SortHeaderButton label="New duration" col="new_session_duration_minutes" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
