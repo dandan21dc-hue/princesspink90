@@ -2477,7 +2477,13 @@ export type Database = {
       verify_admin_activity_audit_integrity: { Args: never; Returns: Json }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user" | "cohost" | "co_host"
+      app_role:
+        | "admin"
+        | "moderator"
+        | "user"
+        | "cohost"
+        | "co_host"
+        | "audit_admin"
       event_doc_type: "permit" | "insurance" | "capacity" | "other"
       venue_compliance_kind:
         | "public_liability_insurance"
@@ -2611,7 +2617,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user", "cohost", "co_host"],
+      app_role: [
+        "admin",
+        "moderator",
+        "user",
+        "cohost",
+        "co_host",
+        "audit_admin",
+      ],
       event_doc_type: ["permit", "insurance", "capacity", "other"],
       venue_compliance_kind: [
         "public_liability_insurance",

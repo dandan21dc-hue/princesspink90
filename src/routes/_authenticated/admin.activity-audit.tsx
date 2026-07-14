@@ -13,6 +13,7 @@ import {
   acknowledgeAuditAlert,
   getPurgeStatus,
   setAuditEntryQuarantine,
+  getMyAuditPermissions,
   type AuditTrustState,
 } from "@/lib/admin-audit.functions";
 
@@ -45,6 +46,14 @@ function AdminAuditPage() {
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
   const isAdmin = me.data?.isAdmin === true;
+
+  const permsFn = useServerFn(getMyAuditPermissions);
+  const perms = useQuery({
+    queryKey: ["my-audit-permissions"],
+    queryFn: () => permsFn(),
+    enabled: isAdmin,
+  });
+  const canManageAudit = perms.data?.isAuditAdmin === true;
 
   const retention = useQuery({
     queryKey: ["admin-audit-retention"],
@@ -304,13 +313,15 @@ function AdminAuditPage() {
                           {JSON.stringify(a.detail)}
                         </pre>
                       </div>
-                      <button
-                        onClick={() => ack.mutate(a.id)}
-                        disabled={ack.isPending}
-                        className="shrink-0 rounded-md border border-border px-2 py-1 text-[11px] uppercase tracking-widest disabled:opacity-50"
-                      >
-                        Ack
-                      </button>
+                      {canManageAudit && (
+                        <button
+                          onClick={() => ack.mutate(a.id)}
+                          disabled={ack.isPending}
+                          className="shrink-0 rounded-md border border-border px-2 py-1 text-[11px] uppercase tracking-widest disabled:opacity-50"
+                        >
+                          Ack
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -891,30 +902,32 @@ function AdminAuditPage() {
                         >
                           {r.trust}
                         </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (r.trust === "quarantined") {
-                              quarantine.mutate({ id: r.id, quarantined: false });
-                            } else {
-                              const reason = window.prompt(
-                                "Quarantine reason (optional):",
-                                "",
-                              );
-                              if (reason === null) return; // cancelled
-                              quarantine.mutate({
-                                id: r.id,
-                                quarantined: true,
-                                reason: reason || undefined,
-                              });
-                            }
-                          }}
-                          disabled={quarantine.isPending}
-                          className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-widest hover:bg-muted/40 disabled:opacity-50"
-                        >
-                          {r.trust === "quarantined" ? "Release" : "Quarantine"}
-                        </button>
+                        {canManageAudit && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (r.trust === "quarantined") {
+                                quarantine.mutate({ id: r.id, quarantined: false });
+                              } else {
+                                const reason = window.prompt(
+                                  "Quarantine reason (optional):",
+                                  "",
+                                );
+                                if (reason === null) return; // cancelled
+                                quarantine.mutate({
+                                  id: r.id,
+                                  quarantined: true,
+                                  reason: reason || undefined,
+                                });
+                              }
+                            }}
+                            disabled={quarantine.isPending}
+                            className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-widest hover:bg-muted/40 disabled:opacity-50"
+                          >
+                            {r.trust === "quarantined" ? "Release" : "Quarantine"}
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         <pre className="whitespace-pre-wrap break-words text-[11px] line-clamp-2">

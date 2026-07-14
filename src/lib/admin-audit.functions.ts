@@ -8,6 +8,33 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Admin access required");
 }
 
+async function hasAuditAdmin(supabase: any, userId: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "audit_admin" as never,
+  });
+  if (error) throw error;
+  return Boolean(data);
+}
+
+async function assertAuditAdmin(supabase: any, userId: string) {
+  if (!(await hasAuditAdmin(supabase, userId))) {
+    throw new Error("Audit admin permission required");
+  }
+}
+
+export const getMyAuditPermissions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{ isAdmin: boolean; isAuditAdmin: boolean }> => {
+    const { data: adminData, error: adminErr } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (adminErr) throw adminErr;
+    const isAuditAdmin = await hasAuditAdmin(context.supabase, context.userId);
+    return { isAdmin: Boolean(adminData), isAuditAdmin };
+  });
+
 export const getAuditRetention = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -280,6 +307,7 @@ export const setAuditEntryQuarantine = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    await assertAuditAdmin(context.supabase, context.userId);
     if (data.quarantined) {
       const { error } = await context.supabase
         .from("admin_activity_audit_quarantine")
@@ -413,6 +441,7 @@ export const acknowledgeAuditAlert = createServerFn({ method: "POST" })
   .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    await assertAuditAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("admin_activity_audit_alerts")
       .update({
