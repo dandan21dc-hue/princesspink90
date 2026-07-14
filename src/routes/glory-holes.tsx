@@ -38,6 +38,12 @@ const SLOT_STEP_MIN = 30;
 type Duration = 30 | 60;
 
 function PrivateRoomPage() {
+  const enabledFn = useServerFn(getGloryHolesEnabled);
+  const enabledQuery = useQuery({
+    queryKey: ["glory-holes-enabled"],
+    queryFn: () => enabledFn(),
+    staleTime: 30_000,
+  });
   const navigate = useNavigate();
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() =>
