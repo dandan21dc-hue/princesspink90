@@ -726,11 +726,31 @@ function PricingAuditSection() {
 
   return (
     <section className="mt-12 border-t border-border pt-8">
-      <h2 className="font-display text-xl font-bold">Pricing change history</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Every change to the session price or duration is recorded here with the admin who
-        made it and the timestamp.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold">Pricing change history</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every change to the session price or duration is recorded here with the admin who
+            made it and the timestamp.
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="rounded-md border border-border bg-background px-4 py-2 text-xs font-semibold uppercase tracking-widest text-foreground hover:bg-muted disabled:opacity-50"
+          >
+            {isExporting ? "Preparing…" : "Download CSV"}
+          </button>
+          <span className="text-[11px] text-muted-foreground">
+            Applies current filters &amp; sort
+          </span>
+          {exportError && (
+            <span className="text-[11px] text-destructive">{exportError}</span>
+          )}
+        </div>
+      </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
