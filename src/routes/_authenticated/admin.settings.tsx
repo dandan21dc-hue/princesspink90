@@ -154,6 +154,43 @@ function AdminSettings() {
             <span>{gloryHolesEnabled ? "Enabled — page is live" : "Disabled — page is hidden"}</span>
           </label>
         </Field>
+        <div className="rounded-md border border-border/60 bg-muted/30 p-4">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">
+            Session pricing
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Shown on the Private Room and Glory Holes booking pages. Note: the amount charged at
+            checkout is still controlled by your Stripe price catalogue — keep those in sync.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field label="Active session price (AUD)" hint="e.g. 275.00">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">A$</span>
+                <input
+                  type="number"
+                  min={1}
+                  step="0.01"
+                  required
+                  value={sessionPriceDollars}
+                  onChange={(e) => setSessionPriceDollars(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </Field>
+            <Field label="Session duration (minutes)" hint="e.g. 60">
+              <input
+                type="number"
+                min={1}
+                max={480}
+                step={5}
+                required
+                value={sessionDurationMinutes}
+                onChange={(e) => setSessionDurationMinutes(Number(e.target.value))}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </Field>
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <button
             type="submit"
