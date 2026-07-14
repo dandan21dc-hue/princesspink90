@@ -1697,6 +1697,39 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings_pricing_audit: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          changed_by_email: string | null
+          id: string
+          new_session_duration_minutes: number | null
+          new_session_price_cents: number | null
+          old_session_duration_minutes: number | null
+          old_session_price_cents: number | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          id?: string
+          new_session_duration_minutes?: number | null
+          new_session_price_cents?: number | null
+          old_session_duration_minutes?: number | null
+          old_session_price_cents?: number | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_email?: string | null
+          id?: string
+          new_session_duration_minutes?: number | null
+          new_session_price_cents?: number | null
+          old_session_duration_minutes?: number | null
+          old_session_price_cents?: number | null
+        }
+        Relationships: []
+      }
       stripe_webhook_events: {
         Row: {
           created_at: string
