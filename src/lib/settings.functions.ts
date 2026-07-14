@@ -125,14 +125,23 @@ export const listPricingAudit = createServerFn({ method: "GET" })
     });
     if (!isAdmin) throw new Error("Forbidden");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin
+    // Table added post-typegen — cast until types.ts regenerates.
+    const { data, error } = await (supabaseAdmin as unknown as {
+      from: (t: string) => {
+        select: (cols: string) => {
+          order: (col: string, o: { ascending: boolean }) => {
+            limit: (n: number) => Promise<{ data: PricingAuditEntry[] | null; error: unknown }>;
+          };
+        };
+      };
+    })
       .from("site_settings_pricing_audit")
       .select(
         "id, changed_at, changed_by, changed_by_email, old_session_price_cents, new_session_price_cents, old_session_duration_minutes, new_session_duration_minutes",
       )
       .order("changed_at", { ascending: false })
       .limit(50);
-    if (error) throw error;
+    if (error) throw error as Error;
     return (data ?? []) as PricingAuditEntry[];
   });
 
