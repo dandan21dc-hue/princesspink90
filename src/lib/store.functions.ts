@@ -537,8 +537,25 @@ export const adminReschedulePrivateRoomBooking = createServerFn({ method: "POST"
     if (row.status === "cancelled") throw new Error("Cannot reschedule a cancelled booking");
 
     const newStart = new Date(data.startsAt);
+    const rejectBase = {
+      attemptKind: "reschedule_admin" as const,
+      userId: (row.user_id as string | null) ?? context.userId,
+      attemptedStartsAt: newStart.toISOString(),
+      durationMinutes: row.duration_minutes as number,
+      bookingId: row.id as string,
+      metadata: { admin_id: context.userId, ...(data.reason ? { reason: data.reason } : {}) },
+    };
     const hour = newStart.getHours();
-    if (hour < 10 || hour > 21) throw new Error("Time must be between 10:00 and 22:00");
+    if (hour < 10 || hour > 21) {
+      const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+      await logBookingRejection({
+        ...rejectBase,
+        reasonCode: "outside_operating_hours",
+        reasonMessage: "Time must be between 10:00 and 22:00",
+        metadata: { ...rejectBase.metadata, requestedHour: hour },
+      });
+      throw new Error("Time must be between 10:00 and 22:00");
+    }
     const newEnd = new Date(newStart.getTime() + row.duration_minutes * 60_000);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -550,7 +567,7 @@ export const adminReschedulePrivateRoomBooking = createServerFn({ method: "POST"
       .gte("starts_at", new Date(newStart.getTime() - 2 * 60 * 60_000).toISOString())
       .lte("starts_at", new Date(newEnd.getTime() + 2 * 60 * 60_000).toISOString());
     if (busyErr) throw new Error(busyErr.message);
-    const conflict = (busy ?? []).some((b) => {
+    const conflictRows = (busy ?? []).filter((b) => {
       if (b.status === "pending" && new Date(b.created_at).getTime() < Date.now() - 15 * 60_000) {
         return false;
       }
@@ -558,7 +575,17 @@ export const adminReschedulePrivateRoomBooking = createServerFn({ method: "POST"
       const bEnd = bStart + b.duration_minutes * 60_000;
       return bStart < newEnd.getTime() && bEnd > newStart.getTime();
     });
-    if (conflict) throw new Error("That slot conflicts with another booking");
+    if (conflictRows.length > 0) {
+      const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+      await logBookingRejection({
+        ...rejectBase,
+        reasonCode: "slot_conflict",
+        reasonMessage: "That slot conflicts with another booking",
+        conflictBookingIds: conflictRows.map((b) => b.id as string),
+      });
+      throw new Error("That slot conflicts with another booking");
+    }
+
 
     const oldStartsAt = row.starts_at as string;
     const { error } = await supabaseAdmin
