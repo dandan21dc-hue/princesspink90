@@ -480,12 +480,12 @@ function AdminAuditPage() {
           </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <label className="text-xs lg:col-span-3">
-              <div className="mb-1.5 text-muted-foreground">Keywords</div>
+              <div className="mb-1.5 text-muted-foreground">Search</div>
               <input
                 type="text"
                 value={filters.q}
                 onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-                placeholder="Search action or resource"
+                placeholder="Sequence #, entry ID, action, resource, or any metadata value"
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </label>
