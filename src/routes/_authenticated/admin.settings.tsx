@@ -316,8 +316,7 @@ function AdminSettings() {
 
       <PricingAuditSection />
       <ReminderJobConfigSection />
-      <StripeCatalogueSyncSection />
-      <ManualSubscriptionRefreshSection />
+      {/* Stripe catalogue sync / subscription refresh sections removed. */}
     </Shell>
   );
 }
