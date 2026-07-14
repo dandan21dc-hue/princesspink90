@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, getRouteApi } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -24,10 +26,21 @@ import { refreshUserSubscriptionStatus } from "@/lib/admin.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { RoleGuard } from "@/components/RoleGuard";
 
+const auditSearchSchema = z.object({
+  q: fallback(z.string(), "").default(""),
+  from: fallback(z.string(), "").default(""),
+  to: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int(), 1).default(1),
+  pageSize: fallback(z.number().int(), 10).default(10),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Site settings · Admin" }] }),
+  validateSearch: zodValidator(auditSearchSchema),
   component: AdminSettingsGuarded,
 });
+
+const routeApi = getRouteApi("/_authenticated/admin/settings");
 
 function AdminSettingsGuarded() {
   return (
@@ -653,24 +666,44 @@ function Shell({ children }: { children: React.ReactNode }) {
 function PricingAuditSection() {
   const listFn = useServerFn(listPricingAudit);
   const exportFn = useServerFn(exportPricingAudit);
+  const navigate = useNavigate({ from: "/_authenticated/admin/settings" });
+  const { q: search, from, to, page, pageSize } = routeApi.useSearch();
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [searchInput, setSearchInput] = useState(search);
   const [sortBy, setSortBy] = useState<PricingAuditSortColumn>("changed_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  // Debounce email search input.
+  const updateSearch = (
+    patch: Partial<{ q: string; from: string; to: string; page: number; pageSize: number }>,
+  ) => {
+    navigate({
+      search: (prev: Record<string, unknown>) => {
+        const next = { ...prev, ...patch };
+        // Any filter change resets to page 1 unless the caller set page explicitly.
+        if (patch.page === undefined && ("q" in patch || "from" in patch || "to" in patch || "pageSize" in patch)) {
+          next.page = 1;
+        }
+        return next;
+      },
+      replace: true,
+    });
+  };
+
+  // Keep local input in sync when URL changes (e.g. someone pastes a shared link).
   useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
+
+  // Debounce email search input into the URL.
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    if (trimmed === search) return;
     const t = setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
+      updateSearch({ q: trimmed });
     }, 300);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
   const audit = useQuery({
@@ -684,10 +717,9 @@ function PricingAuditSection() {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortBy(col);
-      // Default: newest/highest first for numeric+date; A→Z for text.
       setSortDir(col === "changed_by_email" ? "asc" : "desc");
     }
-    setPage(1);
+    updateSearch({ page: 1 });
   };
 
   const handleExport = async () => {
@@ -773,10 +805,7 @@ function PricingAuditSection() {
           <input
             type="date"
             value={from}
-            onChange={(e) => {
-              setFrom(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => updateSearch({ from: e.target.value })}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </label>
@@ -787,10 +816,7 @@ function PricingAuditSection() {
           <input
             type="date"
             value={to}
-            onChange={(e) => {
-              setTo(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => updateSearch({ to: e.target.value })}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </label>
@@ -800,10 +826,7 @@ function PricingAuditSection() {
           </div>
           <select
             value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setPage(1);
-            }}
+            onChange={(e) => updateSearch({ pageSize: Number(e.target.value) })}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           >
             {[10, 25, 50, 100].map((n) => (
@@ -820,10 +843,7 @@ function PricingAuditSection() {
           type="button"
           onClick={() => {
             setSearchInput("");
-            setSearch("");
-            setFrom("");
-            setTo("");
-            setPage(1);
+            updateSearch({ q: "", from: "", to: "" });
           }}
           className="mt-2 text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
         >
@@ -936,7 +956,7 @@ function PricingAuditSection() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => updateSearch({ page: Math.max(1, page - 1) })}
             disabled={page <= 1 || audit.isLoading}
             className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
           >
@@ -947,7 +967,7 @@ function PricingAuditSection() {
           </span>
           <button
             type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => updateSearch({ page: Math.min(totalPages, page + 1) })}
             disabled={page >= totalPages || audit.isLoading}
             className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
           >
