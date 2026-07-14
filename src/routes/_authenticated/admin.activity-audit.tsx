@@ -461,36 +461,96 @@ function AdminAuditPage() {
               : `${total} match${total === 1 ? "" : "es"} · showing ${rows.length}`}
           </div>
           <button
-            onClick={() => {
-              const header = ["created_at", "actor_id", "actor_display_name", "action", "resource"];
-              const escape = (v: unknown) => {
-                const s = v === null || v === undefined ? "" : String(v);
-                return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-              };
-              const lines = [
-                header.join(","),
-                ...rows.map((r) =>
-                  [r.created_at, r.actor_id, r.actor_display_name ?? "", r.action, r.resource]
-                    .map(escape)
-                    .join(","),
-                ),
-              ];
-              const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `admin-activity-audit-${new Date().toISOString().slice(0, 10)}.csv`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
+            onClick={async () => {
+              if (exporting) return;
+              setExportError(null);
+              setExporting(true);
+              try {
+                const header = [
+                  "created_at",
+                  "actor_id",
+                  "actor_display_name",
+                  "action",
+                  "resource",
+                  "metadata",
+                ];
+                const escape = (v: unknown) => {
+                  const s = v === null || v === undefined ? "" : String(v);
+                  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+                };
+                const MAX_ROWS = 10_000;
+                const EXPORT_PAGE = 200;
+                const all: typeof rows = [];
+                for (let p = 1; ; p++) {
+                  const res = await listFn({
+                    data: { ...listArgs, page: p, pageSize: EXPORT_PAGE },
+                  });
+                  const batch = Array.isArray(res) ? [] : res.rows;
+                  all.push(...batch);
+                  const totalCount = Array.isArray(res) ? 0 : res.total;
+                  if (
+                    batch.length < EXPORT_PAGE ||
+                    all.length >= totalCount ||
+                    all.length >= MAX_ROWS
+                  ) {
+                    break;
+                  }
+                }
+                const truncated = all.length >= MAX_ROWS && all.length < total;
+                const lines = [
+                  header.join(","),
+                  ...all
+                    .slice(0, MAX_ROWS)
+                    .map((r) =>
+                      [
+                        r.created_at,
+                        r.actor_id,
+                        r.actor_display_name ?? "",
+                        r.action,
+                        r.resource,
+                        JSON.stringify(r.metadata ?? {}),
+                      ]
+                        .map(escape)
+                        .join(","),
+                    ),
+                ];
+                const blob = new Blob(["\ufeff" + lines.join("\n")], {
+                  type: "text/csv;charset=utf-8",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                const rangeSuffix =
+                  applied.from || applied.to
+                    ? `_${applied.from || "start"}_to_${applied.to || "now"}`
+                    : "";
+                a.href = url;
+                a.download = `admin-activity-audit${rangeSuffix}_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                if (truncated) {
+                  setExportError(
+                    `Export capped at ${MAX_ROWS.toLocaleString()} rows. Narrow the date range to export the rest.`,
+                  );
+                }
+              } catch (e) {
+                setExportError(e instanceof Error ? e.message : "Export failed");
+              } finally {
+                setExporting(false);
+              }
             }}
-            disabled={rows.length === 0}
+            disabled={exporting || total === 0}
             className="ml-auto rounded-md border border-border px-3 py-2 text-xs font-medium uppercase tracking-widest disabled:opacity-50"
           >
-            Export CSV
+            {exporting ? "Exporting…" : `Export CSV (${total.toLocaleString()})`}
           </button>
         </div>
+        {exportError && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+            {exportError}
+          </div>
+        )}
 
         {entries.error && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive">
