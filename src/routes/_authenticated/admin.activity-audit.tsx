@@ -191,7 +191,7 @@ function AdminAuditPage() {
 
   const quarantineFn = useServerFn(setAuditEntryQuarantine);
   const quarantine = useMutation({
-    mutationFn: (v: { id: string; quarantined: boolean; reason?: string }) =>
+    mutationFn: (v: { id: string; quarantined: boolean; reason?: string; notes?: string }) =>
       quarantineFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-entries"] }),
   });
