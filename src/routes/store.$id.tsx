@@ -206,8 +206,6 @@ function ItemPage() {
             {checkoutElement}
           </div>
         ) : (
-          <>
-          {subComingSoon.element}
           <div className="mt-6 grid gap-8 md:grid-cols-2">
             <div>
               <div className="overflow-hidden rounded-2xl border border-border/60 bg-secondary/20 aspect-[4/5]">
