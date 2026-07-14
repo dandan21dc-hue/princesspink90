@@ -11,6 +11,7 @@ import {
   verifyAuditIntegrity,
   listAuditAlerts,
   acknowledgeAuditAlert,
+  getPurgeStatus,
 } from "@/lib/admin-audit.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/activity-audit")({
