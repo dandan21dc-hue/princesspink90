@@ -74,13 +74,35 @@ export const getGloryHolesEnabled = createServerFn({ method: "GET" }).handler(
   },
 );
 
+// Shared session pricing bounds — enforced identically on client and server.
+export const SESSION_PRICE_MIN_CENTS = 100; // A$1.00
+export const SESSION_PRICE_MAX_CENTS = 10_000_00; // A$10,000.00
+export const SESSION_DURATION_MIN_MINUTES = 5;
+export const SESSION_DURATION_MAX_MINUTES = 480; // 8 hours
+
 const updateSchema = z.object({
   email: z.string().trim().email().max(255),
   fetlife_handle: z.string().trim().min(1).max(100),
   reddit_handle: z.string().trim().min(1).max(100),
   glory_holes_enabled: z.boolean(),
-  session_price_cents: z.number().int().positive().max(10_000_00),
-  session_duration_minutes: z.number().int().positive().max(480),
+  session_price_cents: z
+    .number({ invalid_type_error: "Session price must be a number." })
+    .int("Session price must be a whole number of cents.")
+    .min(SESSION_PRICE_MIN_CENTS, {
+      message: `Session price must be at least A$${(SESSION_PRICE_MIN_CENTS / 100).toFixed(2)}.`,
+    })
+    .max(SESSION_PRICE_MAX_CENTS, {
+      message: `Session price must be at most A$${(SESSION_PRICE_MAX_CENTS / 100).toFixed(2)}.`,
+    }),
+  session_duration_minutes: z
+    .number({ invalid_type_error: "Session duration must be a number." })
+    .int("Session duration must be a whole number of minutes.")
+    .min(SESSION_DURATION_MIN_MINUTES, {
+      message: `Session duration must be at least ${SESSION_DURATION_MIN_MINUTES} minutes.`,
+    })
+    .max(SESSION_DURATION_MAX_MINUTES, {
+      message: `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`,
+    }),
 });
 
 export const updateSiteSettings = createServerFn({ method: "POST" })
