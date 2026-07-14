@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listStripeWebhookEvents,
+  replayStripeWebhookEvent,
   type StripeWebhookEventRow,
 } from "@/lib/stripe-webhook-events.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/webhook-events")({
   head: () => ({
@@ -268,6 +270,20 @@ function EventRow({
 }) {
   const statusClass =
     STATUS_STYLES[row.status] ?? "bg-muted/40 text-foreground/70";
+  const qc = useQueryClient();
+  const replayFn = useServerFn(replayStripeWebhookEvent);
+  const replay = useMutation({
+    mutationFn: () => replayFn({ data: { id: row.id } }),
+    onSettled: () =>
+      qc.invalidateQueries({ queryKey: ["admin-stripe-webhook-events"] }),
+  });
+  const isReplay = !!row.replay_of_event_id;
+  const canReplay =
+    !!row.raw_payload &&
+    typeof row.raw_payload === "object" &&
+    typeof (row.raw_payload as any).type === "string" &&
+    !!(row.raw_payload as any).data;
+
   return (
     <li>
       <button
@@ -282,6 +298,11 @@ function EventRow({
         </span>
         <span className="font-mono text-xs sm:w-56 sm:truncate">
           {row.event_type}
+          {isReplay ? (
+            <span className="ml-2 rounded bg-primary/15 px-1.5 py-0.5 text-[9px] uppercase tracking-widest text-primary">
+              replay
+            </span>
+          ) : null}
         </span>
         <span className="text-xs text-muted-foreground sm:w-20">
           {row.environment}
@@ -298,6 +319,25 @@ function EventRow({
       </button>
       {expanded && (
         <div className="border-t border-border/60 bg-background/40 px-4 py-4 text-xs">
+          <div className="mb-3 grid gap-2 sm:grid-cols-2">
+            <MetaField
+              label="Correlation ID"
+              value={row.correlation_id}
+              mono
+              copyable
+            />
+            <MetaField
+              label={isReplay ? "Replay of event row" : "Replayed at"}
+              value={
+                isReplay
+                  ? (row.replay_of_event_id ?? "—")
+                  : row.replayed_at
+                    ? new Date(row.replayed_at).toLocaleString()
+                    : "Never"
+              }
+              mono={isReplay}
+            />
+          </div>
           {row.error_message && (
             <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-destructive">
               <div className="font-semibold uppercase tracking-widest text-[10px]">
@@ -306,6 +346,51 @@ function EventRow({
               <div className="mt-1 whitespace-pre-wrap">{row.error_message}</div>
             </div>
           )}
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-card/40 p-3">
+            <div className="flex-1 text-[11px] text-muted-foreground">
+              Manually re-dispatch this stored payload to test the pending →
+              confirmed transition. A new event row is inserted (linked to
+              this one) with a fresh correlation ID.
+            </div>
+            <button
+              type="button"
+              disabled={!canReplay || replay.isPending}
+              onClick={() => replay.mutate()}
+              className="rounded-md border border-primary/50 bg-primary/10 px-3 py-1.5 text-[11px] font-medium uppercase tracking-widest text-primary hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {replay.isPending ? "Replaying…" : "Replay event"}
+            </button>
+          </div>
+          {replay.data ? (
+            <div
+              className={`mb-3 rounded-md border p-3 text-[11px] ${
+                replay.data.ok
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                  : "border-destructive/40 bg-destructive/10 text-destructive"
+              }`}
+            >
+              <div className="font-semibold uppercase tracking-widest">
+                Replay {replay.data.ok ? "dispatched" : "failed"} ·{" "}
+                {replay.data.status} · {replay.data.processing_ms} ms
+              </div>
+              <div className="mt-1 font-mono">
+                cid: {replay.data.correlation_id}
+              </div>
+              {replay.data.note ? (
+                <div className="mt-1 whitespace-pre-wrap">
+                  {replay.data.note}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {replay.error ? (
+            <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-[11px] text-destructive">
+              Replay error:{" "}
+              {replay.error instanceof Error
+                ? replay.error.message
+                : "unknown error"}
+            </div>
+          ) : null}
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               Raw payload
@@ -330,3 +415,40 @@ function EventRow({
     </li>
   );
 }
+
+function MetaField({
+  label,
+  value,
+  mono,
+  copyable,
+}: {
+  label: string;
+  value: string | null;
+  mono?: boolean;
+  copyable?: boolean;
+}) {
+  return (
+    <div className="rounded-md border border-border/60 bg-card/40 p-2">
+      <div className="flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          {label}
+        </div>
+        {copyable && value ? (
+          <button
+            type="button"
+            onClick={() => navigator.clipboard?.writeText(value)}
+            className="rounded border border-border/60 px-1.5 py-0.5 text-[9px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          >
+            Copy
+          </button>
+        ) : null}
+      </div>
+      <div
+        className={`mt-1 break-all text-[11px] text-foreground/80 ${mono ? "font-mono" : ""}`}
+      >
+        {value ?? "—"}
+      </div>
+    </div>
+  );
+}
+

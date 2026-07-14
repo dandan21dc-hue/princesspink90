@@ -1852,6 +1852,7 @@ export type Database = {
       }
       stripe_webhook_events: {
         Row: {
+          correlation_id: string
           created_at: string
           environment: string
           error_message: string | null
@@ -1861,10 +1862,13 @@ export type Database = {
           processing_ms: number | null
           raw_payload: Json
           received_at: string
+          replay_of_event_id: string | null
+          replayed_at: string | null
           status: string
           stripe_event_id: string | null
         }
         Insert: {
+          correlation_id?: string
           created_at?: string
           environment: string
           error_message?: string | null
@@ -1874,10 +1878,13 @@ export type Database = {
           processing_ms?: number | null
           raw_payload: Json
           received_at?: string
+          replay_of_event_id?: string | null
+          replayed_at?: string | null
           status?: string
           stripe_event_id?: string | null
         }
         Update: {
+          correlation_id?: string
           created_at?: string
           environment?: string
           error_message?: string | null
@@ -1887,10 +1894,20 @@ export type Database = {
           processing_ms?: number | null
           raw_payload?: Json
           received_at?: string
+          replay_of_event_id?: string | null
+          replayed_at?: string | null
           status?: string
           stripe_event_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stripe_webhook_events_replay_of_event_id_fkey"
+            columns: ["replay_of_event_id"]
+            isOneToOne: false
+            referencedRelation: "stripe_webhook_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscriptions: {
         Row: {

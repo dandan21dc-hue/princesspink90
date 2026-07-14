@@ -33,7 +33,11 @@ export type StripeWebhookEventRow = {
   received_at: string;
   processed_at: string | null;
   raw_payload: any;
+  correlation_id: string | null;
+  replay_of_event_id: string | null;
+  replayed_at: string | null;
 };
+
 
 export const listStripeWebhookEvents = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -48,8 +52,9 @@ export const listStripeWebhookEvents = createServerFn({ method: "GET" })
     let q = sb
       .from("stripe_webhook_events")
       .select(
-        "id, stripe_event_id, event_type, environment, status, error_message, processing_ms, received_at, processed_at, raw_payload",
+        "id, stripe_event_id, event_type, environment, status, error_message, processing_ms, received_at, processed_at, raw_payload, correlation_id, replay_of_event_id, replayed_at",
       )
+
       .order("received_at", { ascending: false })
       .limit(data.limit);
 
@@ -133,3 +138,125 @@ export const listStripeWebhookEvents = createServerFn({ method: "GET" })
       eventTypes,
     };
   });
+
+const replaySchema = z.object({
+  id: z.string().uuid(),
+});
+
+export const replayStripeWebhookEvent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => replaySchema.parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import(
+      "@/integrations/supabase/client.server"
+    );
+    const sb = supabaseAdmin as any;
+
+    const { data: original, error: fetchErr } = await sb
+      .from("stripe_webhook_events")
+      .select("id, stripe_event_id, event_type, environment, raw_payload")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!original) throw new Error("Webhook event not found");
+
+    const env = original.environment as "sandbox" | "live";
+    if (env !== "sandbox" && env !== "live") {
+      throw new Error(`Invalid stored environment: ${original.environment}`);
+    }
+
+    const payload = original.raw_payload as {
+      type: string;
+      data?: { object: any };
+    } | null;
+    if (!payload || typeof payload !== "object" || !payload.type || !payload.data) {
+      throw new Error(
+        "Original event has no replayable payload (signature-verify failure rows can't be replayed)",
+      );
+    }
+
+    // Import handlers from the webhook route module. Only executed inside
+    // this admin-gated handler, so it stays out of client bundles.
+    const {
+      dispatchEvent,
+      HANDLED_EVENT_TYPES,
+      logWebhookEvent,
+      updateWebhookEvent,
+    } = await import("@/routes/api/public/payments/webhook");
+
+    const correlationId = crypto.randomUUID();
+    console.log(
+      `[webhook-replay cid=${correlationId}] replay origin=${original.id} stripe_event_id=${original.stripe_event_id ?? "?"} type=${payload.type} env=${env} by=${context.userId}`,
+    );
+
+    const initialStatus: "processing" | "ignored" = HANDLED_EVENT_TYPES.has(
+      payload.type,
+    )
+      ? "processing"
+      : "ignored";
+
+    const newRowId = await logWebhookEvent({
+      stripe_event_id: original.stripe_event_id ?? null,
+      event_type: payload.type,
+      environment: env,
+      status: initialStatus,
+      raw_payload: payload,
+      processing_ms: initialStatus === "ignored" ? 0 : null,
+      processed_at:
+        initialStatus === "ignored" ? new Date().toISOString() : null,
+      error_message:
+        initialStatus === "ignored" ? "no handler for event type" : null,
+      correlation_id: correlationId,
+      replay_of_event_id: original.id,
+    });
+
+    // Stamp the original row so the audit page can show it's been replayed.
+    await sb
+      .from("stripe_webhook_events")
+      .update({ replayed_at: new Date().toISOString() })
+      .eq("id", original.id);
+
+    const startedAt = Date.now();
+    try {
+      const result = await dispatchEvent(
+        payload as { type: string; data: { object: any } },
+        env,
+        correlationId,
+      );
+      if (newRowId && initialStatus === "processing") {
+        await updateWebhookEvent(newRowId, {
+          status: result.status,
+          error_message: result.note ?? null,
+          processing_ms: Date.now() - startedAt,
+        });
+      }
+      return {
+        ok: true as const,
+        correlation_id: correlationId,
+        new_event_row_id: newRowId,
+        status: result.status,
+        note: result.note ?? null,
+        processing_ms: Date.now() - startedAt,
+      };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (newRowId) {
+        await updateWebhookEvent(newRowId, {
+          status: "failed",
+          error_message: msg,
+          processing_ms: Date.now() - startedAt,
+        });
+      }
+      console.error(`[webhook-replay cid=${correlationId}] failed:`, e);
+      return {
+        ok: false as const,
+        correlation_id: correlationId,
+        new_event_row_id: newRowId,
+        status: "failed" as const,
+        note: msg,
+        processing_ms: Date.now() - startedAt,
+      };
+    }
+  });
+

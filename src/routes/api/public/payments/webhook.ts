@@ -1051,7 +1051,7 @@ async function handleSetupIntentSucceeded(setupIntent: any, env: StripeEnv) {
 }
 
 
-const HANDLED_EVENT_TYPES = new Set([
+export const HANDLED_EVENT_TYPES = new Set([
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
@@ -1068,10 +1068,13 @@ const HANDLED_EVENT_TYPES = new Set([
   "setup_intent.succeeded",
 ]);
 
-async function dispatchEvent(
+export async function dispatchEvent(
   event: { type: string; data: { object: any } },
   env: StripeEnv,
+  correlationId?: string,
 ): Promise<{ status: "succeeded" | "ignored"; note?: string }> {
+  const cid = correlationId ?? "no-cid";
+  console.log(`[webhook cid=${cid}] dispatch type=${event.type} env=${env}`);
   switch (event.type) {
     case "customer.subscription.created":
     case "customer.subscription.updated":
@@ -1110,17 +1113,18 @@ async function dispatchEvent(
       await handleSetupIntentSucceeded(event.data.object, env);
       return { status: "succeeded" };
     default:
-      console.log("Unhandled event:", event.type);
+      console.log(`[webhook cid=${cid}] unhandled event type=${event.type}`);
       return { status: "ignored", note: "no handler for event type" };
   }
 }
+
 
 /**
  * Insert (or upsert on stripe_event_id) an audit row for this webhook.
  * Errors here never break the webhook — we log and continue so Stripe
  * still gets a well-formed response.
  */
-async function logWebhookEvent(row: {
+export async function logWebhookEvent(row: {
   stripe_event_id?: string | null;
   event_type: string;
   environment: string;
@@ -1129,22 +1133,29 @@ async function logWebhookEvent(row: {
   raw_payload: any;
   processing_ms?: number | null;
   processed_at?: string | null;
+  correlation_id?: string | null;
+  replay_of_event_id?: string | null;
 }): Promise<string | null> {
   try {
-    if (row.stripe_event_id) {
+    const base: Record<string, any> = {
+      event_type: row.event_type,
+      environment: row.environment,
+      status: row.status,
+      error_message: row.error_message ?? null,
+      raw_payload: row.raw_payload,
+      processing_ms: row.processing_ms ?? null,
+      processed_at: row.processed_at ?? null,
+    };
+    if (row.correlation_id) base.correlation_id = row.correlation_id;
+    if (row.replay_of_event_id) base.replay_of_event_id = row.replay_of_event_id;
+
+    // Replays intentionally never conflict on stripe_event_id — they always
+    // insert a fresh row so the original audit trail is preserved.
+    if (row.stripe_event_id && !row.replay_of_event_id) {
       const { data, error } = await (getSupabase() as any)
         .from("stripe_webhook_events")
         .upsert(
-          {
-            stripe_event_id: row.stripe_event_id,
-            event_type: row.event_type,
-            environment: row.environment,
-            status: row.status,
-            error_message: row.error_message ?? null,
-            raw_payload: row.raw_payload,
-            processing_ms: row.processing_ms ?? null,
-            processed_at: row.processed_at ?? null,
-          },
+          { ...base, stripe_event_id: row.stripe_event_id },
           { onConflict: "stripe_event_id,environment" },
         )
         .select("id")
@@ -1154,16 +1165,7 @@ async function logWebhookEvent(row: {
     }
     const { data, error } = await (getSupabase() as any)
       .from("stripe_webhook_events")
-      .insert({
-        stripe_event_id: null,
-        event_type: row.event_type,
-        environment: row.environment,
-        status: row.status,
-        error_message: row.error_message ?? null,
-        raw_payload: row.raw_payload,
-        processing_ms: row.processing_ms ?? null,
-        processed_at: row.processed_at ?? null,
-      })
+      .insert({ ...base, stripe_event_id: row.stripe_event_id ?? null })
       .select("id")
       .maybeSingle();
     if (error) throw error;
@@ -1174,7 +1176,7 @@ async function logWebhookEvent(row: {
   }
 }
 
-async function updateWebhookEvent(
+export async function updateWebhookEvent(
   id: string,
   patch: {
     status: "succeeded" | "failed" | "ignored";
@@ -1197,6 +1199,7 @@ async function updateWebhookEvent(
   }
 }
 
+
 export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {
     handlers: {
@@ -1209,6 +1212,7 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
         const env: StripeEnv = rawEnv;
         const signature = request.headers.get("stripe-signature");
         const body = await request.text();
+        const correlationId = crypto.randomUUID();
 
         // Attempt to peek at type/id even before verification so a failed
         // signature check still produces a useful audit row.
@@ -1226,6 +1230,10 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           /* body isn't JSON — keep raw text preview */
         }
 
+        console.log(
+          `[webhook cid=${correlationId}] received env=${env} type=${peekedType} id=${peekedId ?? "?"}`,
+        );
+
         let event: { id?: string; type: string; data: { object: any } };
         try {
           event = await verifyWebhookBody(body, signature, env);
@@ -1241,8 +1249,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             raw_payload: peekedPayload,
             processing_ms: 0,
             processed_at: new Date().toISOString(),
+            correlation_id: correlationId,
           });
-          console.error("Webhook verify error:", verifyErr);
+          console.error(
+            `[webhook cid=${correlationId}] verify error:`,
+            verifyErr,
+          );
           return new Response("Webhook error", { status: 400 });
         }
 
@@ -1263,10 +1275,11 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
             initialStatus === "ignored" ? new Date().toISOString() : null,
           error_message:
             initialStatus === "ignored" ? "no handler for event type" : null,
+          correlation_id: correlationId,
         });
 
         try {
-          const result = await dispatchEvent(event, env);
+          const result = await dispatchEvent(event, env, correlationId);
           if (rowId && initialStatus === "processing") {
             await updateWebhookEvent(rowId, {
               status: result.status,
@@ -1274,10 +1287,13 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
               processing_ms: Date.now() - startedAt,
             });
           }
-          return Response.json({ received: true });
+          console.log(
+            `[webhook cid=${correlationId}] done status=${result.status} ms=${Date.now() - startedAt}`,
+          );
+          return Response.json({ received: true, correlation_id: correlationId });
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
-          console.error("Webhook error:", e);
+          console.error(`[webhook cid=${correlationId}] error:`, e);
           if (rowId) {
             await updateWebhookEvent(rowId, {
               status: "failed",
