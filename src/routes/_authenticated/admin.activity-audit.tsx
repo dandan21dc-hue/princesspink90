@@ -534,7 +534,11 @@ function AdminAuditPage() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-t border-border/40 align-top">
+                  <tr
+                    key={r.id}
+                    onClick={() => setSelectedId(r.id)}
+                    className="cursor-pointer border-t border-border/40 align-top hover:bg-muted/20"
+                  >
                     <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                       {new Date(r.created_at).toLocaleString()}
                     </td>
@@ -554,9 +558,12 @@ function AdminAuditPage() {
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{r.resource}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">
-                      <pre className="whitespace-pre-wrap break-words text-[11px]">
+                      <pre className="whitespace-pre-wrap break-words text-[11px] line-clamp-2">
                         {JSON.stringify(r.metadata, null, 0)}
                       </pre>
+                      <span className="mt-1 inline-block text-[10px] uppercase tracking-widest text-primary">
+                        View details →
+                      </span>
                     </td>
                   </tr>
                 ))}
