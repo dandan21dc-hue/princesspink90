@@ -49,15 +49,20 @@ function AdminAuditPage() {
     enabled: isAdmin,
   });
 
-  const [filters, setFilters] = useState({
-    action: "",
-    resource: "",
-    actor_id: "",
+  const emptyFilters = {
     q: "",
+    action: "",
+    action_match: "contains" as "contains" | "exact",
+    resource: "",
+    resource_match: "contains" as "contains" | "exact",
+    actor_id: "",
+    actor_name: "",
     from: "",
     to: "",
-  });
-  const [applied, setApplied] = useState(filters);
+  };
+  const [filters, setFilters] = useState(emptyFilters);
+  const [applied, setApplied] = useState(emptyFilters);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -84,10 +89,16 @@ function AdminAuditPage() {
   const toIsoStart = (d: string) => (d ? new Date(d + "T00:00:00").toISOString() : undefined);
   const toIsoEnd = (d: string) => (d ? new Date(d + "T23:59:59.999").toISOString() : undefined);
 
+  const uuidRe = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  const actorIdValid = !applied.actor_id || uuidRe.test(applied.actor_id);
+
   const listArgs = {
     action: applied.action || undefined,
+    action_match: applied.action ? applied.action_match : undefined,
     resource: applied.resource || undefined,
-    actor_id: applied.actor_id || undefined,
+    resource_match: applied.resource ? applied.resource_match : undefined,
+    actor_id: applied.actor_id && actorIdValid ? applied.actor_id : undefined,
+    actor_name: applied.actor_name || undefined,
     q: applied.q || undefined,
     from: toIsoStart(applied.from),
     to: toIsoEnd(applied.to),
@@ -96,6 +107,15 @@ function AdminAuditPage() {
     sort,
     dir,
   };
+  const activeFilterCount = [
+    applied.q,
+    applied.action,
+    applied.resource,
+    applied.actor_id,
+    applied.actor_name,
+    applied.from,
+    applied.to,
+  ].filter(Boolean).length;
 
   const entries = useQuery({
     queryKey: ["admin-audit-entries", listArgs],
@@ -382,64 +402,143 @@ function AdminAuditPage() {
           }}
           className="mb-4 rounded-2xl border border-border/60 bg-card/60 p-4"
         >
-          <div className="text-xs uppercase tracking-widest text-muted-foreground">Filters</div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              Filters {activeFilterCount > 0 && (
+                <span className="ml-1 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary">
+                  {activeFilterCount} active
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="text-[11px] uppercase tracking-widest text-primary hover:underline"
+              aria-expanded={advancedOpen}
+            >
+              {advancedOpen ? "Hide advanced ▲" : "Advanced ▼"}
+            </button>
+          </div>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
-            <label className="text-xs lg:col-span-2">
-              <div className="mb-1.5 text-muted-foreground">Search</div>
+            <label className="text-xs lg:col-span-3">
+              <div className="mb-1.5 text-muted-foreground">Keywords</div>
               <input
                 type="text"
                 value={filters.q}
                 onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-                placeholder="action or resource"
+                placeholder="Search action or resource"
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </label>
-            <label className="text-xs">
-              <div className="mb-1.5 text-muted-foreground">Action</div>
+            <label className="text-xs lg:col-span-3">
+              <div className="mb-1.5 text-muted-foreground">Admin user (name)</div>
+              <input
+                type="text"
+                value={filters.actor_name}
+                onChange={(e) => setFilters((f) => ({ ...f, actor_name: e.target.value }))}
+                placeholder="e.g. Ada Lovelace"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <div className="text-xs lg:col-span-3">
+              <div className="mb-1.5 flex items-center justify-between text-muted-foreground">
+                <span>Action type</span>
+                <label className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest">
+                  <input
+                    type="checkbox"
+                    checked={filters.action_match === "exact"}
+                    onChange={(e) =>
+                      setFilters((f) => ({
+                        ...f,
+                        action_match: e.target.checked ? "exact" : "contains",
+                      }))
+                    }
+                  />
+                  Exact
+                </label>
+              </div>
               <input
                 type="text"
                 value={filters.action}
                 onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
+                placeholder={filters.action_match === "exact" ? "e.g. update_retention" : "contains…"}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                list="audit-action-suggestions"
               />
-            </label>
-            <label className="text-xs">
-              <div className="mb-1.5 text-muted-foreground">Resource</div>
+              <datalist id="audit-action-suggestions">
+                {Array.from(new Set(rows.map((r) => r.action))).map((a) => (
+                  <option key={a} value={a} />
+                ))}
+              </datalist>
+            </div>
+            <div className="text-xs lg:col-span-3">
+              <div className="mb-1.5 flex items-center justify-between text-muted-foreground">
+                <span>Resource identifier</span>
+                <label className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest">
+                  <input
+                    type="checkbox"
+                    checked={filters.resource_match === "exact"}
+                    onChange={(e) =>
+                      setFilters((f) => ({
+                        ...f,
+                        resource_match: e.target.checked ? "exact" : "contains",
+                      }))
+                    }
+                  />
+                  Exact
+                </label>
+              </div>
               <input
                 type="text"
                 value={filters.resource}
                 onChange={(e) => setFilters((f) => ({ ...f, resource: e.target.value }))}
+                placeholder={filters.resource_match === "exact" ? "e.g. private_room_bookings" : "contains…"}
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                list="audit-resource-suggestions"
               />
-            </label>
-            <label className="text-xs lg:col-span-2">
-              <div className="mb-1.5 text-muted-foreground">Actor ID (UUID)</div>
-              <input
-                type="text"
-                value={filters.actor_id}
-                onChange={(e) => setFilters((f) => ({ ...f, actor_id: e.target.value.trim() }))}
-                placeholder="00000000-0000-…"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
-              />
-            </label>
-            <label className="text-xs">
-              <div className="mb-1.5 text-muted-foreground">From</div>
-              <input
-                type="date"
-                value={filters.from}
-                onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="text-xs">
-              <div className="mb-1.5 text-muted-foreground">To</div>
-              <input
-                type="date"
-                value={filters.to}
-                onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </label>
+              <datalist id="audit-resource-suggestions">
+                {Array.from(new Set(rows.map((r) => r.resource))).map((r) => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
+            </div>
+            {advancedOpen && (
+              <>
+                <label className="text-xs lg:col-span-3">
+                  <div className="mb-1.5 text-muted-foreground">
+                    Admin user ID (UUID){" "}
+                    {applied.actor_id && !actorIdValid && (
+                      <span className="text-destructive">— invalid UUID, ignored</span>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    value={filters.actor_id}
+                    onChange={(e) => setFilters((f) => ({ ...f, actor_id: e.target.value.trim() }))}
+                    placeholder="00000000-0000-…"
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+                  />
+                </label>
+                <label className="text-xs">
+                  <div className="mb-1.5 text-muted-foreground">From</div>
+                  <input
+                    type="date"
+                    value={filters.from}
+                    onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="text-xs">
+                  <div className="mb-1.5 text-muted-foreground">To</div>
+                  <input
+                    type="date"
+                    value={filters.to}
+                    onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </label>
+              </>
+            )}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
@@ -451,9 +550,8 @@ function AdminAuditPage() {
             <button
               type="button"
               onClick={() => {
-                const empty = { action: "", resource: "", actor_id: "", q: "", from: "", to: "" };
-                setFilters(empty);
-                setApplied(empty);
+                setFilters(emptyFilters);
+                setApplied(emptyFilters);
                 setPage(1);
               }}
               className="rounded-md border border-border px-3 py-2 text-xs font-medium uppercase tracking-widest"

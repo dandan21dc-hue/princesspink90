@@ -81,8 +81,11 @@ export type AuditSortDir = "asc" | "desc";
 
 export type ListAuditFilters = {
   action?: string;
+  action_match?: "contains" | "exact";
   resource?: string;
+  resource_match?: "contains" | "exact";
   actor_id?: string;
+  actor_name?: string;
   q?: string;
   from?: string;
   to?: string;
@@ -102,8 +105,11 @@ export type ListAuditResult = {
 const listFiltersSchema = z
   .object({
     action: z.string().trim().max(120).optional(),
+    action_match: z.enum(["contains", "exact"]).optional(),
     resource: z.string().trim().max(120).optional(),
+    resource_match: z.enum(["contains", "exact"]).optional(),
     actor_id: z.string().uuid().optional(),
+    actor_name: z.string().trim().max(120).optional(),
     q: z.string().trim().max(200).optional(),
     from: z.string().datetime().optional(),
     to: z.string().datetime().optional(),
@@ -134,9 +140,27 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
 
 
     const esc = (s: string) => s.replace(/[\\%_,]/g, (m) => "\\" + m);
-    if (data?.action) q = q.ilike("action", `%${esc(data.action)}%`);
-    if (data?.resource) q = q.ilike("resource", `%${esc(data.resource)}%`);
+    if (data?.action) {
+      if (data.action_match === "exact") q = q.eq("action", data.action);
+      else q = q.ilike("action", `%${esc(data.action)}%`);
+    }
+    if (data?.resource) {
+      if (data.resource_match === "exact") q = q.eq("resource", data.resource);
+      else q = q.ilike("resource", `%${esc(data.resource)}%`);
+    }
     if (data?.actor_id) q = q.eq("actor_id", data.actor_id);
+    if (data?.actor_name) {
+      const { data: matches } = await context.supabase
+        .from("profiles")
+        .select("user_id")
+        .ilike("display_name", `%${esc(data.actor_name)}%`)
+        .limit(500);
+      const ids = ((matches ?? []) as Array<{ user_id: string }>).map((m) => m.user_id);
+      if (ids.length === 0) {
+        return { rows: [], total: 0, page, pageSize };
+      }
+      q = q.in("actor_id", ids);
+    }
     if (data?.from) q = q.gte("created_at", data.from);
     if (data?.to) q = q.lte("created_at", data.to);
     if (data?.q) {
