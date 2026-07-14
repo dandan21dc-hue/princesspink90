@@ -232,7 +232,6 @@ function PrivateRoomPage() {
     }
     if (!selectedSlot) return;
     if (notes.length > 1000) return;
-    if (notes.length > 1000) return;
     setReviewing(true);
   }
 
