@@ -13,6 +13,7 @@ import {
   acknowledgeAuditAlert,
   getPurgeStatus,
   setAuditEntryQuarantine,
+  getMyAuditPermissions,
   type AuditTrustState,
 } from "@/lib/admin-audit.functions";
 
