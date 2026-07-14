@@ -78,6 +78,7 @@ import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminCheckoutReconciliationRouteImport } from './routes/_authenticated/admin.checkout-reconciliation'
 import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin.availability'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
+import { Route as AuthenticatedAdminActivityAuditRouteImport } from './routes/_authenticated/admin.activity-audit'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -476,6 +477,12 @@ const AuthenticatedAdminAnalyticsRoute =
     path: '/admin/analytics',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminActivityAuditRoute =
+  AuthenticatedAdminActivityAuditRouteImport.update({
+    id: '/admin/activity-audit',
+    path: '/admin/activity-audit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAccountBillingRoute =
   AuthenticatedAccountBillingRouteImport.update({
     id: '/billing',
@@ -647,6 +654,7 @@ export interface FileRoutesByFullPath {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
+  '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
@@ -739,6 +747,7 @@ export interface FileRoutesByTo {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
+  '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
@@ -834,6 +843,7 @@ export interface FileRoutesById {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
+  '/_authenticated/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
@@ -929,6 +939,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/account/billing'
+    | '/admin/activity-audit'
     | '/admin/analytics'
     | '/admin/availability'
     | '/admin/checkout-reconciliation'
@@ -1021,6 +1032,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/account/billing'
+    | '/admin/activity-audit'
     | '/admin/analytics'
     | '/admin/availability'
     | '/admin/checkout-reconciliation'
@@ -1115,6 +1127,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/_authenticated/account/billing'
+    | '/_authenticated/admin/activity-audit'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/availability'
     | '/_authenticated/admin/checkout-reconciliation'
@@ -1707,6 +1720,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/activity-audit': {
+      id: '/_authenticated/admin/activity-audit'
+      path: '/admin/activity-audit'
+      fullPath: '/admin/activity-audit'
+      preLoaderRoute: typeof AuthenticatedAdminActivityAuditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/account/billing': {
       id: '/_authenticated/account/billing'
       path: '/billing'
@@ -1922,6 +1942,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
+  AuthenticatedAdminActivityAuditRoute: typeof AuthenticatedAdminActivityAuditRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminCheckoutReconciliationRoute: typeof AuthenticatedAdminCheckoutReconciliationRoute
@@ -1966,6 +1987,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
+  AuthenticatedAdminActivityAuditRoute: AuthenticatedAdminActivityAuditRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminAvailabilityRoute: AuthenticatedAdminAvailabilityRoute,
   AuthenticatedAdminCheckoutReconciliationRoute:
