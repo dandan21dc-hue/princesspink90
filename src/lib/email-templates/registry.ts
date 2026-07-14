@@ -5,6 +5,7 @@ import { template as partnershipNotification } from './partnership-notification'
 import { template as partnershipReply } from './partnership-reply'
 import { template as bookingConfirmation } from './booking-confirmation'
 import { template as bookingCancelled } from './booking-cancelled'
+import { template as auditAlert } from './audit-alert'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -25,4 +26,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'partnership-reply': partnershipReply,
   'booking-confirmation': bookingConfirmation,
   'booking-cancelled': bookingCancelled,
+  'audit-alert': auditAlert,
 }
