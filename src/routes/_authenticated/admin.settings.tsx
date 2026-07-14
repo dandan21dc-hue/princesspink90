@@ -7,6 +7,8 @@ import {
   getSiteSettings,
   updateSiteSettings,
   listPricingAudit,
+  exportPricingAudit,
+  type PricingAuditEntry,
   type PricingAuditSortColumn,
   SESSION_PRICE_MIN_CENTS,
   SESSION_PRICE_MAX_CENTS,
@@ -650,6 +652,9 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function PricingAuditSection() {
   const listFn = useServerFn(listPricingAudit);
+  const exportFn = useServerFn(exportPricingAudit);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
@@ -685,6 +690,33 @@ function PricingAuditSection() {
     setPage(1);
   };
 
+  const handleExport = async () => {
+    setExportError(null);
+    setIsExporting(true);
+    try {
+      const data = await exportFn({
+        data: { search, from, to, sortBy, sortDir },
+      });
+      const csv = buildAuditCsv(data);
+      const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      a.download = `pricing-audit-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError((err as Error).message ?? "Export failed");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+
+
   const rows = audit.data?.rows ?? [];
   const total = audit.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -694,11 +726,31 @@ function PricingAuditSection() {
 
   return (
     <section className="mt-12 border-t border-border pt-8">
-      <h2 className="font-display text-xl font-bold">Pricing change history</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Every change to the session price or duration is recorded here with the admin who
-        made it and the timestamp.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold">Pricing change history</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Every change to the session price or duration is recorded here with the admin who
+            made it and the timestamp.
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={isExporting}
+            className="rounded-md border border-border bg-background px-4 py-2 text-xs font-semibold uppercase tracking-widest text-foreground hover:bg-muted disabled:opacity-50"
+          >
+            {isExporting ? "Preparing…" : "Download CSV"}
+          </button>
+          <span className="text-[11px] text-muted-foreground">
+            Applies current filters &amp; sort
+          </span>
+          {exportError && (
+            <span className="text-[11px] text-destructive">{exportError}</span>
+          )}
+        </div>
+      </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
@@ -971,5 +1023,42 @@ function SortableTh({ label, col, sortBy, sortDir, onToggle }: SortToggleProps) 
     </th>
   );
 }
+
+function csvCell(value: string | number | null | undefined): string {
+  if (value == null) return "";
+  const s = String(value);
+  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function buildAuditCsv(rows: PricingAuditEntry[]): string {
+  const headers = [
+    "Changed at (ISO)",
+    "Admin email",
+    "Admin user id",
+    "Old price (AUD)",
+    "New price (AUD)",
+    "Old duration (min)",
+    "New duration (min)",
+  ];
+  const lines = [headers.map(csvCell).join(",")];
+  for (const r of rows) {
+    lines.push(
+      [
+        r.changed_at,
+        r.changed_by_email,
+        r.changed_by,
+        r.old_session_price_cents != null ? (r.old_session_price_cents / 100).toFixed(2) : "",
+        r.new_session_price_cents != null ? (r.new_session_price_cents / 100).toFixed(2) : "",
+        r.old_session_duration_minutes,
+        r.new_session_duration_minutes,
+      ]
+        .map(csvCell)
+        .join(","),
+    );
+  }
+  return lines.join("\r\n");
+}
+
 
 
