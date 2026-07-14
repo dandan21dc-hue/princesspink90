@@ -289,7 +289,7 @@ function PrivateRoomPage() {
             duration={duration}
             priceLabel={priceLabel}
             durationLabel={durationLabel}
-            partySize={partySize}
+            
             notes={notes}
             pending={pending}
             onEdit={() => {
