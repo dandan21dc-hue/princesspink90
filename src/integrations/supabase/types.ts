@@ -1161,6 +1161,42 @@ export type Database = {
         }
         Relationships: []
       }
+      map_pins: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          latitude: number
+          longitude: number
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          latitude: number
+          longitude: number
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       memberships: {
         Row: {
           amount_cents: number | null
