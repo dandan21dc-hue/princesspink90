@@ -31,8 +31,6 @@ export const Route = createFileRoute("/private-room")({
   component: PrivateRoomPage,
 });
 
-const DAY_START_HOUR = 10; // 10:00
-const DAY_END_HOUR = 22; // last slot must end by 22:00
 const SLOT_STEP_MIN = 30;
 
 function formatAud(cents: number) {
