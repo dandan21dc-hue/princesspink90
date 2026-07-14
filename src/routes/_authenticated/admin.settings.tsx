@@ -23,9 +23,7 @@ import {
   getReminderJobConfig,
   updateReminderJobConfig,
 } from "@/lib/reminder-job-config.functions";
-import { syncMissingStripePrices, convertTermPassesToOneTime, archiveUsdPrices } from "@/lib/stripeMaintenance.functions";
-import { refreshUserSubscriptionStatus } from "@/lib/admin.functions";
-import { getStripeEnvironment } from "@/lib/stripe";
+// Stripe removed — NOWPayments is the only payment provider.
 import { RoleGuard } from "@/components/RoleGuard";
 
 const auditSearchSchema = z.object({
