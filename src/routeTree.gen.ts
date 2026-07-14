@@ -90,6 +90,7 @@ import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/e
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
+import { Route as ApiPublicPaymentsNowpaymentsWebhookRouteImport } from './routes/api/public/payments/nowpayments-webhook'
 import { Route as ApiPublicHooksVeriffWebhookRouteImport } from './routes/api/public/hooks/veriff-webhook'
 import { Route as ApiPublicHooksVenueComplianceRemindersRouteImport } from './routes/api/public/hooks/venue-compliance-reminders'
 import { Route as ApiPublicHooksTestReminderEmailRouteImport } from './routes/api/public/hooks/test-reminder-email'
@@ -552,6 +553,12 @@ const ApiPublicPaymentsWebhookRoute =
     path: '/api/public/payments/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPaymentsNowpaymentsWebhookRoute =
+  ApiPublicPaymentsNowpaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/nowpayments-webhook',
+    path: '/api/public/payments/nowpayments-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksVeriffWebhookRoute =
   ApiPublicHooksVeriffWebhookRouteImport.update({
     id: '/api/public/hooks/veriff-webhook',
@@ -744,6 +751,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
+  '/api/public/payments/nowpayments-webhook': typeof ApiPublicPaymentsNowpaymentsWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -842,6 +850,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
+  '/api/public/payments/nowpayments-webhook': typeof ApiPublicPaymentsNowpaymentsWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -943,6 +952,7 @@ export interface FileRoutesById {
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
+  '/api/public/payments/nowpayments-webhook': typeof ApiPublicPaymentsNowpaymentsWebhookRoute
   '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
@@ -1044,6 +1054,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
+    | '/api/public/payments/nowpayments-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1142,6 +1153,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
+    | '/api/public/payments/nowpayments-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1242,6 +1254,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
+    | '/api/public/payments/nowpayments-webhook'
     | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
@@ -1292,6 +1305,7 @@ export interface RootRouteChildren {
   ApiPublicHooksTestReminderEmailRoute: typeof ApiPublicHooksTestReminderEmailRoute
   ApiPublicHooksVenueComplianceRemindersRoute: typeof ApiPublicHooksVenueComplianceRemindersRoute
   ApiPublicHooksVeriffWebhookRoute: typeof ApiPublicHooksVeriffWebhookRoute
+  ApiPublicPaymentsNowpaymentsWebhookRoute: typeof ApiPublicPaymentsNowpaymentsWebhookRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
@@ -1870,6 +1884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/nowpayments-webhook': {
+      id: '/api/public/payments/nowpayments-webhook'
+      path: '/api/public/payments/nowpayments-webhook'
+      fullPath: '/api/public/payments/nowpayments-webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsNowpaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/veriff-webhook': {
       id: '/api/public/hooks/veriff-webhook'
       path: '/api/public/hooks/veriff-webhook'
@@ -2207,6 +2228,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksVenueComplianceRemindersRoute:
     ApiPublicHooksVenueComplianceRemindersRoute,
   ApiPublicHooksVeriffWebhookRoute: ApiPublicHooksVeriffWebhookRoute,
+  ApiPublicPaymentsNowpaymentsWebhookRoute:
+    ApiPublicPaymentsNowpaymentsWebhookRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
