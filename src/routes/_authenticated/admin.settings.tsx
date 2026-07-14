@@ -917,3 +917,59 @@ function formatMinutes(mins: number | null): string {
   return `${mins} min`;
 }
 
+type SortToggleProps = {
+  label: string;
+  col: PricingAuditSortColumn;
+  sortBy: PricingAuditSortColumn;
+  sortDir: "asc" | "desc";
+  onToggle: (col: PricingAuditSortColumn) => void;
+};
+
+function SortIndicator({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) {
+    return <span aria-hidden className="ml-1 text-muted-foreground/40">↕</span>;
+  }
+  return (
+    <span aria-hidden className="ml-1 text-primary">
+      {dir === "asc" ? "▲" : "▼"}
+    </span>
+  );
+}
+
+function SortHeaderButton({ label, col, sortBy, sortDir, onToggle }: SortToggleProps) {
+  const active = sortBy === col;
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(col)}
+      aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+      className={`inline-flex items-center uppercase tracking-widest ${
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {label}
+      <SortIndicator active={active} dir={sortDir} />
+    </button>
+  );
+}
+
+function SortableTh({ label, col, sortBy, sortDir, onToggle }: SortToggleProps) {
+  const active = sortBy === col;
+  return (
+    <th
+      scope="col"
+      aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+      className="px-3 py-2 font-medium"
+    >
+      <SortHeaderButton
+        label={label}
+        col={col}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onToggle={onToggle}
+      />
+    </th>
+  );
+}
+
+
