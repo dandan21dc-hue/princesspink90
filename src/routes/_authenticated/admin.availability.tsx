@@ -37,6 +37,43 @@ function fmt(iso: string) {
   });
 }
 
+type ConflictPair = { a: PrivateSessionSlot; b: PrivateSessionSlot };
+
+function findConflicts(slots: PrivateSessionSlot[]): ConflictPair[] {
+  const sorted = [...slots].sort(
+    (x, y) => new Date(x.start_time).getTime() - new Date(y.start_time).getTime(),
+  );
+  const out: ConflictPair[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const a = sorted[i];
+    const aEnd = new Date(a.end_time).getTime();
+    for (let j = i + 1; j < sorted.length; j++) {
+      const b = sorted[j];
+      const bStart = new Date(b.start_time).getTime();
+      if (bStart >= aEnd) break;
+      out.push({ a, b });
+    }
+  }
+  return out;
+}
+
+function overlapsAny(
+  startISO: string,
+  endISO: string,
+  slots: PrivateSessionSlot[],
+  ignoreId?: string,
+): PrivateSessionSlot[] {
+  const s = new Date(startISO).getTime();
+  const e = new Date(endISO).getTime();
+  if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return [];
+  return slots.filter((slot) => {
+    if (ignoreId && slot.id === ignoreId) return false;
+    const ss = new Date(slot.start_time).getTime();
+    const se = new Date(slot.end_time).getTime();
+    return s < se && e > ss;
+  });
+}
+
 function AvailabilityAdmin() {
   const meFn = useServerFn(amIAdmin);
   const listFn = useServerFn(listUpcomingSessionSlots);
@@ -131,6 +168,15 @@ function AvailabilityAdmin() {
   const slots = slotsQ.data ?? [];
   const availableCount = slots.filter((s) => !s.is_booked).length;
   const bookedCount = slots.filter((s) => s.is_booked).length;
+  const conflicts = useMemo(() => findConflicts(slots), [slots]);
+  const conflictIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of conflicts) {
+      set.add(c.a.id);
+      set.add(c.b.id);
+    }
+    return set;
+  }, [conflicts]);
 
   return (
     <Shell>
@@ -179,6 +225,51 @@ function AvailabilityAdmin() {
         <SummaryTile label="Booked / blocked" value={bookedCount} tone="used" />
       </div>
 
+      {conflicts.length > 0 && (
+        <div className="mt-6 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div className="flex items-center gap-2 font-semibold">
+            <span aria-hidden>⚠</span>
+            {conflicts.length} scheduling conflict{conflicts.length === 1 ? "" : "s"} — resolve before publishing new slots
+          </div>
+          <ul className="mt-2 space-y-2 text-xs">
+            {conflicts.map((c, i) => {
+              const overlapStart = new Date(
+                Math.max(new Date(c.a.start_time).getTime(), new Date(c.b.start_time).getTime()),
+              );
+              const overlapEnd = new Date(
+                Math.min(new Date(c.a.end_time).getTime(), new Date(c.b.end_time).getTime()),
+              );
+              const overlapMin = Math.round(
+                (overlapEnd.getTime() - overlapStart.getTime()) / 60000,
+              );
+              const earlier = new Date(c.a.start_time) <= new Date(c.b.start_time) ? c.a : c.b;
+              const later = earlier === c.a ? c.b : c.a;
+              return (
+                <li
+                  key={i}
+                  className="rounded border border-destructive/30 bg-background/40 px-3 py-2 text-foreground"
+                >
+                  <div className="text-destructive">
+                    Overlap of {overlapMin} min ({fmt(overlapStart.toISOString())} → {fmt(overlapEnd.toISOString())})
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    <strong className="text-foreground">A:</strong> {fmt(earlier.start_time)} → {fmt(earlier.end_time)}
+                    {earlier.is_booked ? " (booked/blocked)" : " (available)"}
+                    <br />
+                    <strong className="text-foreground">B:</strong> {fmt(later.start_time)} → {fmt(later.end_time)}
+                    {later.is_booked ? " (booked/blocked)" : " (available)"}
+                  </div>
+                  <div className="mt-1 text-xs">
+                    Fix: shorten <strong>A</strong> to end by {fmt(later.start_time)}, or move
+                    <strong> B</strong> to start at or after {fmt(earlier.end_time)}, or delete one of them.
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {error && (
         <p className="mt-6 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
@@ -208,9 +299,24 @@ function AvailabilityAdmin() {
               </tr>
             </thead>
             <tbody>
-              {slots.map((s) => (
-                <tr key={s.id} className="border-t border-border/40">
-                  <td className="px-4 py-3">{fmt(s.start_time)}</td>
+              {slots.map((s) => {
+                const inConflict = conflictIds.has(s.id);
+                return (
+                <tr
+                  key={s.id}
+                  className={`border-t border-border/40 ${inConflict ? "bg-destructive/5" : ""}`}
+                >
+                  <td className="px-4 py-3">
+                    {inConflict && (
+                      <span
+                        title="This slot overlaps another — see conflict warning above"
+                        className="mr-2 inline-block rounded border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-destructive"
+                      >
+                        Conflict
+                      </span>
+                    )}
+                    {fmt(s.start_time)}
+                  </td>
                   <td className="px-4 py-3">{fmt(s.end_time)}</td>
                   <td className="px-4 py-3">
                     {s.is_booked ? (
@@ -253,7 +359,8 @@ function AvailabilityAdmin() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -262,6 +369,7 @@ function AvailabilityAdmin() {
       {editing !== null && (
         <SlotDialog
           initial={editing === "new" ? null : editing}
+          existingSlots={slots}
           pending={createMut.isPending || updateMut.isPending}
           onCancel={() => setEditing(null)}
           onSubmit={(v) => {
@@ -291,11 +399,13 @@ function AvailabilityAdmin() {
 
 function SlotDialog({
   initial,
+  existingSlots,
   pending,
   onCancel,
   onSubmit,
 }: {
   initial: PrivateSessionSlot | null;
+  existingSlots: PrivateSessionSlot[];
   pending: boolean;
   onCancel: () => void;
   onSubmit: (v: {
@@ -317,20 +427,38 @@ function SlotDialog({
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [localErr, setLocalErr] = useState<string | null>(null);
 
+  const startISO = start ? fromLocalInput(start) : "";
+  const endISO = end ? fromLocalInput(end) : "";
+  const rangeInvalid =
+    !!start && !!end && new Date(end).getTime() <= new Date(start).getTime();
+  const overlaps = useMemo(
+    () =>
+      rangeInvalid
+        ? []
+        : overlapsAny(startISO, endISO, existingSlots, initial?.id),
+    [startISO, endISO, existingSlots, initial?.id, rangeInvalid],
+  );
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!start || !end) {
       setLocalErr("Start and end are required");
       return;
     }
-    if (new Date(end).getTime() <= new Date(start).getTime()) {
+    if (rangeInvalid) {
       setLocalErr("End time must be after start time");
+      return;
+    }
+    if (overlaps.length > 0) {
+      setLocalErr(
+        `This slot overlaps ${overlaps.length} existing slot${overlaps.length === 1 ? "" : "s"}. Adjust the times before saving.`,
+      );
       return;
     }
     setLocalErr(null);
     onSubmit({
-      startTime: fromLocalInput(start),
-      endTime: fromLocalInput(end),
+      startTime: startISO,
+      endTime: endISO,
       isBooked,
       notes,
     });
@@ -400,6 +528,37 @@ function SlotDialog({
           </label>
         </div>
 
+        {rangeInvalid && (
+          <p className="mt-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            End time must be after start time. Move the end time later than {start || "the start"}.
+          </p>
+        )}
+        {!rangeInvalid && overlaps.length > 0 && (
+          <div className="mt-3 rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div className="font-semibold">
+              ⚠ Overlaps {overlaps.length} existing slot{overlaps.length === 1 ? "" : "s"} — fix before saving
+            </div>
+            <ul className="mt-2 space-y-1 text-xs text-foreground">
+              {overlaps.slice(0, 5).map((o) => {
+                const oStart = new Date(o.start_time).getTime();
+                const newStart = new Date(startISO).getTime();
+                const suggestion =
+                  newStart >= oStart
+                    ? `start at or after ${fmt(o.end_time)}`
+                    : `end by ${fmt(o.start_time)}`;
+                return (
+                  <li key={o.id}>
+                    Conflicts with {fmt(o.start_time)} → {fmt(o.end_time)}
+                    {o.is_booked ? " (booked/blocked)" : " (available)"}. Try: {suggestion}.
+                  </li>
+                );
+              })}
+              {overlaps.length > 5 && (
+                <li className="text-muted-foreground">…and {overlaps.length - 5} more.</li>
+              )}
+            </ul>
+          </div>
+        )}
         {localErr && (
           <p className="mt-3 text-sm text-destructive">{localErr}</p>
         )}
@@ -414,7 +573,7 @@ function SlotDialog({
           </button>
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || rangeInvalid || overlaps.length > 0}
             className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:opacity-60"
           >
             {pending ? "Saving…" : initial ? "Save changes" : "Create slot"}
