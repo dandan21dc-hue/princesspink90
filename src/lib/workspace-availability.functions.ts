@@ -264,3 +264,25 @@ export const listWorkspaceBusy = createServerFn({ method: "GET" })
     ];
     return combined;
   });
+
+/**
+ * Public read: admin-defined available windows for the Secondary Room
+ * (Glory Holes) in [from, to]. Same shape/semantics as
+ * listPrivateRoomAvailable.
+ */
+export const listWorkspaceAvailable = createServerFn({ method: "GET" })
+  .inputValidator((data: { from: string; to: string }) => {
+    if (!data.from || !data.to) throw new Error("from/to required");
+    return data;
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from(TABLE)
+      .select("start_time,end_time")
+      .eq("is_booked", false)
+      .lt("start_time", data.to)
+      .gt("end_time", data.from);
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as Array<{ start_time: string; end_time: string }>;
+  });
