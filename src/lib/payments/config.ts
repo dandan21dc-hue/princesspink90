@@ -1,17 +1,15 @@
-import { stripeProvider } from "./providers/stripe";
 import { nowpaymentsProvider } from "./providers/nowpayments";
 import type { CheckoutIntent, PaymentProvider } from "./types";
 
 /**
  * Single source of truth for which provider handles which intent.
- * Swap a provider by editing this map — call sites don't change.
- *
- * Current state:
- *  - one_time    → Stripe (bookings, store items, panty listings, lifetime)
- *  - subscription → NOWPayments (hosted invoice → 30-day All-Access Pass)
+ * Every Buy/Subscribe click now routes through NOWPayments — the hook
+ * mints an invoice server-side and redirects the browser to the hosted
+ * `invoice_url`. Swap a provider by editing this map; call sites don't
+ * change.
  */
 export const paymentProviders: Record<CheckoutIntent, PaymentProvider> = {
-  one_time: stripeProvider,
+  one_time: nowpaymentsProvider,
   subscription: nowpaymentsProvider,
 };
 
