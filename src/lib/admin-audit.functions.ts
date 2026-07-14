@@ -200,8 +200,16 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
     if (data?.from) q = q.gte("created_at", data.from);
     if (data?.to) q = q.lte("created_at", data.to);
     if (data?.q) {
-      const s = esc(data.q);
-      q = q.or(`action.ilike.%${s}%,resource.ilike.%${s}%`);
+      const { data: idRows, error: searchErr } = await context.supabase.rpc(
+        "search_admin_audit_ids" as never,
+        { _q: data.q } as never,
+      );
+      if (searchErr) throw searchErr;
+      const ids = ((idRows ?? []) as Array<{ id: string }>).map((r) => r.id);
+      if (ids.length === 0) {
+        return { rows: [], total: 0, page, pageSize };
+      }
+      q = q.in("id", ids);
     }
 
     if (trustFilter === "quarantined") {
