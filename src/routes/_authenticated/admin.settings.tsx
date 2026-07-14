@@ -3,7 +3,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { amIAdmin } from "@/lib/admin.functions";
-import { getSiteSettings, updateSiteSettings } from "@/lib/settings.functions";
+import {
+  getSiteSettings,
+  updateSiteSettings,
+  SESSION_PRICE_MIN_CENTS,
+  SESSION_PRICE_MAX_CENTS,
+  SESSION_DURATION_MIN_MINUTES,
+  SESSION_DURATION_MAX_MINUTES,
+} from "@/lib/settings.functions";
 import {
   getReminderJobConfig,
   updateReminderJobConfig,
@@ -58,22 +65,44 @@ function AdminSettings() {
     }
   }, [settings.data]);
 
+  const priceDollarsNum = parseFloat(sessionPriceDollars);
+  const priceCents = Math.round(priceDollarsNum * 100);
+  const priceMinDollars = SESSION_PRICE_MIN_CENTS / 100;
+  const priceMaxDollars = SESSION_PRICE_MAX_CENTS / 100;
+
+  let priceError: string | null = null;
+  if (sessionPriceDollars.trim() === "" || !Number.isFinite(priceDollarsNum)) {
+    priceError = "Session price is required and must be a number.";
+  } else if (priceCents < SESSION_PRICE_MIN_CENTS) {
+    priceError = `Session price must be at least A$${priceMinDollars.toFixed(2)}.`;
+  } else if (priceCents > SESSION_PRICE_MAX_CENTS) {
+    priceError = `Session price must be at most A$${priceMaxDollars.toFixed(2)}.`;
+  }
+
+  let durationError: string | null = null;
+  if (!Number.isFinite(sessionDurationMinutes)) {
+    durationError = "Session duration is required and must be a number.";
+  } else if (!Number.isInteger(sessionDurationMinutes)) {
+    durationError = "Session duration must be a whole number of minutes.";
+  } else if (sessionDurationMinutes < SESSION_DURATION_MIN_MINUTES) {
+    durationError = `Session duration must be at least ${SESSION_DURATION_MIN_MINUTES} minutes.`;
+  } else if (sessionDurationMinutes > SESSION_DURATION_MAX_MINUTES) {
+    durationError = `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`;
+  }
+
+  const sessionInputsInvalid = priceError !== null || durationError !== null;
+
   const save = useMutation({
     mutationFn: () => {
-      const cents = Math.round(parseFloat(sessionPriceDollars) * 100);
-      if (!Number.isFinite(cents) || cents <= 0) {
-        throw new Error("Enter a valid session price greater than 0.");
-      }
-      if (!Number.isFinite(sessionDurationMinutes) || sessionDurationMinutes <= 0) {
-        throw new Error("Enter a valid duration greater than 0.");
-      }
+      if (priceError) throw new Error(priceError);
+      if (durationError) throw new Error(durationError);
       return updateFn({
         data: {
           email,
           fetlife_handle: fetlife,
           reddit_handle: reddit,
           glory_holes_enabled: gloryHolesEnabled,
-          session_price_cents: cents,
+          session_price_cents: priceCents,
           session_duration_minutes: sessionDurationMinutes,
         },
       });
@@ -163,42 +192,64 @@ function AdminSettings() {
             checkout is still controlled by your Stripe price catalogue — keep those in sync.
           </p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="Active session price (AUD)" hint="e.g. 275.00">
+            <Field
+              label="Active session price (AUD)"
+              hint={`Between A$${priceMinDollars.toFixed(2)} and A$${priceMaxDollars.toFixed(2)}. e.g. 275.00`}
+            >
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">A$</span>
                 <input
                   type="number"
-                  min={1}
+                  min={priceMinDollars}
+                  max={priceMaxDollars}
                   step="0.01"
                   required
+                  inputMode="decimal"
+                  aria-invalid={priceError !== null}
                   value={sessionPriceDollars}
                   onChange={(e) => setSessionPriceDollars(e.target.value)}
-                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                  className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                    priceError ? "border-destructive" : "border-border"
+                  }`}
                 />
               </div>
+              {priceError && (
+                <div className="mt-1 text-[11px] text-destructive">{priceError}</div>
+              )}
             </Field>
-            <Field label="Session duration (minutes)" hint="e.g. 60">
+            <Field
+              label="Session duration (minutes)"
+              hint={`Between ${SESSION_DURATION_MIN_MINUTES} and ${SESSION_DURATION_MAX_MINUTES} minutes. e.g. 60`}
+            >
               <input
                 type="number"
-                min={1}
-                max={480}
+                min={SESSION_DURATION_MIN_MINUTES}
+                max={SESSION_DURATION_MAX_MINUTES}
                 step={5}
                 required
+                inputMode="numeric"
+                aria-invalid={durationError !== null}
                 value={sessionDurationMinutes}
                 onChange={(e) => setSessionDurationMinutes(Number(e.target.value))}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+                  durationError ? "border-destructive" : "border-border"
+                }`}
               />
+              {durationError && (
+                <div className="mt-1 text-[11px] text-destructive">{durationError}</div>
+              )}
             </Field>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="submit"
-            disabled={save.isPending || settings.isLoading}
+            disabled={save.isPending || settings.isLoading || sessionInputsInvalid}
             className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
           >
             {save.isPending ? "Saving…" : "Save"}
           </button>
+
           {saved && <span className="text-sm text-primary">Saved ✓</span>}
           {save.error && (
             <span className="text-sm text-destructive">
