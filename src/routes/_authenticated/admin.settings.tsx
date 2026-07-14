@@ -7,6 +7,7 @@ import {
   getSiteSettings,
   updateSiteSettings,
   listPricingAudit,
+  type PricingAuditSortColumn,
   SESSION_PRICE_MIN_CENTS,
   SESSION_PRICE_MAX_CENTS,
   SESSION_DURATION_MIN_MINUTES,
@@ -655,6 +656,8 @@ function PricingAuditSection() {
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState<PricingAuditSortColumn>("changed_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   // Debounce email search input.
   useEffect(() => {
@@ -666,10 +669,21 @@ function PricingAuditSection() {
   }, [searchInput]);
 
   const audit = useQuery({
-    queryKey: ["pricing-audit", { search, from, to, page, pageSize }],
-    queryFn: () => listFn({ data: { search, from, to, page, pageSize } }),
+    queryKey: ["pricing-audit", { search, from, to, page, pageSize, sortBy, sortDir }],
+    queryFn: () => listFn({ data: { search, from, to, page, pageSize, sortBy, sortDir } }),
     placeholderData: (prev) => prev,
   });
+
+  const toggleSort = (col: PricingAuditSortColumn) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      // Default: newest/highest first for numeric+date; A→Z for text.
+      setSortDir(col === "changed_by_email" ? "asc" : "desc");
+    }
+    setPage(1);
+  };
 
   const rows = audit.data?.rows ?? [];
   const total = audit.data?.total ?? 0;
@@ -775,10 +789,22 @@ function PricingAuditSection() {
         <table className="w-full text-left text-xs">
           <thead className="bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
             <tr>
-              <th className="px-3 py-2 font-medium">When</th>
-              <th className="px-3 py-2 font-medium">Admin</th>
-              <th className="px-3 py-2 font-medium">Price</th>
-              <th className="px-3 py-2 font-medium">Duration</th>
+              <SortableTh label="When" col="changed_at" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+              <SortableTh label="Admin" col="changed_by_email" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+              <th className="px-3 py-2 font-medium">
+                <div className="flex items-center gap-3">
+                  <SortHeaderButton label="Old price" col="old_session_price_cents" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+                  <span className="text-muted-foreground/60">→</span>
+                  <SortHeaderButton label="New price" col="new_session_price_cents" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+                </div>
+              </th>
+              <th className="px-3 py-2 font-medium">
+                <div className="flex items-center gap-3">
+                  <SortHeaderButton label="Old duration" col="old_session_duration_minutes" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+                  <span className="text-muted-foreground/60">→</span>
+                  <SortHeaderButton label="New duration" col="new_session_duration_minutes" sortBy={sortBy} sortDir={sortDir} onToggle={toggleSort} />
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -890,4 +916,60 @@ function formatMinutes(mins: number | null): string {
   if (mins == null) return "—";
   return `${mins} min`;
 }
+
+type SortToggleProps = {
+  label: string;
+  col: PricingAuditSortColumn;
+  sortBy: PricingAuditSortColumn;
+  sortDir: "asc" | "desc";
+  onToggle: (col: PricingAuditSortColumn) => void;
+};
+
+function SortIndicator({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) {
+    return <span aria-hidden className="ml-1 text-muted-foreground/40">↕</span>;
+  }
+  return (
+    <span aria-hidden className="ml-1 text-primary">
+      {dir === "asc" ? "▲" : "▼"}
+    </span>
+  );
+}
+
+function SortHeaderButton({ label, col, sortBy, sortDir, onToggle }: SortToggleProps) {
+  const active = sortBy === col;
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(col)}
+      aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+      className={`inline-flex items-center uppercase tracking-widest ${
+        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {label}
+      <SortIndicator active={active} dir={sortDir} />
+    </button>
+  );
+}
+
+function SortableTh({ label, col, sortBy, sortDir, onToggle }: SortToggleProps) {
+  const active = sortBy === col;
+  return (
+    <th
+      scope="col"
+      aria-sort={active ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+      className="px-3 py-2 font-medium"
+    >
+      <SortHeaderButton
+        label={label}
+        col={col}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onToggle={onToggle}
+      />
+    </th>
+  );
+}
+
 
