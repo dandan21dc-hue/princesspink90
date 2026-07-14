@@ -294,6 +294,30 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
     };
   });
 
+// Shared validation limits for admin audit annotations. Keep in sync with the
+// UI constants in src/routes/_authenticated/admin.activity-audit.tsx.
+export const AUDIT_REASON_MIN = 3;
+export const AUDIT_REASON_MAX = 500;
+export const AUDIT_NOTES_MAX = 2000;
+// Reject control characters (except tab/newline/carriage return) to keep the
+// audit log free of terminal-escape / null-byte junk.
+const NO_CONTROL_CHARS = /^[^\x00-\x08\x0B\x0C\x0E-\x1F\x7F]*$/;
+
+const reasonSchema = z
+  .string()
+  .trim()
+  .min(AUDIT_REASON_MIN, `Reason must be at least ${AUDIT_REASON_MIN} characters`)
+  .max(AUDIT_REASON_MAX, `Reason must be ${AUDIT_REASON_MAX} characters or fewer`)
+  .regex(NO_CONTROL_CHARS, "Reason contains invalid control characters")
+  .optional();
+
+const notesSchema = z
+  .string()
+  .trim()
+  .max(AUDIT_NOTES_MAX, `Notes must be ${AUDIT_NOTES_MAX} characters or fewer`)
+  .regex(NO_CONTROL_CHARS, "Notes contain invalid control characters")
+  .optional();
+
 export const setAuditEntryQuarantine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { id: string; quarantined: boolean; reason?: string; notes?: string }) =>
@@ -301,8 +325,18 @@ export const setAuditEntryQuarantine = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         quarantined: z.boolean(),
-        reason: z.string().trim().max(500).optional(),
-        notes: z.string().trim().max(2000).optional(),
+        reason: reasonSchema,
+        notes: notesSchema,
+      })
+      .superRefine((val, ctx) => {
+        // When quarantining, require a reason so the audit trail is meaningful.
+        if (val.quarantined && (!val.reason || val.reason.length === 0)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["reason"],
+            message: "A reason is required when quarantining an entry",
+          });
+        }
       })
       .parse(data),
   )
