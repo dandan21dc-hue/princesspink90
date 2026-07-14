@@ -9,6 +9,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { listPrivateRoomBusy } from "@/lib/store.functions";
+import { getSessionPricing } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/private-room")({
   head: () => ({
@@ -33,7 +34,15 @@ const DAY_START_HOUR = 10; // 10:00
 const DAY_END_HOUR = 22; // last slot must end by 22:00
 const SLOT_STEP_MIN = 30;
 
-type Duration = 30 | 60;
+function formatAud(cents: number) {
+  return `A$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+}
+function formatDuration(min: number) {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? (h === 1 ? "1 hour" : `${h} hours`) : `${h}h ${m}m`;
+}
 
 function PrivateRoomPage() {
   const navigate = useNavigate();
@@ -41,7 +50,15 @@ function PrivateRoomPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() =>
     startOfDay(addDays(new Date(), 1)),
   );
-  const [duration] = useState<Duration>(60);
+  const pricing = useQuery({
+    queryKey: ["session-pricing"],
+    queryFn: () => getSessionPricing(),
+    staleTime: 60_000,
+  });
+  const duration = pricing.data?.duration_minutes ?? 60;
+  const priceCents = pricing.data?.price_cents ?? 27500;
+  const priceLabel = formatAud(priceCents);
+  const durationLabel = formatDuration(duration);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [partySize, setPartySize] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
