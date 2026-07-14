@@ -8,7 +8,7 @@ import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { listPrivateRoomBusy } from "@/lib/store.functions";
+import { listWorkspaceBusy } from "@/lib/workspace-availability.functions";
 import { getGloryHolesEnabled, getSessionPricing } from "@/lib/settings.functions";
 import { useServerFn } from "@tanstack/react-start";
 
