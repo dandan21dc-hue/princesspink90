@@ -59,7 +59,7 @@ export type AdminAuditEntry = {
   actor_display_name: string | null;
   action: string;
   resource: string;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, string | number | boolean | null>;
   created_at: string;
 };
 
