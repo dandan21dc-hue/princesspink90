@@ -94,6 +94,7 @@ import { Route as ApiPublicHooksPreviewReminderEmailRouteImport } from './routes
 import { Route as ApiPublicHooksPreviewPortalLinkRouteImport } from './routes/api/public/hooks/preview-portal-link'
 import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './routes/api/public/hooks/health-screening-reminders'
 import { Route as ApiPublicHooksCronHealthCheckRouteImport } from './routes/api/public/hooks/cron-health-check'
+import { Route as ApiPublicHooksAuditAlertNotifyRouteImport } from './routes/api/public/hooks/audit-alert-notify'
 import { Route as ApiPublicCronPurgeDeletedAccountsRouteImport } from './routes/api/public/cron/purge-deleted-accounts'
 import { Route as ApiPublicCronDunningEscalationRouteImport } from './routes/api/public/cron/dunning-escalation'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
@@ -571,6 +572,12 @@ const ApiPublicHooksCronHealthCheckRoute =
     path: '/api/public/hooks/cron-health-check',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksAuditAlertNotifyRoute =
+  ApiPublicHooksAuditAlertNotifyRouteImport.update({
+    id: '/api/public/hooks/audit-alert-notify',
+    path: '/api/public/hooks/audit-alert-notify',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCronPurgeDeletedAccountsRoute =
   ApiPublicCronPurgeDeletedAccountsRouteImport.update({
     id: '/api/public/cron/purge-deleted-accounts',
@@ -696,6 +703,7 @@ export interface FileRoutesByFullPath {
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
+  '/api/public/hooks/audit-alert-notify': typeof ApiPublicHooksAuditAlertNotifyRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -789,6 +797,7 @@ export interface FileRoutesByTo {
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
+  '/api/public/hooks/audit-alert-notify': typeof ApiPublicHooksAuditAlertNotifyRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -885,6 +894,7 @@ export interface FileRoutesById {
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
   '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
+  '/api/public/hooks/audit-alert-notify': typeof ApiPublicHooksAuditAlertNotifyRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
   '/api/public/hooks/health-screening-reminders': typeof ApiPublicHooksHealthScreeningRemindersRoute
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -981,6 +991,7 @@ export interface FileRouteTypes {
     | '/events/$id/waivers'
     | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
+    | '/api/public/hooks/audit-alert-notify'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -1074,6 +1085,7 @@ export interface FileRouteTypes {
     | '/events/$id/waivers'
     | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
+    | '/api/public/hooks/audit-alert-notify'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -1169,6 +1181,7 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/waivers'
     | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
+    | '/api/public/hooks/audit-alert-notify'
     | '/api/public/hooks/cron-health-check'
     | '/api/public/hooks/health-screening-reminders'
     | '/api/public/hooks/preview-portal-link'
@@ -1218,6 +1231,7 @@ export interface RootRouteChildren {
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
   ApiPublicCronDunningEscalationRoute: typeof ApiPublicCronDunningEscalationRoute
   ApiPublicCronPurgeDeletedAccountsRoute: typeof ApiPublicCronPurgeDeletedAccountsRoute
+  ApiPublicHooksAuditAlertNotifyRoute: typeof ApiPublicHooksAuditAlertNotifyRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
   ApiPublicHooksHealthScreeningRemindersRoute: typeof ApiPublicHooksHealthScreeningRemindersRoute
   ApiPublicHooksPreviewPortalLinkRoute: typeof ApiPublicHooksPreviewPortalLinkRoute
@@ -1832,6 +1846,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCronHealthCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/audit-alert-notify': {
+      id: '/api/public/hooks/audit-alert-notify'
+      path: '/api/public/hooks/audit-alert-notify'
+      fullPath: '/api/public/hooks/audit-alert-notify'
+      preLoaderRoute: typeof ApiPublicHooksAuditAlertNotifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cron/purge-deleted-accounts': {
       id: '/api/public/cron/purge-deleted-accounts'
       path: '/api/public/cron/purge-deleted-accounts'
@@ -2083,6 +2104,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCronDunningEscalationRoute: ApiPublicCronDunningEscalationRoute,
   ApiPublicCronPurgeDeletedAccountsRoute:
     ApiPublicCronPurgeDeletedAccountsRoute,
+  ApiPublicHooksAuditAlertNotifyRoute: ApiPublicHooksAuditAlertNotifyRoute,
   ApiPublicHooksCronHealthCheckRoute: ApiPublicHooksCronHealthCheckRoute,
   ApiPublicHooksHealthScreeningRemindersRoute:
     ApiPublicHooksHealthScreeningRemindersRoute,
