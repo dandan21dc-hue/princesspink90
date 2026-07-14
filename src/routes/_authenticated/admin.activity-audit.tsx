@@ -147,7 +147,10 @@ function AdminAuditPage() {
     );
   }
 
-  const rows = entries.data ?? [];
+  const result = entries.data ?? { rows: [], total: 0, page, pageSize };
+  const rows = Array.isArray(result) ? [] : result.rows;
+  const total = Array.isArray(result) ? 0 : result.total;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <main className="min-h-screen bg-background text-foreground">
