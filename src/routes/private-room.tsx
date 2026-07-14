@@ -577,9 +577,6 @@ function ReviewBookingCard({
           {format(selectedSlot, "h:mm a")} – {format(endsAt, "h:mm a")}
         </Row>
         <Row label="Duration">{durationLabel}</Row>
-        <Row label="Party size">
-          {partySize} {partySize === 1 ? "guest" : "guests"}
-        </Row>
         <Row label="Price">{priceLabel}</Row>
         {notes.trim() && (
           <div>
