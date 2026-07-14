@@ -246,7 +246,7 @@ function PrivateRoomPage() {
     if (pending) return;
     if (!user || !selectedSlot) return;
     setPending(true);
-    const priceId = duration === 30 ? "private_room_30min_aud" : "private_room_60min_aud";
+    const priceId = duration <= 30 ? "private_room_30min_aud" : "private_room_60min_aud";
     openCheckout({
       priceId,
       userId: user.id,
@@ -342,6 +342,11 @@ function PrivateRoomPage() {
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                 Pick your day and your time. Slot is held while you complete checkout.
               </p>
+              <div className="mt-4 inline-flex items-center gap-3 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs uppercase tracking-widest text-primary">
+                <span>{durationLabel}</span>
+                <span aria-hidden>·</span>
+                <span>{priceLabel}</span>
+              </div>
             </div>
 
 
@@ -472,13 +477,13 @@ function PrivateRoomPage() {
                 <div className="mt-8 max-w-sm">
                   <div>
                     <label htmlFor="duration-summary" className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Duration
+                      Session
                     </label>
                     <div
                       id="duration-summary"
                       className="mt-2 rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
                     >
-                      {duration === 30 ? "30 minutes · A$150" : "1 hour · A$275"}
+                      {durationLabel} · {priceLabel}
                     </div>
                   </div>
                 </div>
