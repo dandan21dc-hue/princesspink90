@@ -5,6 +5,7 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { listStoreItems } from "@/lib/store.functions";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { PaymentPendingPlaceholder } from "@/components/PaymentPendingPlaceholder";
 
 import { cn } from "@/lib/utils";
 import { X, SlidersHorizontal } from "lucide-react";
