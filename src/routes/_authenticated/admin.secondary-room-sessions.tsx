@@ -93,6 +93,20 @@ function SecondaryRoomSessionsAdmin() {
   const [editing, setEditing] = useState<WorkspaceSlot | "new" | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmAction, setConfirmAction] = useState<null | "delete" | "book" | "available">(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
+
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const clearSelection = () => setSelected(new Set());
+
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-workspace-slots"] });
 
@@ -144,6 +158,61 @@ function SecondaryRoomSessionsAdmin() {
     },
     onError: (e: Error) => setError(e.message),
   });
+
+  const runBulk = async (action: "delete" | "book" | "available") => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setError(null);
+    setBulkBusy(true);
+    setBulkProgress({ done: 0, total: ids.length });
+    const slotById = new Map(slotsQ.data?.map((s) => [s.id, s]) ?? []);
+    let ok = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        if (action === "delete") {
+          await deleteFn({ data: { id } });
+        } else {
+          const s = slotById.get(id);
+          if (!s) throw new Error("Slot no longer exists");
+          const targetBooked = action === "book";
+          if (s.is_booked === targetBooked) {
+            ok++;
+            setBulkProgress((p) => (p ? { done: p.done + 1, total: p.total } : p));
+            continue;
+          }
+          await updateFn({
+            data: {
+              id: s.id,
+              startTime: s.start_time,
+              endTime: s.end_time,
+              isBooked: targetBooked,
+              notes: s.notes ?? null,
+            },
+          });
+        }
+        ok++;
+      } catch (e) {
+        failed++;
+        console.error("Bulk action failed for slot", id, e);
+      }
+      setBulkProgress((p) => (p ? { done: p.done + 1, total: p.total } : p));
+    }
+    setBulkBusy(false);
+    setBulkProgress(null);
+    setConfirmAction(null);
+    clearSelection();
+    invalidate();
+    const verb =
+      action === "delete" ? "Deleted" : action === "book" ? "Marked booked/blocked" : "Marked available";
+    if (failed === 0) {
+      toast.success(`${verb} ${ok} slot${ok === 1 ? "" : "s"}`);
+    } else {
+      toast.error(`${verb} ${ok}, ${failed} failed`);
+    }
+  };
+
+
 
   if (me.isLoading) {
     return (
@@ -287,84 +356,148 @@ function SecondaryRoomSessionsAdmin() {
           No upcoming slots yet. Create one to start offering private sessions.
         </p>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-border/60">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead className="bg-secondary/30 text-left text-[11px] uppercase tracking-widest text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Start</th>
-                <th className="px-4 py-3">End</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Notes</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {slots.map((s) => {
-                const inConflict = conflictIds.has(s.id);
-                return (
-                <tr
-                  key={s.id}
-                  className={`border-t border-border/40 ${inConflict ? "bg-destructive/5" : ""}`}
+        <>
+          {selected.size > 0 && (
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-primary/40 bg-primary/5 px-4 py-3 text-sm">
+              <div>
+                <strong>{selected.size}</strong> slot{selected.size === 1 ? "" : "s"} selected
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="rounded border border-border px-3 py-1 text-xs hover:bg-secondary/40"
                 >
-                  <td className="px-4 py-3">
-                    {inConflict && (
-                      <span
-                        title="This slot overlaps another — see conflict warning above"
-                        className="mr-2 inline-block rounded border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-destructive"
-                      >
-                        Conflict
-                      </span>
-                    )}
-                    {fmt(s.start_time)}
-                  </td>
-                  <td className="px-4 py-3">{fmt(s.end_time)}</td>
-                  <td className="px-4 py-3">
-                    {s.is_booked ? (
-                      <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
-                        Booked
-                      </span>
-                    ) : (
-                      <span className="rounded-md border border-neon/40 bg-neon/10 px-2 py-0.5 text-[11px] text-neon">
-                        Available
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground max-w-[240px] truncate">
-                    {s.notes ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="inline-flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setError(null);
-                          setEditing(s);
-                        }}
-                        className="rounded border border-border px-3 py-1 text-xs hover:bg-secondary/40"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        disabled={deleteMut.isPending}
-                        onClick={() => {
-                          if (!confirm("Delete this slot? This can't be undone.")) return;
-                          setError(null);
-                          deleteMut.mutate(s.id);
-                        }}
-                        className="rounded border border-destructive/40 px-3 py-1 text-xs text-destructive hover:bg-destructive/10"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction("available")}
+                  className="rounded border border-neon/40 px-3 py-1 text-xs text-neon hover:bg-neon/10"
+                >
+                  Mark available
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction("book")}
+                  className="rounded border border-primary/40 px-3 py-1 text-xs text-primary hover:bg-primary/10"
+                >
+                  Mark booked / blocked
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmAction("delete")}
+                  className="rounded border border-destructive/50 px-3 py-1 text-xs text-destructive hover:bg-destructive/10"
+                >
+                  Delete selected
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-6 overflow-x-auto rounded-xl border border-border/60">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="bg-secondary/30 text-left text-[11px] uppercase tracking-widest text-muted-foreground">
+                <tr>
+                  <th className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      aria-label="Select all slots"
+                      checked={slots.length > 0 && selected.size === slots.length}
+                      ref={(el) => {
+                        if (el) el.indeterminate = selected.size > 0 && selected.size < slots.length;
+                      }}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelected(new Set(slots.map((s) => s.id)));
+                        else clearSelection();
+                      }}
+                    />
+                  </th>
+                  <th className="px-4 py-3">Start</th>
+                  <th className="px-4 py-3">End</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Notes</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {slots.map((s) => {
+                  const inConflict = conflictIds.has(s.id);
+                  const isSel = selected.has(s.id);
+                  return (
+                  <tr
+                    key={s.id}
+                    className={`border-t border-border/40 ${inConflict ? "bg-destructive/5" : ""} ${isSel ? "bg-primary/5" : ""}`}
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select slot ${fmt(s.start_time)}`}
+                        checked={isSel}
+                        onChange={() => toggleOne(s.id)}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      {inConflict && (
+                        <span
+                          title="This slot overlaps another — see conflict warning above"
+                          className="mr-2 inline-block rounded border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-destructive"
+                        >
+                          Conflict
+                        </span>
+                      )}
+                      {fmt(s.start_time)}
+                    </td>
+                    <td className="px-4 py-3">{fmt(s.end_time)}</td>
+                    <td className="px-4 py-3">
+                      {s.is_booked ? (
+                        <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
+                          Booked
+                        </span>
+                      ) : (
+                        <span className="rounded-md border border-neon/40 bg-neon/10 px-2 py-0.5 text-[11px] text-neon">
+                          Available
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground max-w-[240px] truncate">
+                      {s.notes ?? "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="inline-flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setError(null);
+                            setEditing(s);
+                          }}
+                          className="rounded border border-border px-3 py-1 text-xs hover:bg-secondary/40"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deleteMut.isPending}
+                          onClick={() => {
+                            if (!confirm("Delete this slot? This can't be undone.")) return;
+                            setError(null);
+                            deleteMut.mutate(s.id);
+                          }}
+                          className="rounded border border-destructive/40 px-3 py-1 text-xs text-destructive hover:bg-destructive/10"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
+
 
       {editing !== null && (
         <SlotDialog
@@ -391,6 +524,20 @@ function SecondaryRoomSessionsAdmin() {
             setError(null);
             bulkMut.mutate(slots);
           }}
+        />
+      )}
+
+      {confirmAction !== null && (
+        <ConfirmBulkDialog
+          action={confirmAction}
+          count={selected.size}
+          busy={bulkBusy}
+          progress={bulkProgress}
+          onCancel={() => {
+            if (bulkBusy) return;
+            setConfirmAction(null);
+          }}
+          onConfirm={() => runBulk(confirmAction)}
         />
       )}
     </Shell>
@@ -815,4 +962,77 @@ function generateBulkSlots(cfg: {
     cursor.setDate(cursor.getDate() + 1);
   }
   return slots;
+}
+
+function ConfirmBulkDialog({
+  action,
+  count,
+  busy,
+  progress,
+  onCancel,
+  onConfirm,
+}: {
+  action: "delete" | "book" | "available";
+  count: number;
+  busy: boolean;
+  progress: { done: number; total: number } | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const isDelete = action === "delete";
+  const title =
+    action === "delete"
+      ? "Delete selected slots?"
+      : action === "book"
+        ? "Mark selected as booked / blocked?"
+        : "Mark selected as available?";
+  const body =
+    action === "delete"
+      ? `This will permanently remove ${count} slot${count === 1 ? "" : "s"}. This can't be undone.`
+      : action === "book"
+        ? `This will hide ${count} slot${count === 1 ? "" : "s"} from the public Glory Holes booking page.`
+        : `This will re-open ${count} slot${count === 1 ? "" : "s"} for public booking.`;
+  const confirmLabel =
+    action === "delete" ? "Delete" : action === "book" ? "Mark booked" : "Mark available";
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4 backdrop-blur"
+      onClick={onCancel}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl"
+      >
+        <h2 className="font-display text-xl font-semibold">{title}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{body}</p>
+        {progress && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Processing {progress.done} / {progress.total}…
+          </p>
+        )}
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="rounded-md border border-border px-4 py-2 text-xs uppercase tracking-widest hover:bg-secondary/40 disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className={`rounded-md px-4 py-2 text-xs font-semibold uppercase tracking-widest disabled:opacity-60 ${
+              isDelete
+                ? "bg-destructive text-destructive-foreground hover:brightness-110"
+                : "bg-primary text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+            }`}
+          >
+            {busy ? "Working…" : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
