@@ -1124,7 +1124,7 @@ export async function dispatchEvent(
  * Errors here never break the webhook — we log and continue so Stripe
  * still gets a well-formed response.
  */
-async function logWebhookEvent(row: {
+export async function logWebhookEvent(row: {
   stripe_event_id?: string | null;
   event_type: string;
   environment: string;
@@ -1133,22 +1133,29 @@ async function logWebhookEvent(row: {
   raw_payload: any;
   processing_ms?: number | null;
   processed_at?: string | null;
+  correlation_id?: string | null;
+  replay_of_event_id?: string | null;
 }): Promise<string | null> {
   try {
-    if (row.stripe_event_id) {
+    const base: Record<string, any> = {
+      event_type: row.event_type,
+      environment: row.environment,
+      status: row.status,
+      error_message: row.error_message ?? null,
+      raw_payload: row.raw_payload,
+      processing_ms: row.processing_ms ?? null,
+      processed_at: row.processed_at ?? null,
+    };
+    if (row.correlation_id) base.correlation_id = row.correlation_id;
+    if (row.replay_of_event_id) base.replay_of_event_id = row.replay_of_event_id;
+
+    // Replays intentionally never conflict on stripe_event_id — they always
+    // insert a fresh row so the original audit trail is preserved.
+    if (row.stripe_event_id && !row.replay_of_event_id) {
       const { data, error } = await (getSupabase() as any)
         .from("stripe_webhook_events")
         .upsert(
-          {
-            stripe_event_id: row.stripe_event_id,
-            event_type: row.event_type,
-            environment: row.environment,
-            status: row.status,
-            error_message: row.error_message ?? null,
-            raw_payload: row.raw_payload,
-            processing_ms: row.processing_ms ?? null,
-            processed_at: row.processed_at ?? null,
-          },
+          { ...base, stripe_event_id: row.stripe_event_id },
           { onConflict: "stripe_event_id,environment" },
         )
         .select("id")
@@ -1158,16 +1165,7 @@ async function logWebhookEvent(row: {
     }
     const { data, error } = await (getSupabase() as any)
       .from("stripe_webhook_events")
-      .insert({
-        stripe_event_id: null,
-        event_type: row.event_type,
-        environment: row.environment,
-        status: row.status,
-        error_message: row.error_message ?? null,
-        raw_payload: row.raw_payload,
-        processing_ms: row.processing_ms ?? null,
-        processed_at: row.processed_at ?? null,
-      })
+      .insert({ ...base, stripe_event_id: row.stripe_event_id ?? null })
       .select("id")
       .maybeSingle();
     if (error) throw error;
@@ -1178,7 +1176,7 @@ async function logWebhookEvent(row: {
   }
 }
 
-async function updateWebhookEvent(
+export async function updateWebhookEvent(
   id: string,
   patch: {
     status: "succeeded" | "failed" | "ignored";
@@ -1200,6 +1198,7 @@ async function updateWebhookEvent(
     console.error("stripe_webhook_events update failed:", e);
   }
 }
+
 
 export const Route = createFileRoute("/api/public/payments/webhook")({
   server: {
