@@ -1169,6 +1169,7 @@ export type Database = {
           event_ticket_event_id: string | null
           event_ticket_used_at: string | null
           expires_at: string | null
+          external_payment_reference: string | null
           id: string
           kind: string
           private_session_bundle_granted_at: string | null
@@ -1188,6 +1189,7 @@ export type Database = {
           event_ticket_event_id?: string | null
           event_ticket_used_at?: string | null
           expires_at?: string | null
+          external_payment_reference?: string | null
           id?: string
           kind?: string
           private_session_bundle_granted_at?: string | null
@@ -1207,6 +1209,7 @@ export type Database = {
           event_ticket_event_id?: string | null
           event_ticket_used_at?: string | null
           expires_at?: string | null
+          external_payment_reference?: string | null
           id?: string
           kind?: string
           private_session_bundle_granted_at?: string | null
@@ -2485,6 +2488,40 @@ export type Database = {
         }[]
       }
       go_live_status: { Args: never; Returns: Json }
+      grant_all_access_pass_30d: {
+        Args: {
+          _amount_cents: number
+          _environment: string
+          _external_payment_reference: string
+          _user_id: string
+        }
+        Returns: {
+          amount_cents: number | null
+          created_at: string
+          environment: string
+          event_ticket_event_id: string | null
+          event_ticket_used_at: string | null
+          expires_at: string | null
+          external_payment_reference: string | null
+          id: string
+          kind: string
+          private_session_bundle_granted_at: string | null
+          private_session_bundle_id: string | null
+          private_session_duration_minutes: number
+          private_session_fulfilled_at: string | null
+          private_session_requested_at: string | null
+          stripe_session_id: string | null
+          term_months: number | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_age_verification: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
