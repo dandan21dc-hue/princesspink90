@@ -1539,12 +1539,12 @@ export const getMyLibrary = createServerFn({ method: "GET" })
     const sub: {
       status: string;
       current_period_end: string | null;
-    } | null = null;
+    } | null = null as any;
     const now = Date.now();
     const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end).getTime() : null;
     const hasRecurring = !!sub && (
-      (["active", "trialing", "past_due"].includes(sub.status) && (!periodEnd || periodEnd > now))
-      || (sub.status === "canceled" && !!periodEnd && periodEnd > now)
+      (["active", "trialing", "past_due"].includes(sub!.status) && (!periodEnd || periodEnd > now))
+      || (sub!.status === "canceled" && !!periodEnd && periodEnd > now)
     );
 
     const { data: memberships } = await supabase
