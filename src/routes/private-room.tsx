@@ -241,7 +241,7 @@ function PrivateRoomPage() {
     if (pending) return;
     if (!user || !selectedSlot) return;
     setPending(true);
-    const priceId = duration === 30 ? "private_room_30min_aud" : "private_room_60min_aud";
+    const priceId = duration <= 30 ? "private_room_30min_aud" : "private_room_60min_aud";
     openCheckout({
       priceId,
       userId: user.id,
