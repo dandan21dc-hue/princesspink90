@@ -307,6 +307,7 @@ export const setAuditEntryQuarantine = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    await assertAuditAdmin(context.supabase, context.userId);
     if (data.quarantined) {
       const { error } = await context.supabase
         .from("admin_activity_audit_quarantine")
