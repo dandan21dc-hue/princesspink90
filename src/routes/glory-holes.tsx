@@ -182,31 +182,31 @@ function PrivateRoomPage() {
     const from = new Date();
     from.setHours(0, 0, 0, 0);
     const to = new Date(from.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const busy = await listWorkspaceBusy({
-      data: { from: from.toISOString(), to: to.toISOString() },
-    });
+    const [busy, windows] = await Promise.all([
+      listWorkspaceBusy({ data: { from: from.toISOString(), to: to.toISOString() } }),
+      listWorkspaceAvailable({ data: { from: from.toISOString(), to: to.toISOString() } }),
+    ]);
+    if (windows.length === 0) return null;
     const ranges = busy.map((b) => {
       const start = new Date(b.starts_at).getTime();
       const end = start + b.duration_minutes * 60_000;
       return { start, end };
     });
+    const winRanges = windows
+      .map((w) => ({ start: new Date(w.start_time).getTime(), end: new Date(w.end_time).getTime() }))
+      .sort((a, b) => a.start - b.start);
     const earliest = Date.now() + 60 * 60 * 1000;
-    for (let d = 0; d < 30; d++) {
-      const day = startOfDay(addDays(new Date(), d));
-      for (
-        let m = DAY_START_HOUR * 60;
-        m + duration <= DAY_END_HOUR * 60;
-        m += SLOT_STEP_MIN
-      ) {
-        const slot = new Date(day);
-        slot.setHours(0, 0, 0, 0);
-        slot.setMinutes(m);
-        const s = slot.getTime();
-        if (s < earliest) continue;
-        const e = s + duration * 60_000;
+    const stepMs = SLOT_STEP_MIN * 60_000;
+    const durationMs = duration * 60_000;
+    for (const w of winRanges) {
+      let candidate = Math.max(Math.ceil(w.start / stepMs) * stepMs, earliest);
+      while (candidate + durationMs <= w.end) {
+        const s = candidate;
+        const e = s + durationMs;
         if (!ranges.some((b) => b.start < e && b.end > s)) {
-          return slot;
+          return new Date(s);
         }
+        candidate += stepMs;
       }
     }
     return null;
