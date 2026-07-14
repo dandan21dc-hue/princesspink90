@@ -41,7 +41,7 @@ function PrivateRoomPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() =>
     startOfDay(addDays(new Date(), 1)),
   );
-  const [duration, setDuration] = useState<Duration>(60);
+  const [duration] = useState<Duration>(60);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [partySize, setPartySize] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
@@ -532,37 +532,6 @@ function PrivateRoomPage() {
   );
 }
 
-function DurationCard({
-  selected,
-  onClick,
-  label,
-  price,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  label: string;
-  price: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center justify-between rounded-2xl border p-5 text-left transition",
-        selected
-          ? "border-primary bg-primary/10 shadow-[var(--shadow-glow-pink)]"
-          : "border-border/60 bg-card hover:border-primary/50",
-      )}
-    >
-      <div>
-        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
-          Private Room
-        </div>
-        <div className="mt-1 font-display text-2xl font-extrabold">{label}</div>
-      </div>
-      <div className="font-display text-2xl font-extrabold">{price}</div>
-    </button>
-  );
-}
 
 function ReviewBookingCard({
   selectedSlot,
