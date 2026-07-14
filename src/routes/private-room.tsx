@@ -473,38 +473,44 @@ function PrivateRoomPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {slots.map((s) => {
-                    const disabled = slotConflicts(s);
-                    const active = selectedSlot?.getTime() === s.getTime();
-                    const highlighted = highlightedSlot?.getTime() === s.getTime();
-                    return (
-                      <button
-                        id={`slot-${s.getTime()}`}
-                        key={s.toISOString()}
-                        onClick={() => !disabled && setSelectedSlot(s)}
-                        disabled={disabled}
+                {slots.length === 0 && !availableQuery.isLoading ? (
+                  <div className="rounded-md border border-border/60 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+                    No sessions scheduled for this day. Pick another date or try "Book next available".
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {slots.map((s) => {
+                      const disabled = slotConflicts(s);
+                      const active = selectedSlot?.getTime() === s.getTime();
+                      const highlighted = highlightedSlot?.getTime() === s.getTime();
+                      return (
+                        <button
+                          id={`slot-${s.getTime()}`}
+                          key={s.toISOString()}
+                          onClick={() => !disabled && setSelectedSlot(s)}
+                          disabled={disabled}
 
-                        className={cn(
-                          "relative rounded-md border px-3 py-2 text-sm font-medium transition",
-                          disabled
-                            ? "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground/50 line-through"
-                            : active
-                              ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow-pink)]"
-                              : "border-border/60 bg-background hover:border-primary/60 hover:text-primary",
-                          highlighted && !disabled && "ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse",
-                        )}
-                      >
-                        {format(s, "h:mm a")}
-                        {highlighted && !disabled && (
-                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-[var(--shadow-glow-pink)]">
-                            Soonest
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                          className={cn(
+                            "relative rounded-md border px-3 py-2 text-sm font-medium transition",
+                            disabled
+                              ? "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground/50 line-through"
+                              : active
+                                ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow-pink)]"
+                                : "border-border/60 bg-background hover:border-primary/60 hover:text-primary",
+                            highlighted && !disabled && "ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse",
+                          )}
+                        >
+                          {format(s, "h:mm a")}
+                          {highlighted && !disabled && (
+                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-[var(--shadow-glow-pink)]">
+                              Soonest
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div
                   role="list"
