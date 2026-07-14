@@ -287,7 +287,7 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
         actor_display_name: names.get(r.actor_id) ?? null,
         action: r.action,
         resource: r.resource,
-        metadata: r.metadata ?? {},
+        metadata: isAuditAdmin ? (r.metadata ?? {}) : {},
         created_at: r.created_at,
         trust: trustFor(r.id, r.seq),
         quarantine_reason: quarantineMap.get(r.id) ?? null,
