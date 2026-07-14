@@ -110,6 +110,80 @@ export const purgeExpiredAuditEntries = createServerFn({ method: "POST" })
       action: "manual_purge",
       resource: "admin_activity_audit",
       metadata: { purged: data ?? 0 },
-    });
+    } as never);
     return { purged: (data as number | null) ?? 0 };
   });
+
+export type AuditIntegrityResult = {
+  checked_at: string;
+  total: number;
+  tampered_seqs: number[];
+  chain_break_seqs: number[];
+  missing_seqs: number[];
+  ok: boolean;
+};
+
+export type AuditAlert = {
+  id: string;
+  detected_at: string;
+  severity: "info" | "warning" | "critical";
+  kind: string;
+  detail: Record<string, unknown>;
+  acknowledged_at: string | null;
+  acknowledged_by: string | null;
+};
+
+export const verifyAuditIntegrity = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AuditIntegrityResult> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc(
+      "verify_admin_activity_audit_integrity" as never,
+    );
+    if (error) throw error;
+    const result = data as unknown as AuditIntegrityResult;
+    await context.supabase.from("admin_activity_audit").insert({
+      actor_id: context.userId,
+      action: "verify_integrity",
+      resource: "admin_activity_audit",
+      metadata: { ok: result?.ok ?? false, total: result?.total ?? 0 },
+    } as never);
+    return result;
+  });
+
+export const listAuditAlerts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AuditAlert[]> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase
+      .from("admin_activity_audit_alerts")
+      .select("id, detected_at, severity, kind, detail, acknowledged_at, acknowledged_by")
+      .order("detected_at", { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    return (data ?? []) as unknown as AuditAlert[];
+  });
+
+export const acknowledgeAuditAlert = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error } = await context.supabase
+      .from("admin_activity_audit_alerts")
+      .update({
+        acknowledged_at: new Date().toISOString(),
+        acknowledged_by: context.userId,
+      })
+      .eq("id", data.id);
+    if (error) throw error;
+    await context.supabase.from("admin_activity_audit").insert({
+      actor_id: context.userId,
+      action: "ack_alert",
+      resource: "admin_activity_audit_alerts",
+      metadata: { alert_id: data.id },
+    } as never);
+    return { ok: true };
+  });
+
