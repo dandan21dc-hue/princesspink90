@@ -399,11 +399,13 @@ function AvailabilityAdmin() {
 
 function SlotDialog({
   initial,
+  existingSlots,
   pending,
   onCancel,
   onSubmit,
 }: {
   initial: PrivateSessionSlot | null;
+  existingSlots: PrivateSessionSlot[];
   pending: boolean;
   onCancel: () => void;
   onSubmit: (v: {
@@ -425,20 +427,38 @@ function SlotDialog({
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [localErr, setLocalErr] = useState<string | null>(null);
 
+  const startISO = start ? fromLocalInput(start) : "";
+  const endISO = end ? fromLocalInput(end) : "";
+  const rangeInvalid =
+    !!start && !!end && new Date(end).getTime() <= new Date(start).getTime();
+  const overlaps = useMemo(
+    () =>
+      rangeInvalid
+        ? []
+        : overlapsAny(startISO, endISO, existingSlots, initial?.id),
+    [startISO, endISO, existingSlots, initial?.id, rangeInvalid],
+  );
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!start || !end) {
       setLocalErr("Start and end are required");
       return;
     }
-    if (new Date(end).getTime() <= new Date(start).getTime()) {
+    if (rangeInvalid) {
       setLocalErr("End time must be after start time");
+      return;
+    }
+    if (overlaps.length > 0) {
+      setLocalErr(
+        `This slot overlaps ${overlaps.length} existing slot${overlaps.length === 1 ? "" : "s"}. Adjust the times before saving.`,
+      );
       return;
     }
     setLocalErr(null);
     onSubmit({
-      startTime: fromLocalInput(start),
-      endTime: fromLocalInput(end),
+      startTime: startISO,
+      endTime: endISO,
       isBooked,
       notes,
     });
