@@ -678,7 +678,7 @@ function PricingAuditSection() {
     patch: Partial<{ q: string; from: string; to: string; page: number; pageSize: number }>,
   ) => {
     navigate({
-      search: (prev) => {
+      search: (prev: Record<string, unknown>) => {
         const next = { ...prev, ...patch };
         // Any filter change resets to page 1 unless the caller set page explicitly.
         if (patch.page === undefined && ("q" in patch || "from" in patch || "to" in patch || "pageSize" in patch)) {
