@@ -16,7 +16,7 @@ import { MapPinsMap } from "@/components/MapPinsMap";
 export const Route = createFileRoute("/_authenticated/admin/map-pins")({
   head: () => ({ meta: [{ title: "Map pins · Admin" }] }),
   component: () => (
-    <RoleGuard role="admin">
+    <RoleGuard allowedRoles={["admin"]}>
       <AdminMapPins />
     </RoleGuard>
   ),
