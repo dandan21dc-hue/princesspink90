@@ -52,8 +52,9 @@ export const listStripeWebhookEvents = createServerFn({ method: "GET" })
     let q = sb
       .from("stripe_webhook_events")
       .select(
-        "id, stripe_event_id, event_type, environment, status, error_message, processing_ms, received_at, processed_at, raw_payload",
+        "id, stripe_event_id, event_type, environment, status, error_message, processing_ms, received_at, processed_at, raw_payload, correlation_id, replay_of_event_id, replayed_at",
       )
+
       .order("received_at", { ascending: false })
       .limit(data.limit);
 
