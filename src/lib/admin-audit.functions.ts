@@ -128,7 +128,7 @@ export type AuditAlert = {
   detected_at: string;
   severity: "info" | "warning" | "critical";
   kind: string;
-  detail: Record<string, unknown>;
+  detail: Record<string, string | number | boolean | null>;
   acknowledged_at: string | null;
   acknowledged_by: string | null;
 };
