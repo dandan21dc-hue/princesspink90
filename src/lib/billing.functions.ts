@@ -280,6 +280,7 @@ export const createBillingPortalSession = createServerFn({ method: "POST" })
         data.environment,
       );
       if (!customerId) throw new Error("No Stripe customer on file");
+      if (data.returnUrl) assertAllowedReturnUrl(data.returnUrl);
       const portal = await stripe.billingPortal.sessions.create({
         customer: customerId,
         ...(data.returnUrl && { return_url: data.returnUrl }),
