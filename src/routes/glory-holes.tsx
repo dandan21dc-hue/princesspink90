@@ -124,24 +124,49 @@ function PrivateRoomPage() {
   }, [selectedDate]);
 
   const busyQuery = useQuery({
-    queryKey: ["private-room-busy", dayRange?.from, dayRange?.to],
+    queryKey: ["glory-holes-busy", dayRange?.from, dayRange?.to],
     enabled: !!dayRange,
     queryFn: () => listWorkspaceBusy({ data: dayRange! }),
     staleTime: 30_000,
   });
 
+  const availableQuery = useQuery({
+    queryKey: ["glory-holes-available", dayRange?.from, dayRange?.to],
+    enabled: !!dayRange,
+    queryFn: () => listWorkspaceAvailable({ data: dayRange! }),
+    staleTime: 30_000,
+  });
+
+  const availableWindows = useMemo(() => {
+    return (availableQuery.data ?? []).map((w) => ({
+      start: new Date(w.start_time).getTime(),
+      end: new Date(w.end_time).getTime(),
+    }));
+  }, [availableQuery.data]);
+
   const slots = useMemo(() => {
     if (!selectedDate) return [];
-    const day = new Date(selectedDate);
+    if (availableWindows.length === 0) return [];
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = dayStart.getTime() + 24 * 60 * 60 * 1000;
     const out: Date[] = [];
-    for (let h = DAY_START_HOUR * 60; h + duration <= DAY_END_HOUR * 60; h += SLOT_STEP_MIN) {
-      const d = new Date(day);
-      d.setHours(0, 0, 0, 0);
-      d.setMinutes(h);
-      out.push(d);
+    const seen = new Set<number>();
+    const stepMs = SLOT_STEP_MIN * 60_000;
+    const durationMs = duration * 60_000;
+    for (const w of availableWindows) {
+      let candidate = Math.ceil(w.start / stepMs) * stepMs;
+      while (candidate + durationMs <= w.end) {
+        if (candidate >= dayStart.getTime() && candidate < dayEnd && !seen.has(candidate)) {
+          seen.add(candidate);
+          out.push(new Date(candidate));
+        }
+        candidate += stepMs;
+      }
     }
+    out.sort((a, b) => a.getTime() - b.getTime());
     return out;
-  }, [selectedDate, duration]);
+  }, [selectedDate, duration, availableWindows]);
 
   const busyRanges = useMemo(() => {
     return (busyQuery.data ?? []).map((b) => {
