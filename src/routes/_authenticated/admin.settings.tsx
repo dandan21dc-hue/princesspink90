@@ -713,6 +713,9 @@ function PricingAuditSection() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+
 
   const rows = audit.data?.rows ?? [];
   const total = audit.data?.total ?? 0;
