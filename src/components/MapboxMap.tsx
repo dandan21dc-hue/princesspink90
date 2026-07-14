@@ -148,5 +148,14 @@ export function MapboxMap({
     );
   }
 
-  return <div ref={containerRef} className={`${className} overflow-hidden rounded-2xl border border-border/60`} />;
+  return (
+    <div className="relative">
+      <div ref={containerRef} className={`${className} overflow-hidden rounded-2xl border border-border/60`} />
+      {styleFallback !== "none" && (
+        <div className="pointer-events-none absolute left-3 top-3 rounded-md border border-border/60 bg-background/70 px-2 py-1 text-[10px] uppercase tracking-[0.25em] text-muted-foreground backdrop-blur">
+          {styleFallback === "dark" ? "Fallback style" : "Offline tiles"}
+        </div>
+      )}
+    </div>
+  );
 }
