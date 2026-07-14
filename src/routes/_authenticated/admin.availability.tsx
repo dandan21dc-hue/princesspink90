@@ -541,7 +541,6 @@ function SlotDialog({
             <ul className="mt-2 space-y-1 text-xs text-foreground">
               {overlaps.slice(0, 5).map((o) => {
                 const oStart = new Date(o.start_time).getTime();
-                const oEnd = new Date(o.end_time).getTime();
                 const newStart = new Date(startISO).getTime();
                 const suggestion =
                   newStart >= oStart
