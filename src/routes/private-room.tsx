@@ -554,7 +554,7 @@ function PrivateRoomPage() {
                   </div>
                   <button
                     onClick={review}
-                    disabled={!!user && !selectedSlot}
+                    disabled={!!user && (!selectedSlot || selectedConflict)}
                     className="min-h-11 rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {!user ? "Sign in to book" : "Review booking"}
