@@ -48,7 +48,7 @@ export const updateAuditRetention = createServerFn({ method: "POST" })
       action: "update_retention",
       resource: "admin_activity_audit_retention",
       metadata: { retention_days: data.retention_days },
-    });
+    } as never);
 
     return row;
   });
