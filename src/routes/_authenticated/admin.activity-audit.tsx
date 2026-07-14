@@ -533,6 +533,29 @@ function AdminAuditPage() {
             </table>
           </div>
         )}
+        <div className="mt-4 flex items-center justify-between gap-3 text-xs">
+          <div className="text-muted-foreground">
+            Page {page} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1 || entries.isFetching}
+              className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages || entries.isFetching}
+              className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </section>
     </main>
   );
