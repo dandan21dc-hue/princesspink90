@@ -73,6 +73,7 @@ function AdminAuditPage() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(50);
+  const [viewMode, setViewMode] = useState<"table" | "timeline">("table");
   const [sort, setSort] = useState<"created_at" | "action" | "resource" | "actor_id">("created_at");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (col: typeof sort) => {
