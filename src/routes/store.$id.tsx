@@ -189,6 +189,7 @@ function ItemPage() {
 
   return (
     <>
+      {subComingSoon.element}
       <PaymentTestModeBanner />
       <section className="mx-auto max-w-4xl px-5 pt-8 pb-16">
         <Link to="/store" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
