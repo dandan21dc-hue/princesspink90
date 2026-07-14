@@ -20,6 +20,9 @@ const DEFAULTS: SiteSettings = {
   session_duration_minutes: 60,
 };
 
+export const SESSION_PRICE_DEFAULT_CENTS = DEFAULTS.session_price_cents;
+export const SESSION_DURATION_DEFAULT_MINUTES = DEFAULTS.session_duration_minutes;
+
 export const getSiteSettings = createServerFn({ method: "GET" }).handler(
   async (): Promise<SiteSettings> => {
     // Reads through supabaseAdmin because the site_settings SELECT policy
