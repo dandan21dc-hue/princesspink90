@@ -12,7 +12,10 @@ import {
   listAuditAlerts,
   acknowledgeAuditAlert,
   getPurgeStatus,
+  setAuditEntryQuarantine,
+  type AuditTrustState,
 } from "@/lib/admin-audit.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/activity-audit")({
   head: () => ({
@@ -59,9 +62,11 @@ function AdminAuditPage() {
     actor_name: "",
     from: "",
     to: "",
+    trust: "all" as "all" | AuditTrustState,
   };
   const [filters, setFilters] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
+
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -102,6 +107,7 @@ function AdminAuditPage() {
     q: applied.q || undefined,
     from: toIsoStart(applied.from),
     to: toIsoEnd(applied.to),
+    trust: applied.trust,
     page,
     pageSize,
     sort,
@@ -115,7 +121,9 @@ function AdminAuditPage() {
     applied.actor_name,
     applied.from,
     applied.to,
+    applied.trust !== "all" ? applied.trust : "",
   ].filter(Boolean).length;
+
 
   const entries = useQuery({
     queryKey: ["admin-audit-entries", listArgs],
@@ -170,6 +178,14 @@ function AdminAuditPage() {
     mutationFn: (id: string) => ackFn({ data: { id } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-alerts"] }),
   });
+
+  const quarantineFn = useServerFn(setAuditEntryQuarantine);
+  const quarantine = useMutation({
+    mutationFn: (v: { id: string; quarantined: boolean; reason?: string }) =>
+      quarantineFn({ data: v }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-entries"] }),
+  });
+
 
   if (me.isLoading) {
     return (
@@ -394,6 +410,49 @@ function AdminAuditPage() {
 
 
       <section className="mx-auto max-w-5xl px-5 pb-16">
+        {(() => {
+          const trustChips: Array<{ key: "all" | AuditTrustState; label: string; tone: string }> = [
+            { key: "all", label: "All", tone: "text-muted-foreground" },
+            { key: "trusted", label: "Trusted", tone: "text-emerald-600 dark:text-emerald-400" },
+            { key: "untrusted", label: "Untrusted", tone: "text-destructive" },
+            { key: "quarantined", label: "Quarantined", tone: "text-amber-600 dark:text-amber-400" },
+          ];
+          return (
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Trust</span>
+              <div className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-card/60 p-0.5 text-[11px]">
+                {trustChips.map((c) => {
+                  const active = applied.trust === c.key;
+                  return (
+                    <button
+                      key={c.key}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => {
+                        setFilters((f) => ({ ...f, trust: c.key }));
+                        setApplied((a) => ({ ...a, trust: c.key }));
+                        setPage(1);
+                      }}
+                      className={`rounded px-2 py-1 uppercase tracking-widest ${
+                        active
+                          ? "bg-primary text-primary-foreground"
+                          : `${c.tone} hover:text-foreground`
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {quarantine.error && (
+                <span className="text-[11px] text-destructive">
+                  {quarantine.error instanceof Error ? quarantine.error.message : "Failed"}
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -750,45 +809,87 @@ function AdminAuditPage() {
                       </th>
                     );
                   })}
+                  <th className="px-4 py-3">Trust</th>
                   <th className="px-4 py-3">Metadata</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.id}
-                    onClick={() => setSelectedId(r.id)}
-                    className="cursor-pointer border-t border-border/40 align-top hover:bg-muted/20"
-                  >
-                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(r.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-foreground">{r.actor_display_name ?? "—"}</div>
-                      <div
-                        className="text-[10px] text-muted-foreground truncate max-w-[16ch]"
-                        title={r.actor_id}
-                      >
-                        {r.actor_id.slice(0, 8)}…
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-primary">
-                        {r.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{r.resource}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      <pre className="whitespace-pre-wrap break-words text-[11px] line-clamp-2">
-                        {JSON.stringify(r.metadata, null, 0)}
-                      </pre>
-                      <span className="mt-1 inline-block text-[10px] uppercase tracking-widest text-primary">
-                        View details →
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((r) => {
+                  const trustTone =
+                    r.trust === "trusted"
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      : r.trust === "untrusted"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-amber-500/15 text-amber-600 dark:text-amber-400";
+                  return (
+                    <tr
+                      key={r.id}
+                      onClick={() => setSelectedId(r.id)}
+                      className="cursor-pointer border-t border-border/40 align-top hover:bg-muted/20"
+                    >
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(r.created_at).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-foreground">{r.actor_display_name ?? "—"}</div>
+                        <div
+                          className="text-[10px] text-muted-foreground truncate max-w-[16ch]"
+                          title={r.actor_id}
+                        >
+                          {r.actor_id.slice(0, 8)}…
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-primary">
+                          {r.action}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{r.resource}</td>
+                      <td className="px-4 py-3 text-xs">
+                        <span
+                          className={`inline-block rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${trustTone}`}
+                          title={r.quarantine_reason ?? undefined}
+                        >
+                          {r.trust}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (r.trust === "quarantined") {
+                              quarantine.mutate({ id: r.id, quarantined: false });
+                            } else {
+                              const reason = window.prompt(
+                                "Quarantine reason (optional):",
+                                "",
+                              );
+                              if (reason === null) return; // cancelled
+                              quarantine.mutate({
+                                id: r.id,
+                                quarantined: true,
+                                reason: reason || undefined,
+                              });
+                            }
+                          }}
+                          disabled={quarantine.isPending}
+                          className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-widest hover:bg-muted/40 disabled:opacity-50"
+                        >
+                          {r.trust === "quarantined" ? "Release" : "Quarantine"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        <pre className="whitespace-pre-wrap break-words text-[11px] line-clamp-2">
+                          {JSON.stringify(r.metadata, null, 0)}
+                        </pre>
+                        <span className="mt-1 inline-block text-[10px] uppercase tracking-widest text-primary">
+                          View details →
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
+
             </table>
           </div>
         )}

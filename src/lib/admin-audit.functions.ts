@@ -66,14 +66,19 @@ export const updateAuditRetention = createServerFn({ method: "POST" })
     return row;
   });
 
+export type AuditTrustState = "trusted" | "untrusted" | "quarantined";
+
 export type AdminAuditEntry = {
   id: string;
+  seq: number;
   actor_id: string;
   actor_display_name: string | null;
   action: string;
   resource: string;
   metadata: Record<string, string | number | boolean | null>;
   created_at: string;
+  trust: AuditTrustState;
+  quarantine_reason: string | null;
 };
 
 export type AuditSortColumn = "created_at" | "action" | "resource" | "actor_id";
@@ -93,6 +98,7 @@ export type ListAuditFilters = {
   pageSize?: number;
   sort?: AuditSortColumn;
   dir?: AuditSortDir;
+  trust?: "all" | AuditTrustState;
 };
 
 export type ListAuditResult = {
@@ -101,6 +107,7 @@ export type ListAuditResult = {
   page: number;
   pageSize: number;
 };
+
 
 const listFiltersSchema = z
   .object({
@@ -117,8 +124,10 @@ const listFiltersSchema = z
     pageSize: z.number().int().min(1).max(200).optional(),
     sort: z.enum(["created_at", "action", "resource", "actor_id"]).optional(),
     dir: z.enum(["asc", "desc"]).optional(),
+    trust: z.enum(["all", "trusted", "untrusted", "quarantined"]).optional(),
   })
   .optional();
+
 
 export const listAdminAuditEntries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -131,13 +140,40 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
     const toIdx = fromIdx + pageSize - 1;
     const sort = data?.sort ?? "created_at";
     const ascending = (data?.dir ?? "desc") === "asc";
+    const trustFilter = data?.trust ?? "all";
+
+    // Precompute quarantined ids + untrusted seqs so we can filter and label rows.
+    const [{ data: qRows }, { data: alertRows }] = await Promise.all([
+      context.supabase
+        .from("admin_activity_audit_quarantine")
+        .select("audit_id, reason"),
+      context.supabase
+        .from("admin_activity_audit_alerts")
+        .select("kind, detail")
+        .in("kind", ["tampered_entries", "chain_break"]),
+    ]);
+    const quarantineMap = new Map<string, string | null>(
+      ((qRows ?? []) as Array<{ audit_id: string; reason: string | null }>).map(
+        (r) => [r.audit_id, r.reason],
+      ),
+    );
+    const untrustedSeqs = new Set<number>();
+    for (const a of (alertRows ?? []) as Array<{ detail: unknown }>) {
+      const detail = (a.detail ?? {}) as { seqs?: unknown };
+      const seqs = Array.isArray(detail.seqs) ? detail.seqs : [];
+      for (const s of seqs) {
+        const n = typeof s === "number" ? s : Number(s);
+        if (Number.isFinite(n)) untrustedSeqs.add(n);
+      }
+    }
 
     let q = context.supabase
       .from("admin_activity_audit")
-      .select("id, actor_id, action, resource, metadata, created_at", { count: "exact" })
+      .select("id, seq, actor_id, action, resource, metadata, created_at", {
+        count: "exact",
+      })
       .order(sort, { ascending })
       .order("id", { ascending }); // stable tiebreaker
-
 
     const esc = (s: string) => s.replace(/[\\%_,]/g, (m) => "\\" + m);
     if (data?.action) {
@@ -168,6 +204,25 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
       q = q.or(`action.ilike.%${s}%,resource.ilike.%${s}%`);
     }
 
+    if (trustFilter === "quarantined") {
+      const ids = Array.from(quarantineMap.keys());
+      if (ids.length === 0) return { rows: [], total: 0, page, pageSize };
+      q = q.in("id", ids);
+    } else if (trustFilter === "untrusted") {
+      const seqs = Array.from(untrustedSeqs);
+      if (seqs.length === 0) return { rows: [], total: 0, page, pageSize };
+      q = q.in("seq", seqs);
+    } else if (trustFilter === "trusted") {
+      const ids = Array.from(quarantineMap.keys());
+      const seqs = Array.from(untrustedSeqs);
+      if (ids.length > 0) {
+        q = q.not("id", "in", `(${ids.map((i) => `"${i}"`).join(",")})`);
+      }
+      if (seqs.length > 0) {
+        q = q.not("seq", "in", `(${seqs.join(",")})`);
+      }
+    }
+
     const { data: rows, error, count } = await q.range(fromIdx, toIdx);
     if (error) throw error;
 
@@ -180,21 +235,72 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
         .in("user_id", actorIds);
       names = new Map((profiles ?? []).map((p: any) => [p.user_id, p.display_name]));
     }
+    const trustFor = (id: string, seq: number): AuditTrustState => {
+      if (quarantineMap.has(id)) return "quarantined";
+      if (untrustedSeqs.has(seq)) return "untrusted";
+      return "trusted";
+    };
     return {
       rows: (rows ?? []).map((r: any) => ({
         id: r.id,
+        seq: r.seq,
         actor_id: r.actor_id,
         actor_display_name: names.get(r.actor_id) ?? null,
         action: r.action,
         resource: r.resource,
         metadata: r.metadata ?? {},
         created_at: r.created_at,
+        trust: trustFor(r.id, r.seq),
+        quarantine_reason: quarantineMap.get(r.id) ?? null,
       })),
       total: count ?? 0,
       page,
       pageSize,
     };
   });
+
+export const setAuditEntryQuarantine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string; quarantined: boolean; reason?: string }) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        quarantined: z.boolean(),
+        reason: z.string().trim().max(500).optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    if (data.quarantined) {
+      const { error } = await context.supabase
+        .from("admin_activity_audit_quarantine")
+        .upsert(
+          {
+            audit_id: data.id,
+            quarantined_by: context.userId,
+            quarantined_at: new Date().toISOString(),
+            reason: data.reason ?? null,
+          },
+          { onConflict: "audit_id" },
+        );
+      if (error) throw error;
+    } else {
+      const { error } = await context.supabase
+        .from("admin_activity_audit_quarantine")
+        .delete()
+        .eq("audit_id", data.id);
+      if (error) throw error;
+    }
+    await context.supabase.from("admin_activity_audit").insert({
+      actor_id: context.userId,
+      action: data.quarantined ? "quarantine_entry" : "release_quarantine",
+      resource: "admin_activity_audit",
+      metadata: { audit_id: data.id, reason: data.reason ?? null },
+    } as never);
+    return { ok: true, quarantined: data.quarantined };
+  });
+
 
 
 export const purgeExpiredAuditEntries = createServerFn({ method: "POST" })
