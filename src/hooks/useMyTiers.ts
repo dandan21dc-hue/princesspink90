@@ -78,16 +78,12 @@ export function useMyTiers(): MyTiersState {
           });
         return;
       }
-      const [subsRes, memRes] = await Promise.all([
-        supabase
-          .from("subscriptions")
-          .select("status,current_period_start,current_period_end,price_id,cancel_at_period_end,created_at")
-          .eq("user_id", userId)
-          .eq("environment", env)
-          .in("price_id", SUBSCRIPTION_TIER_PRICE_IDS as unknown as string[])
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
+      // Subscriptions table was dropped when Stripe was removed. Recurring
+      // "subscriptions" no longer exist as a first-class row; all All-Access
+      // tiers are now represented via `memberships`. Leave `subsRes.data`
+      // null so the downstream logic simply treats "no active subscription".
+      const [subsRes, memRes]: [{ data: any }, { data: any }] = await Promise.all([
+        Promise.resolve({ data: null }),
         supabase
           .from("memberships")
           .select("kind,expires_at,created_at")
