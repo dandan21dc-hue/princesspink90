@@ -900,30 +900,32 @@ function AdminAuditPage() {
                         >
                           {r.trust}
                         </span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (r.trust === "quarantined") {
-                              quarantine.mutate({ id: r.id, quarantined: false });
-                            } else {
-                              const reason = window.prompt(
-                                "Quarantine reason (optional):",
-                                "",
-                              );
-                              if (reason === null) return; // cancelled
-                              quarantine.mutate({
-                                id: r.id,
-                                quarantined: true,
-                                reason: reason || undefined,
-                              });
-                            }
-                          }}
-                          disabled={quarantine.isPending}
-                          className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-widest hover:bg-muted/40 disabled:opacity-50"
-                        >
-                          {r.trust === "quarantined" ? "Release" : "Quarantine"}
-                        </button>
+                        {canManageAudit && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (r.trust === "quarantined") {
+                                quarantine.mutate({ id: r.id, quarantined: false });
+                              } else {
+                                const reason = window.prompt(
+                                  "Quarantine reason (optional):",
+                                  "",
+                                );
+                                if (reason === null) return; // cancelled
+                                quarantine.mutate({
+                                  id: r.id,
+                                  quarantined: true,
+                                  reason: reason || undefined,
+                                });
+                              }
+                            }}
+                            disabled={quarantine.isPending}
+                            className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-widest hover:bg-muted/40 disabled:opacity-50"
+                          >
+                            {r.trust === "quarantined" ? "Release" : "Quarantine"}
+                          </button>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         <pre className="whitespace-pre-wrap break-words text-[11px] line-clamp-2">
