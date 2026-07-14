@@ -176,7 +176,7 @@ export const listPricingAudit = createServerFn({ method: "GET" })
         "id, changed_at, changed_by, changed_by_email, old_session_price_cents, new_session_price_cents, old_session_duration_minutes, new_session_duration_minutes",
         { count: "exact" },
       )
-      .order("changed_at", { ascending: false });
+      .order(data.sortBy, { ascending: data.sortDir === "asc" });
 
     if (data.search) {
       // Escape PostgREST ilike wildcards in user input.
