@@ -63,19 +63,64 @@ export type AdminAuditEntry = {
   created_at: string;
 };
 
+export type ListAuditFilters = {
+  action?: string;
+  resource?: string;
+  actor_id?: string;
+  q?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type ListAuditResult = {
+  rows: AdminAuditEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+const listFiltersSchema = z
+  .object({
+    action: z.string().trim().max(120).optional(),
+    resource: z.string().trim().max(120).optional(),
+    actor_id: z.string().uuid().optional(),
+    q: z.string().trim().max(200).optional(),
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+    page: z.number().int().min(1).max(10_000).optional(),
+    pageSize: z.number().int().min(1).max(200).optional(),
+  })
+  .optional();
+
 export const listAdminAuditEntries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { limit?: number } | undefined) =>
-    z.object({ limit: z.number().int().min(1).max(500).optional() }).optional().parse(data),
-  )
-  .handler(async ({ data, context }): Promise<AdminAuditEntry[]> => {
+  .inputValidator((data: ListAuditFilters | undefined) => listFiltersSchema.parse(data))
+  .handler(async ({ data, context }): Promise<ListAuditResult> => {
     await assertAdmin(context.supabase, context.userId);
-    const limit = data?.limit ?? 200;
-    const { data: rows, error } = await context.supabase
+    const page = data?.page ?? 1;
+    const pageSize = data?.pageSize ?? 50;
+    const fromIdx = (page - 1) * pageSize;
+    const toIdx = fromIdx + pageSize - 1;
+
+    let q = context.supabase
       .from("admin_activity_audit")
-      .select("id, actor_id, action, resource, metadata, created_at")
-      .order("created_at", { ascending: false })
-      .limit(limit);
+      .select("id, actor_id, action, resource, metadata, created_at", { count: "exact" })
+      .order("created_at", { ascending: false });
+
+    const esc = (s: string) => s.replace(/[\\%_,]/g, (m) => "\\" + m);
+    if (data?.action) q = q.ilike("action", `%${esc(data.action)}%`);
+    if (data?.resource) q = q.ilike("resource", `%${esc(data.resource)}%`);
+    if (data?.actor_id) q = q.eq("actor_id", data.actor_id);
+    if (data?.from) q = q.gte("created_at", data.from);
+    if (data?.to) q = q.lte("created_at", data.to);
+    if (data?.q) {
+      const s = esc(data.q);
+      q = q.or(`action.ilike.%${s}%,resource.ilike.%${s}%`);
+    }
+
+    const { data: rows, error, count } = await q.range(fromIdx, toIdx);
     if (error) throw error;
 
     const actorIds = Array.from(new Set((rows ?? []).map((r: any) => r.actor_id)));
@@ -87,16 +132,22 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
         .in("user_id", actorIds);
       names = new Map((profiles ?? []).map((p: any) => [p.user_id, p.display_name]));
     }
-    return (rows ?? []).map((r: any) => ({
-      id: r.id,
-      actor_id: r.actor_id,
-      actor_display_name: names.get(r.actor_id) ?? null,
-      action: r.action,
-      resource: r.resource,
-      metadata: r.metadata ?? {},
-      created_at: r.created_at,
-    }));
+    return {
+      rows: (rows ?? []).map((r: any) => ({
+        id: r.id,
+        actor_id: r.actor_id,
+        actor_display_name: names.get(r.actor_id) ?? null,
+        action: r.action,
+        resource: r.resource,
+        metadata: r.metadata ?? {},
+        created_at: r.created_at,
+      })),
+      total: count ?? 0,
+      page,
+      pageSize,
+    };
   });
+
 
 export const purgeExpiredAuditEntries = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
