@@ -13,12 +13,14 @@ import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivateRoomRouteImport } from './routes/private-room'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PartnershipsRouteImport } from './routes/partnerships'
 import { Route as PantyDrawerRouteImport } from './routes/panty-drawer'
 import { Route as LegalRouteImport } from './routes/legal'
 import { Route as GloryHolesRouteImport } from './routes/glory-holes'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as ConductRouteImport } from './routes/conduct'
 import { Route as ComplianceRouteImport } from './routes/compliance'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -119,6 +121,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivateRoomRoute = PrivateRoomRouteImport.update({
   id: '/private-room',
   path: '/private-room',
@@ -147,6 +154,11 @@ const LegalRoute = LegalRouteImport.update({
 const GloryHolesRoute = GloryHolesRouteImport.update({
   id: '/glory-holes',
   path: '/glory-holes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConductRoute = ConductRouteImport.update({
@@ -600,12 +612,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/glory-holes': typeof GloryHolesRoute
   '/legal': typeof LegalRoute
   '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -690,12 +704,14 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/glory-holes': typeof GloryHolesRoute
   '/legal': typeof LegalRoute
   '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -781,12 +797,14 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/compliance': typeof ComplianceRoute
   '/conduct': typeof ConductRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/glory-holes': typeof GloryHolesRoute
   '/legal': typeof LegalRoute
   '/panty-drawer': typeof PantyDrawerRoute
   '/partnerships': typeof PartnershipsRoute
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -873,12 +891,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/forgot-password'
     | '/glory-holes'
     | '/legal'
     | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -963,12 +983,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/forgot-password'
     | '/glory-holes'
     | '/legal'
     | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -1053,12 +1075,14 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compliance'
     | '/conduct'
+    | '/forgot-password'
     | '/glory-holes'
     | '/legal'
     | '/panty-drawer'
     | '/partnerships'
     | '/privacy'
     | '/private-room'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -1145,12 +1169,14 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ComplianceRoute: typeof ComplianceRoute
   ConductRoute: typeof ConductRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   GloryHolesRoute: typeof GloryHolesRoute
   LegalRoute: typeof LegalRoute
   PantyDrawerRoute: typeof PantyDrawerRoute
   PartnershipsRoute: typeof PartnershipsRoute
   PrivacyRoute: typeof PrivacyRoute
   PrivateRoomRoute: typeof PrivateRoomRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
   TermsRoute: typeof TermsRoute
@@ -1213,6 +1239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/private-room': {
       id: '/private-room'
       path: '/private-room'
@@ -1253,6 +1286,13 @@ declare module '@tanstack/react-router' {
       path: '/glory-holes'
       fullPath: '/glory-holes'
       preLoaderRoute: typeof GloryHolesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conduct': {
@@ -1975,12 +2015,14 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ComplianceRoute: ComplianceRoute,
   ConductRoute: ConductRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   GloryHolesRoute: GloryHolesRoute,
   LegalRoute: LegalRoute,
   PantyDrawerRoute: PantyDrawerRoute,
   PartnershipsRoute: PartnershipsRoute,
   PrivacyRoute: PrivacyRoute,
   PrivateRoomRoute: PrivateRoomRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
   TermsRoute: TermsRoute,
