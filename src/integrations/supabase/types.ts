@@ -30,10 +30,10 @@ export type Database = {
           action: string
           actor_id: string
           created_at?: string
-          entry_hash: string
+          entry_hash?: string
           id?: string
           metadata?: Json
-          prev_hash: string
+          prev_hash?: string
           resource: string
           seq?: number
         }
