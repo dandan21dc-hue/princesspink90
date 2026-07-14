@@ -313,6 +313,8 @@ function PrivateRoomPage() {
           <ReviewBookingCard
             selectedSlot={selectedSlot}
             duration={duration}
+            priceLabel={priceLabel}
+            durationLabel={durationLabel}
             notes={notes}
             pending={pending}
             onEdit={() => {
