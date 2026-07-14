@@ -62,6 +62,7 @@ import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/
 import { Route as AuthenticatedAdminPerksRouteImport } from './routes/_authenticated/admin.perks'
 import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_authenticated/admin.partnerships'
 import { Route as AuthenticatedAdminPantyListingsRouteImport } from './routes/_authenticated/admin.panty-listings'
+import { Route as AuthenticatedAdminOrdersStatusRouteImport } from './routes/_authenticated/admin.orders-status'
 import { Route as AuthenticatedAdminMediaModerationRouteImport } from './routes/_authenticated/admin.media-moderation'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
@@ -382,6 +383,12 @@ const AuthenticatedAdminPantyListingsRoute =
     path: '/admin/panty-listings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminOrdersStatusRoute =
+  AuthenticatedAdminOrdersStatusRouteImport.update({
+    id: '/admin/orders-status',
+    path: '/admin/orders-status',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminMediaModerationRoute =
   AuthenticatedAdminMediaModerationRouteImport.update({
     id: '/admin/media-moderation',
@@ -678,6 +685,7 @@ export interface FileRoutesByFullPath {
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
@@ -772,6 +780,7 @@ export interface FileRoutesByTo {
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
@@ -869,6 +878,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/_authenticated/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/_authenticated/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/_authenticated/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
@@ -966,6 +976,7 @@ export interface FileRouteTypes {
     | '/admin/health-reminders'
     | '/admin/lifetime'
     | '/admin/media-moderation'
+    | '/admin/orders-status'
     | '/admin/panty-listings'
     | '/admin/partnerships'
     | '/admin/perks'
@@ -1060,6 +1071,7 @@ export interface FileRouteTypes {
     | '/admin/health-reminders'
     | '/admin/lifetime'
     | '/admin/media-moderation'
+    | '/admin/orders-status'
     | '/admin/panty-listings'
     | '/admin/partnerships'
     | '/admin/perks'
@@ -1156,6 +1168,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/health-reminders'
     | '/_authenticated/admin/lifetime'
     | '/_authenticated/admin/media-moderation'
+    | '/_authenticated/admin/orders-status'
     | '/_authenticated/admin/panty-listings'
     | '/_authenticated/admin/partnerships'
     | '/_authenticated/admin/perks'
@@ -1622,6 +1635,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPantyListingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/orders-status': {
+      id: '/_authenticated/admin/orders-status'
+      path: '/admin/orders-status'
+      fullPath: '/admin/orders-status'
+      preLoaderRoute: typeof AuthenticatedAdminOrdersStatusRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/media-moderation': {
       id: '/_authenticated/admin/media-moderation'
       path: '/admin/media-moderation'
@@ -1980,6 +2000,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
   AuthenticatedAdminMediaModerationRoute: typeof AuthenticatedAdminMediaModerationRoute
+  AuthenticatedAdminOrdersStatusRoute: typeof AuthenticatedAdminOrdersStatusRoute
   AuthenticatedAdminPantyListingsRoute: typeof AuthenticatedAdminPantyListingsRoute
   AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRouteWithChildren
   AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
@@ -2032,6 +2053,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
   AuthenticatedAdminMediaModerationRoute:
     AuthenticatedAdminMediaModerationRoute,
+  AuthenticatedAdminOrdersStatusRoute: AuthenticatedAdminOrdersStatusRoute,
   AuthenticatedAdminPantyListingsRoute: AuthenticatedAdminPantyListingsRoute,
   AuthenticatedAdminPartnershipsRoute:
     AuthenticatedAdminPartnershipsRouteWithChildren,
@@ -2127,13 +2149,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

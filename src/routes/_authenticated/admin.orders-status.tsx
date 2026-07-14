@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
@@ -169,9 +169,8 @@ function AdminOrdersStatusPage() {
                   const rowKey = `${r.kind}:${r.id}`;
                   const isOpen = expanded === rowKey;
                   return (
-                    <>
+                    <Fragment key={rowKey}>
                       <tr
-                        key={rowKey}
                         className="cursor-pointer border-t border-border/40 align-top hover:bg-muted/20"
                         onClick={() => setExpanded(isOpen ? null : rowKey)}
                       >
