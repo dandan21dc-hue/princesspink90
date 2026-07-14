@@ -1024,4 +1024,41 @@ function SortableTh({ label, col, sortBy, sortDir, onToggle }: SortToggleProps) 
   );
 }
 
+function csvCell(value: string | number | null | undefined): string {
+  if (value == null) return "";
+  const s = String(value);
+  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function buildAuditCsv(rows: PricingAuditEntry[]): string {
+  const headers = [
+    "Changed at (ISO)",
+    "Admin email",
+    "Admin user id",
+    "Old price (AUD)",
+    "New price (AUD)",
+    "Old duration (min)",
+    "New duration (min)",
+  ];
+  const lines = [headers.map(csvCell).join(",")];
+  for (const r of rows) {
+    lines.push(
+      [
+        r.changed_at,
+        r.changed_by_email,
+        r.changed_by,
+        r.old_session_price_cents != null ? (r.old_session_price_cents / 100).toFixed(2) : "",
+        r.new_session_price_cents != null ? (r.new_session_price_cents / 100).toFixed(2) : "",
+        r.old_session_duration_minutes,
+        r.new_session_duration_minutes,
+      ]
+        .map(csvCell)
+        .join(","),
+    );
+  }
+  return lines.join("\r\n");
+}
+
+
 
