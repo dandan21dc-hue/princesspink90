@@ -606,7 +606,7 @@ function ReviewBookingCard({
         </button>
       </div>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Your date, time, party size, and notes are kept if you go back.
+        Your date, time, and notes are kept if you go back.
       </p>
     </div>
   );
