@@ -666,24 +666,44 @@ function Shell({ children }: { children: React.ReactNode }) {
 function PricingAuditSection() {
   const listFn = useServerFn(listPricingAudit);
   const exportFn = useServerFn(exportPricingAudit);
+  const navigate = useNavigate({ from: "/_authenticated/admin/settings" });
+  const { q: search, from, to, page, pageSize } = routeApi.useSearch();
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [searchInput, setSearchInput] = useState(search);
   const [sortBy, setSortBy] = useState<PricingAuditSortColumn>("changed_at");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  // Debounce email search input.
+  const updateSearch = (
+    patch: Partial<{ q: string; from: string; to: string; page: number; pageSize: number }>,
+  ) => {
+    navigate({
+      search: (prev) => {
+        const next = { ...prev, ...patch };
+        // Any filter change resets to page 1 unless the caller set page explicitly.
+        if (patch.page === undefined && ("q" in patch || "from" in patch || "to" in patch || "pageSize" in patch)) {
+          next.page = 1;
+        }
+        return next;
+      },
+      replace: true,
+    });
+  };
+
+  // Keep local input in sync when URL changes (e.g. someone pastes a shared link).
   useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
+
+  // Debounce email search input into the URL.
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    if (trimmed === search) return;
     const t = setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
+      updateSearch({ q: trimmed });
     }, 300);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
   const audit = useQuery({
@@ -697,10 +717,9 @@ function PricingAuditSection() {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortBy(col);
-      // Default: newest/highest first for numeric+date; A→Z for text.
       setSortDir(col === "changed_by_email" ? "asc" : "desc");
     }
-    setPage(1);
+    updateSearch({ page: 1 });
   };
 
   const handleExport = async () => {
