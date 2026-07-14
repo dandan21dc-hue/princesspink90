@@ -260,6 +260,12 @@ function AdminSettings() {
               )}
             </Field>
           </div>
+          <BookingPricingPreview
+            savedPriceCents={settings.data?.session_price_cents ?? null}
+            savedDurationMinutes={settings.data?.session_duration_minutes ?? null}
+            draftPriceCents={priceError ? null : priceCents}
+            draftDurationMinutes={durationError ? null : sessionDurationMinutes}
+          />
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -315,6 +321,138 @@ function AdminSettings() {
       <StripeCatalogueSyncSection />
       <ManualSubscriptionRefreshSection />
     </Shell>
+  );
+}
+
+function formatAud(cents: number): string {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    minimumFractionDigits: 2,
+  }).format(cents / 100);
+}
+
+function formatDuration(minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "—";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr`;
+  return `${h} hr ${m} min`;
+}
+
+function BookingPricingPreview({
+  savedPriceCents,
+  savedDurationMinutes,
+  draftPriceCents,
+  draftDurationMinutes,
+}: {
+  savedPriceCents: number | null;
+  savedDurationMinutes: number | null;
+  draftPriceCents: number | null;
+  draftDurationMinutes: number | null;
+}) {
+  const sampleQuantities = [1, 2, 3];
+  const hasDraft = draftPriceCents !== null && draftDurationMinutes !== null;
+  const hasSaved = savedPriceCents !== null && savedDurationMinutes !== null;
+  const priceChanged = hasDraft && hasSaved && draftPriceCents !== savedPriceCents;
+  const durationChanged =
+    hasDraft && hasSaved && draftDurationMinutes !== savedDurationMinutes;
+  const anyChange = priceChanged || durationChanged;
+
+  return (
+    <div className="mt-4 rounded-md border border-border/60 bg-background/60 p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="text-xs uppercase tracking-widest text-muted-foreground">
+          Live booking preview
+        </div>
+        {hasDraft ? (
+          anyChange ? (
+            <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-primary">
+              Unsaved changes
+            </span>
+          ) : (
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Matches saved
+            </span>
+          )
+        ) : (
+          <span className="text-[10px] uppercase tracking-widest text-destructive">
+            Fix errors to preview
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Sample bookings computed from the values in the form above. Nothing is
+        saved yet — click Save to publish these prices to the booking pages.
+      </p>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-widest text-muted-foreground">
+              <th className="py-2 pr-3 font-medium">Sample booking</th>
+              <th className="py-2 pr-3 font-medium">Total duration</th>
+              <th className="py-2 pr-3 font-medium">Draft total</th>
+              <th className="py-2 font-medium">Currently saved</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/60">
+            {sampleQuantities.map((qty) => {
+              const draftTotalCents = hasDraft ? draftPriceCents! * qty : null;
+              const draftTotalMinutes = hasDraft ? draftDurationMinutes! * qty : null;
+              const savedTotalCents = hasSaved ? savedPriceCents! * qty : null;
+              const savedTotalMinutes = hasSaved ? savedDurationMinutes! * qty : null;
+              const totalChanged =
+                draftTotalCents !== null &&
+                savedTotalCents !== null &&
+                draftTotalCents !== savedTotalCents;
+              const durTotalChanged =
+                draftTotalMinutes !== null &&
+                savedTotalMinutes !== null &&
+                draftTotalMinutes !== savedTotalMinutes;
+              return (
+                <tr key={qty} className="align-top">
+                  <td className="py-2 pr-3">
+                    {qty} × session
+                  </td>
+                  <td className={`py-2 pr-3 ${durTotalChanged ? "text-primary font-semibold" : ""}`}>
+                    {draftTotalMinutes !== null ? formatDuration(draftTotalMinutes) : "—"}
+                  </td>
+                  <td className={`py-2 pr-3 ${totalChanged ? "text-primary font-semibold" : ""}`}>
+                    {draftTotalCents !== null ? formatAud(draftTotalCents) : "—"}
+                  </td>
+                  <td className="py-2 text-muted-foreground">
+                    {savedTotalCents !== null && savedTotalMinutes !== null
+                      ? `${formatAud(savedTotalCents)} · ${formatDuration(savedTotalMinutes)}`
+                      : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {hasDraft && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 text-xs text-muted-foreground">
+          <div>
+            Per-minute rate:{" "}
+            <span className="text-foreground font-medium">
+              {draftDurationMinutes! > 0
+                ? `${formatAud(Math.round(draftPriceCents! / draftDurationMinutes!))} / min`
+                : "—"}
+            </span>
+          </div>
+          <div>
+            Per-hour rate:{" "}
+            <span className="text-foreground font-medium">
+              {draftDurationMinutes! > 0
+                ? `${formatAud(Math.round((draftPriceCents! * 60) / draftDurationMinutes!))} / hr`
+                : "—"}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
