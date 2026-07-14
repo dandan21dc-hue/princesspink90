@@ -324,26 +324,10 @@ function PrivateRoomPage() {
                 Book a glory hole session
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Pick your length, your day, and your time. Slot is held while you
-                complete checkout.
+                Pick your day and your time. Slot is held while you complete checkout.
               </p>
             </div>
 
-            {/* Duration toggle */}
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <DurationCard
-                selected={duration === 30}
-                onClick={() => setDuration(30)}
-                label="30 minutes"
-                price="A$150"
-              />
-              <DurationCard
-                selected={duration === 60}
-                onClick={() => setDuration(60)}
-                label="1 hour"
-                price="A$275"
-              />
-            </div>
 
             <div className="mt-8 grid gap-8 md:grid-cols-[auto_1fr]">
               <div className="rounded-2xl border border-border/60 bg-card p-2">
