@@ -12,7 +12,10 @@ import {
   listAuditAlerts,
   acknowledgeAuditAlert,
   getPurgeStatus,
+  setAuditEntryQuarantine,
+  type AuditTrustState,
 } from "@/lib/admin-audit.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/activity-audit")({
   head: () => ({
@@ -59,9 +62,11 @@ function AdminAuditPage() {
     actor_name: "",
     from: "",
     to: "",
+    trust: "all" as "all" | AuditTrustState,
   };
   const [filters, setFilters] = useState(emptyFilters);
   const [applied, setApplied] = useState(emptyFilters);
+
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
