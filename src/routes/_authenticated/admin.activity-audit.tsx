@@ -463,12 +463,66 @@ function AdminAuditPage() {
           </div>
         </form>
 
-        <div className="mb-3 flex items-center gap-3">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <div className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-card/60 p-0.5 text-[11px]">
+            <span className="px-2 text-muted-foreground uppercase tracking-widest">Sort</span>
+            <button
+              type="button"
+              onClick={() => applyPreset("newest")}
+              className={`rounded px-2 py-1 uppercase tracking-widest ${
+                isPreset("newest")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-pressed={isPreset("newest")}
+            >
+              Newest
+            </button>
+            <button
+              type="button"
+              onClick={() => applyPreset("oldest")}
+              className={`rounded px-2 py-1 uppercase tracking-widest ${
+                isPreset("oldest")
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-pressed={isPreset("oldest")}
+            >
+              Oldest
+            </button>
+            {sort !== "created_at" && (
+              <span className="px-2 text-muted-foreground">
+                Sorted by {sort} {dir === "asc" ? "↑" : "↓"}
+              </span>
+            )}
+          </div>
+          <label className="inline-flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span className="uppercase tracking-widest">Per page</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="rounded-md border border-input bg-background px-2 py-1 text-xs"
+            >
+              {[25, 50, 100, 200].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="text-xs text-muted-foreground">
             {entries.isLoading
               ? "Loading…"
               : `${total} match${total === 1 ? "" : "es"} · showing ${rows.length}`}
           </div>
+          {(alerts.data ?? []).some((a) => !a.acknowledged_at) && (
+            <span className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-widest text-amber-600 dark:text-amber-400">
+              Severity → see integrity alerts above
+            </span>
+          )}
           <button
             onClick={async () => {
               if (exporting) return;
