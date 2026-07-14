@@ -818,7 +818,10 @@ function AdminAuditPage() {
             No audit entries recorded yet.
           </div>
         )}
-        {rows.length > 0 && (
+        {rows.length > 0 && viewMode === "timeline" && (
+          <AuditTimeline rows={rows} onSelect={setSelectedId} />
+        )}
+        {rows.length > 0 && viewMode === "table" && (
           <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card/60">
             <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-muted/30 text-left text-[11px] uppercase tracking-widest text-muted-foreground">
