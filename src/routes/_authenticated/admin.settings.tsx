@@ -805,10 +805,7 @@ function PricingAuditSection() {
           <input
             type="date"
             value={from}
-            onChange={(e) => {
-              setFrom(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => updateSearch({ from: e.target.value })}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </label>
@@ -819,10 +816,7 @@ function PricingAuditSection() {
           <input
             type="date"
             value={to}
-            onChange={(e) => {
-              setTo(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => updateSearch({ to: e.target.value })}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </label>
@@ -832,10 +826,7 @@ function PricingAuditSection() {
           </div>
           <select
             value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              setPage(1);
-            }}
+            onChange={(e) => updateSearch({ pageSize: Number(e.target.value) })}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           >
             {[10, 25, 50, 100].map((n) => (
