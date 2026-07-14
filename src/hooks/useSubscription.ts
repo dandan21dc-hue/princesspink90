@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 
+/**
+ * Subscription-like state derived from active memberships. After the Stripe
+ * removal the only recurring product is the 30-day All-Access Pass, stored
+ * as `memberships.kind = 'term_pass_all_access_30d'` with an `expires_at`.
+ * The shape is intentionally the same as before so consumers (banners,
+ * gated UI) don't change.
+ */
 export interface SubscriptionState {
   loading: boolean;
   isActive: boolean;
@@ -33,48 +40,39 @@ export function useSubscription(userId: string | null | undefined): Subscription
     const env = getStripeEnvironment();
 
     async function fetchIt() {
-      const [subRes, memRes] = await Promise.all([
-        supabase
-          .from("subscriptions")
-          .select("status,current_period_end,cancel_at_period_end")
-          .eq("user_id", userId!)
-          .eq("environment", env)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from("memberships")
-          .select("kind,expires_at")
-          .eq("user_id", userId!)
-          .eq("environment", env)
-          .or("kind.eq.lifetime,kind.like.term_pass_%"),
-      ]);
+      const memRes = await supabase
+        .from("memberships")
+        .select("kind,expires_at")
+        .eq("user_id", userId!)
+        .eq("environment", env);
       if (cancelled) return;
-      const data = subRes.data;
       const now = Date.now();
-      const periodEnd = data?.current_period_end ? new Date(data.current_period_end).getTime() : null;
-      const subActive = !!data && (
-        (["active", "trialing", "past_due"].includes(data.status) && (!periodEnd || periodEnd > now))
-        || (data.status === "canceled" && !!periodEnd && periodEnd > now)
-      );
-      const hasMembership = (memRes.data ?? []).some((m: any) =>
+      const rows = memRes.data ?? [];
+      const hasMembership = rows.some((m) =>
         m.kind === "lifetime"
-        || (String(m.kind).startsWith("term_pass_") && m.expires_at && new Date(m.expires_at).getTime() > now)
+        || (String(m.kind).startsWith("term_pass_") && m.expires_at && new Date(m.expires_at).getTime() > now),
       );
-      const isPastDue = data?.status === "past_due";
+      const latestTermPass = rows
+        .filter((m) => String(m.kind).startsWith("term_pass_") && m.expires_at)
+        .sort((a, b) => (b.expires_at! > a.expires_at! ? 1 : -1))[0];
       setState({
         loading: false,
-        isActive: subActive || hasMembership,
-        isPastDue,
+        isActive: hasMembership,
+        isPastDue: false,
         hasMembership,
-        subscription: data ?? null,
+        subscription: latestTermPass
+          ? {
+              status: hasMembership ? "active" : "canceled",
+              current_period_end: latestTermPass.expires_at ?? null,
+              cancel_at_period_end: true,
+            }
+          : null,
       });
     }
     fetchIt();
 
     const subChannel = supabase
       .channel(`sub-${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "subscriptions", filter: `user_id=eq.${userId}` }, () => fetchIt())
       .on("postgres_changes", { event: "*", schema: "public", table: "memberships", filter: `user_id=eq.${userId}` }, () => fetchIt())
       .subscribe();
     return () => {
