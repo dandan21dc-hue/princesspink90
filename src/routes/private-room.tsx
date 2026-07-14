@@ -60,7 +60,6 @@ function PrivateRoomPage() {
   const priceLabel = formatAud(priceCents);
   const durationLabel = formatDuration(duration);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
-  const [partySize, setPartySize] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState(false);
