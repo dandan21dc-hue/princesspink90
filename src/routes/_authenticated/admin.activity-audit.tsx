@@ -313,13 +313,15 @@ function AdminAuditPage() {
                           {JSON.stringify(a.detail)}
                         </pre>
                       </div>
-                      <button
-                        onClick={() => ack.mutate(a.id)}
-                        disabled={ack.isPending}
-                        className="shrink-0 rounded-md border border-border px-2 py-1 text-[11px] uppercase tracking-widest disabled:opacity-50"
-                      >
-                        Ack
-                      </button>
+                      {canManageAudit && (
+                        <button
+                          onClick={() => ack.mutate(a.id)}
+                          disabled={ack.isPending}
+                          className="shrink-0 rounded-md border border-border px-2 py-1 text-[11px] uppercase tracking-widest disabled:opacity-50"
+                        >
+                          Ack
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>
