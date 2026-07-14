@@ -260,6 +260,12 @@ function AdminSettings() {
               )}
             </Field>
           </div>
+          <BookingPricingPreview
+            savedPriceCents={settings.data?.session_price_cents ?? null}
+            savedDurationMinutes={settings.data?.session_duration_minutes ?? null}
+            draftPriceCents={priceError ? null : priceCents}
+            draftDurationMinutes={durationError ? null : sessionDurationMinutes}
+          />
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
