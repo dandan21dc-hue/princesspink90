@@ -7,6 +7,7 @@ import {
   getSiteSettings,
   updateSiteSettings,
   listPricingAudit,
+  type PricingAuditSortColumn,
   SESSION_PRICE_MIN_CENTS,
   SESSION_PRICE_MAX_CENTS,
   SESSION_DURATION_MIN_MINUTES,
