@@ -915,10 +915,16 @@ function AdminAuditPage() {
                                   "",
                                 );
                                 if (reason === null) return; // cancelled
+                                const notes = window.prompt(
+                                  "Additional notes for the incident notification (optional):",
+                                  "",
+                                );
+                                if (notes === null) return; // cancelled
                                 quarantine.mutate({
                                   id: r.id,
                                   quarantined: true,
                                   reason: reason || undefined,
+                                  notes: notes || undefined,
                                 });
                               }
                             }}
