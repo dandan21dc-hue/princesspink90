@@ -164,6 +164,7 @@ function SubscribePage() {
   const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const [pending, setPending] = useState<PriceId | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const subComingSoon = useSubscriptionComingSoon();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
