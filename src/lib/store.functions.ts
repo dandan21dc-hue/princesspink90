@@ -671,18 +671,23 @@ function allowedReturnOrigins(): string[] {
   return origins;
 }
 
-export function ensureSessionIdInReturnUrl(rawUrl: string): string {
+export function assertAllowedReturnUrl(rawUrl: string): URL {
   const parsed = new URL(rawUrl);
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error("returnUrl must be http(s)");
   }
-  // Enforce origin allowlist to prevent open redirect via Stripe return_url.
-  // Only the application's own configured origin(s) are accepted. If no
-  // PUBLIC_APP_URL/SITE_URL is configured (local dev), we fall through.
+  // Enforce origin allowlist to prevent open redirect. Only the app's own
+  // configured origin(s) are accepted. If no PUBLIC_APP_URL/SITE_URL is
+  // configured (local dev), we fall through.
   const allowed = allowedReturnOrigins();
   if (allowed.length > 0 && !allowed.includes(parsed.origin)) {
     throw new Error("returnUrl must use the application origin");
   }
+  return parsed;
+}
+
+export function ensureSessionIdInReturnUrl(rawUrl: string): string {
+  assertAllowedReturnUrl(rawUrl);
   if (rawUrl.includes("{CHECKOUT_SESSION_ID}")) return rawUrl;
   const [beforeHash, hash = ""] = rawUrl.split("#");
   const sep = beforeHash.includes("?") ? "&" : "?";
