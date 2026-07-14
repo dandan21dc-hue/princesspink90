@@ -441,6 +441,7 @@ export const acknowledgeAuditAlert = createServerFn({ method: "POST" })
   .inputValidator((data: { id: string }) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    await assertAuditAdmin(context.supabase, context.userId);
     const { error } = await context.supabase
       .from("admin_activity_audit_alerts")
       .update({
