@@ -3,7 +3,14 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { amIAdmin } from "@/lib/admin.functions";
-import { getSiteSettings, updateSiteSettings } from "@/lib/settings.functions";
+import {
+  getSiteSettings,
+  updateSiteSettings,
+  SESSION_PRICE_MIN_CENTS,
+  SESSION_PRICE_MAX_CENTS,
+  SESSION_DURATION_MIN_MINUTES,
+  SESSION_DURATION_MAX_MINUTES,
+} from "@/lib/settings.functions";
 import {
   getReminderJobConfig,
   updateReminderJobConfig,
