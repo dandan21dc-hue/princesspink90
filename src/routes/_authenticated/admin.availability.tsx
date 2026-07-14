@@ -37,6 +37,43 @@ function fmt(iso: string) {
   });
 }
 
+type ConflictPair = { a: PrivateSessionSlot; b: PrivateSessionSlot };
+
+function findConflicts(slots: PrivateSessionSlot[]): ConflictPair[] {
+  const sorted = [...slots].sort(
+    (x, y) => new Date(x.start_time).getTime() - new Date(y.start_time).getTime(),
+  );
+  const out: ConflictPair[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const a = sorted[i];
+    const aEnd = new Date(a.end_time).getTime();
+    for (let j = i + 1; j < sorted.length; j++) {
+      const b = sorted[j];
+      const bStart = new Date(b.start_time).getTime();
+      if (bStart >= aEnd) break;
+      out.push({ a, b });
+    }
+  }
+  return out;
+}
+
+function overlapsAny(
+  startISO: string,
+  endISO: string,
+  slots: PrivateSessionSlot[],
+  ignoreId?: string,
+): PrivateSessionSlot[] {
+  const s = new Date(startISO).getTime();
+  const e = new Date(endISO).getTime();
+  if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) return [];
+  return slots.filter((slot) => {
+    if (ignoreId && slot.id === ignoreId) return false;
+    const ss = new Date(slot.start_time).getTime();
+    const se = new Date(slot.end_time).getTime();
+    return s < se && e > ss;
+  });
+}
+
 function AvailabilityAdmin() {
   const meFn = useServerFn(amIAdmin);
   const listFn = useServerFn(listUpcomingSessionSlots);
