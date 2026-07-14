@@ -1,0 +1,1 @@
+ALTER TABLE public.admin_activity_audit_quarantine ADD COLUMN IF NOT EXISTS notes text;

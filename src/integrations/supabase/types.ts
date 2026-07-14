@@ -116,18 +116,21 @@ export type Database = {
       admin_activity_audit_quarantine: {
         Row: {
           audit_id: string
+          notes: string | null
           quarantined_at: string
           quarantined_by: string
           reason: string | null
         }
         Insert: {
           audit_id: string
+          notes?: string | null
           quarantined_at?: string
           quarantined_by: string
           reason?: string | null
         }
         Update: {
           audit_id?: string
+          notes?: string | null
           quarantined_at?: string
           quarantined_by?: string
           reason?: string | null

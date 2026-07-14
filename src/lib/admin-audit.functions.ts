@@ -296,18 +296,27 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
 
 export const setAuditEntryQuarantine = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { id: string; quarantined: boolean; reason?: string }) =>
+  .inputValidator((data: { id: string; quarantined: boolean; reason?: string; notes?: string }) =>
     z
       .object({
         id: z.string().uuid(),
         quarantined: z.boolean(),
         reason: z.string().trim().max(500).optional(),
+        notes: z.string().trim().max(2000).optional(),
       })
       .parse(data),
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     await assertAuditAdmin(context.supabase, context.userId);
+
+    // Look up the audit entry so the incident alert has useful context.
+    const { data: entry } = await context.supabase
+      .from("admin_activity_audit")
+      .select("seq, action, resource, actor_id, created_at")
+      .eq("id", data.id)
+      .maybeSingle();
+
     if (data.quarantined) {
       const { error } = await context.supabase
         .from("admin_activity_audit_quarantine")
@@ -317,7 +326,8 @@ export const setAuditEntryQuarantine = createServerFn({ method: "POST" })
             quarantined_by: context.userId,
             quarantined_at: new Date().toISOString(),
             reason: data.reason ?? null,
-          },
+            notes: data.notes ?? null,
+          } as never,
           { onConflict: "audit_id" },
         );
       if (error) throw error;
@@ -328,12 +338,44 @@ export const setAuditEntryQuarantine = createServerFn({ method: "POST" })
         .eq("audit_id", data.id);
       if (error) throw error;
     }
+
     await context.supabase.from("admin_activity_audit").insert({
       actor_id: context.userId,
       action: data.quarantined ? "quarantine_entry" : "release_quarantine",
       resource: "admin_activity_audit",
-      metadata: { audit_id: data.id, reason: data.reason ?? null },
+      metadata: {
+        audit_id: data.id,
+        reason: data.reason ?? null,
+        notes: data.notes ?? null,
+      },
     } as never);
+
+    // Fire an incident notification alert. Insertion into
+    // admin_activity_audit_alerts triggers notify_admin_activity_audit_alert,
+    // which posts to the audit-alert webhook.
+    const kind = data.quarantined ? "quarantine_created" : "quarantine_released";
+    const { error: alertErr } = await context.supabase
+      .from("admin_activity_audit_alerts")
+      .insert({
+        severity: "warning",
+        kind,
+        detail: {
+          audit_id: data.id,
+          audit_seq: entry?.seq ?? null,
+          audit_action: entry?.action ?? null,
+          audit_resource: entry?.resource ?? null,
+          audit_actor_id: entry?.actor_id ?? null,
+          audit_created_at: entry?.created_at ?? null,
+          quarantined_by: context.userId,
+          reason: data.reason ?? null,
+          notes: data.notes ?? null,
+        },
+      } as never);
+    if (alertErr) {
+      // Never fail the quarantine action on notification failure.
+      console.warn("[audit] quarantine alert insert failed", alertErr.message);
+    }
+
     return { ok: true, quarantined: data.quarantined };
   });
 

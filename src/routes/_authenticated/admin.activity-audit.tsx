@@ -191,7 +191,7 @@ function AdminAuditPage() {
 
   const quarantineFn = useServerFn(setAuditEntryQuarantine);
   const quarantine = useMutation({
-    mutationFn: (v: { id: string; quarantined: boolean; reason?: string }) =>
+    mutationFn: (v: { id: string; quarantined: boolean; reason?: string; notes?: string }) =>
       quarantineFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-entries"] }),
   });
@@ -915,10 +915,16 @@ function AdminAuditPage() {
                                   "",
                                 );
                                 if (reason === null) return; // cancelled
+                                const notes = window.prompt(
+                                  "Additional notes for the incident notification (optional):",
+                                  "",
+                                );
+                                if (notes === null) return; // cancelled
                                 quarantine.mutate({
                                   id: r.id,
                                   quarantined: true,
                                   reason: reason || undefined,
+                                  notes: notes || undefined,
                                 });
                               }
                             }}
