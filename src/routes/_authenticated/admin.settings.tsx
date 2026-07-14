@@ -26,10 +26,21 @@ import { refreshUserSubscriptionStatus } from "@/lib/admin.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { RoleGuard } from "@/components/RoleGuard";
 
+const auditSearchSchema = z.object({
+  q: fallback(z.string(), "").default(""),
+  from: fallback(z.string(), "").default(""),
+  to: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int(), 1).default(1),
+  pageSize: fallback(z.number().int(), 10).default(10),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Site settings · Admin" }] }),
+  validateSearch: zodValidator(auditSearchSchema),
   component: AdminSettingsGuarded,
 });
+
+const routeApi = getRouteApi("/_authenticated/admin/settings");
 
 function AdminSettingsGuarded() {
   return (
