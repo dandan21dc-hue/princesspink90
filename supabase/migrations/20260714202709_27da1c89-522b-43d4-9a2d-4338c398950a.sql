@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.grant_all_access_pass_30d(uuid, text, integer, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.grant_all_access_pass_30d(uuid, text, integer, text) TO service_role;
