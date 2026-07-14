@@ -656,6 +656,8 @@ function PricingAuditSection() {
   const [to, setTo] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState<PricingAuditSortColumn>("changed_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   // Debounce email search input.
   useEffect(() => {
@@ -667,10 +669,21 @@ function PricingAuditSection() {
   }, [searchInput]);
 
   const audit = useQuery({
-    queryKey: ["pricing-audit", { search, from, to, page, pageSize }],
-    queryFn: () => listFn({ data: { search, from, to, page, pageSize } }),
+    queryKey: ["pricing-audit", { search, from, to, page, pageSize, sortBy, sortDir }],
+    queryFn: () => listFn({ data: { search, from, to, page, pageSize, sortBy, sortDir } }),
     placeholderData: (prev) => prev,
   });
+
+  const toggleSort = (col: PricingAuditSortColumn) => {
+    if (sortBy === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(col);
+      // Default: newest/highest first for numeric+date; A→Z for text.
+      setSortDir(col === "changed_by_email" ? "asc" : "desc");
+    }
+    setPage(1);
+  };
 
   const rows = audit.data?.rows ?? [];
   const total = audit.data?.total ?? 0;
