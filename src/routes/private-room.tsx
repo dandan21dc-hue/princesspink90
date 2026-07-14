@@ -98,7 +98,7 @@ function PrivateRoomPage() {
         pendingAutoReviewRef.current = false;
         if (!user) {
           navigate({ to: "/auth", search: { next: "/private-room" } });
-        } else if (partySize >= 1 && partySize <= 10 && notes.length <= 1000) {
+        } else if (notes.length <= 1000) {
           setReviewing(true);
         }
       }
