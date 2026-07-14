@@ -107,6 +107,7 @@ function AdminAuditPage() {
     q: applied.q || undefined,
     from: toIsoStart(applied.from),
     to: toIsoEnd(applied.to),
+    trust: applied.trust,
     page,
     pageSize,
     sort,
@@ -120,7 +121,9 @@ function AdminAuditPage() {
     applied.actor_name,
     applied.from,
     applied.to,
+    applied.trust !== "all" ? applied.trust : "",
   ].filter(Boolean).length;
+
 
   const entries = useQuery({
     queryKey: ["admin-audit-entries", listArgs],
