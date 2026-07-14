@@ -159,6 +159,61 @@ function SecondaryRoomSessionsAdmin() {
     onError: (e: Error) => setError(e.message),
   });
 
+  const runBulk = async (action: "delete" | "book" | "available") => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setError(null);
+    setBulkBusy(true);
+    setBulkProgress({ done: 0, total: ids.length });
+    const slotById = new Map(slotsQ.data?.map((s) => [s.id, s]) ?? []);
+    let ok = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        if (action === "delete") {
+          await deleteFn({ data: { id } });
+        } else {
+          const s = slotById.get(id);
+          if (!s) throw new Error("Slot no longer exists");
+          const targetBooked = action === "book";
+          if (s.is_booked === targetBooked) {
+            ok++;
+            setBulkProgress((p) => (p ? { done: p.done + 1, total: p.total } : p));
+            continue;
+          }
+          await updateFn({
+            data: {
+              id: s.id,
+              startTime: s.start_time,
+              endTime: s.end_time,
+              isBooked: targetBooked,
+              notes: s.notes ?? null,
+            },
+          });
+        }
+        ok++;
+      } catch (e) {
+        failed++;
+        console.error("Bulk action failed for slot", id, e);
+      }
+      setBulkProgress((p) => (p ? { done: p.done + 1, total: p.total } : p));
+    }
+    setBulkBusy(false);
+    setBulkProgress(null);
+    setConfirmAction(null);
+    clearSelection();
+    invalidate();
+    const verb =
+      action === "delete" ? "Deleted" : action === "book" ? "Marked booked/blocked" : "Marked available";
+    if (failed === 0) {
+      toast.success(`${verb} ${ok} slot${ok === 1 ? "" : "s"}`);
+    } else {
+      toast.error(`${verb} ${ok}, ${failed} failed`);
+    }
+  };
+
+
+
   if (me.isLoading) {
     return (
       <Shell>
