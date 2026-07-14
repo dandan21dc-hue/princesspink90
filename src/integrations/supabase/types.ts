@@ -58,6 +58,7 @@ export type Database = {
           detected_at: string
           id: string
           kind: string
+          notified_at: string | null
           severity: string
         }
         Insert: {
@@ -67,6 +68,7 @@ export type Database = {
           detected_at?: string
           id?: string
           kind: string
+          notified_at?: string | null
           severity: string
         }
         Update: {
@@ -76,6 +78,7 @@ export type Database = {
           detected_at?: string
           id?: string
           kind?: string
+          notified_at?: string | null
           severity?: string
         }
         Relationships: []
