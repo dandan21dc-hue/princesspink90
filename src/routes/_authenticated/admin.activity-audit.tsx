@@ -47,6 +47,14 @@ function AdminAuditPage() {
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
   const isAdmin = me.data?.isAdmin === true;
 
+  const permsFn = useServerFn(getMyAuditPermissions);
+  const perms = useQuery({
+    queryKey: ["my-audit-permissions"],
+    queryFn: () => permsFn(),
+    enabled: isAdmin,
+  });
+  const canManageAudit = perms.data?.isAuditAdmin === true;
+
   const retention = useQuery({
     queryKey: ["admin-audit-retention"],
     queryFn: () => retentionFn(),
