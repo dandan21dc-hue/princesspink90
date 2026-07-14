@@ -551,7 +551,7 @@ function ReviewBookingCard({
   duration: number;
   priceLabel: string;
   durationLabel: string;
-  partySize: number;
+  
   notes: string;
   pending: boolean;
   onEdit: () => void;
