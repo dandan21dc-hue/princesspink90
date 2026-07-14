@@ -66,14 +66,19 @@ export const updateAuditRetention = createServerFn({ method: "POST" })
     return row;
   });
 
+export type AuditTrustState = "trusted" | "untrusted" | "quarantined";
+
 export type AdminAuditEntry = {
   id: string;
+  seq: number;
   actor_id: string;
   actor_display_name: string | null;
   action: string;
   resource: string;
   metadata: Record<string, string | number | boolean | null>;
   created_at: string;
+  trust: AuditTrustState;
+  quarantine_reason: string | null;
 };
 
 export type AuditSortColumn = "created_at" | "action" | "resource" | "actor_id";
@@ -93,6 +98,7 @@ export type ListAuditFilters = {
   pageSize?: number;
   sort?: AuditSortColumn;
   dir?: AuditSortDir;
+  trust?: "all" | AuditTrustState;
 };
 
 export type ListAuditResult = {
@@ -101,6 +107,7 @@ export type ListAuditResult = {
   page: number;
   pageSize: number;
 };
+
 
 const listFiltersSchema = z
   .object({
@@ -117,8 +124,10 @@ const listFiltersSchema = z
     pageSize: z.number().int().min(1).max(200).optional(),
     sort: z.enum(["created_at", "action", "resource", "actor_id"]).optional(),
     dir: z.enum(["asc", "desc"]).optional(),
+    trust: z.enum(["all", "trusted", "untrusted", "quarantined"]).optional(),
   })
   .optional();
+
 
 export const listAdminAuditEntries = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
