@@ -452,34 +452,15 @@ function PrivateRoomPage() {
                 </div>
 
 
-                <div className="mt-8 grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="party-size" className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Party size
-                    </label>
-                    <select
-                      id="party-size"
-                      value={partySize}
-                      onChange={(e) => setPartySize(Number(e.target.value))}
-                      className="mt-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-                    >
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>
-                          {n} {n === 1 ? "guest" : "guests"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="duration-summary" className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Session
-                    </label>
-                    <div
-                      id="duration-summary"
-                      className="mt-2 rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
-                    >
-                      {durationLabel} · {priceLabel}
-                    </div>
+                <div className="mt-8">
+                  <label htmlFor="duration-summary" className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Session
+                  </label>
+                  <div
+                    id="duration-summary"
+                    className="mt-2 rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
+                  >
+                    {durationLabel} · {priceLabel}
                   </div>
                 </div>
 
