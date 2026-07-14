@@ -880,19 +880,44 @@ function PricingAuditSection() {
             </tr>
           </thead>
           <tbody>
-            {audit.isLoading && rows.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-3 py-4 text-sm text-muted-foreground">
-                  Loading history…
-                </td>
-              </tr>
-            )}
+            {audit.isLoading && rows.length === 0 &&
+              Array.from({ length: Math.min(pageSize, 6) }).map((_, i) => (
+                <tr key={`skeleton-${i}`} className="border-t border-border/60">
+                  <td className="px-3 py-3">
+                    <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-14 animate-pulse rounded bg-muted" />
+                      <span className="text-muted-foreground/40">→</span>
+                      <div className="h-3 w-14 animate-pulse rounded bg-muted" />
+                    </div>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                      <span className="text-muted-foreground/40">→</span>
+                      <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
             {!audit.isLoading && rows.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-3 py-4 text-sm text-muted-foreground">
-                  {hasActiveFilter
-                    ? "No changes match your filters."
-                    : "No changes recorded yet."}
+                <td colSpan={4} className="px-3 py-8">
+                  <AuditEmptyState
+                    hasActiveFilter={hasActiveFilter}
+                    search={search}
+                    from={from}
+                    to={to}
+                    onClear={() => {
+                      setSearchInput("");
+                      updateSearch({ q: "", from: "", to: "" });
+                    }}
+                  />
                 </td>
               </tr>
             )}
@@ -976,6 +1001,57 @@ function PricingAuditSection() {
         </div>
       </div>
     </section>
+  );
+}
+
+function AuditEmptyState({
+  hasActiveFilter,
+  search,
+  from,
+  to,
+  onClear,
+}: {
+  hasActiveFilter: boolean;
+  search: string;
+  from: string;
+  to: string;
+  onClear: () => void;
+}) {
+  if (!hasActiveFilter) {
+    return (
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="text-sm font-semibold text-foreground">No pricing changes yet</div>
+        <p className="max-w-md text-xs text-muted-foreground">
+          Every save to the session price or duration will be recorded here with the admin
+          who made the change and the exact timestamp.
+        </p>
+      </div>
+    );
+  }
+
+  const activeFilters: string[] = [];
+  if (search) activeFilters.push(`admin email contains "${search}"`);
+  if (from && to) activeFilters.push(`between ${from} and ${to}`);
+  else if (from) activeFilters.push(`on or after ${from}`);
+  else if (to) activeFilters.push(`on or before ${to}`);
+
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="text-sm font-semibold text-foreground">
+        No pricing changes match your filters
+      </div>
+      <p className="max-w-md text-xs text-muted-foreground">
+        Nothing was found where {activeFilters.join(" and ")}. Try widening the date range,
+        clearing the email search, or removing filters entirely.
+      </p>
+      <button
+        type="button"
+        onClick={onClear}
+        className="rounded-md border border-border bg-background px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-foreground hover:bg-muted"
+      >
+        Clear filters
+      </button>
+    </div>
   );
 }
 
