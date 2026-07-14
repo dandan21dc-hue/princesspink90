@@ -1002,6 +1002,15 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           const startsAt = new Date(data.bookingStartsAt);
           if (Number.isNaN(startsAt.getTime())) throw new Error("Invalid start time");
           if (startsAt.getTime() < Date.now() + 60 * 60 * 1000) {
+            const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+            await logBookingRejection({
+              attemptKind: "create",
+              userId: data.userId,
+              attemptedStartsAt: startsAt.toISOString(),
+              durationMinutes: privateRoomMinutes ?? null,
+              reasonCode: "lead_time_too_short",
+              reasonMessage: "Bookings must be at least 1 hour in advance",
+            });
             throw new Error("Bookings must be at least 1 hour in advance");
           }
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -1028,7 +1037,20 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             { from_ts: startsAt.toISOString(), to_ts: endsAt.toISOString() },
           );
           if (busyErr) throw new Error(busyErr.message);
-          if ((busy ?? []).length > 0) throw new Error("That time is no longer available. Please pick another slot.");
+          if ((busy ?? []).length > 0) {
+            const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+            await logBookingRejection({
+              attemptKind: "create",
+              userId: data.userId,
+              attemptedStartsAt: startsAt.toISOString(),
+              durationMinutes: bookingDurationMinutes,
+              reasonCode: "slot_conflict",
+              reasonMessage: "That time is no longer available. Please pick another slot.",
+              metadata: { busyCount: (busy ?? []).length },
+            });
+            throw new Error("That time is no longer available. Please pick another slot.");
+          }
+
           const env = data.environment;
           const { data: booking, error: bookErr } = await supabaseAdmin
             .from("private_room_bookings")
