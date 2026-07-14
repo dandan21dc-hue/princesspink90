@@ -78,6 +78,7 @@ import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
 import { Route as AuthenticatedAdminCheckoutReconciliationRouteImport } from './routes/_authenticated/admin.checkout-reconciliation'
+import { Route as AuthenticatedAdminBookingRejectionsRouteImport } from './routes/_authenticated/admin.booking-rejections'
 import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin.availability'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAdminActivityAuditRouteImport } from './routes/_authenticated/admin.activity-audit'
@@ -480,6 +481,12 @@ const AuthenticatedAdminCheckoutReconciliationRoute =
     path: '/admin/checkout-reconciliation',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminBookingRejectionsRoute =
+  AuthenticatedAdminBookingRejectionsRouteImport.update({
+    id: '/admin/booking-rejections',
+    path: '/admin/booking-rejections',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAvailabilityRoute =
   AuthenticatedAdminAvailabilityRouteImport.update({
     id: '/admin/availability',
@@ -678,6 +685,7 @@ export interface FileRoutesByFullPath {
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
+  '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -774,6 +782,7 @@ export interface FileRoutesByTo {
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
+  '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -873,6 +882,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
+  '/_authenticated/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/_authenticated/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
@@ -972,6 +982,7 @@ export interface FileRouteTypes {
     | '/admin/activity-audit'
     | '/admin/analytics'
     | '/admin/availability'
+    | '/admin/booking-rejections'
     | '/admin/checkout-reconciliation'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
@@ -1068,6 +1079,7 @@ export interface FileRouteTypes {
     | '/admin/activity-audit'
     | '/admin/analytics'
     | '/admin/availability'
+    | '/admin/booking-rejections'
     | '/admin/checkout-reconciliation'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
@@ -1166,6 +1178,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/activity-audit'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/availability'
+    | '/_authenticated/admin/booking-rejections'
     | '/_authenticated/admin/checkout-reconciliation'
     | '/_authenticated/admin/cohosts'
     | '/_authenticated/admin/compliance-audit'
@@ -1760,6 +1773,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCheckoutReconciliationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/booking-rejections': {
+      id: '/_authenticated/admin/booking-rejections'
+      path: '/admin/booking-rejections'
+      fullPath: '/admin/booking-rejections'
+      preLoaderRoute: typeof AuthenticatedAdminBookingRejectionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/availability': {
       id: '/_authenticated/admin/availability'
       path: '/admin/availability'
@@ -2006,6 +2026,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminActivityAuditRoute: typeof AuthenticatedAdminActivityAuditRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
+  AuthenticatedAdminBookingRejectionsRoute: typeof AuthenticatedAdminBookingRejectionsRoute
   AuthenticatedAdminCheckoutReconciliationRoute: typeof AuthenticatedAdminCheckoutReconciliationRoute
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
@@ -2053,6 +2074,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminActivityAuditRoute: AuthenticatedAdminActivityAuditRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminAvailabilityRoute: AuthenticatedAdminAvailabilityRoute,
+  AuthenticatedAdminBookingRejectionsRoute:
+    AuthenticatedAdminBookingRejectionsRoute,
   AuthenticatedAdminCheckoutReconciliationRoute:
     AuthenticatedAdminCheckoutReconciliationRoute,
   AuthenticatedAdminCohostsRoute: AuthenticatedAdminCohostsRoute,

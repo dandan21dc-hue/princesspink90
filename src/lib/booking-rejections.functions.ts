@@ -11,7 +11,7 @@ export type BookingRejectionRow = {
   reason_message: string;
   booking_id: string | null;
   conflict_booking_ids: string[];
-  metadata: Record<string, unknown>;
+  metadata: Record<string, string | number | boolean | null>;
   created_at: string;
 };
 
@@ -68,7 +68,7 @@ export const listBookingRejections = createServerFn({ method: "POST" })
     const { data: rows, error } = await query;
     if (error) throw new Error(error.message);
 
-    const list = (rows ?? []) as BookingRejectionRow[];
+    const list = (rows ?? []) as unknown as BookingRejectionRow[];
     const summary: BookingRejectionSummary = {
       total: list.length,
       byKind: {},
