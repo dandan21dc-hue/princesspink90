@@ -369,6 +369,7 @@ function AvailabilityAdmin() {
       {editing !== null && (
         <SlotDialog
           initial={editing === "new" ? null : editing}
+          existingSlots={slots}
           pending={createMut.isPending || updateMut.isPending}
           onCancel={() => setEditing(null)}
           onSubmit={(v) => {
