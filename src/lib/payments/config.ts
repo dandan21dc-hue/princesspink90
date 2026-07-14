@@ -1,5 +1,5 @@
 import { stripeProvider } from "./providers/stripe";
-import { comingSoonProvider } from "./providers/coming-soon";
+import { nowpaymentsProvider } from "./providers/nowpayments";
 import type { CheckoutIntent, PaymentProvider } from "./types";
 
 /**
@@ -8,11 +8,11 @@ import type { CheckoutIntent, PaymentProvider } from "./types";
  *
  * Current state:
  *  - one_time    → Stripe (bookings, store items, panty listings, lifetime)
- *  - subscription → Coming Soon (recurring plans disabled during provider swap)
+ *  - subscription → NOWPayments (hosted invoice → 30-day All-Access Pass)
  */
 export const paymentProviders: Record<CheckoutIntent, PaymentProvider> = {
   one_time: stripeProvider,
-  subscription: comingSoonProvider,
+  subscription: nowpaymentsProvider,
 };
 
 export function getProvider(intent: CheckoutIntent): PaymentProvider {
