@@ -33,6 +33,9 @@ function AdminAuditPage() {
   const updateFn = useServerFn(updateAuditRetention);
   const listFn = useServerFn(listAdminAuditEntries);
   const purgeFn = useServerFn(purgeExpiredAuditEntries);
+  const verifyFn = useServerFn(verifyAuditIntegrity);
+  const alertsFn = useServerFn(listAuditAlerts);
+  const ackFn = useServerFn(acknowledgeAuditAlert);
   const qc = useQueryClient();
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
