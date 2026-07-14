@@ -1,9 +1,10 @@
-import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { PaymentPendingPlaceholder } from "@/components/PaymentPendingPlaceholder";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 import { listPantyListingsPublic, type PantyListing } from "@/lib/pantyListings.functions";
 import { track } from "@/lib/track";
@@ -34,6 +35,8 @@ export const Route = createFileRoute("/panty-drawer")({
 });
 
 function PageShell({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const paymentPending = /(?:^|[?&])payment=pending(?:&|$)/.test(location.searchStr ?? "");
   return (
     <>
       <PaymentTestModeBanner />
@@ -42,6 +45,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
         <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
           For your <span className="text-neon">extra kinky side</span> 💋
         </h1>
+        {paymentPending ? <PaymentPendingPlaceholder /> : null}
         {children}
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <Link

@@ -1,10 +1,11 @@
-import { createFileRoute, Link, Outlet, useMatches, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation, useMatches, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { Suspense, useMemo, useState } from "react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { listStoreItems } from "@/lib/store.functions";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
+import { PaymentPendingPlaceholder } from "@/components/PaymentPendingPlaceholder";
 
 import { cn } from "@/lib/utils";
 import { X, SlidersHorizontal } from "lucide-react";
@@ -45,6 +46,8 @@ export const Route = createFileRoute("/store")({
 });
 
 function PageShell({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const paymentPending = /(?:^|[?&])payment=pending(?:&|$)/.test(location.searchStr ?? "");
   return (
     <>
       <PaymentTestModeBanner />
@@ -55,6 +58,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
             Individual <span className="text-neon">pictures &amp; videos</span>
           </h1>
         </div>
+        {paymentPending ? <PaymentPendingPlaceholder /> : null}
         {children}
       </section>
     </>
