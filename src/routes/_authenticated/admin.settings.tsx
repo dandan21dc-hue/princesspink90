@@ -1004,6 +1004,57 @@ function PricingAuditSection() {
   );
 }
 
+function AuditEmptyState({
+  hasActiveFilter,
+  search,
+  from,
+  to,
+  onClear,
+}: {
+  hasActiveFilter: boolean;
+  search: string;
+  from: string;
+  to: string;
+  onClear: () => void;
+}) {
+  if (!hasActiveFilter) {
+    return (
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="text-sm font-semibold text-foreground">No pricing changes yet</div>
+        <p className="max-w-md text-xs text-muted-foreground">
+          Every save to the session price or duration will be recorded here with the admin
+          who made the change and the exact timestamp.
+        </p>
+      </div>
+    );
+  }
+
+  const activeFilters: string[] = [];
+  if (search) activeFilters.push(`admin email contains "${search}"`);
+  if (from && to) activeFilters.push(`between ${from} and ${to}`);
+  else if (from) activeFilters.push(`on or after ${from}`);
+  else if (to) activeFilters.push(`on or before ${to}`);
+
+  return (
+    <div className="flex flex-col items-center gap-3 text-center">
+      <div className="text-sm font-semibold text-foreground">
+        No pricing changes match your filters
+      </div>
+      <p className="max-w-md text-xs text-muted-foreground">
+        Nothing was found where {activeFilters.join(" and ")}. Try widening the date range,
+        clearing the email search, or removing filters entirely.
+      </p>
+      <button
+        type="button"
+        onClick={onClear}
+        className="rounded-md border border-border bg-background px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-foreground hover:bg-muted"
+      >
+        Clear filters
+      </button>
+    </div>
+  );
+}
+
 function formatCents(cents: number | null): string {
   if (cents == null) return "—";
   return `A$${(cents / 100).toFixed(2)}`;
