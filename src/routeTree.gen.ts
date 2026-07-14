@@ -50,7 +50,6 @@ import { Route as ApiPublicPartnershipRouteImport } from './routes/api/public/pa
 import { Route as ApiPublicAgeGateEventRouteImport } from './routes/api/public/age-gate-event'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
-import { Route as AuthenticatedAdminWebhookEventsRouteImport } from './routes/_authenticated/admin.webhook-events'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
 import { Route as AuthenticatedAdminVenueComplianceRemindersRouteImport } from './routes/_authenticated/admin.venue-compliance-reminders'
 import { Route as AuthenticatedAdminVenueComplianceRouteImport } from './routes/_authenticated/admin.venue-compliance'
@@ -79,7 +78,6 @@ import { Route as AuthenticatedAdminConsentReviewRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
-import { Route as AuthenticatedAdminCheckoutReconciliationRouteImport } from './routes/_authenticated/admin.checkout-reconciliation'
 import { Route as AuthenticatedAdminBookingRejectionsRouteImport } from './routes/_authenticated/admin.booking-rejections'
 import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin.availability'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
@@ -90,7 +88,6 @@ import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/l
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 import { Route as ApiPublicPaymentsNowpaymentsWebhookRouteImport } from './routes/api/public/payments/nowpayments-webhook'
 import { Route as ApiPublicHooksVeriffWebhookRouteImport } from './routes/api/public/hooks/veriff-webhook'
 import { Route as ApiPublicHooksVenueComplianceRemindersRouteImport } from './routes/api/public/hooks/venue-compliance-reminders'
@@ -102,7 +99,6 @@ import { Route as ApiPublicHooksHealthScreeningRemindersRouteImport } from './ro
 import { Route as ApiPublicHooksCronHealthCheckRouteImport } from './routes/api/public/hooks/cron-health-check'
 import { Route as ApiPublicHooksAuditAlertNotifyRouteImport } from './routes/api/public/hooks/audit-alert-notify'
 import { Route as ApiPublicCronPurgeDeletedAccountsRouteImport } from './routes/api/public/cron/purge-deleted-accounts'
-import { Route as ApiPublicCronDunningEscalationRouteImport } from './routes/api/public/cron/dunning-escalation'
 import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_authenticated/events.$id.waivers'
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
@@ -317,12 +313,6 @@ const AuthenticatedContentNewRoute = AuthenticatedContentNewRouteImport.update({
   path: '/content/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedAdminWebhookEventsRoute =
-  AuthenticatedAdminWebhookEventsRouteImport.update({
-    id: '/admin/webhook-events',
-    path: '/admin/webhook-events',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAdminVerificationsRoute =
   AuthenticatedAdminVerificationsRouteImport.update({
     id: '/admin/verifications',
@@ -490,12 +480,6 @@ const AuthenticatedAdminCohostsRoute =
     path: '/admin/cohosts',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedAdminCheckoutReconciliationRoute =
-  AuthenticatedAdminCheckoutReconciliationRouteImport.update({
-    id: '/admin/checkout-reconciliation',
-    path: '/admin/checkout-reconciliation',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAdminBookingRejectionsRoute =
   AuthenticatedAdminBookingRejectionsRouteImport.update({
     id: '/admin/booking-rejections',
@@ -554,12 +538,6 @@ const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   path: '/lovable/email/auth/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPaymentsWebhookRoute =
-  ApiPublicPaymentsWebhookRouteImport.update({
-    id: '/api/public/payments/webhook',
-    path: '/api/public/payments/webhook',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicPaymentsNowpaymentsWebhookRoute =
   ApiPublicPaymentsNowpaymentsWebhookRouteImport.update({
     id: '/api/public/payments/nowpayments-webhook',
@@ -624,12 +602,6 @@ const ApiPublicCronPurgeDeletedAccountsRoute =
   ApiPublicCronPurgeDeletedAccountsRouteImport.update({
     id: '/api/public/cron/purge-deleted-accounts',
     path: '/api/public/cron/purge-deleted-accounts',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicCronDunningEscalationRoute =
-  ApiPublicCronDunningEscalationRouteImport.update({
-    id: '/api/public/cron/dunning-escalation',
-    path: '/api/public/cron/dunning-escalation',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AuthenticatedEventsIdWaiversRoute =
@@ -707,7 +679,6 @@ export interface FileRoutesByFullPath {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
-  '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
@@ -736,7 +707,6 @@ export interface FileRoutesByFullPath {
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
@@ -748,7 +718,6 @@ export interface FileRoutesByFullPath {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
-  '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/audit-alert-notify': typeof ApiPublicHooksAuditAlertNotifyRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
@@ -760,7 +729,6 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
   '/api/public/payments/nowpayments-webhook': typeof ApiPublicPaymentsNowpaymentsWebhookRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -807,7 +775,6 @@ export interface FileRoutesByTo {
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
-  '/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
@@ -836,7 +803,6 @@ export interface FileRoutesByTo {
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
@@ -848,7 +814,6 @@ export interface FileRoutesByTo {
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
-  '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/audit-alert-notify': typeof ApiPublicHooksAuditAlertNotifyRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
@@ -860,7 +825,6 @@ export interface FileRoutesByTo {
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
   '/api/public/payments/nowpayments-webhook': typeof ApiPublicPaymentsNowpaymentsWebhookRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -910,7 +874,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
-  '/_authenticated/admin/checkout-reconciliation': typeof AuthenticatedAdminCheckoutReconciliationRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
@@ -939,7 +902,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/_authenticated/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
-  '/_authenticated/admin/webhook-events': typeof AuthenticatedAdminWebhookEventsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
@@ -951,7 +913,6 @@ export interface FileRoutesById {
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
   '/_authenticated/events/$id/waivers': typeof AuthenticatedEventsIdWaiversRoute
-  '/api/public/cron/dunning-escalation': typeof ApiPublicCronDunningEscalationRoute
   '/api/public/cron/purge-deleted-accounts': typeof ApiPublicCronPurgeDeletedAccountsRoute
   '/api/public/hooks/audit-alert-notify': typeof ApiPublicHooksAuditAlertNotifyRoute
   '/api/public/hooks/cron-health-check': typeof ApiPublicHooksCronHealthCheckRoute
@@ -963,7 +924,6 @@ export interface FileRoutesById {
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
   '/api/public/payments/nowpayments-webhook': typeof ApiPublicPaymentsNowpaymentsWebhookRoute
-  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -1013,7 +973,6 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/availability'
     | '/admin/booking-rejections'
-    | '/admin/checkout-reconciliation'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
@@ -1042,7 +1001,6 @@ export interface FileRouteTypes {
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
     | '/admin/verifications'
-    | '/admin/webhook-events'
     | '/content/new'
     | '/events/new'
     | '/api/public/age-gate-event'
@@ -1054,7 +1012,6 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
-    | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/audit-alert-notify'
     | '/api/public/hooks/cron-health-check'
@@ -1066,7 +1023,6 @@ export interface FileRouteTypes {
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
     | '/api/public/payments/nowpayments-webhook'
-    | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1113,7 +1069,6 @@ export interface FileRouteTypes {
     | '/admin/analytics'
     | '/admin/availability'
     | '/admin/booking-rejections'
-    | '/admin/checkout-reconciliation'
     | '/admin/cohosts'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
@@ -1142,7 +1097,6 @@ export interface FileRouteTypes {
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
     | '/admin/verifications'
-    | '/admin/webhook-events'
     | '/content/new'
     | '/events/new'
     | '/api/public/age-gate-event'
@@ -1154,7 +1108,6 @@ export interface FileRouteTypes {
     | '/events/$id/checkin'
     | '/events/$id/edit'
     | '/events/$id/waivers'
-    | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/audit-alert-notify'
     | '/api/public/hooks/cron-health-check'
@@ -1166,7 +1119,6 @@ export interface FileRouteTypes {
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
     | '/api/public/payments/nowpayments-webhook'
-    | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1215,7 +1167,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/availability'
     | '/_authenticated/admin/booking-rejections'
-    | '/_authenticated/admin/checkout-reconciliation'
     | '/_authenticated/admin/cohosts'
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
@@ -1244,7 +1195,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/venue-compliance'
     | '/_authenticated/admin/venue-compliance-reminders'
     | '/_authenticated/admin/verifications'
-    | '/_authenticated/admin/webhook-events'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
     | '/api/public/age-gate-event'
@@ -1256,7 +1206,6 @@ export interface FileRouteTypes {
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
     | '/_authenticated/events/$id/waivers'
-    | '/api/public/cron/dunning-escalation'
     | '/api/public/cron/purge-deleted-accounts'
     | '/api/public/hooks/audit-alert-notify'
     | '/api/public/hooks/cron-health-check'
@@ -1268,7 +1217,6 @@ export interface FileRouteTypes {
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
     | '/api/public/payments/nowpayments-webhook'
-    | '/api/public/payments/webhook'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
     | '/lovable/email/queue/process'
@@ -1307,7 +1255,6 @@ export interface RootRouteChildren {
   ApiPublicAgeGateEventRoute: typeof ApiPublicAgeGateEventRoute
   ApiPublicPartnershipRoute: typeof ApiPublicPartnershipRoute
   LovableEmailSuppressionRoute: typeof LovableEmailSuppressionRoute
-  ApiPublicCronDunningEscalationRoute: typeof ApiPublicCronDunningEscalationRoute
   ApiPublicCronPurgeDeletedAccountsRoute: typeof ApiPublicCronPurgeDeletedAccountsRoute
   ApiPublicHooksAuditAlertNotifyRoute: typeof ApiPublicHooksAuditAlertNotifyRoute
   ApiPublicHooksCronHealthCheckRoute: typeof ApiPublicHooksCronHealthCheckRoute
@@ -1319,7 +1266,6 @@ export interface RootRouteChildren {
   ApiPublicHooksVenueComplianceRemindersRoute: typeof ApiPublicHooksVenueComplianceRemindersRoute
   ApiPublicHooksVeriffWebhookRoute: typeof ApiPublicHooksVeriffWebhookRoute
   ApiPublicPaymentsNowpaymentsWebhookRoute: typeof ApiPublicPaymentsNowpaymentsWebhookRoute
-  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -1617,13 +1563,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedContentNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/webhook-events': {
-      id: '/_authenticated/admin/webhook-events'
-      path: '/admin/webhook-events'
-      fullPath: '/admin/webhook-events'
-      preLoaderRoute: typeof AuthenticatedAdminWebhookEventsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/admin/verifications': {
       id: '/_authenticated/admin/verifications'
       path: '/admin/verifications'
@@ -1820,13 +1759,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCohostsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/admin/checkout-reconciliation': {
-      id: '/_authenticated/admin/checkout-reconciliation'
-      path: '/admin/checkout-reconciliation'
-      fullPath: '/admin/checkout-reconciliation'
-      preLoaderRoute: typeof AuthenticatedAdminCheckoutReconciliationRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/admin/booking-rejections': {
       id: '/_authenticated/admin/booking-rejections'
       path: '/admin/booking-rejections'
@@ -1895,13 +1827,6 @@ declare module '@tanstack/react-router' {
       path: '/lovable/email/auth/preview'
       fullPath: '/lovable/email/auth/preview'
       preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/payments/webhook': {
-      id: '/api/public/payments/webhook'
-      path: '/api/public/payments/webhook'
-      fullPath: '/api/public/payments/webhook'
-      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/payments/nowpayments-webhook': {
@@ -1979,13 +1904,6 @@ declare module '@tanstack/react-router' {
       path: '/api/public/cron/purge-deleted-accounts'
       fullPath: '/api/public/cron/purge-deleted-accounts'
       preLoaderRoute: typeof ApiPublicCronPurgeDeletedAccountsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cron/dunning-escalation': {
-      id: '/api/public/cron/dunning-escalation'
-      path: '/api/public/cron/dunning-escalation'
-      fullPath: '/api/public/cron/dunning-escalation'
-      preLoaderRoute: typeof ApiPublicCronDunningEscalationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/events/$id/waivers': {
@@ -2088,7 +2006,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminBookingRejectionsRoute: typeof AuthenticatedAdminBookingRejectionsRoute
-  AuthenticatedAdminCheckoutReconciliationRoute: typeof AuthenticatedAdminCheckoutReconciliationRoute
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
@@ -2117,7 +2034,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminVenueComplianceRoute: typeof AuthenticatedAdminVenueComplianceRoute
   AuthenticatedAdminVenueComplianceRemindersRoute: typeof AuthenticatedAdminVenueComplianceRemindersRoute
   AuthenticatedAdminVerificationsRoute: typeof AuthenticatedAdminVerificationsRoute
-  AuthenticatedAdminWebhookEventsRoute: typeof AuthenticatedAdminWebhookEventsRoute
   AuthenticatedContentNewRoute: typeof AuthenticatedContentNewRoute
   AuthenticatedEventsNewRoute: typeof AuthenticatedEventsNewRoute
   AuthenticatedContentIndexRoute: typeof AuthenticatedContentIndexRoute
@@ -2139,8 +2055,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAvailabilityRoute: AuthenticatedAdminAvailabilityRoute,
   AuthenticatedAdminBookingRejectionsRoute:
     AuthenticatedAdminBookingRejectionsRoute,
-  AuthenticatedAdminCheckoutReconciliationRoute:
-    AuthenticatedAdminCheckoutReconciliationRoute,
   AuthenticatedAdminCohostsRoute: AuthenticatedAdminCohostsRoute,
   AuthenticatedAdminComplianceAuditRoute:
     AuthenticatedAdminComplianceAuditRoute,
@@ -2181,7 +2095,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminVenueComplianceRemindersRoute:
     AuthenticatedAdminVenueComplianceRemindersRoute,
   AuthenticatedAdminVerificationsRoute: AuthenticatedAdminVerificationsRoute,
-  AuthenticatedAdminWebhookEventsRoute: AuthenticatedAdminWebhookEventsRoute,
   AuthenticatedContentNewRoute: AuthenticatedContentNewRoute,
   AuthenticatedEventsNewRoute: AuthenticatedEventsNewRoute,
   AuthenticatedContentIndexRoute: AuthenticatedContentIndexRoute,
@@ -2235,7 +2148,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAgeGateEventRoute: ApiPublicAgeGateEventRoute,
   ApiPublicPartnershipRoute: ApiPublicPartnershipRoute,
   LovableEmailSuppressionRoute: LovableEmailSuppressionRoute,
-  ApiPublicCronDunningEscalationRoute: ApiPublicCronDunningEscalationRoute,
   ApiPublicCronPurgeDeletedAccountsRoute:
     ApiPublicCronPurgeDeletedAccountsRoute,
   ApiPublicHooksAuditAlertNotifyRoute: ApiPublicHooksAuditAlertNotifyRoute,
@@ -2252,7 +2164,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksVeriffWebhookRoute: ApiPublicHooksVeriffWebhookRoute,
   ApiPublicPaymentsNowpaymentsWebhookRoute:
     ApiPublicPaymentsNowpaymentsWebhookRoute,
-  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
