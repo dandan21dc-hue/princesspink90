@@ -71,6 +71,26 @@ function AdminAuditPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-entries"] }),
   });
 
+  const alerts = useQuery({
+    queryKey: ["admin-audit-alerts"],
+    queryFn: () => alertsFn(),
+    enabled: isAdmin,
+    refetchInterval: 60_000,
+  });
+
+  const verify = useMutation({
+    mutationFn: () => verifyFn(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-audit-alerts"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit-entries"] });
+    },
+  });
+
+  const ack = useMutation({
+    mutationFn: (id: string) => ackFn({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-alerts"] }),
+  });
+
   if (me.isLoading) {
     return (
       <main className="min-h-screen bg-background p-8 text-sm text-muted-foreground">
