@@ -49,9 +49,35 @@ function AdminAuditPage() {
     enabled: isAdmin,
   });
 
+  const [filters, setFilters] = useState({
+    action: "",
+    resource: "",
+    actor_id: "",
+    q: "",
+    from: "",
+    to: "",
+  });
+  const [applied, setApplied] = useState(filters);
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
+
+  const toIsoStart = (d: string) => (d ? new Date(d + "T00:00:00").toISOString() : undefined);
+  const toIsoEnd = (d: string) => (d ? new Date(d + "T23:59:59.999").toISOString() : undefined);
+
+  const listArgs = {
+    action: applied.action || undefined,
+    resource: applied.resource || undefined,
+    actor_id: applied.actor_id || undefined,
+    q: applied.q || undefined,
+    from: toIsoStart(applied.from),
+    to: toIsoEnd(applied.to),
+    page,
+    pageSize,
+  };
+
   const entries = useQuery({
-    queryKey: ["admin-audit-entries"],
-    queryFn: () => listFn({ data: { limit: 300 } }),
+    queryKey: ["admin-audit-entries", listArgs],
+    queryFn: () => listFn({ data: listArgs }),
     enabled: isAdmin,
   });
 
@@ -121,7 +147,10 @@ function AdminAuditPage() {
     );
   }
 
-  const rows = entries.data ?? [];
+  const result = entries.data ?? { rows: [], total: 0, page, pageSize };
+  const rows = Array.isArray(result) ? [] : result.rows;
+  const total = Array.isArray(result) ? 0 : result.total;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -323,9 +352,100 @@ function AdminAuditPage() {
 
 
       <section className="mx-auto max-w-5xl px-5 pb-16">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setPage(1);
+            setApplied(filters);
+          }}
+          className="mb-4 rounded-2xl border border-border/60 bg-card/60 p-4"
+        >
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">Filters</div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
+            <label className="text-xs lg:col-span-2">
+              <div className="mb-1.5 text-muted-foreground">Search</div>
+              <input
+                type="text"
+                value={filters.q}
+                onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+                placeholder="action or resource"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-xs">
+              <div className="mb-1.5 text-muted-foreground">Action</div>
+              <input
+                type="text"
+                value={filters.action}
+                onChange={(e) => setFilters((f) => ({ ...f, action: e.target.value }))}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-xs">
+              <div className="mb-1.5 text-muted-foreground">Resource</div>
+              <input
+                type="text"
+                value={filters.resource}
+                onChange={(e) => setFilters((f) => ({ ...f, resource: e.target.value }))}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-xs lg:col-span-2">
+              <div className="mb-1.5 text-muted-foreground">Actor ID (UUID)</div>
+              <input
+                type="text"
+                value={filters.actor_id}
+                onChange={(e) => setFilters((f) => ({ ...f, actor_id: e.target.value.trim() }))}
+                placeholder="00000000-0000-…"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              />
+            </label>
+            <label className="text-xs">
+              <div className="mb-1.5 text-muted-foreground">From</div>
+              <input
+                type="date"
+                value={filters.from}
+                onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="text-xs">
+              <div className="mb-1.5 text-muted-foreground">To</div>
+              <input
+                type="date"
+                value={filters.to}
+                onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="submit"
+              className="rounded-md bg-primary px-3 py-2 text-xs font-medium uppercase tracking-widest text-primary-foreground"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const empty = { action: "", resource: "", actor_id: "", q: "", from: "", to: "" };
+                setFilters(empty);
+                setApplied(empty);
+                setPage(1);
+              }}
+              className="rounded-md border border-border px-3 py-2 text-xs font-medium uppercase tracking-widest"
+            >
+              Reset
+            </button>
+          </div>
+        </form>
+
         <div className="mb-3 flex items-center gap-3">
           <div className="text-xs text-muted-foreground">
-            {entries.isLoading ? "Loading…" : `${rows.length} entries`}
+            {entries.isLoading
+              ? "Loading…"
+              : `${total} match${total === 1 ? "" : "es"} · showing ${rows.length}`}
           </div>
           <button
             onClick={() => {
@@ -358,6 +478,7 @@ function AdminAuditPage() {
             Export CSV
           </button>
         </div>
+
         {entries.error && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive">
             {entries.error instanceof Error ? entries.error.message : "Failed to load"}
@@ -412,6 +533,29 @@ function AdminAuditPage() {
             </table>
           </div>
         )}
+        <div className="mt-4 flex items-center justify-between gap-3 text-xs">
+          <div className="text-muted-foreground">
+            Page {page} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1 || entries.isFetching}
+              className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages || entries.isFetching}
+              className="rounded-md border border-border px-3 py-2 uppercase tracking-widest disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </section>
     </main>
   );
