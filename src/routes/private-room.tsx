@@ -41,7 +41,7 @@ function PrivateRoomPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() =>
     startOfDay(addDays(new Date(), 1)),
   );
-  const [duration, setDuration] = useState<Duration>(60);
+  const [duration] = useState<Duration>(60);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [partySize, setPartySize] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
@@ -300,26 +300,10 @@ function PrivateRoomPage() {
                 Book a private session
               </h1>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                Pick your length, your day, and your time. Slot is held while you
-                complete checkout.
+                Pick your day and your time. Slot is held while you complete checkout.
               </p>
             </div>
 
-            {/* Duration toggle */}
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <DurationCard
-                selected={duration === 30}
-                onClick={() => setDuration(30)}
-                label="30 minutes"
-                price="A$150"
-              />
-              <DurationCard
-                selected={duration === 60}
-                onClick={() => setDuration(60)}
-                label="1 hour"
-                price="A$275"
-              />
-            </div>
 
             <div className="mt-8 grid gap-8 md:grid-cols-[auto_1fr]">
               <div className="rounded-2xl border border-border/60 bg-card p-2">
@@ -548,37 +532,6 @@ function PrivateRoomPage() {
   );
 }
 
-function DurationCard({
-  selected,
-  onClick,
-  label,
-  price,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  label: string;
-  price: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center justify-between rounded-2xl border p-5 text-left transition",
-        selected
-          ? "border-primary bg-primary/10 shadow-[var(--shadow-glow-pink)]"
-          : "border-border/60 bg-card hover:border-primary/50",
-      )}
-    >
-      <div>
-        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
-          Private Room
-        </div>
-        <div className="mt-1 font-display text-2xl font-extrabold">{label}</div>
-      </div>
-      <div className="font-display text-2xl font-extrabold">{price}</div>
-    </button>
-  );
-}
 
 function ReviewBookingCard({
   selectedSlot,
