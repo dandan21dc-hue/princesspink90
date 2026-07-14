@@ -319,7 +319,13 @@ function PrivateRoomPage() {
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                 Pick your day and your time. Slot is held while you complete checkout.
               </p>
+              <div className="mt-4 inline-flex items-center gap-3 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs uppercase tracking-widest text-primary">
+                <span>{durationLabel}</span>
+                <span aria-hidden>·</span>
+                <span>{priceLabel}</span>
+              </div>
             </div>
+
 
 
             <div className="mt-8 grid gap-8 md:grid-cols-[auto_1fr]">
@@ -466,13 +472,13 @@ function PrivateRoomPage() {
                   </div>
                   <div>
                     <label htmlFor="duration-summary" className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Duration
+                      Session
                     </label>
                     <div
                       id="duration-summary"
                       className="mt-2 rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
                     >
-                      {duration === 30 ? "30 minutes · A$150" : "1 hour · A$275"}
+                      {durationLabel} · {priceLabel}
                     </div>
                   </div>
                 </div>
@@ -502,8 +508,7 @@ function PrivateRoomPage() {
                       <>
                         <span className="text-muted-foreground">Selected: </span>
                         <span className="font-medium">
-                          {format(selectedSlot, "EEE d MMM · h:mm a")} ·{" "}
-                          {duration === 30 ? "30 min" : "1 hour"}
+                          {format(selectedSlot, "EEE d MMM · h:mm a")} · {durationLabel}
                         </span>
                       </>
                     ) : (
