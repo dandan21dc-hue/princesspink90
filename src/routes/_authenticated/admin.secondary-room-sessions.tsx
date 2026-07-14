@@ -185,8 +185,8 @@ function SecondaryRoomSessionsAdmin() {
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Admin</div>
           <h1 className="mt-2 font-display text-3xl font-semibold">Secondary Room Sessions</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage individual private-session time slots. Booked or unavailable
-            slots are hidden from the public Private Room booking page.
+            Manage independent time slots for the Secondary Room (Glory Holes).
+            Booked or unavailable slots are hidden from the public Glory Holes booking page.
           </p>
         </div>
         <div className="flex items-center gap-2">
