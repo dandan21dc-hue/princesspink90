@@ -299,9 +299,24 @@ function AvailabilityAdmin() {
               </tr>
             </thead>
             <tbody>
-              {slots.map((s) => (
-                <tr key={s.id} className="border-t border-border/40">
-                  <td className="px-4 py-3">{fmt(s.start_time)}</td>
+              {slots.map((s) => {
+                const inConflict = conflictIds.has(s.id);
+                return (
+                <tr
+                  key={s.id}
+                  className={`border-t border-border/40 ${inConflict ? "bg-destructive/5" : ""}`}
+                >
+                  <td className="px-4 py-3">
+                    {inConflict && (
+                      <span
+                        title="This slot overlaps another — see conflict warning above"
+                        className="mr-2 inline-block rounded border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-destructive"
+                      >
+                        Conflict
+                      </span>
+                    )}
+                    {fmt(s.start_time)}
+                  </td>
                   <td className="px-4 py-3">{fmt(s.end_time)}</td>
                   <td className="px-4 py-3">
                     {s.is_booked ? (
