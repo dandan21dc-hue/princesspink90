@@ -302,7 +302,7 @@ export const cancelMyPrivateRoomBooking = createServerFn({ method: "POST" })
 // Reschedule a booking. Keeps duration, moves starts_at, validates lead time and no overlap.
 export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { id: string; startsAt: string }) => {
+  .inputValidator((data: { id: string; startsAt: string; timeZone?: string }) => {
     if (!/^[0-9a-f-]{36}$/i.test(data.id)) throw new Error("Invalid id");
     if (Number.isNaN(Date.parse(data.startsAt))) throw new Error("Invalid startsAt");
     return data;
@@ -310,7 +310,9 @@ export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error: readErr } = await context.supabase
       .from("private_room_bookings")
-      .select("id,user_id,starts_at,duration_minutes,status")
+      .select(
+        "id,user_id,starts_at,duration_minutes,status,amount_cents,currency,party_size,customer_email",
+      )
       .eq("id", data.id)
       .maybeSingle();
     if (readErr) throw new Error(readErr.message);
@@ -342,14 +344,39 @@ export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
       return bStart < newEnd.getTime() && bEnd > newStart.getTime();
     });
     if (conflict) throw new Error("That slot is no longer available");
+    const oldStartsAt = row.starts_at as string;
     const { error } = await supabaseAdmin
       .from("private_room_bookings")
       .update({ starts_at: newStart.toISOString(), updated_at: new Date().toISOString() })
       .eq("id", data.id)
       .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
+
+    try {
+      const claimEmail =
+        (context.claims as { email?: string } | null | undefined)?.email ?? null;
+      const recipient = (row.customer_email as string | null) ?? claimEmail;
+      if (recipient) {
+        await enqueueBookingRescheduledEmail({
+          bookingId: row.id as string,
+          recipient,
+          oldStartsAt,
+          newStartsAt: newStart.toISOString(),
+          durationMinutes: row.duration_minutes as number,
+          partySize: (row.party_size as number | null) ?? 1,
+          amountCents: row.amount_cents as number | null,
+          currency: row.currency as string | null,
+          timeZone: data.timeZone,
+          rescheduledByStaff: false,
+        });
+      }
+    } catch (e) {
+      console.error("[rescheduleMyPrivateRoomBooking] failed to enqueue reschedule email", e);
+    }
+
     return { ok: true };
   });
+
 
 // ---------------------------------------------------------------------------
 // Admin-only booking mutations
