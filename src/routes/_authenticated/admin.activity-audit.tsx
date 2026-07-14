@@ -809,45 +809,87 @@ function AdminAuditPage() {
                       </th>
                     );
                   })}
+                  <th className="px-4 py-3">Trust</th>
                   <th className="px-4 py-3">Metadata</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr
-                    key={r.id}
-                    onClick={() => setSelectedId(r.id)}
-                    className="cursor-pointer border-t border-border/40 align-top hover:bg-muted/20"
-                  >
-                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                      {new Date(r.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-foreground">{r.actor_display_name ?? "—"}</div>
-                      <div
-                        className="text-[10px] text-muted-foreground truncate max-w-[16ch]"
-                        title={r.actor_id}
-                      >
-                        {r.actor_id.slice(0, 8)}…
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-primary">
-                        {r.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{r.resource}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      <pre className="whitespace-pre-wrap break-words text-[11px] line-clamp-2">
-                        {JSON.stringify(r.metadata, null, 0)}
-                      </pre>
-                      <span className="mt-1 inline-block text-[10px] uppercase tracking-widest text-primary">
-                        View details →
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((r) => {
+                  const trustTone =
+                    r.trust === "trusted"
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      : r.trust === "untrusted"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-amber-500/15 text-amber-600 dark:text-amber-400";
+                  return (
+                    <tr
+                      key={r.id}
+                      onClick={() => setSelectedId(r.id)}
+                      className="cursor-pointer border-t border-border/40 align-top hover:bg-muted/20"
+                    >
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(r.created_at).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-foreground">{r.actor_display_name ?? "—"}</div>
+                        <div
+                          className="text-[10px] text-muted-foreground truncate max-w-[16ch]"
+                          title={r.actor_id}
+                        >
+                          {r.actor_id.slice(0, 8)}…
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] uppercase tracking-widest text-primary">
+                          {r.action}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{r.resource}</td>
+                      <td className="px-4 py-3 text-xs">
+                        <span
+                          className={`inline-block rounded px-1.5 py-0.5 text-[10px] uppercase tracking-widest ${trustTone}`}
+                          title={r.quarantine_reason ?? undefined}
+                        >
+                          {r.trust}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (r.trust === "quarantined") {
+                              quarantine.mutate({ id: r.id, quarantined: false });
+                            } else {
+                              const reason = window.prompt(
+                                "Quarantine reason (optional):",
+                                "",
+                              );
+                              if (reason === null) return; // cancelled
+                              quarantine.mutate({
+                                id: r.id,
+                                quarantined: true,
+                                reason: reason || undefined,
+                              });
+                            }
+                          }}
+                          disabled={quarantine.isPending}
+                          className="ml-2 rounded border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-widest hover:bg-muted/40 disabled:opacity-50"
+                        >
+                          {r.trust === "quarantined" ? "Release" : "Quarantine"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        <pre className="whitespace-pre-wrap break-words text-[11px] line-clamp-2">
+                          {JSON.stringify(r.metadata, null, 0)}
+                        </pre>
+                        <span className="mt-1 inline-block text-[10px] uppercase tracking-widest text-primary">
+                          View details →
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
+
             </table>
           </div>
         )}
