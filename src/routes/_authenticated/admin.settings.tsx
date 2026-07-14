@@ -33,6 +33,7 @@ function AdminSettings() {
   const [email, setEmail] = useState("");
   const [fetlife, setFetlife] = useState("");
   const [reddit, setReddit] = useState("");
+  const [gloryHolesEnabled, setGloryHolesEnabled] = useState(true);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -40,18 +41,28 @@ function AdminSettings() {
       setEmail(settings.data.email);
       setFetlife(settings.data.fetlife_handle);
       setReddit(settings.data.reddit_handle);
+      setGloryHolesEnabled(settings.data.glory_holes_enabled);
     }
   }, [settings.data]);
 
   const save = useMutation({
     mutationFn: () =>
-      updateFn({ data: { email, fetlife_handle: fetlife, reddit_handle: reddit } }),
+      updateFn({
+        data: {
+          email,
+          fetlife_handle: fetlife,
+          reddit_handle: reddit,
+          glory_holes_enabled: gloryHolesEnabled,
+        },
+      }),
     onSuccess: () => {
       setSaved(true);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
+      qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       setTimeout(() => setSaved(false), 2500);
     },
   });
+
 
   if (me.isLoading) return <Shell><p className="text-muted-foreground">Loading…</p></Shell>;
   if (!me.data?.isAdmin) {
