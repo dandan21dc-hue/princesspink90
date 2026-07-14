@@ -357,6 +357,9 @@ export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
         (context.claims as { email?: string } | null | undefined)?.email ?? null;
       const recipient = (row.customer_email as string | null) ?? claimEmail;
       if (recipient) {
+        const { enqueueBookingRescheduledEmail } = await import(
+          "@/lib/booking-reschedule-email.server"
+        );
         await enqueueBookingRescheduledEmail({
           bookingId: row.id as string,
           recipient,
@@ -373,6 +376,7 @@ export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
     } catch (e) {
       console.error("[rescheduleMyPrivateRoomBooking] failed to enqueue reschedule email", e);
     }
+
 
     return { ok: true };
   });
