@@ -5,7 +5,7 @@ import {
   createStripeClient,
   getStripeErrorMessage,
 } from "@/lib/stripe.server";
-import { ensureSessionIdInReturnUrl } from "@/lib/store.functions";
+import { ensureSessionIdInReturnUrl, assertAllowedReturnUrl } from "@/lib/store.functions";
 
 type Result<T> = T | { error: string };
 
