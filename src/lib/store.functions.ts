@@ -718,10 +718,14 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
 
 
         // Private room: create a pending booking BEFORE checkout so the slot
-        // is held. Verify no overlap. Amount now comes from Stripe (source
-        // of truth) instead of a hardcoded switch.
+        // is held. Verify no overlap. Duration/amount default to the global
+        // site_settings values (the admin-configured defaults) whenever the
+        // caller hasn't supplied an explicit override — the price-slug
+        // (e.g. `private_room_60min_aud`) and the Stripe unit_amount are
+        // treated as per-booking overrides layered over those defaults.
+        const isBookingCheckout = privateRoomMinutes !== null || Boolean(data.bookingStartsAt);
         let privateRoomBookingId: string | null = null;
-        if (privateRoomMinutes) {
+        if (isBookingCheckout) {
           if (!data.userId) throw new Error("Sign in required to book the private room");
           if (!data.bookingStartsAt) throw new Error("Please pick a start time");
           const startsAt = new Date(data.bookingStartsAt);
@@ -729,8 +733,25 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           if (startsAt.getTime() < Date.now() + 60 * 60 * 1000) {
             throw new Error("Bookings must be at least 1 hour in advance");
           }
-          const endsAt = new Date(startsAt.getTime() + privateRoomMinutes * 60_000);
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+          // Load global defaults once — used whenever the checkout doesn't
+          // carry an explicit override.
+          const { data: defaults } = await supabaseAdmin
+            .from("site_settings")
+            .select("session_price_cents, session_duration_minutes")
+            .eq("id", "host")
+            .maybeSingle();
+          const defaultDurationMinutes = defaults?.session_duration_minutes ?? 60;
+          const defaultPriceCents = defaults?.session_price_cents ?? 27500;
+
+          const bookingDurationMinutes = privateRoomMinutes ?? defaultDurationMinutes;
+          const bookingAmountCents =
+            typeof stripePrice.unit_amount === "number" && stripePrice.unit_amount > 0
+              ? stripePrice.unit_amount
+              : defaultPriceCents;
+
+          const endsAt = new Date(startsAt.getTime() + bookingDurationMinutes * 60_000);
           const { data: busy, error: busyErr } = await supabaseAdmin.rpc(
             "get_private_room_busy",
             { from_ts: startsAt.toISOString(), to_ts: endsAt.toISOString() },
@@ -743,9 +764,9 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             .insert({
               user_id: data.userId,
               starts_at: startsAt.toISOString(),
-              duration_minutes: privateRoomMinutes,
+              duration_minutes: bookingDurationMinutes,
               status: "pending",
-              amount_cents: stripePrice.unit_amount ?? 0,
+              amount_cents: bookingAmountCents,
               currency: "aud",
               environment: env,
               customer_email: data.customerEmail ?? null,
