@@ -84,7 +84,7 @@ export const Route = createFileRoute('/api/public/hooks/audit-alert-notify')({
         }
         if (!alert) return json({ error: 'not_found' }, 404)
         if (alert.notified_at) {
-          return json({ ok: true, skipped: 'already_notified' })
+          return json({ ok: true, skipped: 'already_notified' }, 200)
         }
 
         const detail = alert.detail as Record<string, unknown> | null
