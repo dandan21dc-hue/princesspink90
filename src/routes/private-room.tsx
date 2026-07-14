@@ -9,6 +9,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { listPrivateRoomBusy } from "@/lib/store.functions";
+import { getSessionPricing } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/private-room")({
   head: () => ({
@@ -33,7 +34,15 @@ const DAY_START_HOUR = 10; // 10:00
 const DAY_END_HOUR = 22; // last slot must end by 22:00
 const SLOT_STEP_MIN = 30;
 
-type Duration = 30 | 60;
+function formatAud(cents: number) {
+  return `A$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+}
+function formatDuration(min: number) {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? (h === 1 ? "1 hour" : `${h} hours`) : `${h}h ${m}m`;
+}
 
 function PrivateRoomPage() {
   const navigate = useNavigate();
@@ -41,7 +50,15 @@ function PrivateRoomPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() =>
     startOfDay(addDays(new Date(), 1)),
   );
-  const [duration] = useState<Duration>(60);
+  const pricing = useQuery({
+    queryKey: ["session-pricing"],
+    queryFn: () => getSessionPricing(),
+    staleTime: 60_000,
+  });
+  const duration = pricing.data?.duration_minutes ?? 60;
+  const priceCents = pricing.data?.price_cents ?? 27500;
+  const priceLabel = formatAud(priceCents);
+  const durationLabel = formatDuration(duration);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [partySize, setPartySize] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
@@ -224,7 +241,7 @@ function PrivateRoomPage() {
     if (pending) return;
     if (!user || !selectedSlot) return;
     setPending(true);
-    const priceId = duration === 30 ? "private_room_30min_aud" : "private_room_60min_aud";
+    const priceId = duration <= 30 ? "private_room_30min_aud" : "private_room_60min_aud";
     openCheckout({
       priceId,
       userId: user.id,
@@ -272,6 +289,8 @@ function PrivateRoomPage() {
           <ReviewBookingCard
             selectedSlot={selectedSlot}
             duration={duration}
+            priceLabel={priceLabel}
+            durationLabel={durationLabel}
             partySize={partySize}
             notes={notes}
             pending={pending}
@@ -302,7 +321,13 @@ function PrivateRoomPage() {
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
                 Pick your day and your time. Slot is held while you complete checkout.
               </p>
+              <div className="mt-4 inline-flex items-center gap-3 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs uppercase tracking-widest text-primary">
+                <span>{durationLabel}</span>
+                <span aria-hidden>·</span>
+                <span>{priceLabel}</span>
+              </div>
             </div>
+
 
 
             <div className="mt-8 grid gap-8 md:grid-cols-[auto_1fr]">
@@ -449,13 +474,13 @@ function PrivateRoomPage() {
                   </div>
                   <div>
                     <label htmlFor="duration-summary" className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Duration
+                      Session
                     </label>
                     <div
                       id="duration-summary"
                       className="mt-2 rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
                     >
-                      {duration === 30 ? "30 minutes · A$150" : "1 hour · A$275"}
+                      {durationLabel} · {priceLabel}
                     </div>
                   </div>
                 </div>
@@ -485,8 +510,7 @@ function PrivateRoomPage() {
                       <>
                         <span className="text-muted-foreground">Selected: </span>
                         <span className="font-medium">
-                          {format(selectedSlot, "EEE d MMM · h:mm a")} ·{" "}
-                          {duration === 30 ? "30 min" : "1 hour"}
+                          {format(selectedSlot, "EEE d MMM · h:mm a")} · {durationLabel}
                         </span>
                       </>
                     ) : (
@@ -536,6 +560,8 @@ function PrivateRoomPage() {
 function ReviewBookingCard({
   selectedSlot,
   duration,
+  priceLabel,
+  durationLabel,
   partySize,
   notes,
   pending,
@@ -543,14 +569,15 @@ function ReviewBookingCard({
   onConfirm,
 }: {
   selectedSlot: Date;
-  duration: Duration;
+  duration: number;
+  priceLabel: string;
+  durationLabel: string;
   partySize: number;
   notes: string;
   pending: boolean;
   onEdit: () => void;
   onConfirm: () => void;
 }) {
-  const priceLabel = duration === 30 ? "A$150" : "A$275";
   const endsAt = new Date(selectedSlot.getTime() + duration * 60_000);
   return (
     <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-primary/40 bg-card p-6 shadow-[var(--shadow-glow-pink)]">
@@ -570,7 +597,7 @@ function ReviewBookingCard({
         <Row label="Time">
           {format(selectedSlot, "h:mm a")} – {format(endsAt, "h:mm a")}
         </Row>
-        <Row label="Duration">{duration === 30 ? "30 minutes" : "1 hour"}</Row>
+        <Row label="Duration">{durationLabel}</Row>
         <Row label="Party size">
           {partySize} {partySize === 1 ? "guest" : "guests"}
         </Row>

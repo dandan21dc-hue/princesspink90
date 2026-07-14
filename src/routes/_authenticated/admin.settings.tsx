@@ -43,6 +43,8 @@ function AdminSettings() {
   const [fetlife, setFetlife] = useState("");
   const [reddit, setReddit] = useState("");
   const [gloryHolesEnabled, setGloryHolesEnabled] = useState(true);
+  const [sessionPriceDollars, setSessionPriceDollars] = useState("275");
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState(60);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -51,23 +53,36 @@ function AdminSettings() {
       setFetlife(settings.data.fetlife_handle);
       setReddit(settings.data.reddit_handle);
       setGloryHolesEnabled(settings.data.glory_holes_enabled);
+      setSessionPriceDollars((settings.data.session_price_cents / 100).toFixed(2));
+      setSessionDurationMinutes(settings.data.session_duration_minutes);
     }
   }, [settings.data]);
 
   const save = useMutation({
-    mutationFn: () =>
-      updateFn({
+    mutationFn: () => {
+      const cents = Math.round(parseFloat(sessionPriceDollars) * 100);
+      if (!Number.isFinite(cents) || cents <= 0) {
+        throw new Error("Enter a valid session price greater than 0.");
+      }
+      if (!Number.isFinite(sessionDurationMinutes) || sessionDurationMinutes <= 0) {
+        throw new Error("Enter a valid duration greater than 0.");
+      }
+      return updateFn({
         data: {
           email,
           fetlife_handle: fetlife,
           reddit_handle: reddit,
           glory_holes_enabled: gloryHolesEnabled,
+          session_price_cents: cents,
+          session_duration_minutes: sessionDurationMinutes,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       setSaved(true);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
+      qc.invalidateQueries({ queryKey: ["session-pricing"] });
       setTimeout(() => setSaved(false), 2500);
     },
   });
@@ -139,6 +154,43 @@ function AdminSettings() {
             <span>{gloryHolesEnabled ? "Enabled — page is live" : "Disabled — page is hidden"}</span>
           </label>
         </Field>
+        <div className="rounded-md border border-border/60 bg-muted/30 p-4">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">
+            Session pricing
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Shown on the Private Room and Glory Holes booking pages. Note: the amount charged at
+            checkout is still controlled by your Stripe price catalogue — keep those in sync.
+          </p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field label="Active session price (AUD)" hint="e.g. 275.00">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">A$</span>
+                <input
+                  type="number"
+                  min={1}
+                  step="0.01"
+                  required
+                  value={sessionPriceDollars}
+                  onChange={(e) => setSessionPriceDollars(e.target.value)}
+                  className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </Field>
+            <Field label="Session duration (minutes)" hint="e.g. 60">
+              <input
+                type="number"
+                min={1}
+                max={480}
+                step={5}
+                required
+                value={sessionDurationMinutes}
+                onChange={(e) => setSessionDurationMinutes(Number(e.target.value))}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </Field>
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <button
             type="submit"

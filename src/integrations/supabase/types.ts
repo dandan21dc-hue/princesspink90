@@ -1671,6 +1671,8 @@ export type Database = {
           glory_holes_enabled: boolean
           id: string
           reddit_handle: string
+          session_duration_minutes: number
+          session_price_cents: number
           updated_at: string
         }
         Insert: {
@@ -1679,6 +1681,8 @@ export type Database = {
           glory_holes_enabled?: boolean
           id?: string
           reddit_handle?: string
+          session_duration_minutes?: number
+          session_price_cents?: number
           updated_at?: string
         }
         Update: {
@@ -1687,6 +1691,8 @@ export type Database = {
           glory_holes_enabled?: boolean
           id?: string
           reddit_handle?: string
+          session_duration_minutes?: number
+          session_price_cents?: number
           updated_at?: string
         }
         Relationships: []
