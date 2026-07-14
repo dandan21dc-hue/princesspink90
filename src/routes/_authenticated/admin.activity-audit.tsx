@@ -323,8 +323,40 @@ function AdminAuditPage() {
 
 
       <section className="mx-auto max-w-5xl px-5 pb-16">
-        <div className="mb-3 text-xs text-muted-foreground">
-          {entries.isLoading ? "Loading…" : `${rows.length} entries`}
+        <div className="mb-3 flex items-center gap-3">
+          <div className="text-xs text-muted-foreground">
+            {entries.isLoading ? "Loading…" : `${rows.length} entries`}
+          </div>
+          <button
+            onClick={() => {
+              const header = ["created_at", "actor_id", "actor_display_name", "action", "resource"];
+              const escape = (v: unknown) => {
+                const s = v === null || v === undefined ? "" : String(v);
+                return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+              };
+              const lines = [
+                header.join(","),
+                ...rows.map((r) =>
+                  [r.created_at, r.actor_id, r.actor_display_name ?? "", r.action, r.resource]
+                    .map(escape)
+                    .join(","),
+                ),
+              ];
+              const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `admin-activity-audit-${new Date().toISOString().slice(0, 10)}.csv`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }}
+            disabled={rows.length === 0}
+            className="ml-auto rounded-md border border-border px-3 py-2 text-xs font-medium uppercase tracking-widest disabled:opacity-50"
+          >
+            Export CSV
+          </button>
         </div>
         {entries.error && (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive">
