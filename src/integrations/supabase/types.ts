@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_audit: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          resource: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          resource: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          resource?: string
+        }
+        Relationships: []
+      }
+      admin_activity_audit_retention: {
+        Row: {
+          id: boolean
+          retention_days: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: boolean
+          retention_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: boolean
+          retention_days?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       age_gate_events: {
         Row: {
           context: string
@@ -2195,6 +2243,7 @@ export type Database = {
         Returns: number
       }
       purge_account_rows: { Args: { _user_id: string }; Returns: undefined }
+      purge_expired_admin_activity_audit: { Args: never; Returns: number }
       purge_expired_health_screenings: { Args: never; Returns: number }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
