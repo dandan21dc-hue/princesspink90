@@ -351,6 +351,158 @@ export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------------------------------------------------------------------------
+// Admin-only booking mutations
+// ---------------------------------------------------------------------------
+// The self-serve cancel/reschedule server fns above intentionally forbid
+// anyone but the booking owner. These admin variants add role-based access so
+// only users with the `admin` role can publish changes to another guest's
+// booking. They bypass the owner's 2-hour cancel and 1-hour reschedule lead
+// times because operators sometimes need to move or void a booking at short
+// notice, but every other invariant (valid slot window, no overlap with an
+// existing booking, cannot un-cancel) still applies.
+
+async function assertBookingAdmin(supabase: any, userId: string) {
+  const { data, error } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Admin access required");
+}
+
+export const adminCancelPrivateRoomBooking = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string; timeZone?: string; reason?: string }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(data.id)) throw new Error("Invalid id");
+    if (data.reason !== undefined && typeof data.reason !== "string") {
+      throw new Error("Invalid reason");
+    }
+    if (typeof data.reason === "string" && data.reason.length > 500) {
+      throw new Error("Reason too long");
+    }
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    await assertBookingAdmin(context.supabase, context.userId);
+    const { data: row, error: readErr } = await context.supabase
+      .from("private_room_bookings")
+      .select(
+        "id,user_id,starts_at,status,duration_minutes,amount_cents,currency,party_size,customer_email",
+      )
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!row) throw new Error("Booking not found");
+    if (row.status === "cancelled") throw new Error("Already cancelled");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("private_room_bookings")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+
+    // Cancellation email — same shape as the owner-side flow.
+    try {
+      const durationMinutes = (row.duration_minutes as number) ?? 60;
+      const { formatBookingDateTime } = await import("@/lib/booking-format");
+      const { dateLabel, timeLabel } = formatBookingDateTime(
+        row.starts_at as string,
+        durationMinutes,
+        data.timeZone,
+      );
+      const durationLabel = durationMinutes === 30 ? "30-minute session" : "1-hour session";
+      const amount =
+        row.amount_cents != null
+          ? new Intl.NumberFormat("en-AU", {
+              style: "currency",
+              currency: ((row.currency as string | null) ?? "aud").toUpperCase(),
+            }).format((row.amount_cents as number) / 100)
+          : undefined;
+      const recipient = (row.customer_email as string | null) ?? null;
+      if (recipient) {
+        const origin =
+          process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ??
+          process.env.SITE_URL?.replace(/\/$/, "") ??
+          "https://princesspink90.com";
+        const dashboardUrl = `${origin}/bookings`;
+        const { enqueueTemplateEmail } = await import("@/lib/email/enqueue.server");
+        await enqueueTemplateEmail({
+          templateName: "booking-cancelled",
+          recipientEmail: recipient,
+          idempotencyKey: `booking-cancelled-${row.id}`,
+          templateData: {
+            dateLabel,
+            timeLabel,
+            durationLabel,
+            partySize: (row.party_size as number | null) ?? 1,
+            amount,
+            bookingId: row.id as string,
+            dashboardUrl,
+          },
+        });
+      }
+    } catch (e) {
+      console.error("[adminCancelPrivateRoomBooking] failed to enqueue cancellation email", e);
+    }
+
+    return { ok: true, bookingId: row.id as string };
+  });
+
+export const adminReschedulePrivateRoomBooking = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string; startsAt: string; reason?: string }) => {
+    if (!/^[0-9a-f-]{36}$/i.test(data.id)) throw new Error("Invalid id");
+    if (Number.isNaN(Date.parse(data.startsAt))) throw new Error("Invalid startsAt");
+    if (typeof data.reason === "string" && data.reason.length > 500) {
+      throw new Error("Reason too long");
+    }
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    await assertBookingAdmin(context.supabase, context.userId);
+    const { data: row, error: readErr } = await context.supabase
+      .from("private_room_bookings")
+      .select("id,user_id,starts_at,duration_minutes,status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!row) throw new Error("Booking not found");
+    if (row.status === "cancelled") throw new Error("Cannot reschedule a cancelled booking");
+
+    const newStart = new Date(data.startsAt);
+    const hour = newStart.getHours();
+    if (hour < 10 || hour > 21) throw new Error("Time must be between 10:00 and 22:00");
+    const newEnd = new Date(newStart.getTime() + row.duration_minutes * 60_000);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: busy, error: busyErr } = await supabaseAdmin
+      .from("private_room_bookings")
+      .select("id,starts_at,duration_minutes,status,created_at")
+      .neq("id", data.id)
+      .in("status", ["confirmed", "pending"])
+      .gte("starts_at", new Date(newStart.getTime() - 2 * 60 * 60_000).toISOString())
+      .lte("starts_at", new Date(newEnd.getTime() + 2 * 60 * 60_000).toISOString());
+    if (busyErr) throw new Error(busyErr.message);
+    const conflict = (busy ?? []).some((b) => {
+      if (b.status === "pending" && new Date(b.created_at).getTime() < Date.now() - 15 * 60_000) {
+        return false;
+      }
+      const bStart = new Date(b.starts_at).getTime();
+      const bEnd = bStart + b.duration_minutes * 60_000;
+      return bStart < newEnd.getTime() && bEnd > newStart.getTime();
+    });
+    if (conflict) throw new Error("That slot conflicts with another booking");
+
+    const { error } = await supabaseAdmin
+      .from("private_room_bookings")
+      .update({ starts_at: newStart.toISOString(), updated_at: new Date().toISOString() })
+      .eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true, bookingId: row.id as string };
+  });
+
 
 
 
