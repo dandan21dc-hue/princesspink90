@@ -18,14 +18,18 @@ export const nowpaymentsProvider: PaymentProvider = {
   useCheckout() {
     const [isOpen, setIsOpen] = useState(false);
 
-    const openCheckout = useCallback(async (_opts: CheckoutOptions) => {
+    const openCheckout = useCallback(async (opts: CheckoutOptions) => {
       setIsOpen(true);
       try {
         const environment = (import.meta.env.MODE === "production" ? "live" : "sandbox") as
           | "sandbox"
           | "live";
-        const result = await createAapInvoice({
-          data: { environment, returnOrigin: window.location.origin },
+        const result = await createNowpaymentsInvoice({
+          data: {
+            environment,
+            returnOrigin: window.location.origin,
+            ...(opts.priceId ? { priceId: opts.priceId } : {}),
+          },
         });
         if ("error" in result) {
           toast.error(`Couldn't start checkout: ${result.error}`);
