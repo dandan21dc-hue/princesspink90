@@ -188,6 +188,51 @@ function AvailabilityAdmin() {
         <SummaryTile label="Booked / blocked" value={bookedCount} tone="used" />
       </div>
 
+      {conflicts.length > 0 && (
+        <div className="mt-6 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <div className="flex items-center gap-2 font-semibold">
+            <span aria-hidden>⚠</span>
+            {conflicts.length} scheduling conflict{conflicts.length === 1 ? "" : "s"} — resolve before publishing new slots
+          </div>
+          <ul className="mt-2 space-y-2 text-xs">
+            {conflicts.map((c, i) => {
+              const overlapStart = new Date(
+                Math.max(new Date(c.a.start_time).getTime(), new Date(c.b.start_time).getTime()),
+              );
+              const overlapEnd = new Date(
+                Math.min(new Date(c.a.end_time).getTime(), new Date(c.b.end_time).getTime()),
+              );
+              const overlapMin = Math.round(
+                (overlapEnd.getTime() - overlapStart.getTime()) / 60000,
+              );
+              const earlier = new Date(c.a.start_time) <= new Date(c.b.start_time) ? c.a : c.b;
+              const later = earlier === c.a ? c.b : c.a;
+              return (
+                <li
+                  key={i}
+                  className="rounded border border-destructive/30 bg-background/40 px-3 py-2 text-foreground"
+                >
+                  <div className="text-destructive">
+                    Overlap of {overlapMin} min ({fmt(overlapStart.toISOString())} → {fmt(overlapEnd.toISOString())})
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    <strong className="text-foreground">A:</strong> {fmt(earlier.start_time)} → {fmt(earlier.end_time)}
+                    {earlier.is_booked ? " (booked/blocked)" : " (available)"}
+                    <br />
+                    <strong className="text-foreground">B:</strong> {fmt(later.start_time)} → {fmt(later.end_time)}
+                    {later.is_booked ? " (booked/blocked)" : " (available)"}
+                  </div>
+                  <div className="mt-1 text-xs">
+                    Fix: shorten <strong>A</strong> to end by {fmt(later.start_time)}, or move
+                    <strong> B</strong> to start at or after {fmt(earlier.end_time)}, or delete one of them.
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {error && (
         <p className="mt-6 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {error}
