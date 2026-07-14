@@ -289,6 +289,8 @@ function PrivateRoomPage() {
           <ReviewBookingCard
             selectedSlot={selectedSlot}
             duration={duration}
+            priceLabel={priceLabel}
+            durationLabel={durationLabel}
             partySize={partySize}
             notes={notes}
             pending={pending}
