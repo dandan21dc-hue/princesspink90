@@ -209,8 +209,8 @@ function ContactCard({ label, value, href }: { label: string; value: string; hre
 function MapSection() {
   const { data: pins } = useSuspenseQuery(mapPinsQuery);
   return (
-    <section id="map" className="mx-auto max-w-6xl px-5 pb-24">
-      <div className="mb-6">
+    <section id="map" className="w-full pb-24">
+      <div className="mx-auto max-w-6xl px-5 mb-6">
         <div className="text-xs uppercase tracking-[0.3em] text-primary">Where we play</div>
         <h2 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">
           On the <span className="text-neon">map</span>
@@ -219,7 +219,11 @@ function MapSection() {
           Venues, meet points, and marked spots for upcoming nights.
         </p>
       </div>
-      <MapPinsMap pins={pins} className="h-[480px] w-full" />
+      <div className="relative w-full border-y border-border/60">
+        <MapPinsMap pins={pins} className="h-[520px] w-full" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-background to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent" />
+      </div>
     </section>
   );
 }
