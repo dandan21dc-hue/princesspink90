@@ -66,6 +66,7 @@ import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminPantyListingsRouteImport } from './routes/_authenticated/admin.panty-listings'
 import { Route as AuthenticatedAdminOrdersStatusRouteImport } from './routes/_authenticated/admin.orders-status'
 import { Route as AuthenticatedAdminMediaModerationRouteImport } from './routes/_authenticated/admin.media-moderation'
+import { Route as AuthenticatedAdminMapPinsRouteImport } from './routes/_authenticated/admin.map-pins'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
 import { Route as AuthenticatedAdminHealthRemindersRouteImport } from './routes/_authenticated/admin.health-reminders'
 import { Route as AuthenticatedAdminHealthPurgeRouteImport } from './routes/_authenticated/admin.health-purge'
@@ -411,6 +412,12 @@ const AuthenticatedAdminMediaModerationRoute =
     path: '/admin/media-moderation',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminMapPinsRoute =
+  AuthenticatedAdminMapPinsRouteImport.update({
+    id: '/admin/map-pins',
+    path: '/admin/map-pins',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminLifetimeRoute =
   AuthenticatedAdminLifetimeRouteImport.update({
     id: '/admin/lifetime',
@@ -713,6 +720,7 @@ export interface FileRoutesByFullPath {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/map-pins': typeof AuthenticatedAdminMapPinsRoute
   '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
   '/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
@@ -812,6 +820,7 @@ export interface FileRoutesByTo {
   '/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/admin/map-pins': typeof AuthenticatedAdminMapPinsRoute
   '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
   '/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
@@ -914,6 +923,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/health-purge': typeof AuthenticatedAdminHealthPurgeRoute
   '/_authenticated/admin/health-reminders': typeof AuthenticatedAdminHealthRemindersRoute
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
+  '/_authenticated/admin/map-pins': typeof AuthenticatedAdminMapPinsRoute
   '/_authenticated/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
   '/_authenticated/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/_authenticated/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
@@ -1016,6 +1026,7 @@ export interface FileRouteTypes {
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
+    | '/admin/map-pins'
     | '/admin/media-moderation'
     | '/admin/orders-status'
     | '/admin/panty-listings'
@@ -1115,6 +1126,7 @@ export interface FileRouteTypes {
     | '/admin/health-purge'
     | '/admin/health-reminders'
     | '/admin/lifetime'
+    | '/admin/map-pins'
     | '/admin/media-moderation'
     | '/admin/orders-status'
     | '/admin/panty-listings'
@@ -1216,6 +1228,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/health-purge'
     | '/_authenticated/admin/health-reminders'
     | '/_authenticated/admin/lifetime'
+    | '/_authenticated/admin/map-pins'
     | '/_authenticated/admin/media-moderation'
     | '/_authenticated/admin/orders-status'
     | '/_authenticated/admin/panty-listings'
@@ -1716,6 +1729,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminMediaModerationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/map-pins': {
+      id: '/_authenticated/admin/map-pins'
+      path: '/admin/map-pins'
+      fullPath: '/admin/map-pins'
+      preLoaderRoute: typeof AuthenticatedAdminMapPinsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/lifetime': {
       id: '/_authenticated/admin/lifetime'
       path: '/admin/lifetime'
@@ -2081,6 +2101,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminHealthPurgeRoute: typeof AuthenticatedAdminHealthPurgeRoute
   AuthenticatedAdminHealthRemindersRoute: typeof AuthenticatedAdminHealthRemindersRoute
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
+  AuthenticatedAdminMapPinsRoute: typeof AuthenticatedAdminMapPinsRoute
   AuthenticatedAdminMediaModerationRoute: typeof AuthenticatedAdminMediaModerationRoute
   AuthenticatedAdminOrdersStatusRoute: typeof AuthenticatedAdminOrdersStatusRoute
   AuthenticatedAdminPantyListingsRoute: typeof AuthenticatedAdminPantyListingsRoute
@@ -2137,6 +2158,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminHealthRemindersRoute:
     AuthenticatedAdminHealthRemindersRoute,
   AuthenticatedAdminLifetimeRoute: AuthenticatedAdminLifetimeRoute,
+  AuthenticatedAdminMapPinsRoute: AuthenticatedAdminMapPinsRoute,
   AuthenticatedAdminMediaModerationRoute:
     AuthenticatedAdminMediaModerationRoute,
   AuthenticatedAdminOrdersStatusRoute: AuthenticatedAdminOrdersStatusRoute,
@@ -2241,13 +2263,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

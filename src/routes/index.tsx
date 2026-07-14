@@ -3,7 +3,9 @@ import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { listPublicEvents } from "@/lib/events.functions";
 import { getSiteSettings } from "@/lib/settings.functions";
+import { listMapPins } from "@/lib/map-pins.functions";
 import { EventCard } from "@/components/EventCard";
+import { MapPinsMap } from "@/components/MapPinsMap";
 import heroImg from "@/assets/hero.jpg";
 import { PartnershipForm } from "@/components/PartnershipForm";
 
@@ -17,11 +19,17 @@ const settingsQuery = queryOptions({
   queryFn: () => getSiteSettings(),
 });
 
+const mapPinsQuery = queryOptions({
+  queryKey: ["map-pins"],
+  queryFn: () => listMapPins(),
+});
+
 export const Route = createFileRoute("/")({
   loader: ({ context }) =>
     Promise.all([
       context.queryClient.ensureQueryData(eventsQuery),
       context.queryClient.ensureQueryData(settingsQuery),
+      context.queryClient.ensureQueryData(mapPinsQuery),
     ]),
   head: () => ({
     meta: [
@@ -72,6 +80,7 @@ function Home() {
         </Link>
       </section>
       <HostBlock />
+      <MapSection />
       <CohostBlock />
       <section id="partnerships" className="mx-auto max-w-3xl px-5 pb-24">
         <div className="rounded-3xl border border-neon/30 bg-gradient-to-br from-neon/10 via-background to-background p-6 shadow-[var(--shadow-glow-pink)] sm:p-10">
@@ -194,6 +203,24 @@ function ContactCard({ label, value, href }: { label: string; value: string; hre
       <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">{label}</div>
       <div className="mt-1 font-display text-lg text-foreground group-hover:text-neon transition">{value}</div>
     </a>
+  );
+}
+
+function MapSection() {
+  const { data: pins } = useSuspenseQuery(mapPinsQuery);
+  return (
+    <section id="map" className="mx-auto max-w-6xl px-5 pb-24">
+      <div className="mb-6">
+        <div className="text-xs uppercase tracking-[0.3em] text-primary">Where we play</div>
+        <h2 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">
+          On the <span className="text-neon">map</span>
+        </h2>
+        <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+          Venues, meet points, and marked spots for upcoming nights.
+        </p>
+      </div>
+      <MapPinsMap pins={pins} className="h-[480px] w-full" />
+    </section>
   );
 }
 
