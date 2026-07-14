@@ -956,7 +956,7 @@ function PricingAuditSection() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => updateSearch({ page: Math.max(1, page - 1) })}
             disabled={page <= 1 || audit.isLoading}
             className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
           >
