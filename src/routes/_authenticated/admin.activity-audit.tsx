@@ -60,6 +60,16 @@ function AdminAuditPage() {
   const [applied, setApplied] = useState(filters);
   const [page, setPage] = useState(1);
   const pageSize = 50;
+  const [sort, setSort] = useState<"created_at" | "action" | "resource" | "actor_id">("created_at");
+  const [dir, setDir] = useState<"asc" | "desc">("desc");
+  const toggleSort = (col: typeof sort) => {
+    if (sort === col) setDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSort(col);
+      setDir(col === "created_at" ? "desc" : "asc");
+    }
+    setPage(1);
+  };
 
   const toIsoStart = (d: string) => (d ? new Date(d + "T00:00:00").toISOString() : undefined);
   const toIsoEnd = (d: string) => (d ? new Date(d + "T23:59:59.999").toISOString() : undefined);
@@ -73,6 +83,8 @@ function AdminAuditPage() {
     to: toIsoEnd(applied.to),
     page,
     pageSize,
+    sort,
+    dir,
   };
 
   const entries = useQuery({
