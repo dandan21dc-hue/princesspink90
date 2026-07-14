@@ -33,7 +33,9 @@ export const getPublicEventById = createServerFn({ method: "GET" })
     const supabase = publicClient();
     const { data: row, error } = await supabase
       .from("events")
-      .select("*")
+      .select(
+        "id, title, tagline, description, venue_name, city, address, starts_at, ends_at, dress_code, theme, cover_image_url, ticket_price_cents, waiver_text, capacity, is_private, published",
+      )
       .eq("id", data.id)
       .eq("published", true)
       .eq("is_private", false)
