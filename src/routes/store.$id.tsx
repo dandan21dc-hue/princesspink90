@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { getStoreItem } from "@/lib/store.functions";
 
-import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { useStripeCheckout, useSubscriptionComingSoon } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { cart } from "@/lib/cart";
 import { buildAudOffer } from "@/lib/aud";
@@ -134,6 +134,7 @@ function ItemPage() {
   const navigate = useNavigate();
   const [user] = useState<{ id: string; email?: string } | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const subComingSoon = useSubscriptionComingSoon();
   const [pending, setPending] = useState<null | "buy" | "subscribe" | "cart">(null);
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -183,17 +184,12 @@ function ItemPage() {
       navigate({ to: "/auth" });
       return;
     }
-    setPending("subscribe");
-    openCheckout({
-      priceId: "all_access_monthly_aud",
-      userId: user.id,
-      customerEmail: user.email,
-      returnUrl: `${window.location.origin}/checkout/return?next=%2Flibrary`,
-    });
+    subComingSoon.show();
   }
 
   return (
     <>
+      {subComingSoon.element}
       <PaymentTestModeBanner />
       <section className="mx-auto max-w-4xl px-5 pt-8 pb-16">
         <Link to="/store" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">

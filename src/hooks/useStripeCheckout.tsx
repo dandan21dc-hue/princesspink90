@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
 import { Clock } from "lucide-react";
+import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { TermsAgreementGate } from "@/components/TermsAgreementGate";
 import {
   Dialog,
   DialogContent,
@@ -8,11 +10,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-// Payments are temporarily disabled. This hook preserves the previous API
-// (openCheckout / closeCheckout / isOpen / checkoutElement) so existing
-// button call sites keep working, but every attempt now surfaces a
-// "Coming soon" dialog instead of launching a checkout session.
 
 interface CheckoutOptions {
   priceId?: string;
@@ -29,34 +26,58 @@ interface CheckoutOptions {
 
 export function useStripeCheckout() {
   const [isOpen, setIsOpen] = useState(false);
+  const [options, setOptions] = useState<CheckoutOptions | null>(null);
 
-  const openCheckout = useCallback((_opts: CheckoutOptions) => {
+  const openCheckout = useCallback((opts: CheckoutOptions) => {
+    setOptions(opts);
     setIsOpen(true);
   }, []);
 
   const closeCheckout = useCallback(() => {
     setIsOpen(false);
+    setOptions(null);
   }, []);
 
-  const checkoutElement = (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && closeCheckout()}>
+  const checkoutElement =
+    isOpen && options ? (
+      <TermsAgreementGate>
+        <StripeEmbeddedCheckout {...options} />
+      </TermsAgreementGate>
+    ) : null;
+  return { openCheckout, closeCheckout, isOpen, checkoutElement };
+}
+
+/**
+ * Subscriptions are temporarily disabled while the subscription provider is
+ * being swapped. Use this hook in place of `openCheckout(...)` for any
+ * recurring/subscription CTA. One-time purchases and bookings continue to
+ * use `useStripeCheckout` above.
+ */
+export function useSubscriptionComingSoon() {
+  const [open, setOpen] = useState(false);
+  const show = useCallback(() => setOpen(true), []);
+  const hide = useCallback(() => setOpen(false), []);
+
+  const element = (
+    <Dialog open={open} onOpenChange={(v) => !v && hide()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
             <Clock className="h-6 w-6" aria-hidden="true" />
           </div>
-          <DialogTitle className="text-center">Payments coming soon</DialogTitle>
+          <DialogTitle className="text-center">Subscriptions coming soon</DialogTitle>
           <DialogDescription className="text-center">
-            Online checkout is temporarily unavailable while we finish setting
-            up our new payment processor. Please check back shortly.
+            We're switching subscription providers. Recurring plans are
+            temporarily unavailable — one-time purchases and bookings are
+            unaffected. Please check back shortly.
           </DialogDescription>
         </DialogHeader>
         <div className="mt-2 flex justify-center">
-          <Button onClick={closeCheckout}>Got it</Button>
+          <Button onClick={hide}>Got it</Button>
         </div>
       </DialogContent>
     </Dialog>
   );
 
-  return { openCheckout, closeCheckout, isOpen, checkoutElement };
+  return { show, hide, isOpen: open, element };
 }

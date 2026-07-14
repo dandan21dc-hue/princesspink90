@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery, useQuery } from "@tanstack/react-query"
 import { useEffect, useRef, useState, Suspense } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { useStripeCheckout, useSubscriptionComingSoon } from "@/hooks/useStripeCheckout";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { getSubscribePrices, checkPricesExist, type SubscribePrice } from "@/lib/subscribePrices.functions";
 import { getSubscriberStatus, SUBSCRIBER_DISCOUNT_PERCENT } from "@/lib/store.functions";
@@ -164,6 +164,7 @@ function SubscribePage() {
   const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const [pending, setPending] = useState<PriceId | null>(null);
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const subComingSoon = useSubscriptionComingSoon();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -174,6 +175,13 @@ function SubscribePage() {
   async function buy(priceId: PriceId, autoRenew?: boolean) {
     if (pending) {
       console.log("[subscribe] click ignored — already pending", { pending, priceId });
+      return;
+    }
+    // Recurring subscription plans are temporarily disabled while we swap
+    // the subscription provider. One-time purchases (lifetime, panty) still
+    // flow through Stripe below.
+    if (priceId.startsWith("all_access_")) {
+      subComingSoon.show();
       return;
     }
     console.log("[subscribe] click", { priceId, hasUser: !!user, autoRenew });
@@ -237,6 +245,7 @@ function SubscribePage() {
 
   return (
     <>
+      {subComingSoon.element}
       <PaymentTestModeBanner />
       <section className="mx-auto max-w-6xl px-5 pt-10 pb-16">
         <Link
