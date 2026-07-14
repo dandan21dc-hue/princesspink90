@@ -62,7 +62,7 @@ function AdminAuditPage() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = 50;
+  const [pageSize, setPageSize] = useState<number>(50);
   const [sort, setSort] = useState<"created_at" | "action" | "resource" | "actor_id">("created_at");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
   const toggleSort = (col: typeof sort) => {
@@ -73,6 +73,13 @@ function AdminAuditPage() {
     }
     setPage(1);
   };
+  const applyPreset = (preset: "newest" | "oldest") => {
+    setSort("created_at");
+    setDir(preset === "newest" ? "desc" : "asc");
+    setPage(1);
+  };
+  const isPreset = (preset: "newest" | "oldest") =>
+    sort === "created_at" && dir === (preset === "newest" ? "desc" : "asc");
 
   const toIsoStart = (d: string) => (d ? new Date(d + "T00:00:00").toISOString() : undefined);
   const toIsoEnd = (d: string) => (d ? new Date(d + "T23:59:59.999").toISOString() : undefined);
