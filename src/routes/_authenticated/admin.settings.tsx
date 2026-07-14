@@ -967,7 +967,7 @@ function PricingAuditSection() {
           </span>
           <button
             type="button"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => updateSearch({ page: Math.min(totalPages, page + 1) })}
             disabled={page >= totalPages || audit.isLoading}
             className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
           >
