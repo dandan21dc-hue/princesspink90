@@ -208,6 +208,58 @@ export const listPricingAudit = createServerFn({ method: "GET" })
     };
   });
 
+const exportSchema = auditQuerySchema.pick({
+  search: true,
+  from: true,
+  to: true,
+  sortBy: true,
+  sortDir: true,
+});
+export type PricingAuditExportQuery = z.input<typeof exportSchema>;
+
+export const exportPricingAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: PricingAuditExportQuery) => exportSchema.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<PricingAuditEntry[]> => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let q = (supabaseAdmin as unknown as { from: (t: string) => AuditBuilder })
+      .from("site_settings_pricing_audit")
+      .select(
+        "id, changed_at, changed_by, changed_by_email, old_session_price_cents, new_session_price_cents, old_session_duration_minutes, new_session_duration_minutes",
+        { count: "exact" },
+      )
+      .order(data.sortBy, { ascending: data.sortDir === "asc" });
+
+    if (data.search) {
+      const safe = data.search.replace(/[%_,]/g, (m) => `\\${m}`);
+      q = q.ilike("changed_by_email", `%${safe}%`);
+    }
+    if (data.from) {
+      const fromDate = new Date(data.from);
+      if (!isNaN(fromDate.getTime())) q = q.gte("changed_at", fromDate.toISOString());
+    }
+    if (data.to) {
+      const toDate = new Date(data.to);
+      if (!isNaN(toDate.getTime())) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(data.to)) {
+          toDate.setUTCHours(23, 59, 59, 999);
+        }
+        q = q.lte("changed_at", toDate.toISOString());
+      }
+    }
+
+    // Cap export at 10k rows — audit table stays small in practice.
+    const { data: rows, error } = await q.range(0, 9999);
+    if (error) throw error as Error;
+    return (rows ?? []) as PricingAuditEntry[];
+  });
+
 export const updateSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: SiteSettings) => updateSchema.parse(input))
