@@ -43,6 +43,8 @@ function AdminSettings() {
   const [fetlife, setFetlife] = useState("");
   const [reddit, setReddit] = useState("");
   const [gloryHolesEnabled, setGloryHolesEnabled] = useState(true);
+  const [sessionPriceDollars, setSessionPriceDollars] = useState("275");
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState(60);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -51,23 +53,36 @@ function AdminSettings() {
       setFetlife(settings.data.fetlife_handle);
       setReddit(settings.data.reddit_handle);
       setGloryHolesEnabled(settings.data.glory_holes_enabled);
+      setSessionPriceDollars((settings.data.session_price_cents / 100).toFixed(2));
+      setSessionDurationMinutes(settings.data.session_duration_minutes);
     }
   }, [settings.data]);
 
   const save = useMutation({
-    mutationFn: () =>
-      updateFn({
+    mutationFn: () => {
+      const cents = Math.round(parseFloat(sessionPriceDollars) * 100);
+      if (!Number.isFinite(cents) || cents <= 0) {
+        throw new Error("Enter a valid session price greater than 0.");
+      }
+      if (!Number.isFinite(sessionDurationMinutes) || sessionDurationMinutes <= 0) {
+        throw new Error("Enter a valid duration greater than 0.");
+      }
+      return updateFn({
         data: {
           email,
           fetlife_handle: fetlife,
           reddit_handle: reddit,
           glory_holes_enabled: gloryHolesEnabled,
+          session_price_cents: cents,
+          session_duration_minutes: sessionDurationMinutes,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       setSaved(true);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
+      qc.invalidateQueries({ queryKey: ["session-pricing"] });
       setTimeout(() => setSaved(false), 2500);
     },
   });
