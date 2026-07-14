@@ -158,6 +158,14 @@ function Auth() {
         >
           {mode === "signin" ? "New here? Create an account →" : "Already a member? Sign in →"}
         </button>
+        {mode === "signin" && (
+          <Link
+            to="/forgot-password"
+            className="mt-3 block text-center text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          >
+            Forgot password?
+          </Link>
+        )}
       </div>
     </section>
   );
