@@ -177,6 +177,13 @@ function SubscribePage() {
       console.log("[subscribe] click ignored — already pending", { pending, priceId });
       return;
     }
+    // Recurring subscription plans are temporarily disabled while we swap
+    // the subscription provider. One-time purchases (lifetime, panty) still
+    // flow through Stripe below.
+    if (priceId.startsWith("all_access_")) {
+      subComingSoon.show();
+      return;
+    }
     console.log("[subscribe] click", { priceId, hasUser: !!user, autoRenew });
     if (!user) {
       navigate({ to: "/auth" });
