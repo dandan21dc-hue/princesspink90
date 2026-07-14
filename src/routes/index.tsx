@@ -3,7 +3,9 @@ import { useSuspenseQuery, queryOptions } from "@tanstack/react-query";
 import { Suspense } from "react";
 import { listPublicEvents } from "@/lib/events.functions";
 import { getSiteSettings } from "@/lib/settings.functions";
+import { listMapPins } from "@/lib/map-pins.functions";
 import { EventCard } from "@/components/EventCard";
+import { MapPinsMap } from "@/components/MapPinsMap";
 import heroImg from "@/assets/hero.jpg";
 import { PartnershipForm } from "@/components/PartnershipForm";
 
@@ -15,6 +17,11 @@ const eventsQuery = queryOptions({
 const settingsQuery = queryOptions({
   queryKey: ["site-settings"],
   queryFn: () => getSiteSettings(),
+});
+
+const mapPinsQuery = queryOptions({
+  queryKey: ["map-pins"],
+  queryFn: () => listMapPins(),
 });
 
 export const Route = createFileRoute("/")({
