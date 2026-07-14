@@ -261,6 +261,7 @@ function AdminSettings() {
         </div>
       </form>
 
+      <PricingAuditSection />
       <ReminderJobConfigSection />
       <StripeCatalogueSyncSection />
       <ManualSubscriptionRefreshSection />
