@@ -113,6 +113,35 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_activity_audit_quarantine: {
+        Row: {
+          audit_id: string
+          quarantined_at: string
+          quarantined_by: string
+          reason: string | null
+        }
+        Insert: {
+          audit_id: string
+          quarantined_at?: string
+          quarantined_by: string
+          reason?: string | null
+        }
+        Update: {
+          audit_id?: string
+          quarantined_at?: string
+          quarantined_by?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_activity_audit_quarantine_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: true
+            referencedRelation: "admin_activity_audit"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_activity_audit_retention: {
         Row: {
           id: boolean
