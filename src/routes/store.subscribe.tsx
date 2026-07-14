@@ -86,7 +86,7 @@ export const Route = createFileRoute("/store/subscribe")({
   notFoundComponent: PageNotFound,
 });
 
-function PageShell({ children }: { children: React.ReactNode }) {
+function SubscribePageShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <PaymentTestModeBanner />
@@ -108,19 +108,19 @@ function PageShell({ children }: { children: React.ReactNode }) {
 
 function PagePending() {
   return (
-    <PageShell>
+    <SubscribePageShell>
       <div className="mt-8 space-y-4" role="status" aria-live="polite" aria-busy="true">
         <div className="h-6 w-2/3 animate-pulse rounded-md bg-muted/40" />
         <div className="h-64 animate-pulse rounded-2xl bg-muted/30" />
         <span className="sr-only">Loading plans…</span>
       </div>
-    </PageShell>
+    </SubscribePageShell>
   );
 }
 
 function PageError({ error, reset }: { error: Error; reset: () => void }) {
   return (
-    <PageShell>
+    <SubscribePageShell>
       <div role="alert" className="mt-8 rounded-2xl border border-destructive/40 bg-destructive/5 p-6">
         <div className="text-xs uppercase tracking-[0.3em] text-destructive">
           Couldn't load plans
@@ -136,15 +136,15 @@ function PageError({ error, reset }: { error: Error; reset: () => void }) {
           Try again
         </button>
       </div>
-    </PageShell>
+    </SubscribePageShell>
   );
 }
 
 function PageNotFound() {
   return (
-    <PageShell>
+    <SubscribePageShell>
       <p className="mt-8 text-sm text-muted-foreground">This page could not be found.</p>
-    </PageShell>
+    </SubscribePageShell>
   );
 }
 
