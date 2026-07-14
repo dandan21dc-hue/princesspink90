@@ -76,6 +76,9 @@ export type AdminAuditEntry = {
   created_at: string;
 };
 
+export type AuditSortColumn = "created_at" | "action" | "resource" | "actor_id";
+export type AuditSortDir = "asc" | "desc";
+
 export type ListAuditFilters = {
   action?: string;
   resource?: string;
@@ -85,6 +88,8 @@ export type ListAuditFilters = {
   to?: string;
   page?: number;
   pageSize?: number;
+  sort?: AuditSortColumn;
+  dir?: AuditSortDir;
 };
 
 export type ListAuditResult = {
@@ -104,6 +109,8 @@ const listFiltersSchema = z
     to: z.string().datetime().optional(),
     page: z.number().int().min(1).max(10_000).optional(),
     pageSize: z.number().int().min(1).max(200).optional(),
+    sort: z.enum(["created_at", "action", "resource", "actor_id"]).optional(),
+    dir: z.enum(["asc", "desc"]).optional(),
   })
   .optional();
 
@@ -116,11 +123,15 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
     const pageSize = data?.pageSize ?? 50;
     const fromIdx = (page - 1) * pageSize;
     const toIdx = fromIdx + pageSize - 1;
+    const sort = data?.sort ?? "created_at";
+    const ascending = (data?.dir ?? "desc") === "asc";
 
     let q = context.supabase
       .from("admin_activity_audit")
       .select("id, actor_id, action, resource, metadata, created_at", { count: "exact" })
-      .order("created_at", { ascending: false });
+      .order(sort, { ascending })
+      .order("id", { ascending }); // stable tiebreaker
+
 
     const esc = (s: string) => s.replace(/[\\%_,]/g, (m) => "\\" + m);
     if (data?.action) q = q.ilike("action", `%${esc(data.action)}%`);
