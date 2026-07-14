@@ -1051,7 +1051,7 @@ async function handleSetupIntentSucceeded(setupIntent: any, env: StripeEnv) {
 }
 
 
-const HANDLED_EVENT_TYPES = new Set([
+export const HANDLED_EVENT_TYPES = new Set([
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
@@ -1068,10 +1068,13 @@ const HANDLED_EVENT_TYPES = new Set([
   "setup_intent.succeeded",
 ]);
 
-async function dispatchEvent(
+export async function dispatchEvent(
   event: { type: string; data: { object: any } },
   env: StripeEnv,
+  correlationId?: string,
 ): Promise<{ status: "succeeded" | "ignored"; note?: string }> {
+  const cid = correlationId ?? "no-cid";
+  console.log(`[webhook cid=${cid}] dispatch type=${event.type} env=${env}`);
   switch (event.type) {
     case "customer.subscription.created":
     case "customer.subscription.updated":
@@ -1110,10 +1113,11 @@ async function dispatchEvent(
       await handleSetupIntentSucceeded(event.data.object, env);
       return { status: "succeeded" };
     default:
-      console.log("Unhandled event:", event.type);
+      console.log(`[webhook cid=${cid}] unhandled event type=${event.type}`);
       return { status: "ignored", note: "no handler for event type" };
   }
 }
+
 
 /**
  * Insert (or upsert on stripe_event_id) an audit row for this webhook.
