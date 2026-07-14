@@ -513,8 +513,7 @@ function PrivateRoomPage() {
                       <>
                         <span className="text-muted-foreground">Selected: </span>
                         <span className="font-medium">
-                          {format(selectedSlot, "EEE d MMM · h:mm a")} ·{" "}
-                          {duration === 30 ? "30 min" : "1 hour"}
+                          {format(selectedSlot, "EEE d MMM · h:mm a")} · {durationLabel}
                         </span>
                       </>
                     ) : (
@@ -564,19 +563,22 @@ function PrivateRoomPage() {
 function ReviewBookingCard({
   selectedSlot,
   duration,
+  priceLabel,
+  durationLabel,
   notes,
   pending,
   onEdit,
   onConfirm,
 }: {
   selectedSlot: Date;
-  duration: Duration;
+  duration: number;
+  priceLabel: string;
+  durationLabel: string;
   notes: string;
   pending: boolean;
   onEdit: () => void;
   onConfirm: () => void;
 }) {
-  const priceLabel = duration === 30 ? "A$150" : "A$275";
   const endsAt = new Date(selectedSlot.getTime() + duration * 60_000);
   return (
     <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-primary/40 bg-card p-6 shadow-[var(--shadow-glow-pink)]">
@@ -596,7 +598,7 @@ function ReviewBookingCard({
         <Row label="Time">
           {format(selectedSlot, "h:mm a")} – {format(endsAt, "h:mm a")}
         </Row>
-        <Row label="Duration">{duration === 30 ? "30 minutes" : "1 hour"}</Row>
+        <Row label="Duration">{durationLabel}</Row>
         <Row label="Price">{priceLabel}</Row>
         {notes.trim() && (
           <div>
