@@ -646,3 +646,107 @@ function Shell({ children }: { children: React.ReactNode }) {
     </main>
   );
 }
+
+function PricingAuditSection() {
+  const listFn = useServerFn(listPricingAudit);
+  const audit = useQuery({
+    queryKey: ["pricing-audit"],
+    queryFn: () => listFn(),
+  });
+
+  return (
+    <section className="mt-12 border-t border-border pt-8">
+      <h2 className="font-display text-xl font-bold">Pricing change history</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Every change to the session price or duration is recorded here with the admin who
+        made it and the timestamp. Showing the 50 most recent changes.
+      </p>
+      {audit.isLoading && (
+        <p className="mt-4 text-sm text-muted-foreground">Loading history…</p>
+      )}
+      {audit.error && (
+        <p className="mt-4 text-sm text-destructive">
+          {(audit.error as Error).message}
+        </p>
+      )}
+      {audit.data && audit.data.length === 0 && (
+        <p className="mt-4 text-sm text-muted-foreground">
+          No changes recorded yet.
+        </p>
+      )}
+      {audit.data && audit.data.length > 0 && (
+        <div className="mt-4 overflow-x-auto rounded-md border border-border">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
+              <tr>
+                <th className="px-3 py-2 font-medium">When</th>
+                <th className="px-3 py-2 font-medium">Admin</th>
+                <th className="px-3 py-2 font-medium">Price</th>
+                <th className="px-3 py-2 font-medium">Duration</th>
+              </tr>
+            </thead>
+            <tbody>
+              {audit.data.map((row) => {
+                const priceChanged =
+                  row.old_session_price_cents !== row.new_session_price_cents;
+                const durationChanged =
+                  row.old_session_duration_minutes !== row.new_session_duration_minutes;
+                return (
+                  <tr key={row.id} className="border-t border-border/60">
+                    <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                      {new Date(row.changed_at).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2">
+                      {row.changed_by_email ?? row.changed_by ?? "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      {priceChanged ? (
+                        <span>
+                          {formatCents(row.old_session_price_cents)}{" "}
+                          <span className="text-muted-foreground">→</span>{" "}
+                          <span className="font-semibold">
+                            {formatCents(row.new_session_price_cents)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {formatCents(row.new_session_price_cents)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      {durationChanged ? (
+                        <span>
+                          {formatMinutes(row.old_session_duration_minutes)}{" "}
+                          <span className="text-muted-foreground">→</span>{" "}
+                          <span className="font-semibold">
+                            {formatMinutes(row.new_session_duration_minutes)}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">
+                          {formatMinutes(row.new_session_duration_minutes)}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function formatCents(cents: number | null): string {
+  if (cents == null) return "—";
+  return `A$${(cents / 100).toFixed(2)}`;
+}
+
+function formatMinutes(mins: number | null): string {
+  if (mins == null) return "—";
+  return `${mins} min`;
+}
+
