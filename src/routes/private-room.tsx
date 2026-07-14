@@ -9,6 +9,7 @@ import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { listPrivateRoomBusy } from "@/lib/store.functions";
+import { listPrivateRoomAvailable } from "@/lib/availability.functions";
 import { getSessionPricing } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/private-room")({
@@ -30,8 +31,6 @@ export const Route = createFileRoute("/private-room")({
   component: PrivateRoomPage,
 });
 
-const DAY_START_HOUR = 10; // 10:00
-const DAY_END_HOUR = 22; // last slot must end by 22:00
 const SLOT_STEP_MIN = 30;
 
 function formatAud(cents: number) {
@@ -130,18 +129,46 @@ function PrivateRoomPage() {
     refetchOnWindowFocus: true,
   });
 
+  const availableQuery = useQuery({
+    queryKey: ["private-room-available", dayRange?.from, dayRange?.to],
+    enabled: !!dayRange,
+    queryFn: () => listPrivateRoomAvailable({ data: dayRange! }),
+    staleTime: 30_000,
+  });
+
+  const availableWindows = useMemo(() => {
+    return (availableQuery.data ?? []).map((w) => ({
+      start: new Date(w.start_time).getTime(),
+      end: new Date(w.end_time).getTime(),
+    }));
+  }, [availableQuery.data]);
+
   const slots = useMemo(() => {
     if (!selectedDate) return [];
-    const day = new Date(selectedDate);
+    if (availableWindows.length === 0) return [];
+    // Enumerate 30-min starts inside each admin-defined available window
+    // that (a) fit fully inside the window and (b) fall on this day.
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = dayStart.getTime() + 24 * 60 * 60 * 1000;
     const out: Date[] = [];
-    for (let h = DAY_START_HOUR * 60; h + duration <= DAY_END_HOUR * 60; h += SLOT_STEP_MIN) {
-      const d = new Date(day);
-      d.setHours(0, 0, 0, 0);
-      d.setMinutes(h);
-      out.push(d);
+    const seen = new Set<number>();
+    for (const w of availableWindows) {
+      // Snap the first candidate to the next SLOT_STEP_MIN mark >= w.start.
+      const stepMs = SLOT_STEP_MIN * 60_000;
+      let candidate = Math.ceil(w.start / stepMs) * stepMs;
+      const durationMs = duration * 60_000;
+      while (candidate + durationMs <= w.end) {
+        if (candidate >= dayStart.getTime() && candidate < dayEnd && !seen.has(candidate)) {
+          seen.add(candidate);
+          out.push(new Date(candidate));
+        }
+        candidate += stepMs;
+      }
     }
+    out.sort((a, b) => a.getTime() - b.getTime());
     return out;
-  }, [selectedDate, duration]);
+  }, [selectedDate, duration, availableWindows]);
 
   const busyRanges = useMemo(() => {
     return (busyQuery.data ?? []).map((b) => {
@@ -157,31 +184,31 @@ function PrivateRoomPage() {
     const from = new Date();
     from.setHours(0, 0, 0, 0);
     const to = new Date(from.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const busy = await listPrivateRoomBusy({
-      data: { from: from.toISOString(), to: to.toISOString() },
-    });
+    const [busy, windows] = await Promise.all([
+      listPrivateRoomBusy({ data: { from: from.toISOString(), to: to.toISOString() } }),
+      listPrivateRoomAvailable({ data: { from: from.toISOString(), to: to.toISOString() } }),
+    ]);
+    if (windows.length === 0) return null;
     const ranges = busy.map((b) => {
       const start = new Date(b.starts_at).getTime();
       const end = start + b.duration_minutes * 60_000;
       return { start, end };
     });
+    const winRanges = windows
+      .map((w) => ({ start: new Date(w.start_time).getTime(), end: new Date(w.end_time).getTime() }))
+      .sort((a, b) => a.start - b.start);
     const earliest = Date.now() + 60 * 60 * 1000;
-    for (let d = 0; d < 30; d++) {
-      const day = startOfDay(addDays(new Date(), d));
-      for (
-        let m = DAY_START_HOUR * 60;
-        m + duration <= DAY_END_HOUR * 60;
-        m += SLOT_STEP_MIN
-      ) {
-        const slot = new Date(day);
-        slot.setHours(0, 0, 0, 0);
-        slot.setMinutes(m);
-        const s = slot.getTime();
-        if (s < earliest) continue;
-        const e = s + duration * 60_000;
+    const stepMs = SLOT_STEP_MIN * 60_000;
+    const durationMs = duration * 60_000;
+    for (const w of winRanges) {
+      let candidate = Math.max(Math.ceil(w.start / stepMs) * stepMs, earliest);
+      while (candidate + durationMs <= w.end) {
+        const s = candidate;
+        const e = s + durationMs;
         if (!ranges.some((b) => b.start < e && b.end > s)) {
-          return slot;
+          return new Date(s);
         }
+        candidate += stepMs;
       }
     }
     return null;
@@ -446,38 +473,44 @@ function PrivateRoomPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {slots.map((s) => {
-                    const disabled = slotConflicts(s);
-                    const active = selectedSlot?.getTime() === s.getTime();
-                    const highlighted = highlightedSlot?.getTime() === s.getTime();
-                    return (
-                      <button
-                        id={`slot-${s.getTime()}`}
-                        key={s.toISOString()}
-                        onClick={() => !disabled && setSelectedSlot(s)}
-                        disabled={disabled}
+                {slots.length === 0 && !availableQuery.isLoading ? (
+                  <div className="rounded-md border border-border/60 bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
+                    No sessions scheduled for this day. Pick another date or try "Book next available".
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {slots.map((s) => {
+                      const disabled = slotConflicts(s);
+                      const active = selectedSlot?.getTime() === s.getTime();
+                      const highlighted = highlightedSlot?.getTime() === s.getTime();
+                      return (
+                        <button
+                          id={`slot-${s.getTime()}`}
+                          key={s.toISOString()}
+                          onClick={() => !disabled && setSelectedSlot(s)}
+                          disabled={disabled}
 
-                        className={cn(
-                          "relative rounded-md border px-3 py-2 text-sm font-medium transition",
-                          disabled
-                            ? "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground/50 line-through"
-                            : active
-                              ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow-pink)]"
-                              : "border-border/60 bg-background hover:border-primary/60 hover:text-primary",
-                          highlighted && !disabled && "ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse",
-                        )}
-                      >
-                        {format(s, "h:mm a")}
-                        {highlighted && !disabled && (
-                          <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-[var(--shadow-glow-pink)]">
-                            Soonest
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                          className={cn(
+                            "relative rounded-md border px-3 py-2 text-sm font-medium transition",
+                            disabled
+                              ? "cursor-not-allowed border-border/40 bg-muted/30 text-muted-foreground/50 line-through"
+                              : active
+                                ? "border-primary bg-primary text-primary-foreground shadow-[var(--shadow-glow-pink)]"
+                                : "border-border/60 bg-background hover:border-primary/60 hover:text-primary",
+                            highlighted && !disabled && "ring-2 ring-primary ring-offset-2 ring-offset-background animate-pulse",
+                          )}
+                        >
+                          {format(s, "h:mm a")}
+                          {highlighted && !disabled && (
+                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-[var(--shadow-glow-pink)]">
+                              Soonest
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div
                   role="list"

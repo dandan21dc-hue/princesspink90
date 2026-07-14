@@ -185,8 +185,7 @@ function AvailabilityAdmin() {
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Admin</div>
           <h1 className="mt-2 font-display text-3xl font-semibold">Availability Manager</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage individual private-session time slots. Booked or unavailable
-            slots are hidden from the public Private Room booking page.
+            Create the windows when the Private Room is bookable. Customers can only pick times inside an "available" slot. Marking a slot "booked / blocked" hides it from the public picker.
           </p>
         </div>
         <div className="flex items-center gap-2">
