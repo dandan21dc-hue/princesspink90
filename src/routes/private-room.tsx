@@ -541,7 +541,7 @@ function ReviewBookingCard({
   duration,
   priceLabel,
   durationLabel,
-  partySize,
+  
   notes,
   pending,
   onEdit,
