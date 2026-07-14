@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { createAapInvoice } from "@/lib/nowpayments.functions";
+import { createNowpaymentsInvoice } from "@/lib/nowpayments.functions";
 import type { CheckoutOptions, PaymentProvider } from "../types";
 
 /**
