@@ -690,6 +690,30 @@ function PricingAuditSection() {
     setPage(1);
   };
 
+  const handleExport = async () => {
+    setExportError(null);
+    setIsExporting(true);
+    try {
+      const data = await exportFn({
+        data: { search, from, to, sortBy, sortDir },
+      });
+      const csv = buildAuditCsv(data);
+      const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      a.download = `pricing-audit-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError((err as Error).message ?? "Export failed");
+    } finally {
+      setIsExporting(false);
+    }
+
   const rows = audit.data?.rows ?? [];
   const total = audit.data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
