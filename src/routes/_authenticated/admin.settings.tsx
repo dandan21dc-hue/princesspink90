@@ -649,93 +649,234 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function PricingAuditSection() {
   const listFn = useServerFn(listPricingAudit);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Debounce email search input.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const audit = useQuery({
-    queryKey: ["pricing-audit"],
-    queryFn: () => listFn(),
+    queryKey: ["pricing-audit", { search, from, to, page, pageSize }],
+    queryFn: () => listFn({ data: { search, from, to, page, pageSize } }),
+    placeholderData: (prev) => prev,
   });
+
+  const rows = audit.data?.rows ?? [];
+  const total = audit.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const showingTo = Math.min(page * pageSize, total);
+  const hasActiveFilter = search !== "" || from !== "" || to !== "";
 
   return (
     <section className="mt-12 border-t border-border pt-8">
       <h2 className="font-display text-xl font-bold">Pricing change history</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Every change to the session price or duration is recorded here with the admin who
-        made it and the timestamp. Showing the 50 most recent changes.
+        made it and the timestamp.
       </p>
-      {audit.isLoading && (
-        <p className="mt-4 text-sm text-muted-foreground">Loading history…</p>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="block">
+          <div className="mb-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+            Search admin email
+          </div>
+          <input
+            type="search"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="e.g. admin@example.com"
+            maxLength={255}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block">
+          <div className="mb-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+            From date
+          </div>
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => {
+              setFrom(e.target.value);
+              setPage(1);
+            }}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block">
+          <div className="mb-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+            To date
+          </div>
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => {
+              setTo(e.target.value);
+              setPage(1);
+            }}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="block">
+          <div className="mb-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+            Rows per page
+          </div>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          >
+            {[10, 25, 50, 100].map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {hasActiveFilter && (
+        <button
+          type="button"
+          onClick={() => {
+            setSearchInput("");
+            setSearch("");
+            setFrom("");
+            setTo("");
+            setPage(1);
+          }}
+          className="mt-2 text-[11px] uppercase tracking-widest text-muted-foreground hover:text-foreground"
+        >
+          Clear filters
+        </button>
       )}
+
       {audit.error && (
         <p className="mt-4 text-sm text-destructive">
           {(audit.error as Error).message}
         </p>
       )}
-      {audit.data && audit.data.length === 0 && (
-        <p className="mt-4 text-sm text-muted-foreground">
-          No changes recorded yet.
-        </p>
-      )}
-      {audit.data && audit.data.length > 0 && (
-        <div className="mt-4 overflow-x-auto rounded-md border border-border">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
+
+      <div className="mt-4 overflow-x-auto rounded-md border border-border">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 font-medium">When</th>
+              <th className="px-3 py-2 font-medium">Admin</th>
+              <th className="px-3 py-2 font-medium">Price</th>
+              <th className="px-3 py-2 font-medium">Duration</th>
+            </tr>
+          </thead>
+          <tbody>
+            {audit.isLoading && rows.length === 0 && (
               <tr>
-                <th className="px-3 py-2 font-medium">When</th>
-                <th className="px-3 py-2 font-medium">Admin</th>
-                <th className="px-3 py-2 font-medium">Price</th>
-                <th className="px-3 py-2 font-medium">Duration</th>
+                <td colSpan={4} className="px-3 py-4 text-sm text-muted-foreground">
+                  Loading history…
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {audit.data.map((row) => {
-                const priceChanged =
-                  row.old_session_price_cents !== row.new_session_price_cents;
-                const durationChanged =
-                  row.old_session_duration_minutes !== row.new_session_duration_minutes;
-                return (
-                  <tr key={row.id} className="border-t border-border/60">
-                    <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                      {new Date(row.changed_at).toLocaleString()}
-                    </td>
-                    <td className="px-3 py-2">
-                      {row.changed_by_email ?? row.changed_by ?? "—"}
-                    </td>
-                    <td className="px-3 py-2">
-                      {priceChanged ? (
-                        <span>
-                          {formatCents(row.old_session_price_cents)}{" "}
-                          <span className="text-muted-foreground">→</span>{" "}
-                          <span className="font-semibold">
-                            {formatCents(row.new_session_price_cents)}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">
+            )}
+            {!audit.isLoading && rows.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-3 py-4 text-sm text-muted-foreground">
+                  {hasActiveFilter
+                    ? "No changes match your filters."
+                    : "No changes recorded yet."}
+                </td>
+              </tr>
+            )}
+            {rows.map((row) => {
+              const priceChanged =
+                row.old_session_price_cents !== row.new_session_price_cents;
+              const durationChanged =
+                row.old_session_duration_minutes !== row.new_session_duration_minutes;
+              return (
+                <tr key={row.id} className="border-t border-border/60">
+                  <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                    {new Date(row.changed_at).toLocaleString()}
+                  </td>
+                  <td className="px-3 py-2">
+                    {row.changed_by_email ?? row.changed_by ?? "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    {priceChanged ? (
+                      <span>
+                        {formatCents(row.old_session_price_cents)}{" "}
+                        <span className="text-muted-foreground">→</span>{" "}
+                        <span className="font-semibold">
                           {formatCents(row.new_session_price_cents)}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2">
-                      {durationChanged ? (
-                        <span>
-                          {formatMinutes(row.old_session_duration_minutes)}{" "}
-                          <span className="text-muted-foreground">→</span>{" "}
-                          <span className="font-semibold">
-                            {formatMinutes(row.new_session_duration_minutes)}
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {formatCents(row.new_session_price_cents)}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {durationChanged ? (
+                      <span>
+                        {formatMinutes(row.old_session_duration_minutes)}{" "}
+                        <span className="text-muted-foreground">→</span>{" "}
+                        <span className="font-semibold">
                           {formatMinutes(row.new_session_duration_minutes)}
                         </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {formatMinutes(row.new_session_duration_minutes)}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+        <span>
+          {total === 0
+            ? "0 records"
+            : `Showing ${showingFrom}–${showingTo} of ${total}`}
+          {audit.isFetching && !audit.isLoading ? " · updating…" : ""}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1 || audit.isLoading}
+            className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
+          >
+            ← Prev
+          </button>
+          <span>
+            Page {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages || audit.isLoading}
+            className="rounded-md border border-border px-3 py-1 disabled:opacity-40"
+          >
+            Next →
+          </button>
         </div>
-      )}
+      </div>
     </section>
   );
 }
