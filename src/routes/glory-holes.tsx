@@ -128,7 +128,7 @@ function PrivateRoomPage() {
   const busyQuery = useQuery({
     queryKey: ["private-room-busy", dayRange?.from, dayRange?.to],
     enabled: !!dayRange,
-    queryFn: () => listPrivateRoomBusy({ data: dayRange! }),
+    queryFn: () => listWorkspaceBusy({ data: dayRange! }),
     staleTime: 30_000,
   });
 
@@ -159,7 +159,7 @@ function PrivateRoomPage() {
     const from = new Date();
     from.setHours(0, 0, 0, 0);
     const to = new Date(from.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const busy = await listPrivateRoomBusy({
+    const busy = await listWorkspaceBusy({
       data: { from: from.toISOString(), to: to.toISOString() },
     });
     const ranges = busy.map((b) => {
