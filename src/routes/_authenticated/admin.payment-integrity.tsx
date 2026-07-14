@@ -265,7 +265,14 @@ function AdminPaymentIntegrityPage() {
                     )}
                   </div>
                   <pre className="mt-1 overflow-x-auto rounded bg-muted/40 p-2 text-xs">
-                    {JSON.stringify(f.detail, null, 2)}
+                    {(() => {
+                      try {
+                        return JSON.stringify(JSON.parse(f.detail_json), null, 2);
+                      } catch {
+                        return f.detail_json;
+                      }
+                    })()}
+
                   </pre>
                   <p className="mt-1 text-xs text-muted-foreground">
                     first seen {new Date(f.first_seen_at).toLocaleString()} · last seen{" "}

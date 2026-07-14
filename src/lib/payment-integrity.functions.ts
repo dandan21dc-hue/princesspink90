@@ -29,11 +29,12 @@ export type IntegrityFinding = {
   resource_id: string;
   environment: string;
   severity: "info" | "warning" | "critical";
-  detail: unknown;
+  detail_json: string;
   first_seen_at: string;
   last_seen_at: string;
   resolved_at: string | null;
 };
+
 
 
 async function assertAdmin(supabase: any, userId: string) {
@@ -61,11 +62,25 @@ export const getPaymentIntegrityStatus = createServerFn({ method: "GET" })
     ]);
     if (scheduleRes.error) throw scheduleRes.error;
     if (findingsRes.error) throw findingsRes.error;
+    const rawFindings = (findingsRes.data ?? []) as any[];
+    const findings: IntegrityFinding[] = rawFindings.map((r) => ({
+      id: r.id,
+      check_name: r.check_name,
+      resource_kind: r.resource_kind,
+      resource_id: r.resource_id,
+      environment: r.environment,
+      severity: r.severity,
+      detail_json: JSON.stringify(r.detail ?? {}),
+      first_seen_at: r.first_seen_at,
+      last_seen_at: r.last_seen_at,
+      resolved_at: r.resolved_at,
+    }));
     return {
-      schedule: scheduleRes.data as unknown as IntegritySchedule | null,
-      findings: (findingsRes.data ?? []) as unknown as IntegrityFinding[],
+      schedule: (scheduleRes.data ?? null) as unknown as IntegritySchedule | null,
+      findings,
     };
   });
+
 
 export const updatePaymentIntegritySchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
