@@ -125,7 +125,7 @@ export const Route = createFileRoute('/api/public/hooks/audit-alert-notify')({
           console.warn('audit-alert-notify: notified_at mark failed', markErr)
         }
 
-        return json({ ok: true, message_id: result.messageId })
+        return json({ ok: true, message_id: result.messageId }, 200)
       },
     },
   },
