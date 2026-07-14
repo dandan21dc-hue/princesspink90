@@ -283,6 +283,48 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_rejection_log: {
+        Row: {
+          attempt_kind: string
+          attempted_starts_at: string | null
+          booking_id: string | null
+          conflict_booking_ids: string[]
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          metadata: Json
+          reason_code: string
+          reason_message: string
+          user_id: string | null
+        }
+        Insert: {
+          attempt_kind: string
+          attempted_starts_at?: string | null
+          booking_id?: string | null
+          conflict_booking_ids?: string[]
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          metadata?: Json
+          reason_code: string
+          reason_message: string
+          user_id?: string | null
+        }
+        Update: {
+          attempt_kind?: string
+          attempted_starts_at?: string | null
+          booking_id?: string | null
+          conflict_booking_ids?: string[]
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          metadata?: Json
+          reason_code?: string
+          reason_message?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cohost_application_reviews: {
         Row: {
           application_id: string

@@ -320,11 +320,33 @@ export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
     if (row.user_id !== context.userId) throw new Error("Not your booking");
     if (row.status === "cancelled") throw new Error("Cannot reschedule a cancelled booking");
     const newStart = new Date(data.startsAt);
+    const rejectBase = {
+      attemptKind: "reschedule_self" as const,
+      userId: context.userId,
+      attemptedStartsAt: newStart.toISOString(),
+      durationMinutes: row.duration_minutes as number,
+      bookingId: row.id as string,
+    };
     if (newStart.getTime() - Date.now() < 60 * 60 * 1000) {
+      const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+      await logBookingRejection({
+        ...rejectBase,
+        reasonCode: "lead_time_too_short",
+        reasonMessage: "New time must be at least 1 hour from now",
+      });
       throw new Error("New time must be at least 1 hour from now");
     }
     const hour = newStart.getHours();
-    if (hour < 10 || hour > 21) throw new Error("Time must be between 10:00 and 22:00");
+    if (hour < 10 || hour > 21) {
+      const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+      await logBookingRejection({
+        ...rejectBase,
+        reasonCode: "outside_operating_hours",
+        reasonMessage: "Time must be between 10:00 and 22:00",
+        metadata: { requestedHour: hour },
+      });
+      throw new Error("Time must be between 10:00 and 22:00");
+    }
     const newEnd = new Date(newStart.getTime() + row.duration_minutes * 60_000);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: busy, error: busyErr } = await supabaseAdmin
@@ -335,7 +357,7 @@ export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
       .gte("starts_at", new Date(newStart.getTime() - 2 * 60 * 60_000).toISOString())
       .lte("starts_at", new Date(newEnd.getTime() + 2 * 60 * 60_000).toISOString());
     if (busyErr) throw new Error(busyErr.message);
-    const conflict = (busy ?? []).some((b) => {
+    const conflictRows = (busy ?? []).filter((b) => {
       if (b.status === "pending" && new Date(b.created_at).getTime() < Date.now() - 15 * 60_000) {
         return false; // stale hold
       }
@@ -343,7 +365,17 @@ export const rescheduleMyPrivateRoomBooking = createServerFn({ method: "POST" })
       const bEnd = bStart + b.duration_minutes * 60_000;
       return bStart < newEnd.getTime() && bEnd > newStart.getTime();
     });
-    if (conflict) throw new Error("That slot is no longer available");
+    if (conflictRows.length > 0) {
+      const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+      await logBookingRejection({
+        ...rejectBase,
+        reasonCode: "slot_conflict",
+        reasonMessage: "That slot is no longer available",
+        conflictBookingIds: conflictRows.map((b) => b.id as string),
+      });
+      throw new Error("That slot is no longer available");
+    }
+
     const oldStartsAt = row.starts_at as string;
     const { error } = await supabaseAdmin
       .from("private_room_bookings")
@@ -505,8 +537,25 @@ export const adminReschedulePrivateRoomBooking = createServerFn({ method: "POST"
     if (row.status === "cancelled") throw new Error("Cannot reschedule a cancelled booking");
 
     const newStart = new Date(data.startsAt);
+    const rejectBase = {
+      attemptKind: "reschedule_admin" as const,
+      userId: (row.user_id as string | null) ?? context.userId,
+      attemptedStartsAt: newStart.toISOString(),
+      durationMinutes: row.duration_minutes as number,
+      bookingId: row.id as string,
+      metadata: { admin_id: context.userId, ...(data.reason ? { reason: data.reason } : {}) },
+    };
     const hour = newStart.getHours();
-    if (hour < 10 || hour > 21) throw new Error("Time must be between 10:00 and 22:00");
+    if (hour < 10 || hour > 21) {
+      const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+      await logBookingRejection({
+        ...rejectBase,
+        reasonCode: "outside_operating_hours",
+        reasonMessage: "Time must be between 10:00 and 22:00",
+        metadata: { ...rejectBase.metadata, requestedHour: hour },
+      });
+      throw new Error("Time must be between 10:00 and 22:00");
+    }
     const newEnd = new Date(newStart.getTime() + row.duration_minutes * 60_000);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -518,7 +567,7 @@ export const adminReschedulePrivateRoomBooking = createServerFn({ method: "POST"
       .gte("starts_at", new Date(newStart.getTime() - 2 * 60 * 60_000).toISOString())
       .lte("starts_at", new Date(newEnd.getTime() + 2 * 60 * 60_000).toISOString());
     if (busyErr) throw new Error(busyErr.message);
-    const conflict = (busy ?? []).some((b) => {
+    const conflictRows = (busy ?? []).filter((b) => {
       if (b.status === "pending" && new Date(b.created_at).getTime() < Date.now() - 15 * 60_000) {
         return false;
       }
@@ -526,7 +575,17 @@ export const adminReschedulePrivateRoomBooking = createServerFn({ method: "POST"
       const bEnd = bStart + b.duration_minutes * 60_000;
       return bStart < newEnd.getTime() && bEnd > newStart.getTime();
     });
-    if (conflict) throw new Error("That slot conflicts with another booking");
+    if (conflictRows.length > 0) {
+      const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+      await logBookingRejection({
+        ...rejectBase,
+        reasonCode: "slot_conflict",
+        reasonMessage: "That slot conflicts with another booking",
+        conflictBookingIds: conflictRows.map((b) => b.id as string),
+      });
+      throw new Error("That slot conflicts with another booking");
+    }
+
 
     const oldStartsAt = row.starts_at as string;
     const { error } = await supabaseAdmin
@@ -943,6 +1002,15 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
           const startsAt = new Date(data.bookingStartsAt);
           if (Number.isNaN(startsAt.getTime())) throw new Error("Invalid start time");
           if (startsAt.getTime() < Date.now() + 60 * 60 * 1000) {
+            const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+            await logBookingRejection({
+              attemptKind: "create",
+              userId: data.userId,
+              attemptedStartsAt: startsAt.toISOString(),
+              durationMinutes: privateRoomMinutes ?? null,
+              reasonCode: "lead_time_too_short",
+              reasonMessage: "Bookings must be at least 1 hour in advance",
+            });
             throw new Error("Bookings must be at least 1 hour in advance");
           }
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -969,7 +1037,20 @@ export const createStoreCheckoutSession = createServerFn({ method: "POST" })
             { from_ts: startsAt.toISOString(), to_ts: endsAt.toISOString() },
           );
           if (busyErr) throw new Error(busyErr.message);
-          if ((busy ?? []).length > 0) throw new Error("That time is no longer available. Please pick another slot.");
+          if ((busy ?? []).length > 0) {
+            const { logBookingRejection } = await import("@/lib/booking-rejection-log.server");
+            await logBookingRejection({
+              attemptKind: "create",
+              userId: data.userId,
+              attemptedStartsAt: startsAt.toISOString(),
+              durationMinutes: bookingDurationMinutes,
+              reasonCode: "slot_conflict",
+              reasonMessage: "That time is no longer available. Please pick another slot.",
+              metadata: { busyCount: (busy ?? []).length },
+            });
+            throw new Error("That time is no longer available. Please pick another slot.");
+          }
+
           const env = data.environment;
           const { data: booking, error: bookErr } = await supabaseAdmin
             .from("private_room_bookings")
