@@ -161,6 +161,10 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
   .inputValidator((data: ListAuditFilters | undefined) => listFiltersSchema.parse(data))
   .handler(async ({ data, context }): Promise<ListAuditResult> => {
     await assertAdmin(context.supabase, context.userId);
+    // Detail visibility (raw metadata / before-after diffs) is gated behind the
+    // audit_admin role. Regular admins can browse the list but metadata is
+    // redacted server-side so nothing sensitive leaks over the wire.
+    const isAuditAdmin = await hasAuditAdmin(context.supabase, context.userId);
     const page = data?.page ?? 1;
     const pageSize = data?.pageSize ?? 50;
     const fromIdx = (page - 1) * pageSize;
@@ -283,7 +287,7 @@ export const listAdminAuditEntries = createServerFn({ method: "GET" })
         actor_display_name: names.get(r.actor_id) ?? null,
         action: r.action,
         resource: r.resource,
-        metadata: r.metadata ?? {},
+        metadata: isAuditAdmin ? (r.metadata ?? {}) : {},
         created_at: r.created_at,
         trust: trustFor(r.id, r.seq),
         quarantine_reason: quarantineMap.get(r.id) ?? null,

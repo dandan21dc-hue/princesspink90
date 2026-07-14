@@ -833,7 +833,12 @@ function AdminAuditPage() {
           </div>
         )}
         {rows.length > 0 && viewMode === "timeline" && (
-          <AuditTimeline rows={rows} onSelect={setSelectedId} />
+          <AuditTimeline rows={rows} onSelect={canManageAudit ? setSelectedId : () => {}} />
+        )}
+        {!canManageAudit && rows.length > 0 && (
+          <div className="mb-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            Detailed audit metadata and before/after diffs are visible only to users with the audit_admin role.
+          </div>
         )}
         {rows.length > 0 && viewMode === "table" && (
           <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card/60">
@@ -877,8 +882,8 @@ function AdminAuditPage() {
                   return (
                     <tr
                       key={r.id}
-                      onClick={() => setSelectedId(r.id)}
-                      className="cursor-pointer border-t border-border/40 align-top hover:bg-muted/20"
+                      onClick={canManageAudit ? () => setSelectedId(r.id) : undefined}
+                      className={`border-t border-border/40 align-top ${canManageAudit ? "cursor-pointer hover:bg-muted/20" : ""}`}
                     >
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(r.created_at).toLocaleString()}
