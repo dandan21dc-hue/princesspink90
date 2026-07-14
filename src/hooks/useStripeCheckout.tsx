@@ -10,6 +10,12 @@ export function useStripeCheckout(): CheckoutController {
   return getProvider("one_time").useCheckout("one_time");
 }
 
-export function useSubscriptionComingSoon(): CheckoutController {
-  return getProvider("subscription").useCheckout("subscription");
+export function useSubscriptionComingSoon() {
+  const c = getProvider("subscription").useCheckout("subscription");
+  // Legacy aliases used by store routes.
+  return {
+    ...c,
+    show: () => c.openCheckout({}),
+    element: c.checkoutElement,
+  };
 }
