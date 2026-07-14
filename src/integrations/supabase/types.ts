@@ -80,6 +80,36 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_activity_audit_purge_status: {
+        Row: {
+          id: boolean
+          last_error: string | null
+          last_purged_count: number | null
+          last_run_at: string | null
+          last_status: string
+          last_success_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          last_error?: string | null
+          last_purged_count?: number | null
+          last_run_at?: string | null
+          last_status?: string
+          last_success_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          last_error?: string | null
+          last_purged_count?: number | null
+          last_run_at?: string | null
+          last_status?: string
+          last_success_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_activity_audit_retention: {
         Row: {
           id: boolean

@@ -11,6 +11,7 @@ import {
   verifyAuditIntegrity,
   listAuditAlerts,
   acknowledgeAuditAlert,
+  getPurgeStatus,
 } from "@/lib/admin-audit.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/activity-audit")({
@@ -36,6 +37,7 @@ function AdminAuditPage() {
   const verifyFn = useServerFn(verifyAuditIntegrity);
   const alertsFn = useServerFn(listAuditAlerts);
   const ackFn = useServerFn(acknowledgeAuditAlert);
+  const statusFn = useServerFn(getPurgeStatus);
   const qc = useQueryClient();
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
@@ -68,7 +70,17 @@ function AdminAuditPage() {
 
   const purge = useMutation({
     mutationFn: () => purgeFn(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-audit-entries"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-audit-entries"] });
+      qc.invalidateQueries({ queryKey: ["admin-audit-purge-status"] });
+    },
+  });
+
+  const purgeStatus = useQuery({
+    queryKey: ["admin-audit-purge-status"],
+    queryFn: () => statusFn(),
+    enabled: isAdmin,
+    refetchInterval: 60_000,
   });
 
   const alerts = useQuery({
@@ -263,8 +275,52 @@ function AdminAuditPage() {
               Purged {purge.data.purged} expired {purge.data.purged === 1 ? "entry" : "entries"}.
             </div>
           )}
+          {(() => {
+            const s = purgeStatus.data;
+            if (!s) return null;
+            const tone =
+              s.last_status === "error"
+                ? "border-destructive/50 bg-destructive/10 text-destructive"
+                : s.last_status === "success"
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-border bg-muted/20 text-muted-foreground";
+            const dot =
+              s.last_status === "error"
+                ? "bg-destructive"
+                : s.last_status === "success"
+                  ? "bg-emerald-500"
+                  : "bg-muted-foreground";
+            return (
+              <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${tone}`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-block h-2 w-2 rounded-full ${dot}`} />
+                  <span className="font-medium uppercase tracking-widest text-[10px]">
+                    Purge {s.last_status}
+                  </span>
+                  <span>
+                    {s.last_status === "never"
+                      ? "No purge has run yet."
+                      : s.last_status === "success"
+                        ? `Last success: ${s.last_success_at ? new Date(s.last_success_at).toLocaleString() : "—"} · removed ${s.last_purged_count ?? 0} ${(s.last_purged_count ?? 0) === 1 ? "entry" : "entries"}`
+                        : `Last attempt: ${s.last_run_at ? new Date(s.last_run_at).toLocaleString() : "—"}`}
+                  </span>
+                  {s.last_success_at && s.last_status === "error" && (
+                    <span className="text-muted-foreground">
+                      · last success {new Date(s.last_success_at).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+                {s.last_error && (
+                  <pre className="mt-1 whitespace-pre-wrap break-words text-[11px]">
+                    {s.last_error}
+                  </pre>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </section>
+
 
       <section className="mx-auto max-w-5xl px-5 pb-16">
         <div className="mb-3 text-xs text-muted-foreground">
