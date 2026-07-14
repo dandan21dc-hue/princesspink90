@@ -1412,6 +1412,78 @@ export type Database = {
           },
         ]
       }
+      payment_integrity_findings: {
+        Row: {
+          check_name: string
+          detail: Json
+          environment: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          resolved_at: string | null
+          resource_id: string
+          resource_kind: string
+          severity: string
+        }
+        Insert: {
+          check_name: string
+          detail?: Json
+          environment?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          resolved_at?: string | null
+          resource_id: string
+          resource_kind: string
+          severity: string
+        }
+        Update: {
+          check_name?: string
+          detail?: Json
+          environment?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          resolved_at?: string | null
+          resource_id?: string
+          resource_kind?: string
+          severity?: string
+        }
+        Relationships: []
+      }
+      payment_integrity_schedule: {
+        Row: {
+          frequency: string
+          id: boolean
+          job_name: string
+          last_applied_at: string | null
+          last_applied_by: string | null
+          last_applied_schedule: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          frequency?: string
+          id?: boolean
+          job_name?: string
+          last_applied_at?: string | null
+          last_applied_by?: string | null
+          last_applied_schedule?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          frequency?: string
+          id?: boolean
+          job_name?: string
+          last_applied_at?: string | null
+          last_applied_by?: string | null
+          last_applied_schedule?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       private_room_booking_status_events: {
         Row: {
           booking_id: string
@@ -2290,6 +2362,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_payment_integrity_schedule: { Args: never; Returns: string }
       cron_health_snapshot: { Args: never; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -2341,6 +2414,26 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      run_payment_integrity_checks: { Args: never; Returns: number }
+      update_payment_integrity_schedule: {
+        Args: { _frequency: string; _timezone: string }
+        Returns: {
+          frequency: string
+          id: boolean
+          job_name: string
+          last_applied_at: string | null
+          last_applied_by: string | null
+          last_applied_schedule: string | null
+          timezone: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payment_integrity_schedule"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       user_can_access_content: {
         Args: { _content_id: string; _env?: string; _user_id: string }
