@@ -60,7 +60,6 @@ function PrivateRoomPage() {
   const priceLabel = formatAud(priceCents);
   const durationLabel = formatDuration(duration);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
-  const [partySize, setPartySize] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
   const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
   const [pending, setPending] = useState(false);
@@ -99,7 +98,7 @@ function PrivateRoomPage() {
         pendingAutoReviewRef.current = false;
         if (!user) {
           navigate({ to: "/auth", search: { next: "/private-room" } });
-        } else if (partySize >= 1 && partySize <= 10 && notes.length <= 1000) {
+        } else if (notes.length <= 1000) {
           setReviewing(true);
         }
       }
@@ -232,7 +231,6 @@ function PrivateRoomPage() {
       return;
     }
     if (!selectedSlot) return;
-    if (partySize < 1 || partySize > 10) return;
     if (notes.length > 1000) return;
     setReviewing(true);
   }
@@ -247,7 +245,7 @@ function PrivateRoomPage() {
       userId: user.id,
       customerEmail: user.email,
       bookingStartsAt: selectedSlot.toISOString(),
-      bookingPartySize: partySize,
+      bookingPartySize: 1,
       bookingNotes: notes.trim() || undefined,
       returnUrl: `${window.location.origin}/checkout/return?next=%2Fdashboard`,
     });
@@ -291,7 +289,7 @@ function PrivateRoomPage() {
             duration={duration}
             priceLabel={priceLabel}
             durationLabel={durationLabel}
-            partySize={partySize}
+            
             notes={notes}
             pending={pending}
             onEdit={() => {
@@ -454,34 +452,15 @@ function PrivateRoomPage() {
                 </div>
 
 
-                <div className="mt-8 grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="party-size" className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Party size
-                    </label>
-                    <select
-                      id="party-size"
-                      value={partySize}
-                      onChange={(e) => setPartySize(Number(e.target.value))}
-                      className="mt-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
-                    >
-                      {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                        <option key={n} value={n}>
-                          {n} {n === 1 ? "guest" : "guests"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="duration-summary" className="text-xs uppercase tracking-widest text-muted-foreground">
-                      Session
-                    </label>
-                    <div
-                      id="duration-summary"
-                      className="mt-2 rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
-                    >
-                      {durationLabel} · {priceLabel}
-                    </div>
+                <div className="mt-8">
+                  <label htmlFor="duration-summary" className="text-xs uppercase tracking-widest text-muted-foreground">
+                    Session
+                  </label>
+                  <div
+                    id="duration-summary"
+                    className="mt-2 rounded-md border border-input bg-muted/20 px-3 py-2 text-sm"
+                  >
+                    {durationLabel} · {priceLabel}
                   </div>
                 </div>
 
@@ -562,7 +541,7 @@ function ReviewBookingCard({
   duration,
   priceLabel,
   durationLabel,
-  partySize,
+  
   notes,
   pending,
   onEdit,
@@ -572,7 +551,7 @@ function ReviewBookingCard({
   duration: number;
   priceLabel: string;
   durationLabel: string;
-  partySize: number;
+  
   notes: string;
   pending: boolean;
   onEdit: () => void;
@@ -598,9 +577,6 @@ function ReviewBookingCard({
           {format(selectedSlot, "h:mm a")} – {format(endsAt, "h:mm a")}
         </Row>
         <Row label="Duration">{durationLabel}</Row>
-        <Row label="Party size">
-          {partySize} {partySize === 1 ? "guest" : "guests"}
-        </Row>
         <Row label="Price">{priceLabel}</Row>
         {notes.trim() && (
           <div>
@@ -630,7 +606,7 @@ function ReviewBookingCard({
         </button>
       </div>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Your date, time, party size, and notes are kept if you go back.
+        Your date, time, and notes are kept if you go back.
       </p>
     </div>
   );
