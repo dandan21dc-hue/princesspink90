@@ -6,6 +6,7 @@ import { amIAdmin } from "@/lib/admin.functions";
 import {
   getSiteSettings,
   updateSiteSettings,
+  listPricingAudit,
   SESSION_PRICE_MIN_CENTS,
   SESSION_PRICE_MAX_CENTS,
   SESSION_DURATION_MIN_MINUTES,
