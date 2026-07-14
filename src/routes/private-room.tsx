@@ -131,18 +131,46 @@ function PrivateRoomPage() {
     refetchOnWindowFocus: true,
   });
 
+  const availableQuery = useQuery({
+    queryKey: ["private-room-available", dayRange?.from, dayRange?.to],
+    enabled: !!dayRange,
+    queryFn: () => listPrivateRoomAvailable({ data: dayRange! }),
+    staleTime: 30_000,
+  });
+
+  const availableWindows = useMemo(() => {
+    return (availableQuery.data ?? []).map((w) => ({
+      start: new Date(w.start_time).getTime(),
+      end: new Date(w.end_time).getTime(),
+    }));
+  }, [availableQuery.data]);
+
   const slots = useMemo(() => {
     if (!selectedDate) return [];
-    const day = new Date(selectedDate);
+    if (availableWindows.length === 0) return [];
+    // Enumerate 30-min starts inside each admin-defined available window
+    // that (a) fit fully inside the window and (b) fall on this day.
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = dayStart.getTime() + 24 * 60 * 60 * 1000;
     const out: Date[] = [];
-    for (let h = DAY_START_HOUR * 60; h + duration <= DAY_END_HOUR * 60; h += SLOT_STEP_MIN) {
-      const d = new Date(day);
-      d.setHours(0, 0, 0, 0);
-      d.setMinutes(h);
-      out.push(d);
+    const seen = new Set<number>();
+    for (const w of availableWindows) {
+      // Snap the first candidate to the next SLOT_STEP_MIN mark >= w.start.
+      const stepMs = SLOT_STEP_MIN * 60_000;
+      let candidate = Math.ceil(w.start / stepMs) * stepMs;
+      const durationMs = duration * 60_000;
+      while (candidate + durationMs <= w.end) {
+        if (candidate >= dayStart.getTime() && candidate < dayEnd && !seen.has(candidate)) {
+          seen.add(candidate);
+          out.push(new Date(candidate));
+        }
+        candidate += stepMs;
+      }
     }
+    out.sort((a, b) => a.getTime() - b.getTime());
     return out;
-  }, [selectedDate, duration]);
+  }, [selectedDate, duration, availableWindows]);
 
   const busyRanges = useMemo(() => {
     return (busyQuery.data ?? []).map((b) => {
