@@ -621,7 +621,42 @@ function AdminAuditPage() {
           </div>
         </form>
 
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">View</span>
+          <div className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-card/60 p-0.5 text-[11px]">
+            {(["table", "timeline"] as const).map((m) => {
+              const active = viewMode === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    setViewMode(m);
+                    setPage(1);
+                    if (m === "timeline") {
+                      setSort("created_at");
+                      setDir("asc");
+                    }
+                  }}
+                  className={`rounded px-2 py-1 uppercase tracking-widest ${
+                    active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {m === "table" ? "Table" : "Timeline · per resource"}
+                </button>
+              );
+            })}
+          </div>
+          {viewMode === "timeline" && (
+            <span className="text-[11px] text-muted-foreground">
+              Grouped by resource, oldest → newest. Use the Resource filter to focus on one record.
+            </span>
+          )}
+        </div>
+
         <div className="mb-3 flex flex-wrap items-center gap-3">
+
           <div className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-card/60 p-0.5 text-[11px]">
             <span className="px-2 text-muted-foreground uppercase tracking-widest">Sort</span>
             <button
