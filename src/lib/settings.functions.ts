@@ -103,7 +103,47 @@ const updateSchema = z.object({
     .max(SESSION_DURATION_MAX_MINUTES, {
       message: `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`,
     }),
-});
+  });
+
+export type PricingAuditEntry = {
+  id: string;
+  changed_at: string;
+  changed_by: string | null;
+  changed_by_email: string | null;
+  old_session_price_cents: number | null;
+  new_session_price_cents: number | null;
+  old_session_duration_minutes: number | null;
+  new_session_duration_minutes: number | null;
+};
+
+export const listPricingAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PricingAuditEntry[]> => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Table added post-typegen — cast until types.ts regenerates.
+    const { data, error } = await (supabaseAdmin as unknown as {
+      from: (t: string) => {
+        select: (cols: string) => {
+          order: (col: string, o: { ascending: boolean }) => {
+            limit: (n: number) => Promise<{ data: PricingAuditEntry[] | null; error: unknown }>;
+          };
+        };
+      };
+    })
+      .from("site_settings_pricing_audit")
+      .select(
+        "id, changed_at, changed_by, changed_by_email, old_session_price_cents, new_session_price_cents, old_session_duration_minutes, new_session_duration_minutes",
+      )
+      .order("changed_at", { ascending: false })
+      .limit(50);
+    if (error) throw error as Error;
+    return (data ?? []) as PricingAuditEntry[];
+  });
 
 export const updateSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
