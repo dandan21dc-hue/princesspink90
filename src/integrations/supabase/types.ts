@@ -2431,6 +2431,36 @@ export type Database = {
           },
         ]
       }
+      workspace_slots: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          is_booked: boolean
+          notes: string | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          is_booked?: boolean
+          notes?: string | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_booked?: boolean
+          notes?: string | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
