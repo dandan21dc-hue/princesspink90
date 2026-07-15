@@ -8,6 +8,7 @@ import {
   adminGetModerationMediaUrl,
   adminListModerationQueue,
   adminModerateContentItem,
+  adminDeleteContentItem,
 } from "@/lib/store.functions";
 import { cn } from "@/lib/utils";
 
