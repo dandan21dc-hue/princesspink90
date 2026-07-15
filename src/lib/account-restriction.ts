@@ -7,16 +7,7 @@ export const RESTRICTED_ACCOUNT_MESSAGE =
   "Please contact support to update your account status.";
 
 export async function assertAccountNotRestricted(
-  supabase: {
-    from: (t: string) => {
-      select: (s: string) => {
-        eq: (
-          k: string,
-          v: string,
-        ) => { maybeSingle: () => Promise<{ data: { account_restricted: boolean } | null }> };
-      };
-    };
-  },
+  supabase: any,
   userId: string,
 ): Promise<void> {
   const { data } = await supabase
@@ -28,3 +19,4 @@ export async function assertAccountNotRestricted(
     throw new Error(RESTRICTED_ACCOUNT_MESSAGE);
   }
 }
+
