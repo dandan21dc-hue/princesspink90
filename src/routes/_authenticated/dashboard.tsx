@@ -88,6 +88,7 @@ const GROUPS: NavGroup[] = [
     label: "Content & Store",
     items: [
       { label: "Inventory Manager", to: "/admin/panty-listings", icon: Package, adminOnly: true },
+      { label: "Content Moderation", to: "/admin/media-moderation", icon: ShieldCheck, adminOnly: true },
       { label: "Manage Content", to: "/content", icon: FileText },
       { label: "Availability Manager", to: "/admin/availability", icon: CalendarDays, adminOnly: true },
       { label: "Secondary Room Sessions", to: "/admin/secondary-room-sessions", icon: CalendarDays, adminOnly: true },

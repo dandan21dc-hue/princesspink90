@@ -8,6 +8,7 @@ import {
   adminGetModerationMediaUrl,
   adminListModerationQueue,
   adminModerateContentItem,
+  adminDeleteContentItem,
 } from "@/lib/store.functions";
 import { cn } from "@/lib/utils";
 
@@ -106,6 +107,7 @@ type ModerationRow = {
 function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) {
   const qc = useQueryClient();
   const decideFn = useServerFn(adminModerateContentItem);
+  const deleteFn = useServerFn(adminDeleteContentItem);
   const signFn = useServerFn(adminGetModerationMediaUrl);
   const [notes, setNotes] = useState(row.moderation_notes ?? "");
 
@@ -119,6 +121,29 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
     },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  const removeItem = useMutation({
+    mutationFn: () => deleteFn({ data: { id: row.id } }),
+    onSuccess: () => {
+      toast.success("Item deleted");
+      qc.invalidateQueries({ queryKey: ["admin-media-moderation"] });
+      qc.invalidateQueries({ queryKey: ["store-items"] });
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const busy = decide.isPending || removeItem.isPending;
+
+  const confirmDelete = () => {
+    if (
+      window.confirm(
+        `Permanently delete "${row.title}"? This removes the item, its media, and any purchase records. This cannot be undone.`,
+      )
+    ) {
+      removeItem.mutate();
+    }
+  };
+
 
   const openMedia = async (path: string) => {
     try {
@@ -222,7 +247,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           <button
             type="button"
             onClick={() => decide.mutate("approved")}
-            disabled={decide.isPending}
+            disabled={busy}
             className="rounded-full bg-emerald-500/20 border border-emerald-500/60 px-4 py-1.5 text-xs uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50"
           >
             Approve
@@ -232,7 +257,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           <button
             type="button"
             onClick={() => decide.mutate("rejected")}
-            disabled={decide.isPending}
+            disabled={busy}
             className="rounded-full bg-destructive/20 border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/30 disabled:opacity-50"
           >
             Reject
@@ -242,12 +267,21 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           <button
             type="button"
             onClick={() => decide.mutate("pending")}
-            disabled={decide.isPending}
+            disabled={busy}
             className="rounded-full border border-border/60 px-4 py-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:border-primary/60"
           >
             Send back to pending
           </button>
         )}
+        <button
+          type="button"
+          onClick={confirmDelete}
+          disabled={busy}
+          className="ml-auto rounded-full border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          title="Permanently remove this item and its media"
+        >
+          {removeItem.isPending ? "Deleting…" : "Delete"}
+        </button>
       </div>
     </li>
   );
