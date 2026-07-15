@@ -47,11 +47,15 @@ export function AdminCommandCenter() {
         role: t.role,
         content: t.content,
       }));
-      const res = await chatFn({ data: { messages: history } });
+      const res = (await chatFn({ data: { messages: history } })) as {
+        reply: string;
+        tool_calls: AdminToolCall[];
+      };
       setTurns((prev) => [
         ...prev,
         { role: "assistant", content: res.reply, tool_calls: res.tool_calls },
       ]);
+
     } catch (e) {
       setError((e as Error).message);
     } finally {
