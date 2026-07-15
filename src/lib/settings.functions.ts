@@ -384,7 +384,19 @@ export type UpdateSiteSettingsInput = z.input<typeof updateSchema>;
 
 export const updateSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: UpdateSiteSettingsInput) => updateSchema.parse(input))
+  .inputValidator((input: UpdateSiteSettingsInput) => {
+    const parsed = updateSchema.safeParse(input);
+    if (parsed.success) return parsed.data;
+    // Convert Zod's structured error into a single readable Error whose
+    // .message can be shown by the client's toast. Prefix the offending
+    // field so a non-form caller (curl, script, misbehaving UI) still gets
+    // an actionable response instead of a generic "validation failed".
+    const first = parsed.error.issues[0];
+    const path = first?.path?.join(".") || "input";
+    const message = first?.message || "Invalid input.";
+    throw new Error(`${path}: ${message}`);
+  })
+
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
