@@ -127,6 +127,7 @@ const GROUPS: NavGroup[] = [
       { label: "System Logs", to: "/admin/system-logs", icon: Terminal, adminOnly: true },
       { label: "Reminder Logs", to: "/admin/health-reminders", icon: BellRing, adminOnly: true },
       { label: "Tier Analytics", to: "/admin/analytics", icon: BarChart3, adminOnly: true },
+      { label: "Security Changelog", to: "/admin/security-changelog", icon: ShieldCheck, adminOnly: true },
     ],
   },
 ];
