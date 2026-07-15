@@ -567,6 +567,37 @@ function SlotDialog({
               picker)
             </span>
           </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                Duration (minutes)
+              </span>
+              <input
+                type="number"
+                min={1}
+                step={5}
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="auto from start/end"
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                Price (A$)
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                inputMode="decimal"
+                value={priceAud}
+                onChange={(e) => setPriceAud(e.target.value)}
+                placeholder="e.g. 60.00"
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
           <label className="block text-sm">
             <span className="text-xs uppercase tracking-widest text-muted-foreground">
               Notes (optional)
