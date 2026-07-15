@@ -324,9 +324,9 @@ export function AdminSettings() {
             // onError handlers will surface the follow-up toast, so we don't
             // need to duplicate that here.
             onClick: () => {
-              if (save.isPending) return;
+              if (save.isPending || saveInFlightRef.current) return;
               save.reset();
-              save.mutate();
+              startSave();
             },
           },
         });
@@ -360,6 +360,24 @@ export function AdminSettings() {
   // Return keyboard focus to the FetLife input after a validation or server
   // rejection so the admin can fix and retry without hunting for the field.
   const fetlifeInputRef = useRef<HTMLInputElement | null>(null);
+  // Double-submit guard. `save.isPending` only flips true on the next React
+  // render, so two synchronous clicks (fast double-click, keyboard repeat,
+  // Ctrl+Enter racing a click) both see the stale `false` and each fire a
+  // separate `save.mutate()` — two requests, two audit rows. This ref flips
+  // synchronously the moment we call `mutate`, and is cleared in `onSettled`
+  // so a retry after failure still works.
+  const saveInFlightRef = useRef(false);
+  const startSave = (onSettled?: () => void) => {
+    if (saveInFlightRef.current || save.isPending) return false;
+    saveInFlightRef.current = true;
+    save.mutate(undefined, {
+      onSettled: () => {
+        saveInFlightRef.current = false;
+        onSettled?.();
+      },
+    });
+    return true;
+  };
   const fetlifeConfirmDialogId = "fetlife-confirm-dialog";
   const fetlifeChanged =
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
@@ -406,7 +424,7 @@ export function AdminSettings() {
 
       return;
     }
-    save.mutate();
+    startSave();
   };
 
 
@@ -735,11 +753,9 @@ export function AdminSettings() {
             // activates whichever button currently has focus (Radix default).
             if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
               event.preventDefault();
-              if (save.isPending || fetlifeConfirmBlocked) return;
+              if (save.isPending || saveInFlightRef.current || fetlifeConfirmBlocked) return;
               fetlifeDismissIntentRef.current = "confirm";
-              save.mutate(undefined, {
-                onSettled: () => setPendingFetlifeConfirm(false),
-              });
+              startSave(() => setPendingFetlifeConfirm(false));
             }
           }}
         >
@@ -880,11 +896,9 @@ export function AdminSettings() {
                 // Prevent Radix's default close-on-click so the dialog stays
                 // open with a loading state until the mutation settles.
                 event.preventDefault();
-                if (save.isPending || fetlifeConfirmBlocked) return;
+                if (save.isPending || saveInFlightRef.current || fetlifeConfirmBlocked) return;
                 fetlifeDismissIntentRef.current = "confirm";
-                save.mutate(undefined, {
-                  onSettled: () => setPendingFetlifeConfirm(false),
-                });
+                startSave(() => setPendingFetlifeConfirm(false));
               }}
             >
               {save.isPending ? (
