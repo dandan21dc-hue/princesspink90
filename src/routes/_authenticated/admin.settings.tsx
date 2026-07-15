@@ -116,6 +116,10 @@ export function AdminSettings() {
   // Populated in the mutation's onError when the server rejects the email;
   // cleared as the admin edits the field or a save succeeds.
   const [serverEmailError, setServerEmailError] = useState<string | null>(null);
+  // Server-side rejection for the FetLife handle. Populated when a confirmed
+  // save fails so we can echo the exact message inline under the input
+  // (alongside the toast); cleared on edit or on a successful save.
+  const [serverFetlifeError, setServerFetlifeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings.data) {
