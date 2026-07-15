@@ -1909,6 +1909,33 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_reward_grants: {
+        Row: {
+          created_at: string
+          id: string
+          points_awarded: number
+          referral_code: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          points_awarded: number
+          referral_code: string
+          referred_user_id: string
+          referrer_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          points_awarded?: number
+          referral_code?: string
+          referred_user_id?: string
+          referrer_user_id?: string
+        }
+        Relationships: []
+      }
       reminder_job_config: {
         Row: {
           daily_run_time_utc: string
