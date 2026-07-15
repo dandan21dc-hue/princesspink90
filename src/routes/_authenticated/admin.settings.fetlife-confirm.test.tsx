@@ -477,6 +477,64 @@ describe("admin settings — FetLife confirmation gate", () => {
     ).toBeNull();
     expect(screen.queryByText(/unsaved changes/i)).toBeNull();
   });
+
+  it("rapid double-clicks on the confirm button only fire one save request", async () => {
+    // Regression guard: `save.isPending` only flips true after React re-renders,
+    // so two synchronous clicks both saw the stale `false` and each fired a
+    // separate `save.mutate()` — two network requests, two audit rows. A
+    // synchronous in-flight ref must dedupe.
+    let resolveSave: ((value: { ok: true }) => void) | null = null;
+    mockUpdateSiteSettings.mockImplementationOnce(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle) as HTMLInputElement;
+    fireEvent.change(fetInput, { target: { value: "One-Shot-Handle" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmBtn = within(dialog).getByRole("button", {
+      name: /yes, update handle/i,
+    }) as HTMLButtonElement;
+
+    // Three synchronous clicks — same tick, so no re-render has run between
+    // them. Without the in-flight ref, all three would call save.mutate().
+    fireEvent.click(confirmBtn);
+    fireEvent.click(confirmBtn);
+    fireEvent.click(confirmBtn);
+
+    // Give React a chance to flush; the server fn must still have been
+    // invoked exactly once.
+    await waitFor(() => {
+      expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
+    });
+
+    // While the request is in flight the confirm button must render its
+    // disabled loading state so a later click can't slip through either.
+    await waitFor(() => {
+      expect(
+        (within(dialog).getByRole("button", { name: /saving…/i }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true);
+    });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /saving…/i }),
+    );
+    expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
+
+    // Resolve the pending request so React Query settles the mutation and
+    // the dialog can close cleanly (avoids act() warnings on teardown).
+    resolveSave?.({ ok: true });
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe("admin settings — FetLife handle client-side normalization + validation", () => {
