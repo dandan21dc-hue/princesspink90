@@ -63,12 +63,14 @@ function AdminMapPins() {
   useEffect(() => setQInput(q), [q]);
   useEffect(() => {
     const t = setTimeout(() => {
-      if (qInput !== q) navigate({ search: (prev) => ({ ...prev, q: qInput }), replace: true });
+      if (qInput !== q) {
+        navigate({ search: (prev: { q: string; state: string }) => ({ ...prev, q: qInput }), replace: true });
+      }
     }, 200);
     return () => clearTimeout(t);
   }, [qInput, q, navigate]);
   const setState = (next: string) =>
-    navigate({ search: (prev) => ({ ...prev, state: next }), replace: true });
+    navigate({ search: (prev: { q: string; state: string }) => ({ ...prev, state: next }), replace: true });
 
   const stateFilter: "all" | "described" | "missing_desc" | "featured" =
     state === "described" || state === "missing_desc" || state === "featured" ? state : "all";
