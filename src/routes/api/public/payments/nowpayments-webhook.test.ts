@@ -4,42 +4,48 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // it via dynamic import inside processIpn, so vi.mock's hoisting still applies.
 const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null });
 vi.mock("@/integrations/supabase/client.server", () => {
-  const ledger = new Map<string, { handled: boolean; reason: string | null; received_count: number }>();
+  type Row = { handled: boolean; reason: string | null; received_count: number };
+  const ledger = new Map<string, Row>();
+  const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
-    if (table !== "nowpayments_ipn_events") {
-      throw new Error(`unexpected table: ${table}`);
-    }
-    let pendingInsert: { payment_id: string } | null = null;
-    let pendingPid: string | null = null;
-    const api = {
-      insert(row: { payment_id: string }) { pendingInsert = row; return api; },
-      update(patch: Record<string, unknown>) {
+    if (table !== "nowpayments_ipn_events") throw new Error(`unexpected table: ${table}`);
+    return {
+      insert(row: { payment_id: string; last_status: string }) {
+        const k = keyOf(row.payment_id, row.last_status);
         return {
-          eq: (_col: string, val: string) => {
-            const row = ledger.get(val);
-            if (row) Object.assign(row, patch);
-            return Promise.resolve({ data: null, error: null });
-          },
+          select: (_c?: string) => ({
+            maybeSingle: () => {
+              if (ledger.has(k)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
+              ledger.set(k, { handled: false, reason: null, received_count: 1 });
+              return Promise.resolve({ data: { payment_id: row.payment_id }, error: null });
+            },
+          }),
         };
       },
-      select(_cols?: string) { return api; },
-      eq(_col: string, val: string) { pendingPid = val; return api; },
-      maybeSingle: () => {
-        if (pendingInsert) {
-          const pid = pendingInsert.payment_id;
-          if (ledger.has(pid)) {
-            return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
-          }
-          ledger.set(pid, { handled: false, reason: null, received_count: 1 });
-          return Promise.resolve({ data: { payment_id: pid }, error: null });
-        }
-        const row = pendingPid ? ledger.get(pendingPid) ?? null : null;
-        return Promise.resolve({ data: row, error: null });
+      select(_c?: string) {
+        const filters: Record<string, string> = {};
+        const rd = {
+          eq: (c: string, v: string) => { filters[c] = v; return rd; },
+          maybeSingle: () => Promise.resolve({
+            data: ledger.get(keyOf(filters.payment_id, filters.last_status)) ?? null,
+            error: null,
+          }),
+        };
+        return rd;
       },
-      then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) =>
-        Promise.resolve({ data: null, error: null }).then(resolve, reject),
+      update(patch: Partial<Row> & Record<string, unknown>) {
+        const filters: Record<string, string> = {};
+        const upd = {
+          eq: (c: string, v: string) => { filters[c] = v; return upd; },
+          then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) => {
+            const row = ledger.get(keyOf(filters.payment_id, filters.last_status));
+            if (row) Object.assign(row, patch);
+            return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+          },
+        };
+        return upd;
+      },
     };
-    return api;
   };
   return { supabaseAdmin: { rpc: rpcMock, from } };
 });
