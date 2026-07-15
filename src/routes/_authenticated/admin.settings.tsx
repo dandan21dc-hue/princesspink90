@@ -367,14 +367,13 @@ export function AdminSettings() {
   // synchronously the moment we call `mutate`, and is cleared in `onSettled`
   // so a retry after failure still works.
   const saveInFlightRef = useRef(false);
-  const startSave = (opts?: Parameters<typeof save.mutate>[1]) => {
+  const startSave = (onSettled?: () => void) => {
     if (saveInFlightRef.current || save.isPending) return false;
     saveInFlightRef.current = true;
     save.mutate(undefined, {
-      ...opts,
-      onSettled: (data, error, vars, ctx) => {
+      onSettled: () => {
         saveInFlightRef.current = false;
-        opts?.onSettled?.(data, error, vars, ctx);
+        onSettled?.();
       },
     });
     return true;
