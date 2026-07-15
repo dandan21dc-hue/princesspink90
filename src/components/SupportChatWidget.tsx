@@ -5,7 +5,12 @@ import { toast } from "sonner";
 
 import { listConciergeSlots, type ConciergeSlot } from "@/lib/concierge.functions";
 import { createBookingInvoice } from "@/lib/bookingInvoice.functions";
+import {
+  loadConciergeHistory,
+  saveConciergeHistory,
+} from "@/lib/concierge-history.functions";
 import { supabase } from "@/integrations/supabase/client";
+
 
 /**
  * Booking Concierge widget.
