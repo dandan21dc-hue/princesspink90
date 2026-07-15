@@ -39,6 +39,7 @@ import { Route as CheckoutCartRouteImport } from './routes/checkout.cart'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
+import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated/rewards'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCohostApplyRouteImport } from './routes/_authenticated/cohost-apply'
@@ -268,6 +269,11 @@ const AuthenticatedVerifyRoute = AuthenticatedVerifyRouteImport.update({
 const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
@@ -769,6 +775,7 @@ export interface FileRoutesByFullPath {
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
@@ -880,6 +887,7 @@ export interface FileRoutesByTo {
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
@@ -993,6 +1001,7 @@ export interface FileRoutesById {
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
+  '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
@@ -1107,6 +1116,7 @@ export interface FileRouteTypes {
     | '/cohost-apply'
     | '/dashboard'
     | '/library'
+    | '/rewards'
     | '/support'
     | '/verify'
     | '/api/chat'
@@ -1218,6 +1228,7 @@ export interface FileRouteTypes {
     | '/cohost-apply'
     | '/dashboard'
     | '/library'
+    | '/rewards'
     | '/support'
     | '/verify'
     | '/api/chat'
@@ -1330,6 +1341,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cohost-apply'
     | '/_authenticated/dashboard'
     | '/_authenticated/library'
+    | '/_authenticated/rewards'
     | '/_authenticated/support'
     | '/_authenticated/verify'
     | '/api/chat'
@@ -1681,6 +1693,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof AuthenticatedSupportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rewards': {
+      id: '/_authenticated/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof AuthenticatedRewardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/library': {
@@ -2324,6 +2343,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCohostApplyRoute: typeof AuthenticatedCohostApplyRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
+  AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedAdminActivityAuditRoute: typeof AuthenticatedAdminActivityAuditRoute
@@ -2376,6 +2396,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCohostApplyRoute: AuthenticatedCohostApplyRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
+  AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedAdminActivityAuditRoute: AuthenticatedAdminActivityAuditRoute,
