@@ -1,27 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import {
-  type StripeEnv,
-  createStripeClient,
-  getStripeErrorMessage,
-  assertAudCurrency,
-} from "@/lib/stripe.server";
-import { TAX_CODES, isEligibleForManagedPayments } from "@/lib/stripe-tax-codes";
-// Stripe SDK has been removed. Any lingering `Stripe.*` type references in
-// this file are legacy Stripe checkout paths that are no longer wired up;
-// aliasing to `any` keeps them compilable during the NOWPayments migration.
-// eslint-disable-next-line @typescript-eslint/no-namespace
-type Stripe = any;
-// eslint-disable-next-line @typescript-eslint/no-namespace
-namespace Stripe {
-  export type Price = any;
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  export namespace Checkout {
-    export type SessionCreateParams = any;
-  }
-}
+import { type StripeEnv } from "@/lib/stripe";
 
-type CheckoutResult = { clientSecret: string } | { error: string };
+
 
 // ---------- Public reads ----------
 
