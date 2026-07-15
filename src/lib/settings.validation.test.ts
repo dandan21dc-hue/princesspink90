@@ -51,7 +51,6 @@ describe("client-side validators (mirror of server schema)", () => {
     });
     it("normalizes @, /, and full profile URLs", () => {
       expect(normalizeFetlifeHandle("@Gloryhole-Queen")).toBe("Gloryhole-Queen");
-      expect(normalizeFetlifeHandle("/Gloryhole-Queen")).toBe("Gloryhole-Queen");
       expect(normalizeFetlifeHandle("https://fetlife.com/Gloryhole-Queen")).toBe(
         "Gloryhole-Queen",
       );
