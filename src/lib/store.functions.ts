@@ -765,28 +765,6 @@ async function hasSubscriberAccess(
 
 export const SUBSCRIBER_DISCOUNT_PERCENT = 15;
 export const SUBSCRIBER_DISCOUNT_MAX_ORDERS = 3;
-const SUBSCRIBER_COUPON_ID = "subscriber_pantry_15";
-
-async function ensureSubscriberCoupon(stripe: Stripe): Promise<string> {
-  try {
-    await stripe.coupons.retrieve(SUBSCRIBER_COUPON_ID);
-  } catch (err: unknown) {
-    const code = (err as { code?: string; statusCode?: number } | null)?.code
-      ?? (err as { raw?: { code?: string } } | null)?.raw?.code;
-    const status = (err as { statusCode?: number } | null)?.statusCode;
-    if (code === "resource_missing" || status === 404) {
-      await stripe.coupons.create({
-        id: SUBSCRIBER_COUPON_ID,
-        percent_off: SUBSCRIBER_DISCOUNT_PERCENT,
-        duration: "forever",
-        name: `Subscriber ${SUBSCRIBER_DISCOUNT_PERCENT}% off (first ${SUBSCRIBER_DISCOUNT_MAX_ORDERS} Panty Drawer orders)`,
-      });
-    } else {
-      throw err;
-    }
-  }
-  return SUBSCRIBER_COUPON_ID;
-}
 
 /**
  * Count of PAID panty orders for a user in the given env where the subscriber
