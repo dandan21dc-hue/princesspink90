@@ -343,15 +343,58 @@ function EditModal(props: {
         .from("content-media")
         .createSignedUrl(path, 60 * 60 * 24 * 365);
       if (sErr || !signed?.signedUrl) throw sErr ?? new Error("Could not sign URL");
-      if (target === "cover") {
-        onChange({ ...value, cover_url: signed.signedUrl });
-      } else {
-        onChange({
-          ...value,
-          media_urls: [...(value.media_urls ?? []), signed.signedUrl],
-        });
-      }
+      const nextCover = target === "cover" ? signed.signedUrl : value.cover_url ?? null;
+      const nextMedia =
+        target === "media"
+          ? [...(value.media_urls ?? []), signed.signedUrl]
+          : value.media_urls ?? [];
+      const nextState: EditState = {
+        ...value,
+        cover_url: nextCover,
+        media_urls: nextMedia,
+      };
+      onChange(nextState);
       toast.success("Photo uploaded");
+
+      // Auto-create a draft row on the FIRST successful upload so the photo
+      // is never orphaned in storage if the tab closes before Save.
+      // Draft = unpublished; the Save button still requires a description
+      // before publishing, so the row shows up as "Draft" in the list until
+      // the remaining details are filled in.
+      if (!value.id && !autoCreating) {
+        setAutoCreating(true);
+        try {
+          const placeholderTitle =
+            (nextState.title ?? "").trim() || "Untitled draft";
+          const res = await createFn({
+            data: {
+              title: placeholderTitle,
+              description: nextState.description ?? null,
+              color: nextState.color ?? null,
+              style: nextState.style ?? null,
+              size: nextState.size ?? null,
+              cover_url: nextState.cover_url ?? null,
+              media_urls: nextState.media_urls ?? [],
+              price_cents: nextState.price_cents ?? null,
+              published: false,
+              sold: false,
+              sort_order: nextState.sort_order ?? 0,
+            },
+          });
+          onChange({ ...nextState, id: res.id, title: placeholderTitle, published: false });
+          qc.invalidateQueries({ queryKey: ["admin-panty-listings"] });
+          toast.info("Draft created — add title, description & details, then Save to publish.", {
+            duration: 8000,
+          });
+        } catch (e) {
+          toast.error(
+            `Couldn't create draft row: ${(e as Error).message}. Fill in the details and click Save to try again.`,
+            { duration: 10000 },
+          );
+        } finally {
+          setAutoCreating(false);
+        }
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
