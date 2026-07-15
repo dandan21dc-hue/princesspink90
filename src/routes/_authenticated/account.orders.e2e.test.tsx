@@ -64,7 +64,7 @@ describe("/account/orders — empty account", () => {
 
     // Empty-state copy plus a browse CTA back to the shop.
     await screen.findByText(/you have no orders yet/i);
-    expect(screen.getByTestId("link-/")).toHaveTextContent(/browse passes and content/i);
+    expect(screen.getByTestId("link-/").textContent).toMatch(/browse passes and content/i);
 
     // Summary cards render zeros for every bucket.
     const summarySection = screen.getByText("Total").closest("section")!;
