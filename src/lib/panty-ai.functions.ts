@@ -95,10 +95,8 @@ export const describePantyPhoto = createServerFn({ method: "POST" })
       const { output } = await generateText({
         model,
         output: Output.object({ schema: ResultSchema }),
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userContent },
-        ],
+        system: systemPrompt,
+        messages: [{ role: "user", content: userContent }],
       });
 
       const cleanTag = (t: string) =>
