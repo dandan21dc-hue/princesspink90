@@ -1,78 +1,55 @@
-Good news: the payments abstraction already routes both `one_time` and `subscription` intents to NOWPayments (`src/lib/payments/config.ts`). The Stripe pieces are dead or transitional — this plan removes them cleanly.
+# Brand Ambassador Referral System
 
-## 1. Frontend / hooks / components (delete)
+## Scope
 
-- `src/hooks/useStripeCheckout.tsx`
-- `src/components/StripeEmbeddedCheckout.tsx` + `.test.tsx`
-- `src/lib/payments/providers/stripe.tsx`
-- `src/lib/stripeCheckoutFlow.test.ts`
-- `src/lib/stripe.ts` (client-side env helper)
-- `src/lib/stripe-tax-codes.ts`
+Add a lightweight referral program. Every user gets a unique 6-character code at sign-up. New users can enter someone's code during sign-up, which awards the referrer 50 reward points. Users see their code, share link, and point balance on a new Rewards tab.
 
-Search-and-replace remaining `useStripeCheckout` imports → `useCheckout("one_time" | "subscription")` from `@/lib/payments`. Affected: `checkout.cart.tsx`, `glory-holes.tsx`, `private-room.tsx`, `panty-drawer.tsx`, `store.$id.tsx`, `store.subscribe.tsx`, `AllAccessCard.tsx`, `CartDrawer.tsx`, `SubscriberDiscountPanel.tsx`, `TermsAgreementGate.tsx`, `PaymentPendingPlaceholder.tsx`.
+## Database (one migration)
 
-## 2. Subscriptions surface
+Add to `public.profiles` (the app's user table — `auth.users` is managed by Supabase, so all custom user data lives on `profiles`):
 
-- Rewrite `useSubscription` (currently reads `subscriptions` table) to read from `memberships` where `kind = 'term_pass_all_access_30d'` and `expires_at > now()`. Same `{ isActive, currentPeriodEnd, ... }` shape so callers don't change.
-- `store.subscribe.tsx`: keep as the All-Access Pass buy page; strip `price_id` / Stripe wording; expiry copy stays ("manual re-buy after 30 days"), Buy button routes through NOWPayments.
-- `SubscriberDiscountPanel.tsx` + `useMyTiers.ts`: key discount tiers off active All-Access membership instead of Stripe `price_id`.
-- `account.billing.tsx`: replace Stripe Billing Portal button with a "Buy new pass" CTA (portal doesn't exist for NOWPayments).
+- `referral_code text UNIQUE` — 6-char uppercase alphanumeric, generated on insert.
+- `reward_points integer NOT NULL DEFAULT 0`.
+- Case-insensitive index on `referral_code` for lookups.
 
-## 3. Server functions & webhooks (delete)
+Trigger work:
 
-- `src/lib/stripe.server.ts`
-- `src/lib/stripe-webhook-events.functions.ts`
-- `src/lib/stripeMaintenance.functions.ts`
-- `src/lib/planPriceValidation.server.ts` (Stripe price parity check)
-- `src/routes/api/public/payments/webhook.ts` + `.test.ts` (Stripe webhook)
-- `src/routes/api/public/cron/dunning-escalation.ts` (Stripe dunning)
-- `src/routes/_authenticated/admin.checkout-reconciliation.tsx`
-- `src/routes/_authenticated/admin.webhook-events.tsx` (Stripe-only viewer)
+- `assign_referral_code()` BEFORE INSERT on profiles — generates a random 6-char code, retries on collision (uses uppercase A–Z / 2–9, excluding confusable chars like 0/O/1/I).
+- Extend the existing `handle_new_user()` trigger (fires on `auth.users` insert) to also read `raw_user_meta_data->>'referral_code'` and, when it matches an existing `profiles.referral_code`, increment that referrer's `reward_points` by 50. Silently ignores an unknown/blank code — a bad code never blocks signup.
+- Backfill existing profiles with codes so no user is left without one.
 
-Prune Stripe branches from: `billing.functions.ts`, `admin.functions.ts`, `admin-orders.functions.ts`, `analytics.functions.ts`, `store.functions.ts`, `account.functions.ts`, `subscribePrices.functions.ts`, `booking-email.functions.ts`, `cart.ts`, `returnUrl.ts` + tests, `pantyCheckoutEvents.ts`, `track.ts`, `audCurrencyGuard.test.ts`, email templates (`payment-failed-final.tsx`), admin settings/orders-status routes, `checkout.return.tsx` (drop Stripe `session_id` handling, keep NOWPayments `payment_id`).
+RLS: existing profile policies already let users read/update their own row — no policy changes needed. Awarding happens inside a `SECURITY DEFINER` trigger, so users can't hand-edit their own points.
 
-## 4. Package + config
+## Sign-up flow (`src/routes/auth.tsx`)
 
-- `bun remove stripe @stripe/stripe-js @stripe/react-stripe-js`
-- Drop `verify-multi-currency-checkout.mjs` script and Stripe e2e specs (`e2e/checkout-*`).
-- Docs: mark `docs/analytics/panty-checkout-events.md` + `docs/qa/checkout-tracking-checklist.md` as NOWPayments-only, strip Stripe sections.
-- Remove `STRIPE_*_API_KEY` and `PAYMENTS_*_WEBHOOK_SECRET` references from code (secrets themselves stay in the dashboard — connector-managed).
+- Add an optional "Referral code (optional)" input, shown only in signup mode.
+- Uppercase + trim on submit; skip when blank.
+- Pass through `options.data.referral_code` on `supabase.auth.signUp` so the trigger sees it.
 
-## 5. Database migration (irreversible)
+## Rewards tab
 
-One migration drops all Stripe schema. In order:
+Add a new authenticated route `src/routes/_authenticated/account.rewards.tsx` and a "Rewards" link in the existing account nav (`account.tsx`). The tab shows:
 
-```sql
--- Update user_can_access_content to drop subscriptions branch, keep memberships + purchases
-CREATE OR REPLACE FUNCTION public.user_can_access_content(...) ... ;
+- Current point balance (big number).
+- The user's referral code with a copy button.
+- A full referral link: `${origin}/auth?ref=CODE` with a copy button.
+- One-line explainer: "Friends who sign up with your code earn you 50 points."
 
--- Update purge_account_rows to stop referencing subscriptions
-CREATE OR REPLACE FUNCTION public.purge_account_rows(...) ... ;
+Data comes from a new authenticated server function `getMyRewards()` in `src/lib/rewards.functions.ts` that reads `referral_code` and `reward_points` from the caller's profile row (RLS enforces ownership).
 
--- Rewrite run_payment_integrity_checks to drop the two Stripe checks
-CREATE OR REPLACE FUNCTION public.run_payment_integrity_checks(...) ... ;
+Also: when `/auth` loads with `?ref=CODE`, pre-fill the referral input.
 
-DROP TABLE IF EXISTS public.stripe_webhook_events CASCADE;
-DROP TABLE IF EXISTS public.subscriptions CASCADE;
-DROP TABLE IF EXISTS public.dunning_schedule CASCADE;
+## Technical notes
 
-ALTER TABLE public.panty_orders
-  DROP COLUMN IF EXISTS stripe_session_id,
-  DROP COLUMN IF EXISTS stripe_payment_intent_id,
-  DROP COLUMN IF EXISTS stripe_customer_id;
--- (same shape applied to any other table with stripe_* columns discovered during exec)
+- No new tables — one column change on `profiles`, two trigger updates.
+- Points are a simple counter for now; no redemption flow, no per-referral audit table (can be added later without breaking this).
+- Trigger uses `SECURITY DEFINER` + `search_path = public` and does a bounded number of collision retries.
+- Types file regenerates after the migration is approved; the Rewards route and server function are written after that so the new columns are typed.
 
-DROP FUNCTION IF EXISTS public.has_active_subscription(uuid, text);
-```
+## Files touched
 
-## 6. Verification
-
-- Typecheck via `tsgo` (auto).
-- Run remaining vitest specs (`bun x vitest run`) to confirm no Stripe imports leak.
-- Playwright smoke: home → All-Access → NOWPayments redirect stub; cart → checkout → NOWPayments redirect stub.
-
-## Risk
-
-Irreversible DB drop wipes historical Stripe orders and subscription rows. Admin pages tied to those tables (`admin.checkout-reconciliation`, `admin.webhook-events`) are removed with them — links to them will be pulled from the admin nav.
-
-I'll execute in this order once you approve: migration first, then code (deletes → rewrites → package removal), then verify.
+- New migration (columns, functions, triggers, backfill).
+- `src/routes/auth.tsx` — referral input + `?ref=` prefill.
+- `src/lib/rewards.functions.ts` — new.
+- `src/routes/_authenticated/account.rewards.tsx` — new.
+- `src/routes/_authenticated/account.tsx` — add Rewards nav link.

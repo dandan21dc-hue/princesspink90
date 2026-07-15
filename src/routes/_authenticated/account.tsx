@@ -24,6 +24,9 @@ function AccountLayout() {
         <Link to="/account/billing" activeProps={{ className: "font-semibold text-neon" }}>
           Billing
         </Link>
+        <Link to="/account/rewards" activeProps={{ className: "font-semibold text-neon" }}>
+          Rewards
+        </Link>
       </div>
       <Outlet />
     </div>

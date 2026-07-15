@@ -6,7 +6,7 @@ import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: z.object({ next: z.string().optional() }),
+  validateSearch: z.object({ next: z.string().optional(), ref: z.string().optional() }),
   head: () => ({
     meta: [
       { title: "Sign in · AFTERDARK" },
@@ -23,6 +23,9 @@ function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [referralCode, setReferralCode] = useState(
+    typeof search.ref === "string" ? search.ref.toUpperCase().trim().slice(0, 12) : "",
+  );
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -48,11 +51,15 @@ function Auth() {
     setLoading(true);
     try {
       if (mode === "signup") {
+        const trimmedRef = referralCode.trim().toUpperCase();
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
             emailRedirectTo: returnTo,
-            data: { display_name: displayName || email.split("@")[0] },
+            data: {
+              display_name: displayName || email.split("@")[0],
+              ...(trimmedRef ? { referral_code: trimmedRef } : {}),
+            },
           },
         });
         if (error) throw error;
@@ -123,6 +130,15 @@ function Auth() {
             placeholder="Password (min 8 chars)"
             className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
           />
+          {mode === "signup" && (
+            <input
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 12))}
+              placeholder="Referral code (optional)"
+              autoCapitalize="characters"
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm font-mono tracking-widest uppercase focus:border-primary focus:outline-none"
+            />
+          )}
           {mode === "signup" && (
             <label className="flex items-start gap-2 pt-1 text-xs text-muted-foreground">
               <input

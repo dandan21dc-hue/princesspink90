@@ -1875,6 +1875,8 @@ export type Database = {
           deleted_at: string | null
           display_name: string | null
           pending_deletion_at: string | null
+          referral_code: string | null
+          reward_points: number
           user_id: string
           veriff_session_id: string | null
           verification_status: Database["public"]["Enums"]["verification_status"]
@@ -1886,6 +1888,8 @@ export type Database = {
           deleted_at?: string | null
           display_name?: string | null
           pending_deletion_at?: string | null
+          referral_code?: string | null
+          reward_points?: number
           user_id: string
           veriff_session_id?: string | null
           verification_status?: Database["public"]["Enums"]["verification_status"]
@@ -1897,6 +1901,8 @@ export type Database = {
           deleted_at?: string | null
           display_name?: string | null
           pending_deletion_at?: string | null
+          referral_code?: string | null
+          reward_points?: number
           user_id?: string
           veriff_session_id?: string | null
           verification_status?: Database["public"]["Enums"]["verification_status"]
@@ -2575,6 +2581,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      generate_referral_code: { Args: never; Returns: string }
       get_private_room_busy: {
         Args: { from_ts: string; to_ts: string }
         Returns: {
