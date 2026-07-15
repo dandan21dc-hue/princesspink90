@@ -392,29 +392,26 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
     }
   });
 
-  it("normalizes pasted formats live and keeps the old URL pinned to the saved handle", async () => {
-    const { dialog, fetInput } = await openDialogWithEdit("Placeholder-1");
-    assertDialogUrls(dialog, "Placeholder-1");
-
-    // Each of these raw pastes should normalize to "Kinky-Pasted-Handle";
-    // the dialog must track that on the new URL line while the old URL
-    // stays pinned to SAVED.fetlife_handle.
-    const rawPastes = [
-      "Kinky-Pasted-Handle",
-      "  Kinky-Pasted-Handle  ",
-      "@Kinky-Pasted-Handle",
-      "/Kinky-Pasted-Handle",
-      "https://fetlife.com/Kinky-Pasted-Handle",
-      "http://fetlife.com/Kinky-Pasted-Handle",
-      "https://www.fetlife.com/Kinky-Pasted-Handle",
-      "https://fetlife.com/Kinky-Pasted-Handle/photos",
-      "https://fetlife.com/Kinky-Pasted-Handle?ref=x",
-    ];
-    for (const raw of rawPastes) {
-      fireEvent.input(fetInput, { target: { value: raw } });
-      await waitFor(() => assertDialogUrls(dialog, "Kinky-Pasted-Handle"));
-    }
-  });
+  // Each raw paste — every FetLife URL / handle format the admin might
+  // paste — must normalize to the same canonical handle in the dialog
+  // preview, while the old URL stays pinned to SAVED.fetlife_handle.
+  it.each([
+    ["Kinky-Pasted-Handle"],
+    ["  Kinky-Pasted-Handle  "],
+    ["@Kinky-Pasted-Handle"],
+    ["/Kinky-Pasted-Handle"],
+    ["https://fetlife.com/Kinky-Pasted-Handle"],
+    ["http://fetlife.com/Kinky-Pasted-Handle"],
+    ["https://www.fetlife.com/Kinky-Pasted-Handle"],
+    ["https://fetlife.com/Kinky-Pasted-Handle/photos"],
+    ["https://fetlife.com/Kinky-Pasted-Handle?ref=x"],
+  ])(
+    "normalizes pasted format %j live in the dialog preview",
+    async (raw) => {
+      const { dialog } = await openDialogWithEdit(raw);
+      assertDialogUrls(dialog, "Kinky-Pasted-Handle");
+    },
+  );
 
   it("disables Save and hides the new URL link when the pasted value normalizes to an invalid handle", async () => {
     const { dialog, fetInput } = await openDialogWithEdit("Good-Handle");
