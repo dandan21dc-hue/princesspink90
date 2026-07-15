@@ -206,8 +206,10 @@ function AdminMapPins() {
       });
     },
     onError: (e: unknown, vars) => {
-      toast.error(e instanceof Error ? e.message : "Failed to save order");
+      const msg = e instanceof Error ? e.message : "Failed to save order";
+      toast.error(msg);
       setOrder(vars?.prevOrder ?? pins);
+      setReorderAnnouncement(`Reorder failed: ${msg}. Previous order restored.`);
     },
   });
 
