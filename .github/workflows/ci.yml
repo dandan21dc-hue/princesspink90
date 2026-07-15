@@ -789,6 +789,104 @@ jobs:
               core.info(`Opened tracking issue #${created.data.number}`);
             }
 
+  # Scheduled automated rescan summary. Runs on the nightly cron (and
+  # on-demand via workflow_dispatch), fetches the current WARN/ERROR
+  # lints, diffs them against security/lint-baseline.json AND the
+  # last snapshot in security/findings-snapshot.json, and posts (or
+  # updates) a single evergreen tracking issue with a concise summary:
+  # counts, deltas, new IDs, and fixed IDs since the last scan.
+  #
+  # Unlike security_notify, this posts on EVERY scheduled run — green
+  # or red — so reviewers see one canonical "state of security" issue
+  # instead of hunting through workflow logs. The gating logic still
+  # lives in supabase_security_lint; this job is report-only and
+  # cannot fail the build on findings.
+  security_scheduled_summary:
+    name: Security / Scheduled Summary
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      issues: write
+      contents: read
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Generate rescan summary
+        id: summary
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SECURITY_SCAN_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SECURITY_SCAN_TRIGGER: ${{ github.event_name == 'schedule' && 'nightly cron' || 'manual dispatch' }}
+        run: |
+          mkdir -p /tmp/security-summary
+          bun run security:scan-summary --out=/tmp/security-summary/rescan.md
+          echo "path=/tmp/security-summary/rescan.md" >> "$GITHUB_OUTPUT"
+
+      - name: Upload rescan summary artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-rescan-summary
+          path: /tmp/security-summary/
+          retention-days: 30
+          compression-level: 9
+          if-no-files-found: warn
+
+      - name: Post rescan summary to tracking issue
+        uses: actions/github-script@v7
+        env:
+          SUMMARY_PATH: ${{ steps.summary.outputs.path }}
+        with:
+          script: |
+            const fs = require("node:fs");
+            const TITLE = "🔒 Security rescan tracker (automated)";
+            const body = fs.readFileSync(process.env.SUMMARY_PATH, "utf8");
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "security-scan,rescan-summary",
+              per_page: 10,
+            });
+            const existing = open.find((i) => i.title === TITLE);
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              });
+              // Keep the issue body pointing at the latest scan so a
+              // reader lands on the current state without scrolling.
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: `${body}\n\n---\n_Latest scheduled rescan. Comments below record earlier runs._`,
+              });
+              core.info(`Updated rescan tracker #${existing.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: TITLE,
+                body: `${body}\n\n---\n_This issue is managed automatically by \`.github/workflows/ci.yml\` (\`security_scheduled_summary\` job) and receives a comment on every scheduled rescan._`,
+                labels: ["security-scan", "rescan-summary"],
+              });
+              core.info(`Opened rescan tracker #${created.data.number}`);
+            }
+
+
 
 
 
