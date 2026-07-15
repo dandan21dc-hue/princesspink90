@@ -22,8 +22,33 @@ export interface PrivateSessionSlot {
   end_time: string;
   is_booked: boolean;
   notes: string | null;
+  /** Session length in minutes. Derived from start/end for legacy rows;
+   *  stored explicitly on rows created after the duration/price feature. */
+  duration_minutes: number | null;
+  /** Session price in AUD cents. Null = "not set" (inherits site default). */
+  price_cents: number | null;
   created_at: string;
   updated_at: string;
+}
+
+const SLOT_COLS =
+  "id,start_time,end_time,is_booked,notes,duration_minutes,price_cents,created_at,updated_at";
+
+function derivedDurationMinutes(startIso: string, endIso: string) {
+  return Math.max(
+    1,
+    Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000),
+  );
+}
+
+function validPriceCents(v: unknown): v is number | null {
+  if (v === null || v === undefined) return true;
+  return typeof v === "number" && Number.isFinite(v) && Number.isInteger(v) && v >= 0;
+}
+
+function validDurationMinutes(v: unknown): v is number | null {
+  if (v === null || v === undefined) return true;
+  return typeof v === "number" && Number.isFinite(v) && Number.isInteger(v) && v > 0;
 }
 
 /** Admin: list upcoming session slots (end_time >= now), ordered by start. */
