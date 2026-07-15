@@ -156,6 +156,7 @@ function AdminSettings() {
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
       qc.invalidateQueries({ queryKey: ["pricing-audit"] });
+      qc.invalidateQueries({ queryKey: ["contact-settings-audit"] });
       setTimeout(() => setSaved(false), 2500);
     },
   });
