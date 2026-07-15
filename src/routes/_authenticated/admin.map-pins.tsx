@@ -155,7 +155,7 @@ function AdminMapPins() {
     });
   }, [order, qInput, stateFilter]);
 
-  const dragEnabled = !qInput.trim() && stateFilter === "all";
+  const filterEnabled = !qInput.trim() && stateFilter === "all";
 
   type ReorderVars = { ids: string[]; prevIds: string[]; prevOrder: MapPin[]; isUndo: boolean };
   const reorder = useMutation({
@@ -203,6 +203,10 @@ function AdminMapPins() {
       setOrder(vars?.prevOrder ?? pins);
     },
   });
+
+  const dragEnabled = filterEnabled && !reorder.isPending;
+
+
 
   const runReorder = (nextOrder: MapPin[]) => {
     const prevOrder = order;
@@ -706,7 +710,9 @@ function AdminMapPins() {
                   Export CSV
                 </button>
                 <p className="text-xs text-muted-foreground">
-                  {dragEnabled
+                  {reorder.isPending
+                    ? "Saving new order… drag disabled."
+                    : dragEnabled
                     ? "Drag the handle or tap ▲/▼ to reorder."
                     : "Clear search & filter to reorder."}
                 </p>
