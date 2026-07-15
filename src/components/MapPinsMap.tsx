@@ -88,8 +88,8 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props
 
   if (!PUBLIC_TOKEN) {
     return (
-      <div className={`flex items-center justify-center rounded-xl border border-border bg-card/40 p-8 text-sm text-muted-foreground ${className ?? ""}`}>
-        Map unavailable — Mapbox public token is not configured.
+      <div className={`flex items-center justify-center rounded-xl border border-destructive/40 bg-destructive/10 p-8 text-sm text-destructive ${className ?? ""}`}>
+        Map unavailable — {TOKEN_CHECK.ok ? "unknown Mapbox token error." : TOKEN_CHECK.error}
       </div>
     );
   }
