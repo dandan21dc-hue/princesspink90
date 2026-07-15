@@ -19,6 +19,21 @@ export const Route = createFileRoute("/legal")({
       { property: "og:url", content: "https://princesspink90.lovable.app/legal" },
     ],
     links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/legal" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Code of Conduct & Privacy Policy — Legal",
+          url: "https://princesspink90.lovable.app/legal",
+          description:
+            "Community rules and privacy commitments for every guest, host, and event on Midnight Glory.",
+          author: { "@type": "Organization", name: "Midnight Glory" },
+          publisher: { "@type": "Organization", name: "Midnight Glory" },
+        }),
+      },
+    ],
   }),
   component: LegalPage,
 });
