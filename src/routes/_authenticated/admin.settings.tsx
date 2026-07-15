@@ -5,6 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -543,6 +545,11 @@ export function AdminSettings() {
         open={pendingFetlifeConfirm}
         onOpenChange={(open) => {
           if (open) return;
+          // While the confirm-triggered save is in flight, block Radix from
+          // closing the dialog (Esc, overlay click, programmatic close). The
+          // buttons themselves are disabled — closing would strand the admin
+          // with no visible "saving…" indicator.
+          if (save.isPending) return;
           const intent = fetlifeDismissIntentRef.current;
           fetlifeDismissIntentRef.current = null;
           setPendingFetlifeConfirm(false);
@@ -563,6 +570,7 @@ export function AdminSettings() {
           });
         }}
       >
+
         <AlertDialogContent
           id={fetlifeConfirmDialogId}
           aria-describedby={`${fetlifeConfirmDialogId}-desc`}
@@ -581,7 +589,13 @@ export function AdminSettings() {
             const cancelBtn = root?.querySelector<HTMLButtonElement>("[data-cancel]");
             cancelBtn?.focus();
           }}
-          onEscapeKeyDown={() => {
+          onEscapeKeyDown={(event) => {
+            // While the save is in flight, swallow Escape so the admin can't
+            // dismiss the dialog mid-request and lose the loading indicator.
+            if (save.isPending) {
+              event.preventDefault();
+              return;
+            }
             // Radix closes the dialog on Escape by default; mark the intent
             // as an explicit cancel so onOpenChange takes the "not saved"
             // toast path rather than inferring it from a null ref.
@@ -593,12 +607,15 @@ export function AdminSettings() {
             // activates whichever button currently has focus (Radix default).
             if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
               event.preventDefault();
+              if (save.isPending) return;
               fetlifeDismissIntentRef.current = "confirm";
-              save.mutate();
-              setPendingFetlifeConfirm(false);
+              save.mutate(undefined, {
+                onSettled: () => setPendingFetlifeConfirm(false),
+              });
             }
           }}
         >
+
 
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm FetLife handle change</AlertDialogTitle>
@@ -670,23 +687,44 @@ export function AdminSettings() {
           <AlertDialogFooter>
             <AlertDialogCancel
               data-cancel
-              onClick={() => {
+              disabled={save.isPending}
+              onClick={(event) => {
+                if (save.isPending) {
+                  event.preventDefault();
+                  return;
+                }
                 fetlifeDismissIntentRef.current = "cancel";
               }}
             >
               Keep current handle
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              disabled={save.isPending}
+              aria-busy={save.isPending || undefined}
+              onClick={(event) => {
+                // Prevent Radix's default close-on-click so the dialog stays
+                // open with a loading state until the mutation settles.
+                event.preventDefault();
+                if (save.isPending) return;
                 fetlifeDismissIntentRef.current = "confirm";
-                save.mutate();
+                save.mutate(undefined, {
+                  onSettled: () => setPendingFetlifeConfirm(false),
+                });
               }}
             >
-              Yes, update handle
+              {save.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Yes, update handle"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </Shell>
   );
 }
