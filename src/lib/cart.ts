@@ -201,6 +201,21 @@ export const cart = {
     ensureHydrated();
     return cache;
   },
+  /**
+   * Return (and clear) the list of cart items that were auto-removed by
+   * `read()` because their `id` no longer matches the server-side UUID
+   * contract. Callers should surface a single toast so the shopper
+   * understands why their cart shrank. Idempotent: calling twice returns
+   * `[]` the second time.
+   */
+  consumePrunedItems(): CartItem[] {
+    // Trigger hydration so a fresh mount picks up any items localStorage
+    // pruned on this very read.
+    ensureHydrated();
+    const out = pendingPruned;
+    pendingPruned = [];
+    return out;
+  },
 };
 
 
