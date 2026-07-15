@@ -13,6 +13,7 @@ import { Route as UnsubscribeRouteImport } from './routes/unsubscribe'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as StoreRouteImport } from './routes/store'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as SecurityReportRouteImport } from './routes/security-report'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PrivateRoomRouteImport } from './routes/private-room'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -132,6 +133,11 @@ const StoreRoute = StoreRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SecurityReportRoute = SecurityReportRouteImport.update({
+  id: '/security-report',
+  path: '/security-report',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -710,6 +716,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/security-report': typeof SecurityReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -815,6 +822,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/security-report': typeof SecurityReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -920,6 +928,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/private-room': typeof PrivateRoomRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/security-report': typeof SecurityReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/store': typeof StoreRouteWithChildren
   '/terms': typeof TermsRoute
@@ -1027,6 +1036,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/private-room'
     | '/reset-password'
+    | '/security-report'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -1132,6 +1142,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/private-room'
     | '/reset-password'
+    | '/security-report'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -1236,6 +1247,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/private-room'
     | '/reset-password'
+    | '/security-report'
     | '/sitemap.xml'
     | '/store'
     | '/terms'
@@ -1343,6 +1355,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   PrivateRoomRoute: typeof PrivateRoomRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SecurityReportRoute: typeof SecurityReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StoreRoute: typeof StoreRouteWithChildren
   TermsRoute: typeof TermsRoute
@@ -1405,6 +1418,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/security-report': {
+      id: '/security-report'
+      path: '/security-report'
+      fullPath: '/security-report'
+      preLoaderRoute: typeof SecurityReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -2323,6 +2343,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   PrivateRoomRoute: PrivateRoomRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SecurityReportRoute: SecurityReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StoreRoute: StoreRouteWithChildren,
   TermsRoute: TermsRoute,
