@@ -22,6 +22,7 @@ import {
   SESSION_DURATION_DEFAULT_MINUTES,
   normalizeFetlifeHandle,
   validateFetlifeHandle,
+  validateContactEmail,
 } from "@/lib/settings.functions";
 import {
   getReminderJobConfig,
