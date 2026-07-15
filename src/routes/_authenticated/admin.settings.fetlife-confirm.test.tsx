@@ -411,12 +411,12 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       "https://fetlife.com/Kinky-Pasted-Handle?ref=x",
     ];
     for (const raw of rawPastes) {
-      // Bounce through a distinct valid handle first so React sees a real
-      // value transition on the controlled input. Otherwise, pasting the
-      // same raw string that already normalizes to the current handle
-      // won't trigger onChange and the dialog stays on the previous URL.
       fireEvent.change(fetInput, { target: { value: "Reset-Handle-XY" } });
+      // eslint-disable-next-line no-console
+      console.log("after reset input value =", (fetInput as HTMLInputElement).value);
       fireEvent.change(fetInput, { target: { value: raw } });
+      // eslint-disable-next-line no-console
+      console.log("raw=", JSON.stringify(raw), "input value =", (fetInput as HTMLInputElement).value);
       await waitFor(() => assertDialogUrls(dialog, "Kinky-Pasted-Handle"));
     }
   });
