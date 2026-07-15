@@ -84,13 +84,14 @@ function AdminNowpaymentsEvents() {
   const [status, setStatus] = useState<string>("all");
   const [handled, setHandled] = useState<"all" | "handled" | "unhandled">("all");
   const [reversal, setReversal] = useState<ReversalFilter>("all");
+  const [sort, setSort] = useState<SortMode>("last_seen_desc");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
   const list = useQuery({
-    queryKey: ["admin-nowpayments-events", { status, handled, reversal, search }],
+    queryKey: ["admin-nowpayments-events", { status, handled, reversal, sort, search }],
     queryFn: () =>
       listFn({
         data: {
@@ -98,6 +99,7 @@ function AdminNowpaymentsEvents() {
           status: status === "all" ? undefined : status,
           handled,
           reversal,
+          sort,
           search: search || undefined,
         },
       }),
