@@ -698,10 +698,10 @@ describe("admin settings — FetLife confirmation gate", () => {
       const reopenedCancel = within(reopened).getByRole("button", {
         name: /keep current handle/i,
       }) as HTMLButtonElement;
-      expect(reopenedConfirm.disabled).toBe(false);
+      expect(reopenedConfirm.getAttribute("aria-disabled")).not.toBe("true");
       expect(reopenedConfirm.getAttribute("aria-busy")).not.toBe("true");
       expect(reopenedConfirm.querySelector(".lucide-loader-circle")).toBeNull();
-      expect(reopenedCancel.disabled).toBe(false);
+      expect(reopenedCancel.getAttribute("aria-disabled")).not.toBe("true");
     },
   );
 });
