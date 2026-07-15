@@ -1129,7 +1129,10 @@ export const adminRetryNowpaymentsGrant = createServerFn({ method: "POST" })
           if (error) throw new Error(`confirm booking failed: ${error.message}`);
           outcome = { handled: true, entitlementId: existing.id };
         }
+      } else {
+        throw new Error(`Cannot retry: unsupported kind "${(order as { kind: string }).kind}"`);
       }
+
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       await supabaseAdmin
