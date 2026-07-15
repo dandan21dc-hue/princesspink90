@@ -322,7 +322,31 @@ export function AdminSettings() {
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
 
   const handleSubmit = () => {
-    if (fetlifeChanged && !fetlifeError) {
+    // Flush any pending normalization (e.g. trimming whitespace, stripping a
+    // pasted profile URL) into the input state so the admin sees the exact
+    // value that's about to be validated and — if valid — saved.
+    const normalized = normalizeFetlifeHandle(fetlife);
+    if (normalized !== fetlife) setFetlife(normalized);
+
+    // Explicit re-validation before opening the confirm dialog. The Save
+    // button is disabled while `fetlifeError` is truthy, but keyboard Enter
+    // on the form and programmatic submits (e.g. Retry save) can still land
+    // here — so we block invalid handles here rather than trusting the UI
+    // state alone.
+    const validationError = validateFetlifeHandle(normalized);
+    if (validationError) {
+      toast.error("Fix the FetLife handle first", {
+        description: validationError,
+      });
+      return;
+    }
+
+    // Recompute the "changed" check against the freshly-normalized value so
+    // an admin who typed extra whitespace but kept the same handle doesn't
+    // get an unnecessary confirmation dialog.
+    const changedAfterNormalize =
+      settings.data != null && settings.data.fetlife_handle !== normalized;
+    if (changedAfterNormalize) {
       setPendingFetlifeConfirm(true);
       // Explain up-front why Save didn't persist immediately — the AlertDialog
       // is modal but easy to miss on wide screens, and the FetLife handle
@@ -336,6 +360,7 @@ export function AdminSettings() {
     }
     save.mutate();
   };
+
 
 
 
