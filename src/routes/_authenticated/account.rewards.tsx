@@ -13,9 +13,14 @@ export const Route = createFileRoute("/_authenticated/account/rewards")({
 
 function RewardsTab() {
   const fetchRewards = useServerFn(getMyRewards);
+  const fetchActivity = useServerFn(getMyRewardActivity);
   const rewards = useQuery({
     queryKey: ["my-rewards"],
     queryFn: () => fetchRewards(),
+  });
+  const activity = useQuery({
+    queryKey: ["my-reward-activity"],
+    queryFn: () => fetchActivity(),
   });
 
   const code = rewards.data?.referral_code ?? "";
