@@ -90,7 +90,17 @@ export const SESSION_DURATION_MAX_MINUTES = 480; // 8 hours
 // normalize them to the bare handle.
 export const FETLIFE_HANDLE_MAX = 20;
 export const FETLIFE_HANDLE_MIN = 3;
+// Cap the *raw* input length before we do any regex/URL work. A well-formed
+// FetLife URL never exceeds ~40 chars, so 512 is generous. Enforcing an
+// upper bound here means a client that bypasses our UI can't ship a
+// megabyte string that we'd then have to feed through the URL/regex chain.
+export const FETLIFE_HANDLE_RAW_MAX = 512;
 const FETLIFE_HANDLE_RE = /^[A-Za-z0-9_-]{3,20}$/;
+// Matches any ASCII control character (including NUL, tab, CR, LF, DEL).
+// These have no business in a FetLife handle or profile URL; reject them
+// before normalization so callers get a specific, actionable message
+// rather than the generic "letters/digits" one.
+const CONTROL_CHAR_RE = /[\x00-\x1f\x7f]/;
 
 export function normalizeFetlifeHandle(input: string): string {
   let h = (input ?? "").trim();
@@ -104,7 +114,32 @@ export function normalizeFetlifeHandle(input: string): string {
 }
 
 export function validateFetlifeHandle(raw: string): string | null {
-  const h = normalizeFetlifeHandle(raw);
+  const rawStr = raw ?? "";
+  if (rawStr.length > FETLIFE_HANDLE_RAW_MAX)
+    return `FetLife handle input is too long (max ${FETLIFE_HANDLE_RAW_MAX} characters).`;
+  // Check control chars against the *raw* string (not trimmed) so a trailing
+  // newline / tab isn't silently stripped before we check.
+  if (CONTROL_CHAR_RE.test(rawStr))
+    return "FetLife handle can't contain control characters or line breaks.";
+  const trimmed = rawStr.trim();
+  // If someone pasted a URL, make sure the host is actually fetlife.com
+  // *before* we normalize it away. Otherwise "https://evil.com/queen"
+  // becomes "https:" and the caller just sees a generic character-set
+  // error, which hides the real problem (wrong host).
+  if (/^https?:\/\//i.test(trimmed)) {
+    let parsed: URL | null = null;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      return "FetLife handle looks like a URL but isn't a valid one.";
+    }
+    const host = parsed.host.toLowerCase();
+    if (host !== "fetlife.com" && host !== "www.fetlife.com") {
+      return `FetLife URL host must be fetlife.com (got ${parsed.host}).`;
+    }
+  }
+
+  const h = normalizeFetlifeHandle(trimmed);
   if (!h) return "FetLife handle is required.";
   if (h.length < FETLIFE_HANDLE_MIN)
     return `FetLife handle must be at least ${FETLIFE_HANDLE_MIN} characters.`;
@@ -114,6 +149,7 @@ export function validateFetlifeHandle(raw: string): string | null {
     return "FetLife handle can only contain letters, digits, underscore, and hyphen.";
   return null;
 }
+
 
 // Shared contact-email rules — mirrored on client so the form catches bad
 // addresses before we hit the RPC. The server still re-validates via
@@ -133,13 +169,30 @@ export function validateContactEmail(raw: string): string | null {
 
 export const contactSettingsUpdateSchema = z.object({
   email: z.string().trim().email().max(CONTACT_EMAIL_MAX),
+  // Two-stage validation so we can produce the exact same actionable
+  // message the client-side `validateFetlifeHandle` returns (control chars,
+  // wrong host, too short, illegal characters). Zod's default "regex
+  // failed" message would hide the real reason from anyone bypassing our
+  // form and calling `updateSiteSettings` directly.
   fetlife_handle: z
-    .string()
+    .string({ error: "FetLife handle must be a string." })
+    .max(FETLIFE_HANDLE_RAW_MAX, {
+      message: `FetLife handle input is too long (max ${FETLIFE_HANDLE_RAW_MAX} characters).`,
+    })
+    .superRefine((raw, ctx) => {
+      const error = validateFetlifeHandle(raw);
+      if (error) {
+        ctx.addIssue({ code: "custom", message: error });
+      }
+    })
     .transform((v) => normalizeFetlifeHandle(v))
     .refine((v) => FETLIFE_HANDLE_RE.test(v), {
+      // Belt-and-braces: superRefine above catches every bad input, but if
+      // a future edit to normalizeFetlifeHandle regresses we still reject.
       message:
         "FetLife handle must be 3-20 characters of letters, digits, underscore, or hyphen.",
     }),
+
   reddit_handle: z.string().trim().min(1).max(100),
   glory_holes_enabled: z.boolean(),
   session_price_cents: z
@@ -332,7 +385,19 @@ export type UpdateSiteSettingsInput = z.input<typeof updateSchema>;
 
 export const updateSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: UpdateSiteSettingsInput) => updateSchema.parse(input))
+  .inputValidator((input: UpdateSiteSettingsInput) => {
+    const parsed = updateSchema.safeParse(input);
+    if (parsed.success) return parsed.data;
+    // Convert Zod's structured error into a single readable Error whose
+    // .message can be shown by the client's toast. Prefix the offending
+    // field so a non-form caller (curl, script, misbehaving UI) still gets
+    // an actionable response instead of a generic "validation failed".
+    const first = parsed.error.issues[0];
+    const path = first?.path?.join(".") || "input";
+    const message = first?.message || "Invalid input.";
+    throw new Error(`${path}: ${message}`);
+  })
+
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,

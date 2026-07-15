@@ -90,6 +90,14 @@ describe("server-side schema (contactSettingsUpdateSchema)", () => {
     ["fetlife handle too long", { fetlife_handle: "a".repeat(FETLIFE_HANDLE_MAX + 1) }],
     ["fetlife handle with spaces", { fetlife_handle: "bad handle" }],
     ["fetlife handle with illegal chars", { fetlife_handle: "bad!chars" }],
+    ["fetlife handle with control char (newline)", { fetlife_handle: "queen\n" }],
+    ["fetlife handle with tab", { fetlife_handle: "que\tueen" }],
+    ["fetlife handle with NUL byte", { fetlife_handle: "queen\x00" }],
+    ["fetlife URL with wrong host", { fetlife_handle: "https://evil.com/queen" }],
+    ["fetlife URL with only slashes", { fetlife_handle: "https://fetlife.com///" }],
+    ["fetlife raw input over cap", { fetlife_handle: "a".repeat(600) }],
+    ["fetlife handle non-string", { fetlife_handle: 42 }],
+    ["fetlife handle null", { fetlife_handle: null }],
     ["blank reddit handle", { reddit_handle: "" }],
     ["non-boolean glory_holes_enabled", { glory_holes_enabled: "yes" }],
     ["price below minimum", { session_price_cents: SESSION_PRICE_MIN_CENTS - 1 }],
@@ -104,6 +112,31 @@ describe("server-side schema (contactSettingsUpdateSchema)", () => {
     const result = contactSettingsUpdateSchema.safeParse({ ...validPayload, ...override });
     expect(result.success).toBe(false);
   });
+
+  it("surfaces the exact FetLife handle reason (wrong host)", () => {
+    const r = contactSettingsUpdateSchema.safeParse({
+      ...validPayload,
+      fetlife_handle: "https://evil.com/queen",
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const msg = r.error.issues.map((i) => i.message).join(" | ");
+      expect(msg).toMatch(/host must be fetlife\.com/i);
+    }
+  });
+
+  it("surfaces the exact FetLife handle reason (control char)", () => {
+    const r = contactSettingsUpdateSchema.safeParse({
+      ...validPayload,
+      fetlife_handle: "queen\n",
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const msg = r.error.issues.map((i) => i.message).join(" | ");
+      expect(msg).toMatch(/control character/i);
+    }
+  });
+
 
   it("accepts the min/max boundary values for price and duration", () => {
     expect(
