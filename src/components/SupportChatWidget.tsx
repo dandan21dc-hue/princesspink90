@@ -13,6 +13,7 @@ import {
   loadConciergeHistory,
   saveConciergeHistory,
 } from "@/lib/concierge-history.functions";
+import { chatWithConcierge } from "@/lib/concierge-llm.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 
