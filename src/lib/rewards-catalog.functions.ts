@@ -37,8 +37,10 @@ export const redeemReward = createServerFn({ method: "POST" })
     z.object({ rewardId: z.string().uuid() }).parse(data),
   )
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase.rpc("redeem_reward", {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin.rpc("redeem_reward", {
       _reward_id: data.rewardId,
+      _caller: context.userId,
     });
     if (error) {
       const msg = error.message || "";
