@@ -1,4 +1,12 @@
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /age-gate
+Disallow: /unsubscribe
+Disallow: /checkout/
+Disallow: /security-report
+Disallow: /mcp
 
 Sitemap: https://princesspink90.com/sitemap.xml
