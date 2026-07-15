@@ -293,7 +293,27 @@ export function AdminSettings() {
     onSuccess: ({ changes }) => {
       setSaved(true);
       setServerEmailError(null);
-      setServerFetlifeError(null);
+      // Round-trip the saved handle: only clear the persisted server-side
+      // FetLife error once the value the server accepted normalises back to
+      // itself via buildFetlifeUrl → URL parse. If for some reason it does
+      // not (e.g. server accepted a value the client considers malformed),
+      // keep the error visible so the admin still sees something is off.
+      const attempt = lastAttemptFetlifeChangeRef.current;
+      if (attempt?.changed) {
+        const savedHandle = attempt.newHandle ?? "";
+        const roundTripsOk =
+          savedHandle === "" || fetlifeUrlRoundTripsToHandle(savedHandle);
+        if (roundTripsOk) {
+          setServerFetlifeError(null);
+          // Surface the confirmation dialog showing what actually went live.
+          setPostSaveFetlife({
+            handle: savedHandle,
+            url: savedHandle ? buildFetlifeUrl(savedHandle) : "",
+          });
+        }
+      } else {
+        setServerFetlifeError(null);
+      }
       qc.invalidateQueries({ queryKey: ["site-settings"] });
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
@@ -377,6 +397,14 @@ export function AdminSettings() {
   // the public profile link, a typo is user-visible — we require the admin
   // to explicitly confirm the old → new change before the save actually runs.
   const [pendingFetlifeConfirm, setPendingFetlifeConfirm] = useState(false);
+  // Post-save confirmation dialog. Populated after a successful save that
+  // included a FetLife handle change AND whose saved value round-trips
+  // cleanly through buildFetlifeUrl → new URL() → normalize. Renders the
+  // exact URL now live on the homepage so the admin can visually confirm
+  // (and open) what visitors will see.
+  const [postSaveFetlife, setPostSaveFetlife] = useState<
+    null | { handle: string; url: string }
+  >(null);
   // Tracks which FetLife URL the admin most recently copied from the confirm
   // dialog, so we can render a "Last copied" indicator next to that button.
   // Persists across dialog open/close within the session but is intentionally
@@ -1046,6 +1074,70 @@ export function AdminSettings() {
               ) : (
                 "Yes, update handle"
               )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/*
+        Post-save FetLife confirmation. Shown after a successful save that
+        changed the handle and whose saved value round-trips cleanly. Purely
+        informational — no destructive action, closing just dismisses.
+      */}
+      <AlertDialog
+        open={postSaveFetlife !== null}
+        onOpenChange={(open) => {
+          if (!open) setPostSaveFetlife(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>FetLife handle saved</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  The public profile link now points to:
+                </p>
+                {postSaveFetlife?.handle ? (
+                  <div className="rounded-md border border-border bg-muted/40 p-3">
+                    <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Normalized URL
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={postSaveFetlife.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all font-mono text-sm underline underline-offset-2 hover:text-primary"
+                      >
+                        {postSaveFetlife.url}
+                      </a>
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Handle: <span className="font-mono">{postSaveFetlife.handle}</span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      <Check className="h-3.5 w-3.5" aria-hidden />
+                      Verified: URL round-trips back to the saved handle.
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">
+                    The FetLife handle has been cleared — no public profile
+                    link will be shown.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Open the link above to double-check it loads the intended
+                  FetLife profile.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setPostSaveFetlife(null)}>
+              Done
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
