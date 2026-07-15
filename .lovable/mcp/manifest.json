@@ -41,6 +41,32 @@
         "outputSchema": null
       },
       {
+        "name": "get_event_details",
+        "title": "Get event details",
+        "description": "Fetch the full public details for a single event by id: description, schedule (starts_at / ends_at), house rules (dress_code, theme, waiver_text), and venue info (venue_name, address, city, capacity). Returns not-found if the event is private, unpublished, or does not exist.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "event_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "The UUID of the event to fetch."
+            }
+          },
+          "required": [
+            "event_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
         "name": "list_my_rsvps",
         "title": "List my RSVPs",
         "description": "List the signed-in user's RSVPs (event_id, status, entry_code, entry_phrase, guest_count, check-in state). Runs under RLS as that user.",
