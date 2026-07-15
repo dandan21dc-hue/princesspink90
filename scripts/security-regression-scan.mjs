@@ -153,7 +153,45 @@ async function scanSecurityDefiner() {
 }
 
 // --------------------------------------------------------------------------
-await Promise.all([scanOpenRedirect(), scanSelectStar(), scanSecurityDefiner()])
+// 4. Sensitive tables re-added to the supabase_realtime publication without
+//    an explicit column allowlist.
+// --------------------------------------------------------------------------
+// `ALTER PUBLICATION supabase_realtime ADD TABLE public.<t>` broadcasts every
+// column of <t> subject only to RLS SELECT. Any future SELECT-policy widening
+// then immediately widens the realtime payload. For tables listed below, a
+// column allowlist `(col, col, ...)` is required in the ALTER statement.
+const REALTIME_SENSITIVE_TABLES = ['private_room_bookings']
+const REALTIME_ADD_RE = new RegExp(
+  String.raw`alter\s+publication\s+supabase_realtime\s+add\s+table\s+(?:public\.)?(${REALTIME_SENSITIVE_TABLES.join('|')})\b([^;]*);`,
+  'gi',
+)
+async function scanRealtimeBroadcast() {
+  const migrationsDir = path.join(ROOT, 'supabase', 'migrations')
+  for await (const file of walk(migrationsDir, (f) => f.endsWith('.sql'))) {
+    const src = await fs.readFile(file, 'utf8')
+    let m
+    REALTIME_ADD_RE.lastIndex = 0
+    while ((m = REALTIME_ADD_RE.exec(src))) {
+      const tail = m[2] // text between the table name and the semicolon
+      // Accept only if the ALTER statement includes a column allowlist `(...)`.
+      if (/\(\s*[a-z_][a-z0-9_]*\s*(,\s*[a-z_][a-z0-9_]*\s*)*\)/i.test(tail)) continue
+      const line = src.slice(0, m.index).split('\n').length
+      record(
+        'private_room_bookings_realtime_broadcast',
+        file,
+        line,
+        `ALTER PUBLICATION supabase_realtime ADD TABLE public.${m[1]} without an explicit column allowlist. Broadcasts every column and widens automatically if SELECT policies are ever loosened. Re-add with a safe column list, e.g. \`ADD TABLE public.${m[1]} (id, user_id, starts_at, duration_minutes, status) WHERE (status = 'confirmed')\`.`,
+      )
+    }
+  }
+}
+
+await Promise.all([
+  scanOpenRedirect(),
+  scanSelectStar(),
+  scanSecurityDefiner(),
+  scanRealtimeBroadcast(),
+])
 
 // Load baseline: pre-existing hits accepted with documented rationale.
 // A regression = any hit NOT present in the baseline. Removing a baseline
