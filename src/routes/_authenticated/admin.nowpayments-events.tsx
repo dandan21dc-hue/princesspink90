@@ -322,6 +322,26 @@ function AdminNowpaymentsEvents() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Auto-refresh
+            </label>
+            <Select
+              value={String(autoRefresh)}
+              onValueChange={(v) => setAutoRefresh(Number(v))}
+            >
+              <SelectTrigger className="mt-1 w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Off</SelectItem>
+                <SelectItem value="10">10s</SelectItem>
+                <SelectItem value="30">30s</SelectItem>
+                <SelectItem value="60">1m</SelectItem>
+                <SelectItem value="300">5m</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <Button type="submit">Apply</Button>
           <Button
