@@ -203,7 +203,7 @@ export function AllAccessCard() {
                             align="start"
                             className="max-w-[16rem] border-gold/40 bg-[oklch(0.18_0.05_60_/_0.95)] text-[11px] leading-relaxed text-gold/95"
                           >
-                            <p className="font-semibold text-gold mb-1">A$600 one-time — includes:</p>
+                            <p className="font-semibold text-gold mb-1">{p.price} one-time — includes:</p>
                             <ul className="list-disc pl-4 space-y-0.5">
                               <li>Unlimited lifetime access to the full library</li>
                               <li>1 complimentary ticketed event</li>
