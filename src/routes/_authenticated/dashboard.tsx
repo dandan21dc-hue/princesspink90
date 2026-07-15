@@ -29,7 +29,7 @@ import {
   BarChart3,
   MapPin,
   ChevronDown,
-
+  Wand2,
 } from "lucide-react";
 import { listMyEvents, getMyEventsCompliance } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
