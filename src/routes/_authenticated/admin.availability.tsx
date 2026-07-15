@@ -344,6 +344,7 @@ function AvailabilityAdmin() {
                     {fmtAud(s.price_cents)}
                   </td>
                   <td className="px-4 py-3">
+                    {s.is_booked ? (
                       <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
                         Booked
                       </span>
