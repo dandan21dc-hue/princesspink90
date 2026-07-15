@@ -642,14 +642,20 @@ export function AdminSettings() {
                     <div className="break-all">
                       <span className="text-muted-foreground">URL:</span>{" "}
                       {settings.data?.fetlife_handle ? (
-                        <a
-                          href={`https://fetlife.com/${settings.data.fetlife_handle}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline hover:text-foreground"
-                        >
-                          https://fetlife.com/{settings.data.fetlife_handle}
-                        </a>
+                        <>
+                          <a
+                            href={`https://fetlife.com/${settings.data.fetlife_handle}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline hover:text-foreground"
+                          >
+                            https://fetlife.com/{settings.data.fetlife_handle}
+                          </a>
+                          <CopyUrlButton
+                            value={`https://fetlife.com/${settings.data.fetlife_handle}`}
+                            label="Copy current FetLife URL"
+                          />
+                        </>
                       ) : (
                         <span className="text-muted-foreground">(none)</span>
                       )}
