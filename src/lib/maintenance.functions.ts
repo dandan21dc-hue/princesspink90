@@ -51,11 +51,9 @@ export const setMaintenanceMode = createServerFn({ method: "POST" })
  * `await assertNotInMaintenance(context)` at the top of any server fn that
  * completes a booking or purchase.
  */
-export async function assertNotInMaintenance(context: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: { rpc: (fn: any, args: any) => Promise<{ data: unknown }> };
-  userId: string;
-}): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function assertNotInMaintenance(context: any): Promise<void> {
+
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data } = await supabaseAdmin
