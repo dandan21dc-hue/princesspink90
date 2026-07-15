@@ -281,21 +281,24 @@ function EditModal(props: {
   const [uploading, setUploading] = useState(false);
   const [describing, setDescribing] = useState(false);
   const [autoCreating, setAutoCreating] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
   const describeFn = useServerFn(describePantyPhoto);
   const createFn = useServerFn(createPantyListing);
   const qc = useQueryClient();
 
-  const autoDescribe = async (imageUrl: string) => {
+  const autoFill = async (imageUrl: string) => {
     if (!imageUrl) {
       toast.error("No image uploaded", {
-        description: "Upload a cover photo first, then click AI Auto-Describe.",
+        description: "Upload a cover photo first, then click ✨ AI Auto-Fill Form.",
         duration: 6000,
       });
       return;
     }
     setDescribing(true);
     try {
-      const result = await describeFn({ data: { imageUrl } });
+      const result = await describeFn({
+        data: { imageUrl, itemType: "panty" },
+      });
       if (!result.title && !result.description) {
         toast.error("AI couldn't read that photo", {
           description: "Try a clearer, well-lit shot of a single pair.",
@@ -305,19 +308,19 @@ function EditModal(props: {
       }
       onChange({
         ...value,
-        title: value.title && value.title.trim() ? value.title : result.title,
-        description:
-          value.description && value.description.trim()
-            ? value.description
-            : result.description,
+        title: result.title || value.title || "",
+        description: result.description || value.description || "",
+        price_cents:
+          result.suggested_price > 0 ? result.suggested_price : value.price_cents ?? null,
       });
-      toast.success("Filled title & description", {
-        description: "Review and tweak before saving.",
+      setTags(result.tags ?? []);
+      toast.success("Form auto-filled", {
+        description: "Review title, description, price & tags before saving.",
       });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      console.error("[AI Auto-Describe] failed:", e);
-      toast.error("AI Auto-Describe failed", {
+      console.error("[AI Auto-Fill] failed:", e);
+      toast.error("AI Auto-Fill failed", {
         description: message,
         duration: 10000,
       });
@@ -516,11 +519,11 @@ function EditModal(props: {
               />
               <button
                 type="button"
-                onClick={() => autoDescribe(value.cover_url ?? "")}
+                onClick={() => autoFill(value.cover_url ?? "")}
                 disabled={!value.cover_url || uploading || describing}
                 title={
                   value.cover_url
-                    ? "Use AI to draft the title & description from the cover photo"
+                    ? "Use AI to auto-fill title, description, price & tags from the cover photo"
                     : "Upload a cover photo first"
                 }
                 className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
@@ -528,16 +531,28 @@ function EditModal(props: {
                 {describing ? (
                   <>
                     <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
-                    Describing…
+                    Auto-filling…
                   </>
                 ) : (
-                  <>✨ AI Auto-Describe</>
+                  <>✨ AI Auto-Fill Form</>
                 )}
               </button>
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              AI drafts fill only empty fields — your edits are never overwritten. Review before saving.
+              AI drafts title, description, suggested price (AUD cents) & tags from the cover photo. Review before saving.
             </p>
+            {tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] uppercase tracking-widest text-primary"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -658,7 +673,7 @@ function EditModal(props: {
             }
             title={
               !(value.description ?? "").trim()
-                ? "Add a description (or use ✨ AI Auto-Describe) before saving"
+                ? "Add a description (or use ✨ AI Auto-Fill Form) before saving"
                 : undefined
             }
             className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"

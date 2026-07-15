@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createContentItem } from "@/lib/store.functions";
+import { describePantyPhoto } from "@/lib/panty-ai.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/content/new")({
@@ -66,6 +67,7 @@ function validateFile(file: File, type: "image" | "video"): string | null {
 
 function NewContentPage() {
   const createFn = useServerFn(createContentItem);
+  const autoFillFn = useServerFn(describePantyPhoto);
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -77,6 +79,9 @@ function NewContentPage() {
   const [subscribersOnly, setSubscribersOnly] = useState(false);
   const [media, setMedia] = useState<MediaRow[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [autoFilling, setAutoFilling] = useState(false);
+  const coverFilenameRef = useRef<string>("");
 
   // Track active XHRs so retry/cancel can abort them.
   const xhrs = useRef<Map<string, XMLHttpRequest>>(new Map());
@@ -209,6 +214,7 @@ function NewContentPage() {
             });
           } else {
             setCoverUrl(data.signedUrl);
+            coverFilenameRef.current = item.name;
           }
         }
       } else {
@@ -278,6 +284,44 @@ function NewContentPage() {
     }
   }
 
+  async function runAutoFill() {
+    if (!coverUrl) {
+      toast.error("Upload a cover image first");
+      return;
+    }
+    setAutoFilling(true);
+    try {
+      const result = await autoFillFn({
+        data: {
+          imageUrl: coverUrl,
+          filename: coverFilenameRef.current || undefined,
+          itemType: "digital",
+        },
+      });
+      if (!result.title && !result.description) {
+        toast.error("AI couldn't draft this listing", {
+          description: "Try a clearer cover image or fill the fields manually.",
+        });
+        return;
+      }
+      if (result.title) setTitle(result.title);
+      if (result.description) setDescription(result.description);
+      if (result.suggested_price > 0 && !subscribersOnly) {
+        setPriceDollars((result.suggested_price / 100).toFixed(2));
+      }
+      setTags(result.tags ?? []);
+      toast.success("Form auto-filled", {
+        description: "Review title, description, price & tags before publishing.",
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error("[AI Auto-Fill] failed:", e);
+      toast.error("AI Auto-Fill failed", { description: message, duration: 10000 });
+    } finally {
+      setAutoFilling(false);
+    }
+  }
+
   return (
     <section className="mx-auto max-w-2xl px-5 py-10">
       <Link to="/content" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
@@ -339,6 +383,39 @@ function NewContentPage() {
             JPG, PNG, WEBP, GIF, or AVIF · up to 15 MB.
           </p>
           {coverUrl && <img src={coverUrl} alt="" className="mt-3 h-40 w-40 rounded-md object-cover" />}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={runAutoFill}
+              disabled={!coverUrl || autoFilling}
+              title={coverUrl ? "Auto-fill title, description, price & tags from the cover image" : "Upload a cover image first"}
+              className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {autoFilling ? (
+                <>
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+                  Auto-filling…
+                </>
+              ) : (
+                <>✨ AI Auto-Fill Form</>
+              )}
+            </button>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] uppercase tracking-widest text-primary"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            AI drafts populate title, description, price (AUD) & tags. Review before publishing.
+          </p>
         </Field>
 
 
