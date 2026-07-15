@@ -66,13 +66,19 @@ export function AdminMediaModeration() {
           </button>
         ))}
       </div>
-      <Queue status={status} />
+      <Queue status={status} onViewStatus={setStatus} />
       <RecentActivityPanel />
     </Shell>
   );
 }
 
-function Queue({ status }: { status: StatusFilter }) {
+function Queue({
+  status,
+  onViewStatus,
+}: {
+  status: StatusFilter;
+  onViewStatus: (s: StatusFilter) => void;
+}) {
   const listFn = useServerFn(adminListModerationQueue);
   const q = useQuery({
     queryKey: ["admin-media-moderation", status],
@@ -95,7 +101,12 @@ function Queue({ status }: { status: StatusFilter }) {
   return (
     <ul className="space-y-6">
       {q.data.map((row) => (
-        <ItemRow key={row.id} row={row as ModerationRow} status={status} />
+        <ItemRow
+          key={row.id}
+          row={row as ModerationRow}
+          status={status}
+          onViewStatus={onViewStatus}
+        />
       ))}
     </ul>
   );
@@ -117,7 +128,15 @@ type ModerationRow = {
   created_at: string;
 };
 
-function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) {
+function ItemRow({
+  row,
+  status,
+  onViewStatus,
+}: {
+  row: ModerationRow;
+  status: StatusFilter;
+  onViewStatus: (s: StatusFilter) => void;
+}) {
   const qc = useQueryClient();
   const decideFn = useServerFn(adminModerateContentItem);
   const deleteFn = useServerFn(adminDeleteContentItem);
@@ -134,19 +153,30 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
       qc.invalidateQueries({ queryKey: ["admin-media-moderation"] });
       qc.invalidateQueries({ queryKey: ["store-items"] });
       qc.invalidateQueries({ queryKey: ["admin-moderation-audit"] });
+      // If we're already on the destination tab there's nothing to jump to.
+      const viewAction =
+        status === decision
+          ? undefined
+          : {
+              label: `View in ${decision}`,
+              onClick: () => onViewStatus(decision),
+            };
       if (decision === "approved") {
         toast.success(`Approved: ${row.title}`, {
           description: "The item is now live on the public storefront.",
+          action: viewAction,
         });
       } else if (decision === "rejected") {
         toast.success(`Rejected: ${row.title}`, {
           description: notes.trim()
             ? `Creator will see your note: “${notes.trim().slice(0, 120)}${notes.trim().length > 120 ? "…" : ""}”`
             : "Item is hidden from the storefront. Consider adding a moderator note so the creator knows why.",
+          action: viewAction,
         });
       } else {
         toast.success(`Sent back to pending: ${row.title}`, {
           description: "Item is off the storefront until it's reviewed again.",
+          action: viewAction,
         });
       }
     },
