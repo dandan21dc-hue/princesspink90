@@ -41,6 +41,7 @@ import { NotificationsBell } from "@/components/NotificationsBell";
 import { RewardRedemptionsBell } from "@/components/RewardRedemptionsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
 import { PerksWidget } from "@/components/PerksWidget";
+import { AllAccessStatusWidget } from "@/components/AllAccessStatusWidget";
 import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
 import { RoleGuard } from "@/components/RoleGuard";
 import { AddVenuePinDialog } from "@/components/AddVenuePinDialog";
@@ -250,6 +251,8 @@ function HomeView({ isAdmin }: { isAdmin: boolean }) {
         </div>
       )}
       {isAdmin && <PendingVerificationsCard />}
+
+      <AllAccessStatusWidget />
 
       <PerksWidget />
 

@@ -245,11 +245,22 @@ export function AllAccessCard() {
                         Started {start} · never expires
                       </p>
                     )}
-                    {owned && !isLifetime && expiry && (
-                      <p className="mt-2 text-[10px] text-muted-foreground">
-                        {start ? `Started ${start} · ` : ""}Expires {expiry}
-                      </p>
-                    )}
+                    {owned && !isLifetime && expiry && (() => {
+                      const raw = tiers.expires[p.plan];
+                      const days = raw
+                        ? Math.max(0, Math.ceil((new Date(raw).getTime() - Date.now()) / 86_400_000))
+                        : null;
+                      return (
+                        <p className="mt-2 text-[10px] text-muted-foreground">
+                          {start ? `Started ${start} · ` : ""}Expires {expiry}
+                          {days != null && (
+                            <span className="ml-1 text-primary">
+                              · {days} day{days === 1 ? "" : "s"} left
+                            </span>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
 
                   <div className="pt-1">
