@@ -281,3 +281,79 @@ export const adminFulfillRedemption = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+// -------------------- Admin reward-alert prefs --------------------
+
+export type AdminRewardAlertPrefs = {
+  enabled: boolean;
+  email: string | null;
+  fallback_email: string | null;
+};
+
+export const getAdminRewardAlertPrefs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AdminRewardAlertPrefs> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("site_settings")
+      .select("admin_reward_alerts_enabled, admin_reward_alert_email, email")
+      .eq("id", "host")
+      .maybeSingle();
+    const row = (data ?? {}) as {
+      admin_reward_alerts_enabled?: boolean | null;
+      admin_reward_alert_email?: string | null;
+      email?: string | null;
+    };
+    return {
+      enabled: row.admin_reward_alerts_enabled === true,
+      email: row.admin_reward_alert_email ?? null,
+      fallback_email: row.email ?? null,
+    };
+  });
+
+export const updateAdminRewardAlertPrefs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        enabled: z.boolean(),
+        email: z
+          .string()
+          .trim()
+          .max(255)
+          .email("Enter a valid email address.")
+          .nullable()
+          .optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    // If enabling, require an alert email OR a fallback contact email.
+    if (data.enabled) {
+      const alertEmail = data.email?.trim() || null;
+      if (!alertEmail) {
+        const { data: current } = await context.supabase
+          .from("site_settings")
+          .select("email")
+          .eq("id", "host")
+          .maybeSingle();
+        const fallback = (current as any)?.email as string | null | undefined;
+        if (!fallback) {
+          throw new Error(
+            "Set an alert email (or a contact email in Settings) before enabling alerts.",
+          );
+        }
+      }
+    }
+    const { error } = await context.supabase
+      .from("site_settings")
+      .update({
+        admin_reward_alerts_enabled: data.enabled,
+        admin_reward_alert_email: data.email?.trim() || null,
+      })
+      .eq("id", "host");
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
