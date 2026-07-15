@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
+import { getPublicMapboxToken } from "@/lib/mapbox-token";
 
-const PUBLIC_TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
+const TOKEN_CHECK = getPublicMapboxToken();
+const PUBLIC_TOKEN = TOKEN_CHECK.ok ? TOKEN_CHECK.token : undefined;
 
 interface Props {
   latitude: number | null;
