@@ -717,7 +717,7 @@ export function SupportChatWidget() {
           </div>
 
           {/* Quick actions */}
-          <div className="flex flex-wrap gap-2 border-b border-white/5 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-3 py-2">
             <button
               type="button"
               onClick={() => {
@@ -731,6 +731,29 @@ export function SupportChatWidget() {
               <CalendarClock className="h-3 w-3" aria-hidden />
               Check availability
             </button>
+
+            <label className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[11px] font-medium text-neutral-200 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-[#0b0b10]">
+              <Globe className="h-3 w-3 text-neutral-400" aria-hidden />
+              <span className="sr-only">Display times in timezone</span>
+              <select
+                value={timezone}
+                onChange={(e) => {
+                  const tz = e.target.value;
+                  setTimezone(tz);
+                  writeStoredTimezone(tz);
+                  // Re-fetching isn't needed — slot ISOs are absolute, only
+                  // rendering changes — but any open slot cards must re-render.
+                }}
+                aria-label="Display times in timezone"
+                className="bg-transparent pr-1 text-[11px] text-neutral-100 focus:outline-none"
+              >
+                {timezoneOptions.map((tz) => (
+                  <option key={tz} value={tz} className="bg-[#0b0b10] text-neutral-100">
+                    {tz === browserTz ? `${tz} (local)` : tz}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {/* Feed */}
@@ -740,6 +763,7 @@ export function SupportChatWidget() {
                 key={i}
                 message={m}
                 bookingSlot={bookingSlot}
+                timezone={timezone}
                 onSlotPick={proposeSlot}
                 onConfirm={confirmSlot}
               />
