@@ -10,8 +10,10 @@ import {
   updateSiteSettings,
   listPricingAudit,
   exportPricingAudit,
+  listContactSettingsAudit,
   type PricingAuditEntry,
   type PricingAuditSortColumn,
+  type ContactSettingsAuditEntry,
   SESSION_PRICE_MIN_CENTS,
   SESSION_PRICE_MAX_CENTS,
   SESSION_DURATION_MIN_MINUTES,
@@ -154,6 +156,7 @@ function AdminSettings() {
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
       qc.invalidateQueries({ queryKey: ["pricing-audit"] });
+      qc.invalidateQueries({ queryKey: ["contact-settings-audit"] });
       setTimeout(() => setSaved(false), 2500);
     },
   });
@@ -360,6 +363,7 @@ function AdminSettings() {
         </div>
       </form>
 
+      <ContactSettingsAuditSection />
       <PricingAuditSection />
       <ReminderJobConfigSection />
       {/* Stripe catalogue sync / subscription refresh sections removed. */}
@@ -1185,6 +1189,89 @@ function buildAuditCsv(rows: PricingAuditEntry[]): string {
   }
   return lines.join("\r\n");
 }
+
+function ContactSettingsAuditSection() {
+  const listFn = useServerFn(listContactSettingsAudit);
+  const audit = useQuery({
+    queryKey: ["contact-settings-audit"],
+    queryFn: () => listFn(),
+  });
+
+  const rows: ContactSettingsAuditEntry[] = audit.data ?? [];
+
+  return (
+    <section className="mt-12 border-t border-border pt-8">
+      <h2 className="font-display text-xl font-bold">Contact details change history</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Every change to the public contact email or FetLife handle is recorded here with the
+        admin who made it and the exact timestamp. Showing the most recent 100 changes.
+      </p>
+
+      {audit.error && (
+        <p className="mt-4 text-sm text-destructive">
+          {(audit.error as Error).message}
+        </p>
+      )}
+
+      <div className="mt-4 overflow-x-auto rounded-md border border-border">
+        <table className="w-full text-left text-xs">
+          <thead className="bg-muted/40 text-[11px] uppercase tracking-widest text-muted-foreground">
+            <tr>
+              <th scope="col" className="px-3 py-2 font-medium">When</th>
+              <th scope="col" className="px-3 py-2 font-medium">Admin</th>
+              <th scope="col" className="px-3 py-2 font-medium">Field</th>
+              <th scope="col" className="px-3 py-2 font-medium">Change</th>
+            </tr>
+          </thead>
+          <tbody>
+            {audit.isLoading && rows.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
+                  Loading…
+                </td>
+              </tr>
+            )}
+            {!audit.isLoading && rows.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-3 py-8 text-center">
+                  <div className="text-sm font-semibold text-foreground">
+                    No contact detail changes yet
+                  </div>
+                  <p className="mx-auto mt-2 max-w-md text-xs text-muted-foreground">
+                    Saving a new contact email or FetLife handle above will record an entry here.
+                  </p>
+                </td>
+              </tr>
+            )}
+            {rows.map((row) => (
+              <tr key={row.id} className="border-t border-border/60 align-top">
+                <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
+                  {new Date(row.changed_at).toLocaleString()}
+                </td>
+                <td className="px-3 py-2">
+                  {row.actor_email ?? row.actor_id ?? "—"}
+                </td>
+                <td className="px-3 py-2">
+                  {row.field === "email" ? "Contact email" : "FetLife handle"}
+                </td>
+                <td className="px-3 py-2">
+                  <span className="break-all text-muted-foreground">
+                    {row.old_value ?? <em>(unset)</em>}
+                  </span>{" "}
+                  <span className="text-muted-foreground">→</span>{" "}
+                  <span className="break-all font-semibold">
+                    {row.new_value ?? <em>(unset)</em>}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 
 
 

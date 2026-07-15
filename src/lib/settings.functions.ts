@@ -359,3 +359,67 @@ export const updateSiteSettings = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export type ContactSettingsAuditEntry = {
+  id: string;
+  changed_at: string;
+  actor_id: string | null;
+  actor_email: string | null;
+  field: "email" | "fetlife_handle";
+  old_value: string | null;
+  new_value: string | null;
+};
+
+export const listContactSettingsAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ContactSettingsAuditEntry[]> => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data, error } = await supabaseAdmin
+      .from("admin_activity_audit")
+      .select("id, actor_id, action, metadata, created_at")
+      .in("action", ["update_contact_email", "update_fetlife_handle"])
+      .eq("resource", "site_settings:host")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) throw error as Error;
+
+    const rows = (data ?? []) as Array<{
+      id: string;
+      actor_id: string | null;
+      action: string;
+      metadata: { old?: string | null; new?: string | null } | null;
+      created_at: string;
+    }>;
+
+    // Resolve actor emails in a single admin lookup.
+    const actorIds = Array.from(
+      new Set(rows.map((r) => r.actor_id).filter((v): v is string => Boolean(v))),
+    );
+    const emailByActor = new Map<string, string>();
+    await Promise.all(
+      actorIds.map(async (id) => {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
+          if (u?.user?.email) emailByActor.set(id, u.user.email);
+        } catch {
+          // Actor may have been deleted — leave email unresolved.
+        }
+      }),
+    );
+
+    return rows.map((r) => ({
+      id: r.id,
+      changed_at: r.created_at,
+      actor_id: r.actor_id,
+      actor_email: r.actor_id ? emailByActor.get(r.actor_id) ?? null : null,
+      field: r.action === "update_contact_email" ? "email" : "fetlife_handle",
+      old_value: r.metadata?.old ?? null,
+      new_value: r.metadata?.new ?? null,
+    }));
+  });
+
