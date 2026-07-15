@@ -545,14 +545,70 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
   }
 
   if (order.kind === "lifetime") {
-    const { error } = await supabaseAdmin.rpc("grant_lifetime_membership", {
+    const chargedAud = (order.amountCents / 100).toFixed(2);
+    const priceAmount = event.price_amount != null ? String(event.price_amount) : null;
+    const priceCurrency = event.price_currency ? String(event.price_currency).toLowerCase() : null;
+    const payAmount = event.pay_amount != null ? String(event.pay_amount) : null;
+    const payCurrency = event.pay_currency ? String(event.pay_currency).toLowerCase() : null;
+    console.log(
+      `[nowpayments] lifetime grant starting payment_id=${paymentIdRaw} user=${order.userId} env=${order.environment} charged=A$${chargedAud} (${order.amountCents}c) invoice_price=${priceAmount}${priceCurrency ?? ""} pay=${payAmount}${payCurrency ?? ""}`,
+    );
+
+    // AUD-amount sanity check: any mismatch between the invoice's AUD price
+    // and the amount encoded in order_id (60000 c = A$600 for Lifetime) means
+    // either the tier price changed mid-checkout or the order_id was crafted.
+    if (priceAmount && priceCurrency === "aud") {
+      const invoiceCents = Math.round(Number(priceAmount) * 100);
+      if (Number.isFinite(invoiceCents) && invoiceCents !== order.amountCents) {
+        console.warn(
+          `[nowpayments] lifetime amount mismatch payment_id=${paymentIdRaw} order_id_cents=${order.amountCents} invoice_cents=${invoiceCents}`,
+        );
+        await raiseAlert(supabaseAdmin, {
+          severity: "warning",
+          kind: "nowpayments_lifetime_amount_mismatch",
+          detail: {
+            payment_id: paymentIdRaw,
+            order_id: event.order_id ?? null,
+            order_id_amount_cents: order.amountCents,
+            invoice_price_cents: invoiceCents,
+            price_amount: priceAmount,
+            price_currency: priceCurrency,
+          },
+        });
+      }
+    }
+
+    const { data: granted, error } = await supabaseAdmin.rpc("grant_lifetime_membership", {
       _user_id: order.userId,
       _environment: order.environment,
       _amount_cents: order.amountCents,
       _external_payment_reference: paymentRef,
     });
-    if (error) throw new Error(`grant_lifetime_membership failed: ${error.message}`);
-    return finalize({ handled: true });
+    if (error) {
+      console.error(
+        `[nowpayments] lifetime grant FAILED payment_id=${paymentIdRaw} user=${order.userId} charged=A$${chargedAud}: ${error.message}`,
+      );
+      throw new Error(`grant_lifetime_membership failed: ${error.message}`);
+    }
+
+    // The RPC returns the memberships row (new or existing/idempotent). Log
+    // enough to distinguish a fresh grant from a replayed webhook, and to
+    // confirm the amount stored on the row matches what the buyer paid.
+    const row = (granted ?? null) as
+      | { id?: string; user_id?: string; amount_cents?: number | null; expires_at?: string | null; created_at?: string; updated_at?: string; external_payment_reference?: string | null }
+      | null;
+    const idempotent = Boolean(
+      row?.external_payment_reference && row.external_payment_reference !== paymentRef,
+    );
+    console.log(
+      `[nowpayments] lifetime grant OK payment_id=${paymentIdRaw} user=${order.userId} charged=A$${chargedAud} membership_id=${row?.id ?? "?"} amount_cents=${row?.amount_cents ?? "?"} expires_at=${row?.expires_at ?? "never"} idempotent=${idempotent}`,
+    );
+    return finalize({
+      handled: true,
+      reason: idempotent
+        ? `lifetime_granted:idempotent:${row?.id ?? "unknown"}`
+        : `lifetime_granted:${row?.id ?? "unknown"}:A$${chargedAud}`,
+    });
   }
 
   if (order.kind === "panty") {
