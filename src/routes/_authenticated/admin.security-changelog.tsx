@@ -41,6 +41,47 @@ type Entry = {
   updated_at: string;
 };
 
+function buildStamp(): string {
+  return new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+
+function buildArtifactFilename(entry: Entry, ext: "pdf" | "md", stamp: string): string {
+  const safeTitle =
+    entry.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "entry";
+  return `security-changelog-v${entry.version}-${safeTitle}-${stamp}.${ext}`;
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function saveBlob(bytes: BlobPart, filename: string, mime: string) {
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function saveWithChecksum(bytes: Uint8Array, filename: string, mime: string) {
+  saveBlob(bytes, filename, mime);
+  const digest = await sha256Hex(bytes);
+  const checksumLine = `${digest}  ${filename}\n`;
+  saveBlob(checksumLine, `${filename}.sha256`, "text/plain;charset=utf-8");
+}
+
+function buildEntryPdfBytes(entry: Entry): Uint8Array {
+  // NOTE: caller must import jsPDF; this runs synchronously once the module is loaded.
+  throw new Error("buildEntryPdfBytes must be called via downloadEntryPdf");
+}
+void buildEntryPdfBytes;
+
 async function downloadEntryPdf(entry: Entry) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -95,17 +136,12 @@ async function downloadEntryPdf(entry: Entry) {
     y += lineHeight;
   }
 
-  doc.save(buildArtifactFilename(entry, "pdf"));
+  const bytes = new Uint8Array(doc.output("arraybuffer"));
+  const filename = buildArtifactFilename(entry, "pdf", buildStamp());
+  await saveWithChecksum(bytes, filename, "application/pdf");
 }
 
-function buildArtifactFilename(entry: Entry, ext: "pdf" | "md"): string {
-  const safeTitle =
-    entry.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "entry";
-  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
-  return `security-changelog-v${entry.version}-${safeTitle}-${stamp}.${ext}`;
-}
-
-function downloadEntryMarkdown(entry: Entry) {
+async function downloadEntryMarkdown(entry: Entry) {
   const publishedISO = new Date(entry.published_at).toISOString().slice(0, 10);
   const md =
     `# Security Changelog v${entry.version} — ${entry.title}\n\n` +
@@ -113,15 +149,9 @@ function downloadEntryMarkdown(entry: Entry) {
     `- Published: ${publishedISO}\n` +
     `- Generated: ${new Date().toISOString()}\n\n` +
     `---\n\n${entry.summary}\n`;
-  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = buildArtifactFilename(entry, "md");
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  const bytes = new TextEncoder().encode(md);
+  const filename = buildArtifactFilename(entry, "md", buildStamp());
+  await saveWithChecksum(bytes, filename, "text/markdown;charset=utf-8");
 }
 
 function Page() {
