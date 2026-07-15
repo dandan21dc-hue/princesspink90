@@ -556,19 +556,58 @@ export function AdminSettings() {
                   here sends visitors to the wrong (or a missing) FetLife
                   profile.
                 </p>
-                <div className="rounded-md border border-border bg-muted/40 p-3 font-mono text-xs">
+                <div className="space-y-2 rounded-md border border-border bg-muted/40 p-3 font-mono text-xs">
                   <div>
-                    <span className="text-muted-foreground">From:</span>{" "}
-                    {settings.data?.fetlife_handle ?? "(none)"}
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Currently live
+                    </div>
+                    <div className="mt-0.5">
+                      <span className="text-muted-foreground">Handle:</span>{" "}
+                      {settings.data?.fetlife_handle ?? "(none)"}
+                    </div>
+                    <div className="break-all">
+                      <span className="text-muted-foreground">URL:</span>{" "}
+                      {settings.data?.fetlife_handle ? (
+                        <a
+                          href={`https://fetlife.com/${settings.data.fetlife_handle}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-foreground"
+                        >
+                          https://fetlife.com/{settings.data.fetlife_handle}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground">(none)</span>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">To:</span>{" "}
-                    {fetlifeNormalized}
+                  <div className="border-t border-border/60 pt-2">
+                    <div className="text-[10px] uppercase tracking-widest text-primary">
+                      New (unsaved)
+                    </div>
+                    <div className="mt-0.5">
+                      <span className="text-muted-foreground">Handle:</span>{" "}
+                      <span className="font-semibold text-foreground">
+                        {fetlifeNormalized || "(empty)"}
+                      </span>
+                    </div>
+                    <div className="break-all">
+                      <span className="text-muted-foreground">URL:</span>{" "}
+                      {fetlifeNormalized ? (
+                        <a
+                          href={`https://fetlife.com/${fetlifeNormalized}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-primary underline"
+                        >
+                          https://fetlife.com/{fetlifeNormalized}
+                        </a>
+                      ) : (
+                        <span className="text-destructive">(empty)</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-1 break-all text-muted-foreground">
-                    https://fetlife.com/{fetlifeNormalized}
-                  </div>
-                  <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                  <div className="border-t border-border/60 pt-2 text-[10px] uppercase tracking-widest text-muted-foreground/80">
                     Tip: press Esc to cancel, or Ctrl/⌘+Enter to confirm.
                   </div>
                 </div>
