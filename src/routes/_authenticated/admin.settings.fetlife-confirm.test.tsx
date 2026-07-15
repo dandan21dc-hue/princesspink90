@@ -670,6 +670,62 @@ describe("admin settings — FetLife confirmation gate", () => {
     });
   });
 
+  it("still fires the FetLife-specific failure toast with the server message and currently-live handle when the mutation errors out of its loading state", async () => {
+    // Regression guard: while save.isPending is true (Loader2 spinner in the
+    // dialog, "Saving…" label), the mutation can still reject. The onError
+    // path must fire the FetLife-scoped `toast.error("Couldn't save FetLife
+    // handle", …)` — NOT the generic "Couldn't save settings" — with:
+    //   • the exact server error message, and
+    //   • the currently-live (server-side) handle so the admin knows the
+    //     public link is unchanged despite the failed attempt.
+    let rejectSave: ((err: Error) => void) | null = null;
+    mockUpdateSiteSettings.mockImplementationOnce(
+      () =>
+        new Promise<{ ok: true }>((_resolve, reject) => {
+          rejectSave = reject;
+        }),
+    );
+
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle) as HTMLInputElement;
+    fireEvent.change(fetInput, { target: { value: "Mid-Flight-Fail" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /yes, update handle/i }),
+    );
+
+    // Confirm we are actually in the pending/loading state before rejecting —
+    // this is the "while loading" precondition the test guards.
+    await within(dialog).findByRole("button", { name: /saving…/i });
+    expect(mockToast.error).not.toHaveBeenCalled();
+
+    // Reject the in-flight save with a distinctive server message.
+    (rejectSave as unknown as (e: Error) => void)(
+      new Error("Upstream 502 while updating handle"),
+    );
+
+    // FetLife-specific failure toast fires exactly once.
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledTimes(1);
+    });
+    const [errTitle, errOpts] = mockToast.error.mock.calls[0]!;
+    expect(String(errTitle)).toMatch(/couldn't save fetlife handle/i);
+    // Must NOT be the generic settings-failure toast.
+    expect(String(errTitle)).not.toMatch(/couldn't save settings/i);
+
+    const errDesc = String((errOpts as { description?: string }).description);
+    // Server error message is echoed verbatim.
+    expect(errDesc).toContain("Upstream 502 while updating handle");
+    // Currently-live handle (the server-side saved value, NOT the draft the
+    // admin just typed) is named so they know the public link is intact.
+    expect(errDesc).toContain(SAVED.fetlife_handle);
+    expect(errDesc).not.toContain("Mid-Flight-Fail");
+  });
+
   it.each([
     {
       outcome: "success" as const,
