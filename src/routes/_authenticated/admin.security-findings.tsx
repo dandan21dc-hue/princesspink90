@@ -527,3 +527,59 @@ function ImportScanModal({
 function str(v: unknown): string {
   return typeof v === "string" ? v : v == null ? "" : String(v);
 }
+
+function DiffPanel({ latest, previous }: { latest?: Finding; previous?: Finding }) {
+  if (!latest) return null;
+  if (!previous) {
+    return (
+      <div className="rounded-lg border border-dashed border-border/60 bg-background/40 p-3 text-xs text-muted-foreground">
+        First recorded snapshot — no previous scan to diff against.
+      </div>
+    );
+  }
+  const fields: Array<{ key: keyof Finding; label: string }> = [
+    { key: "state", label: "state" },
+    { key: "level", label: "level" },
+    { key: "name", label: "name" },
+    { key: "category", label: "category" },
+    { key: "scanner_name", label: "scanner" },
+    { key: "description", label: "description" },
+    { key: "details", label: "details" },
+  ];
+  const changes = fields.filter((f) => (latest[f.key] ?? "") !== (previous[f.key] ?? ""));
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="text-xs font-semibold uppercase tracking-widest text-primary">
+          Diff · last two scans
+        </div>
+        <div className="text-[11px] text-muted-foreground">
+          {new Date(previous.scanned_at).toLocaleString()} → {new Date(latest.scanned_at).toLocaleString()}
+        </div>
+      </div>
+      {changes.length === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">No field changes between the last two scans.</p>
+      ) : (
+        <ul className="mt-2 space-y-2 text-xs">
+          {changes.map(({ key, label }) => (
+            <li key={key} className="rounded border border-border/40 bg-card/40 p-2">
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {label}
+              </div>
+              <div className="grid gap-1 sm:grid-cols-2">
+                <div className="rounded bg-destructive/10 p-1.5 text-destructive">
+                  <div className="text-[10px] uppercase tracking-wider opacity-70">before</div>
+                  <div className="whitespace-pre-wrap break-words">{previous[key] || <em className="opacity-60">(empty)</em>}</div>
+                </div>
+                <div className="rounded bg-primary/10 p-1.5 text-primary">
+                  <div className="text-[10px] uppercase tracking-wider opacity-70">after</div>
+                  <div className="whitespace-pre-wrap break-words">{latest[key] || <em className="opacity-60">(empty)</em>}</div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
