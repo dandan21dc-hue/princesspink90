@@ -1,12 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { createBillingPortalSession } from "@/lib/billing.functions";
-import { getStripeEnvironment } from "@/lib/stripe";
 import { track } from "@/lib/track";
 import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 import { cn } from "@/lib/utils";
-import { useServerFn } from "@tanstack/react-start";
-import { toast } from "sonner";
 import { HelpCircle } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
