@@ -83,6 +83,7 @@ const SAVED = {
 };
 
 const mockUpdateSiteSettings = vi.fn(async (_args: { data: typeof SAVED }) => ({ ok: true }));
+const mockGetSiteSettings = vi.fn(async () => SAVED);
 
 vi.mock("@/lib/settings.functions", async () => {
   const actual = await vi.importActual<Record<string, unknown>>(
@@ -90,13 +91,14 @@ vi.mock("@/lib/settings.functions", async () => {
   );
   return {
     ...actual,
-    getSiteSettings: vi.fn(async () => SAVED),
+    getSiteSettings: () => mockGetSiteSettings(),
     updateSiteSettings: (args: { data: typeof SAVED }) => mockUpdateSiteSettings(args),
     listPricingAudit: vi.fn(async () => ({ rows: [], total: 0, page: 1, pageSize: 10 })),
     exportPricingAudit: vi.fn(async () => ""),
     listContactSettingsAudit: vi.fn(async () => []),
   };
 });
+
 
 vi.mock("@/lib/reminder-job-config.functions", () => ({
   getReminderJobConfig: vi.fn(async () => ({
@@ -144,11 +146,15 @@ async function waitForFormLoaded() {
 
 beforeEach(() => {
   mockUpdateSiteSettings.mockClear();
+  mockUpdateSiteSettings.mockImplementation(async () => ({ ok: true }));
+  mockGetSiteSettings.mockClear();
+  mockGetSiteSettings.mockImplementation(async () => SAVED);
   mockToast.mockClear();
   mockToast.success.mockClear();
   mockToast.error.mockClear();
 });
 afterEach(() => cleanup());
+
 
 describe("admin settings — FetLife confirmation gate", () => {
   it("saves immediately when the FetLife handle is unchanged", async () => {
@@ -258,4 +264,69 @@ describe("admin settings — FetLife confirmation gate", () => {
     expect(String(mockToast.mock.calls[0]![0])).toMatch(/confirmation required/i);
 
   });
+
+  it("does not persist the FetLife change in the UI when the save API fails after confirm", async () => {
+    // Simulate a server rejection. The mutation's onError toasts + surfaces
+    // the message, and — critically — must NOT invalidate the settings query
+    // or flip the UI into a "saved" state. The saved handle stays the old
+    // one; the draft input keeps what the admin typed so they can retry.
+    mockUpdateSiteSettings.mockImplementationOnce(async () => {
+      throw new Error("Server exploded");
+    });
+
+    renderPage();
+    await waitForFormLoaded();
+
+    // Baseline: getSiteSettings fetched once on mount.
+    const initialFetchCount = mockGetSiteSettings.mock.calls.length;
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle);
+    fireEvent.change(fetInput, { target: { value: "Doomed-Handle" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /yes, update handle/i }),
+    );
+
+    // Mutation was attempted with the new handle…
+    await waitFor(() => {
+      expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
+    });
+    const call = mockUpdateSiteSettings.mock.calls[0]![0] as {
+      data: typeof SAVED;
+    };
+    expect(call.data.fetlife_handle).toBe("Doomed-Handle");
+
+    // …and the failure toast fires with the server message.
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledTimes(1);
+    });
+    const [errTitle, errOpts] = mockToast.error.mock.calls[0]!;
+    expect(String(errTitle)).toMatch(/couldn't save settings/i);
+    expect(
+      String((errOpts as { description?: string }).description),
+    ).toMatch(/server exploded/i);
+
+    // Success surface must stay dark: no success toast, no "Saved ✓" indicator.
+    expect(mockToast.success).not.toHaveBeenCalled();
+    expect(screen.queryByText(/^Saved ✓$/)).toBeNull();
+
+    // The saved-state snapshot the UI reads from must still be the OLD handle:
+    // no refetch of getSiteSettings was triggered (query wasn't invalidated),
+    // and the "Live public link preview" still flags the draft as unsaved.
+    expect(mockGetSiteSettings.mock.calls.length).toBe(initialFetchCount);
+    expect(screen.getAllByText(/unsaved changes/i).length).toBeGreaterThan(0);
+
+
+
+    // The draft input keeps what the admin typed so they can fix + retry.
+    expect(
+      (screen.getByDisplayValue("Doomed-Handle") as HTMLInputElement).value,
+    ).toBe("Doomed-Handle");
+
+    // Inline error message from the mutation is shown near the Save button.
+    expect(screen.getAllByText(/server exploded/i).length).toBeGreaterThan(0);
+  });
 });
+
