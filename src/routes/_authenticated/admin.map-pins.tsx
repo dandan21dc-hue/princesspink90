@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { GripVertical } from "lucide-react";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   listMapPins,
   createMapPin,
   updateMapPin,
   deleteMapPin,
+  reorderMapPins,
   type MapPin,
 } from "@/lib/map-pins.functions";
 import { MapPinsMap } from "@/components/MapPinsMap";
@@ -39,11 +41,50 @@ function AdminMapPins() {
   const createFn = useServerFn(createMapPin);
   const updateFn = useServerFn(updateMapPin);
   const deleteFn = useServerFn(deleteMapPin);
+  const reorderFn = useServerFn(reorderMapPins);
 
   const { data: pins = [], isLoading } = useQuery({
     queryKey: ["admin-map-pins"],
     queryFn: () => listFn(),
   });
+
+  // Local order state; syncs from server data but allows optimistic drag reorder.
+  const [order, setOrder] = useState<MapPin[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  useEffect(() => {
+    setOrder(pins);
+  }, [pins]);
+
+  const reorder = useMutation({
+    mutationFn: (ids: string[]) => reorderFn({ data: { ids } }),
+    onSuccess: () => {
+      toast.success("Order saved");
+      invalidate();
+    },
+    onError: (e: unknown) => {
+      toast.error(e instanceof Error ? e.message : "Failed to save order");
+      setOrder(pins);
+    },
+  });
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) {
+      setDragId(null);
+      setOverId(null);
+      return;
+    }
+    const from = order.findIndex((p) => p.id === dragId);
+    const to = order.findIndex((p) => p.id === targetId);
+    if (from < 0 || to < 0) return;
+    const next = order.slice();
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setOrder(next);
+    setDragId(null);
+    setOverId(null);
+    reorder.mutate(next.map((p) => p.id));
+  };
 
   const [form, setForm] = useState<FormState>(empty);
   const editing = Boolean(form.id);
@@ -200,19 +241,62 @@ function AdminMapPins() {
         </form>
 
         <div>
-          <MapPinsMap pins={pins} className="h-[380px] w-full" />
+          <MapPinsMap pins={order} className="h-[380px] w-full" />
           <div className="mt-6 space-y-2">
-            <h2 className="font-display text-lg font-semibold">
-              {isLoading ? "Loading…" : `${pins.length} pin${pins.length === 1 ? "" : "s"}`}
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold">
+                {isLoading ? "Loading…" : `${order.length} pin${order.length === 1 ? "" : "s"}`}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Drag the handle to reorder. Order controls list & export priority.
+              </p>
+            </div>
             <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-card/40">
-              {pins.map((p) => (
-                <li key={p.id} className="flex items-center justify-between gap-3 p-3">
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">{p.title}</div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}
-                      {p.description ? ` · ${p.description}` : ""}
+              {order.map((p, idx) => (
+                <li
+                  key={p.id}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (overId !== p.id) setOverId(p.id);
+                  }}
+                  onDragLeave={() => {
+                    if (overId === p.id) setOverId(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleDrop(p.id);
+                  }}
+                  className={`flex items-center justify-between gap-3 p-3 transition ${
+                    dragId === p.id ? "opacity-50" : ""
+                  } ${overId === p.id && dragId && dragId !== p.id ? "bg-primary/10" : ""}`}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <button
+                      type="button"
+                      draggable
+                      onDragStart={(e) => {
+                        setDragId(p.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", p.id);
+                      }}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setOverId(null);
+                      }}
+                      aria-label={`Drag ${p.title}`}
+                      className="cursor-grab touch-none rounded p-1 text-muted-foreground hover:bg-muted/40 active:cursor-grabbing"
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </button>
+                    <span className="w-6 shrink-0 text-xs tabular-nums text-muted-foreground">
+                      {idx + 1}.
+                    </span>
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{p.title}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}
+                        {p.description ? ` · ${p.description}` : ""}
+                      </div>
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
@@ -233,12 +317,15 @@ function AdminMapPins() {
                   </div>
                 </li>
               ))}
-              {pins.length === 0 && !isLoading && (
+              {order.length === 0 && !isLoading && (
                 <li className="p-6 text-center text-sm text-muted-foreground">
                   No pins yet. Add your first one.
                 </li>
               )}
             </ul>
+            {reorder.isPending && (
+              <p className="text-xs text-muted-foreground">Saving new order…</p>
+            )}
           </div>
         </div>
       </div>
