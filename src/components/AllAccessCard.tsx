@@ -147,7 +147,7 @@ export function AllAccessCard() {
                           </span>
                         </TooltipTrigger>
                         <TooltipContent side="bottom" className="max-w-[260px] text-center leading-relaxed">
-                          Term plans auto-renew at the end of each term. You can cancel or switch plans anytime via the billing portal — changes take effect at your next renewal.
+                          Term plans auto-renew at the end of each term. You can cancel or switch plans anytime — changes take effect at your next renewal.
                         </TooltipContent>
                       </Tooltip>
                     ) : (
