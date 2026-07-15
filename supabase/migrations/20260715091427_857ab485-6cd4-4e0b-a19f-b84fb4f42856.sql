@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.admin_find_user_ids_by_email(text) FROM authenticated;
