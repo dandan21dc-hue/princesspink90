@@ -280,7 +280,10 @@ function EditModal(props: {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [describing, setDescribing] = useState(false);
+  const [autoCreating, setAutoCreating] = useState(false);
   const describeFn = useServerFn(describePantyPhoto);
+  const createFn = useServerFn(createPantyListing);
+  const qc = useQueryClient();
 
   const autoDescribe = async (imageUrl: string) => {
     if (!imageUrl) {
@@ -340,15 +343,58 @@ function EditModal(props: {
         .from("content-media")
         .createSignedUrl(path, 60 * 60 * 24 * 365);
       if (sErr || !signed?.signedUrl) throw sErr ?? new Error("Could not sign URL");
-      if (target === "cover") {
-        onChange({ ...value, cover_url: signed.signedUrl });
-      } else {
-        onChange({
-          ...value,
-          media_urls: [...(value.media_urls ?? []), signed.signedUrl],
-        });
-      }
+      const nextCover = target === "cover" ? signed.signedUrl : value.cover_url ?? null;
+      const nextMedia =
+        target === "media"
+          ? [...(value.media_urls ?? []), signed.signedUrl]
+          : value.media_urls ?? [];
+      const nextState: EditState = {
+        ...value,
+        cover_url: nextCover,
+        media_urls: nextMedia,
+      };
+      onChange(nextState);
       toast.success("Photo uploaded");
+
+      // Auto-create a draft row on the FIRST successful upload so the photo
+      // is never orphaned in storage if the tab closes before Save.
+      // Draft = unpublished; the Save button still requires a description
+      // before publishing, so the row shows up as "Draft" in the list until
+      // the remaining details are filled in.
+      if (!value.id && !autoCreating) {
+        setAutoCreating(true);
+        try {
+          const placeholderTitle =
+            (nextState.title ?? "").trim() || "Untitled draft";
+          const res = await createFn({
+            data: {
+              title: placeholderTitle,
+              description: nextState.description ?? null,
+              color: nextState.color ?? null,
+              style: nextState.style ?? null,
+              size: nextState.size ?? null,
+              cover_url: nextState.cover_url ?? null,
+              media_urls: nextState.media_urls ?? [],
+              price_cents: nextState.price_cents ?? null,
+              published: false,
+              sold: false,
+              sort_order: nextState.sort_order ?? 0,
+            },
+          });
+          onChange({ ...nextState, id: res.id, title: placeholderTitle, published: false });
+          qc.invalidateQueries({ queryKey: ["admin-panty-listings"] });
+          toast.info("Draft created — add title, description & details, then Save to publish.", {
+            duration: 8000,
+          });
+        } catch (e) {
+          toast.error(
+            `Couldn't create draft row: ${(e as Error).message}. Fill in the details and click Save to try again.`,
+            { duration: 10000 },
+          );
+        } finally {
+          setAutoCreating(false);
+        }
+      }
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -566,6 +612,32 @@ function EditModal(props: {
             </p>
           </div>
         )}
+
+        {value.id && (() => {
+          const needs: string[] = [];
+          const t = (value.title ?? "").trim();
+          if (!t || t.toLowerCase() === "untitled draft") needs.push("title");
+          if (!(value.description ?? "").trim()) needs.push("description");
+          if (!(value.color ?? "").trim()) needs.push("colour");
+          if (!(value.style ?? "").trim()) needs.push("style");
+          if (!(value.size ?? "").trim()) needs.push("size");
+          if (!value.published) needs.push("publish toggle");
+          if (needs.length === 0) return null;
+          return (
+            <div
+              role="status"
+              className="mt-4 rounded-md border border-primary/40 bg-primary/10 p-3 text-xs text-primary"
+            >
+              <div className="font-semibold uppercase tracking-widest">Draft saved — finish the details</div>
+              <p className="mt-1 text-primary/90">
+                This pair is stored as a hidden draft. Fill in <span className="font-semibold">{needs.join(", ")}</span>{" "}
+                then click <span className="font-semibold">Save</span> to publish it to the drawer.
+              </p>
+            </div>
+          );
+        })()}
+
+
 
         <div className="mt-6 flex justify-end gap-2">
           <button
