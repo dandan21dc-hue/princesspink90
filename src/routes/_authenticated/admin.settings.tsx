@@ -5,6 +5,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { amIAdmin } from "@/lib/admin.functions";
 import {
   getSiteSettings,
@@ -239,6 +249,23 @@ function AdminSettings() {
     },
   });
 
+  // Confirmation gate for FetLife handle changes. Because that value drives
+  // the public profile link, a typo is user-visible — we require the admin
+  // to explicitly confirm the old → new change before the save actually runs.
+  const [pendingFetlifeConfirm, setPendingFetlifeConfirm] = useState(false);
+  const fetlifeChanged =
+    settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
+
+  const handleSubmit = () => {
+    if (fetlifeChanged && !fetlifeError) {
+      setPendingFetlifeConfirm(true);
+      return;
+    }
+    save.mutate();
+  };
+
+
+
 
 
 
@@ -263,7 +290,7 @@ function AdminSettings() {
         className="mt-6 space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate();
+          handleSubmit();
         }}
       >
         <Field label="Contact email">
@@ -456,6 +483,51 @@ function AdminSettings() {
       <PricingAuditSection />
       <ReminderJobConfigSection />
       {/* Stripe catalogue sync / subscription refresh sections removed. */}
+      <AlertDialog
+        open={pendingFetlifeConfirm}
+        onOpenChange={(open) => {
+          if (!open) setPendingFetlifeConfirm(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm FetLife handle change</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  This updates the public profile link on the homepage. A typo
+                  here sends visitors to the wrong (or a missing) FetLife
+                  profile.
+                </p>
+                <div className="rounded-md border border-border bg-muted/40 p-3 font-mono text-xs">
+                  <div>
+                    <span className="text-muted-foreground">From:</span>{" "}
+                    {settings.data?.fetlife_handle ?? "(none)"}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">To:</span>{" "}
+                    {fetlifeNormalized}
+                  </div>
+                  <div className="mt-1 break-all text-muted-foreground">
+                    https://fetlife.com/{fetlifeNormalized}
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current handle</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setPendingFetlifeConfirm(false);
+                save.mutate();
+              }}
+            >
+              Yes, update handle
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 }
