@@ -426,15 +426,16 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       target: { value: "https://fetlife.com/" },
     });
     await waitFor(() => {
-      expect(
-        within(dialog).queryByRole("link", { name: /^https:\/\/fetlife\.com\// }),
-      ).toBeNull();
+      // The "(empty)" marker sits where the new-URL link used to be.
+      expect(within(dialog).getByText(/\(empty\)/i)).toBeTruthy();
     });
-    // Old URL still pinned to the saved handle.
+    // Only the "Currently live" link remains — the new-URL link is gone.
     const savedUrl = `https://fetlife.com/${SAVED.fetlife_handle}`;
-    expect(
-      within(dialog).getByRole("link", { name: savedUrl }).getAttribute("href"),
-    ).toBe(savedUrl);
+    const fetlifeLinks = within(dialog)
+      .getAllByRole("link")
+      .filter((el) => (el.getAttribute("href") ?? "").startsWith("https://fetlife.com/"));
+    expect(fetlifeLinks).toHaveLength(1);
+    expect(fetlifeLinks[0]!.getAttribute("href")).toBe(savedUrl);
 
     const confirmBtn = within(dialog).getByRole("button", {
       name: /yes, update handle/i,
