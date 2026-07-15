@@ -54,7 +54,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 // Cart: reuse the REAL `isCartItemIdValid` (that's the code under test) but
 // stub `useCart` / `cartStore.snapshot` so we can inject a bad-id line that
 // the localStorage read filter would otherwise strip on load.
-const { BAD_PANTY_ITEM } = vi.hoisted(() => ({
+const { BAD_PANTY_ITEM, GOOD_PANTY_ITEM } = vi.hoisted(() => ({
   BAD_PANTY_ITEM: {
     kind: "panty" as const,
     id: "panty_24hr_aud", // legacy Stripe lookup key, NOT a UUID
@@ -64,16 +64,26 @@ const { BAD_PANTY_ITEM } = vi.hoisted(() => ({
     quantity: 1,
     size: "M",
   },
+  GOOD_PANTY_ITEM: {
+    kind: "panty" as const,
+    id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    title: "Silk noir",
+    unit_amount_cents: 8500,
+    currency: "aud",
+    quantity: 1,
+    size: "S",
+  },
 }));
 vi.mock("@/lib/cart", async () => {
   const actual = await vi.importActual<typeof import("@/lib/cart")>("@/lib/cart");
-  const items = [BAD_PANTY_ITEM];
+  const items = [BAD_PANTY_ITEM, GOOD_PANTY_ITEM];
   return {
     ...actual,
     useCart: () => ({
       items,
-      count: 1,
-      subtotalCents: BAD_PANTY_ITEM.unit_amount_cents,
+      count: items.length,
+      subtotalCents:
+        BAD_PANTY_ITEM.unit_amount_cents + GOOD_PANTY_ITEM.unit_amount_cents,
       hasPanty: true,
       currency: BAD_PANTY_ITEM.currency,
       ...actual.cart,
