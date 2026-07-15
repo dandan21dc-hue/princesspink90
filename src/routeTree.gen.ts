@@ -114,6 +114,7 @@ import { Route as ApiPublicPaymentsNowpaymentsWebhookRouteImport } from './route
 import { Route as ApiPublicHooksVeriffWebhookRouteImport } from './routes/api/public/hooks/veriff-webhook'
 import { Route as ApiPublicHooksVenueComplianceRemindersRouteImport } from './routes/api/public/hooks/venue-compliance-reminders'
 import { Route as ApiPublicHooksTestReminderEmailRouteImport } from './routes/api/public/hooks/test-reminder-email'
+import { Route as ApiPublicHooksSendReceiptRouteImport } from './routes/api/public/hooks/send-receipt'
 import { Route as ApiPublicHooksReminderRetriesRouteImport } from './routes/api/public/hooks/reminder-retries'
 import { Route as ApiPublicHooksPreviewReminderEmailRouteImport } from './routes/api/public/hooks/preview-reminder-email'
 import { Route as ApiPublicHooksPreviewPortalLinkRouteImport } from './routes/api/public/hooks/preview-portal-link'
@@ -711,6 +712,12 @@ const ApiPublicHooksTestReminderEmailRoute =
     path: '/api/public/hooks/test-reminder-email',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksSendReceiptRoute =
+  ApiPublicHooksSendReceiptRouteImport.update({
+    id: '/api/public/hooks/send-receipt',
+    path: '/api/public/hooks/send-receipt',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksReminderRetriesRoute =
   ApiPublicHooksReminderRetriesRouteImport.update({
     id: '/api/public/hooks/reminder-retries',
@@ -902,6 +909,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
+  '/api/public/hooks/send-receipt': typeof ApiPublicHooksSendReceiptRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
@@ -1020,6 +1028,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
+  '/api/public/hooks/send-receipt': typeof ApiPublicHooksSendReceiptRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
@@ -1142,6 +1151,7 @@ export interface FileRoutesById {
   '/api/public/hooks/preview-portal-link': typeof ApiPublicHooksPreviewPortalLinkRoute
   '/api/public/hooks/preview-reminder-email': typeof ApiPublicHooksPreviewReminderEmailRoute
   '/api/public/hooks/reminder-retries': typeof ApiPublicHooksReminderRetriesRoute
+  '/api/public/hooks/send-receipt': typeof ApiPublicHooksSendReceiptRoute
   '/api/public/hooks/test-reminder-email': typeof ApiPublicHooksTestReminderEmailRoute
   '/api/public/hooks/venue-compliance-reminders': typeof ApiPublicHooksVenueComplianceRemindersRoute
   '/api/public/hooks/veriff-webhook': typeof ApiPublicHooksVeriffWebhookRoute
@@ -1264,6 +1274,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
     | '/api/public/hooks/reminder-retries'
+    | '/api/public/hooks/send-receipt'
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
@@ -1382,6 +1393,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
     | '/api/public/hooks/reminder-retries'
+    | '/api/public/hooks/send-receipt'
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
@@ -1503,6 +1515,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/preview-portal-link'
     | '/api/public/hooks/preview-reminder-email'
     | '/api/public/hooks/reminder-retries'
+    | '/api/public/hooks/send-receipt'
     | '/api/public/hooks/test-reminder-email'
     | '/api/public/hooks/venue-compliance-reminders'
     | '/api/public/hooks/veriff-webhook'
@@ -1563,6 +1576,7 @@ export interface RootRouteChildren {
   ApiPublicHooksPreviewPortalLinkRoute: typeof ApiPublicHooksPreviewPortalLinkRoute
   ApiPublicHooksPreviewReminderEmailRoute: typeof ApiPublicHooksPreviewReminderEmailRoute
   ApiPublicHooksReminderRetriesRoute: typeof ApiPublicHooksReminderRetriesRoute
+  ApiPublicHooksSendReceiptRoute: typeof ApiPublicHooksSendReceiptRoute
   ApiPublicHooksTestReminderEmailRoute: typeof ApiPublicHooksTestReminderEmailRoute
   ApiPublicHooksVenueComplianceRemindersRoute: typeof ApiPublicHooksVenueComplianceRemindersRoute
   ApiPublicHooksVeriffWebhookRoute: typeof ApiPublicHooksVeriffWebhookRoute
@@ -2312,6 +2326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksTestReminderEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/send-receipt': {
+      id: '/api/public/hooks/send-receipt'
+      path: '/api/public/hooks/send-receipt'
+      fullPath: '/api/public/hooks/send-receipt'
+      preLoaderRoute: typeof ApiPublicHooksSendReceiptRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/reminder-retries': {
       id: '/api/public/hooks/reminder-retries'
       path: '/api/public/hooks/reminder-retries'
@@ -2676,6 +2697,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksPreviewReminderEmailRoute:
     ApiPublicHooksPreviewReminderEmailRoute,
   ApiPublicHooksReminderRetriesRoute: ApiPublicHooksReminderRetriesRoute,
+  ApiPublicHooksSendReceiptRoute: ApiPublicHooksSendReceiptRoute,
   ApiPublicHooksTestReminderEmailRoute: ApiPublicHooksTestReminderEmailRoute,
   ApiPublicHooksVenueComplianceRemindersRoute:
     ApiPublicHooksVenueComplianceRemindersRoute,
