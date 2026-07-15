@@ -630,6 +630,56 @@ export type Database = {
         }
         Relationships: []
       }
+      content_moderation_audit: {
+        Row: {
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          content_item_id: string | null
+          created_at: string
+          creator_id: string | null
+          id: string
+          item_kind: string | null
+          item_title: string
+          notes: string | null
+          previous_status: string | null
+        }
+        Insert: {
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          content_item_id?: string | null
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          item_kind?: string | null
+          item_title: string
+          notes?: string | null
+          previous_status?: string | null
+        }
+        Update: {
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          content_item_id?: string | null
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          item_kind?: string | null
+          item_title?: string
+          notes?: string | null
+          previous_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_moderation_audit_content_item_id_fkey"
+            columns: ["content_item_id"]
+            isOneToOne: false
+            referencedRelation: "content_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_purchases: {
         Row: {
           amount_cents: number
