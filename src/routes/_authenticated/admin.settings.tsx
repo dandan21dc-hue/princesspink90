@@ -534,6 +534,12 @@ export function AdminSettings() {
         <AlertDialogContent
           id={fetlifeConfirmDialogId}
           aria-describedby={`${fetlifeConfirmDialogId}-desc`}
+          // Radix's FocusScope traps Tab/Shift+Tab inside this content while
+          // the dialog is open and restores focus to the previously-focused
+          // element on close. We open the dialog programmatically (no Radix
+          // <Trigger>), so onOpenChange also focuses `saveButtonRef` as a
+          // belt-and-braces restore. Do not add manual keydown Tab handling
+          // — it would double up on the built-in trap and cause focus jumps.
           onOpenAutoFocus={(event) => {
             // AlertDialog's default is to focus the Cancel button, which is
             // the safer choice for a destructive-adjacent action. Explicitly
@@ -542,6 +548,12 @@ export function AdminSettings() {
             const root = event.currentTarget as HTMLElement | null;
             const cancelBtn = root?.querySelector<HTMLButtonElement>("[data-cancel]");
             cancelBtn?.focus();
+          }}
+          onEscapeKeyDown={() => {
+            // Radix closes the dialog on Escape by default; mark the intent
+            // as an explicit cancel so onOpenChange takes the "not saved"
+            // toast path rather than inferring it from a null ref.
+            fetlifeDismissIntentRef.current = "cancel";
           }}
           onKeyDown={(event) => {
             // Ctrl/Cmd+Enter = power-user shortcut to confirm without moving
@@ -555,6 +567,7 @@ export function AdminSettings() {
             }
           }}
         >
+
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm FetLife handle change</AlertDialogTitle>
             <AlertDialogDescription asChild>
