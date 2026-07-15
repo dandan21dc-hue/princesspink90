@@ -36,6 +36,7 @@ import { listMyRsvps } from "@/lib/rsvp.functions";
 import { amIAdmin } from "@/lib/admin.functions";
 import { listMapPins } from "@/lib/map-pins.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { RewardRedemptionsBell } from "@/components/RewardRedemptionsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
 import { PerksWidget } from "@/components/PerksWidget";
 import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
@@ -155,6 +156,7 @@ function Dashboard() {
         <div className="flex items-center gap-2">
           {isAdmin && <AddVenuePinDialog />}
           <QuickAccessButton />
+          {isAdmin && <RewardRedemptionsBell />}
           <NotificationsBell />
         </div>
       </div>
