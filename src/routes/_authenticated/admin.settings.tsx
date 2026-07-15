@@ -166,6 +166,14 @@ export function AdminSettings() {
     emailError !== null ||
     fetlifeError !== null;
 
+  // Tracks whether the most-recent save attempt included a FetLife handle
+  // change, so onError can surface a FetLife-specific failure toast.
+  const lastAttemptFetlifeChangeRef = useRef<{
+    changed: boolean;
+    oldHandle: string | null;
+    newHandle: string | null;
+  } | null>(null);
+
   const save = useMutation({
     mutationFn: () => {
       if (emailError) throw new Error(emailError);
@@ -215,10 +223,14 @@ export function AdminSettings() {
       // the stored value, so we pass the flag whenever the handle changed.
       const fetlifeChanging =
         !!prev && prev.fetlife_handle !== nextValues.fetlife_handle;
+      lastAttemptFetlifeChangeRef.current = {
+        changed: fetlifeChanging,
+        oldHandle: prev?.fetlife_handle ?? null,
+        newHandle: nextValues.fetlife_handle,
+      };
       return updateFn({
         data: { ...nextValues, fetlife_confirmed: fetlifeChanging },
       }).then((res) => ({ res, changes }));
-
     },
     onSuccess: ({ changes }) => {
       setSaved(true);
@@ -251,11 +263,22 @@ export function AdminSettings() {
     },
     onError: (err) => {
       setServerEmailError(extractEmailValidationMessage(err));
-      toast.error("Couldn't save settings", {
-        description: err instanceof Error ? err.message : "Please try again.",
-      });
+      const message = err instanceof Error ? err.message : "Please try again.";
+      const attempt = lastAttemptFetlifeChangeRef.current;
+      if (attempt?.changed) {
+        // FetLife-specific failure toast: name the field explicitly, echo the
+        // full server error, and remind the admin what the public link still
+        // points to so they know the homepage is unaffected.
+        toast.error("Couldn't save FetLife handle", {
+          description: `${message} — public link still points to ${attempt.oldHandle ?? "(none)"}.`,
+          duration: 8000,
+        });
+      } else {
+        toast.error("Couldn't save settings", { description: message });
+      }
     },
   });
+
 
   // Confirmation gate for FetLife handle changes. Because that value drives
   // the public profile link, a typo is user-visible — we require the admin
