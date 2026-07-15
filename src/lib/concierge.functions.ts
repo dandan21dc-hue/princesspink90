@@ -101,11 +101,6 @@ export const listConciergeSlots = createServerFn({ method: "GET" })
     return out;
   });
 
-const startInput = z.object({
-  startsAt: z.string().datetime(),
-  notes: z.string().max(1000).optional(),
-  returnOrigin: z.string().url(),
-});
 
 /**
  * The chat widget triggers the actual booking by calling
