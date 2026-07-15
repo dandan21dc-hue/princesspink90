@@ -226,6 +226,9 @@ function HomeView() {
       <PerksWidget />
       <SubscriberDiscountPanel />
 
+      <VenueMapPreview />
+
+
       <div className="grid gap-8 xl:grid-cols-2">
         <div>
           <h2 className="mb-4 font-display text-lg">Your tickets</h2>
