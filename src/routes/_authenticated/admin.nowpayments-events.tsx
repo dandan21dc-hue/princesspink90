@@ -940,15 +940,22 @@ type EventItem = {
       }
     | null;
   payload_json: string | null;
+  admin_note: string | null;
+  admin_note_updated_at: string | null;
+  handled_updated_at: string | null;
 };
 
 function EventRow({
   e,
+  selected,
+  onToggleSelect,
   onRetry,
   onViewPayload,
   retryPending,
 }: {
   e: EventItem;
+  selected: boolean;
+  onToggleSelect: () => void;
   onRetry: () => void;
   onViewPayload: () => void;
   retryPending: boolean;
@@ -964,10 +971,18 @@ function EventRow({
         : "secondary";
 
   return (
-    <Card className="p-4">
+    <Card className={`p-4 ${selected ? "ring-2 ring-primary/50" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={onToggleSelect}
+            aria-label="Select event"
+            className="mt-1"
+          />
+          <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
+
             <Badge variant={statusVariant}>{e.last_status}</Badge>
             <Badge variant="outline" className="gap-1 text-[10px]">
               <ShieldCheck className="h-3 w-3 text-primary" /> Signature verified
