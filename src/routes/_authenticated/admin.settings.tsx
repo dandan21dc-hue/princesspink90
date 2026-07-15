@@ -150,6 +150,7 @@ function AdminSettings() {
     },
     onSuccess: () => {
       setSaved(true);
+      setServerEmailError(null);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
@@ -157,7 +158,11 @@ function AdminSettings() {
       qc.invalidateQueries({ queryKey: ["contact-settings-audit"] });
       setTimeout(() => setSaved(false), 2500);
     },
+    onError: (err) => {
+      setServerEmailError(extractEmailValidationMessage(err));
+    },
   });
+
 
 
   if (me.isLoading) return <Shell><p className="text-muted-foreground">Loading…</p></Shell>;
