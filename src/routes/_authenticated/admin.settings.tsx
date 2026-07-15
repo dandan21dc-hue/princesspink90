@@ -111,18 +111,11 @@ function AdminSettings() {
     durationError = `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`;
   }
 
-  // Mirror the server-side rule (z.string().trim().email().max(255)) so the
+  // Mirror the server-side rule (contactSettingsUpdateSchema.email) so the
   // form catches bad addresses before we hit the RPC.
   const emailTrimmed = email.trim();
-  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  let emailError: string | null = null;
-  if (emailTrimmed === "") {
-    emailError = "Contact email is required.";
-  } else if (emailTrimmed.length > 255) {
-    emailError = "Contact email must be 255 characters or fewer.";
-  } else if (!emailRe.test(emailTrimmed)) {
-    emailError = "Enter a valid email address (e.g. name@example.com).";
-  }
+  const emailError = validateContactEmail(email);
+
 
   const fetlifeNormalized = normalizeFetlifeHandle(fetlife);
   const fetlifeError = validateFetlifeHandle(fetlife);
