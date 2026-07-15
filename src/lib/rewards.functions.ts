@@ -95,3 +95,47 @@ export const getMyRewardActivity = createServerFn({ method: "GET" })
     items.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
     return items.slice(0, 100);
   });
+
+export type ReferralHistoryEntry = {
+  id: string;
+  granted_at: string;
+  points_awarded: number;
+  referral_code: string;
+};
+
+export type ReferralHistorySummary = {
+  total_signups: number;
+  total_points: number;
+  first_granted_at: string | null;
+  last_granted_at: string | null;
+  entries: ReferralHistoryEntry[];
+};
+
+export const getMyReferralHistory = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ReferralHistorySummary> => {
+    const { data, error } = await context.supabase
+      .from("referral_reward_grants")
+      .select("id, created_at, points_awarded, referral_code")
+      .eq("referrer_user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw error;
+
+    const rows = data ?? [];
+    const entries: ReferralHistoryEntry[] = rows.map((r) => ({
+      id: r.id as string,
+      granted_at: r.created_at as string,
+      points_awarded: (r.points_awarded as number | null) ?? 0,
+      referral_code: ((r.referral_code as string | null) ?? "").toUpperCase(),
+    }));
+
+    const total_points = entries.reduce((s, e) => s + e.points_awarded, 0);
+    return {
+      total_signups: entries.length,
+      total_points,
+      first_granted_at: entries.length ? entries[entries.length - 1].granted_at : null,
+      last_granted_at: entries.length ? entries[0].granted_at : null,
+      entries,
+    };
+  });
