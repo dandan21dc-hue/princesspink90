@@ -272,6 +272,23 @@ function AdminNowpaymentsEvents() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Sort
+            </label>
+            <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+              <SelectTrigger className="mt-1 w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABELS) as SortMode[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {SORT_LABELS[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Button type="submit">Apply</Button>
           <Button
             type="button"
