@@ -146,11 +146,15 @@ async function waitForFormLoaded() {
 
 beforeEach(() => {
   mockUpdateSiteSettings.mockClear();
+  mockUpdateSiteSettings.mockImplementation(async () => ({ ok: true }));
+  mockGetSiteSettings.mockClear();
+  mockGetSiteSettings.mockImplementation(async () => SAVED);
   mockToast.mockClear();
   mockToast.success.mockClear();
   mockToast.error.mockClear();
 });
 afterEach(() => cleanup());
+
 
 describe("admin settings — FetLife confirmation gate", () => {
   it("saves immediately when the FetLife handle is unchanged", async () => {
