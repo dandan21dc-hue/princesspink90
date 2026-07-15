@@ -282,85 +282,148 @@ function AdminMapPins() {
         </form>
 
         <div>
-          <MapPinsMap pins={order} className="h-[380px] w-full" />
-          <div className="mt-6 space-y-2">
-            <div className="flex items-center justify-between">
+          <MapPinsMap pins={filtered} className="h-[380px] w-full" />
+          <div className="mt-6 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-display text-lg font-semibold">
-                {isLoading ? "Loading…" : `${order.length} pin${order.length === 1 ? "" : "s"}`}
+                {isLoading
+                  ? "Loading…"
+                  : `${filtered.length} of ${order.length} pin${order.length === 1 ? "" : "s"}`}
               </h2>
               <p className="text-xs text-muted-foreground">
-                Drag the handle to reorder. Order controls list & export priority.
+                {dragEnabled
+                  ? "Drag the handle to reorder. Order controls list & export priority."
+                  : "Clear search & filter to reorder."}
               </p>
             </div>
-            <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-card/40">
-              {order.map((p, idx) => (
-                <li
-                  key={p.id}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    if (overId !== p.id) setOverId(p.id);
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  value={qInput}
+                  onChange={(e) => setQInput(e.target.value)}
+                  placeholder="Search title, description, coords…"
+                  className="w-full rounded-md border border-border bg-background/60 pl-8 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+                {qInput && (
+                  <button
+                    type="button"
+                    onClick={() => setQInput("")}
+                    aria-label="Clear search"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <select
+                value={stateFilter}
+                onChange={(e) => setState(e.target.value)}
+                className="rounded-md border border-border bg-background/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                <option value="all">All pins</option>
+                <option value="featured">Featured (top order)</option>
+                <option value="described">With description</option>
+                <option value="missing_desc">Missing description</option>
+              </select>
+              {(qInput || stateFilter !== "all") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQInput("");
+                    setState("all");
                   }}
-                  onDragLeave={() => {
-                    if (overId === p.id) setOverId(null);
-                  }}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    handleDrop(p.id);
-                  }}
-                  className={`flex items-center justify-between gap-3 p-3 transition ${
-                    dragId === p.id ? "opacity-50" : ""
-                  } ${overId === p.id && dragId && dragId !== p.id ? "bg-primary/10" : ""}`}
+                  className="rounded-md border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
                 >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <button
-                      type="button"
-                      draggable
-                      onDragStart={(e) => {
-                        setDragId(p.id);
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData("text/plain", p.id);
-                      }}
-                      onDragEnd={() => {
-                        setDragId(null);
-                        setOverId(null);
-                      }}
-                      aria-label={`Drag ${p.title}`}
-                      className="cursor-grab touch-none rounded p-1 text-muted-foreground hover:bg-muted/40 active:cursor-grabbing"
-                    >
-                      <GripVertical className="h-4 w-4" />
-                    </button>
-                    <span className="w-6 shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {idx + 1}.
-                    </span>
-                    <div className="min-w-0">
-                      <div className="truncate font-medium">{p.title}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}
-                        {p.description ? ` · ${p.description}` : ""}
+                  Reset
+                </button>
+              )}
+            </div>
+
+            <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-card/40">
+              {filtered.map((p) => {
+                const idx = order.findIndex((o) => o.id === p.id);
+                return (
+                  <li
+                    key={p.id}
+                    onDragOver={(e) => {
+                      if (!dragEnabled) return;
+                      e.preventDefault();
+                      if (overId !== p.id) setOverId(p.id);
+                    }}
+                    onDragLeave={() => {
+                      if (overId === p.id) setOverId(null);
+                    }}
+                    onDrop={(e) => {
+                      if (!dragEnabled) return;
+                      e.preventDefault();
+                      handleDrop(p.id);
+                    }}
+                    className={`flex items-center justify-between gap-3 p-3 transition ${
+                      dragId === p.id ? "opacity-50" : ""
+                    } ${overId === p.id && dragId && dragId !== p.id ? "bg-primary/10" : ""}`}
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <button
+                        type="button"
+                        draggable={dragEnabled}
+                        onDragStart={(e) => {
+                          if (!dragEnabled) {
+                            e.preventDefault();
+                            return;
+                          }
+                          setDragId(p.id);
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", p.id);
+                        }}
+                        onDragEnd={() => {
+                          setDragId(null);
+                          setOverId(null);
+                        }}
+                        aria-label={dragEnabled ? `Drag ${p.title}` : "Reorder disabled while filtering"}
+                        disabled={!dragEnabled}
+                        className={`rounded p-1 text-muted-foreground ${
+                          dragEnabled
+                            ? "cursor-grab touch-none hover:bg-muted/40 active:cursor-grabbing"
+                            : "cursor-not-allowed opacity-40"
+                        }`}
+                      >
+                        <GripVertical className="h-4 w-4" />
+                      </button>
+                      <span className="w-6 shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {idx + 1}.
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate font-medium">{p.title}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}
+                          {p.description ? ` · ${p.description}` : " · no description"}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <button
-                      onClick={() => startEdit(p)}
-                      className="rounded-md border border-border px-3 py-1 text-xs"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Remove "${p.title}"?`)) remove.mutate(p.id);
-                      }}
-                      className="rounded-md border border-destructive/60 px-3 py-1 text-xs text-destructive"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-              {order.length === 0 && !isLoading && (
+                    <div className="flex shrink-0 gap-2">
+                      <button
+                        onClick={() => startEdit(p)}
+                        className="rounded-md border border-border px-3 py-1 text-xs"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Remove "${p.title}"?`)) remove.mutate(p.id);
+                        }}
+                        className="rounded-md border border-destructive/60 px-3 py-1 text-xs text-destructive"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+              {filtered.length === 0 && !isLoading && (
                 <li className="p-6 text-center text-sm text-muted-foreground">
-                  No pins yet. Add your first one.
+                  {order.length === 0 ? "No pins yet. Add your first one." : "No pins match this search / filter."}
                 </li>
               )}
             </ul>
