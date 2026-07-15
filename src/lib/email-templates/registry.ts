@@ -7,6 +7,7 @@ import { template as bookingConfirmation } from './booking-confirmation'
 import { template as bookingCancelled } from './booking-cancelled'
 import { template as bookingRescheduled } from './booking-rescheduled'
 import { template as auditAlert } from './audit-alert'
+import { template as allAccessRevoked } from './all-access-revoked'
 
 export interface TemplateEntry {
   component: ComponentType<any>
