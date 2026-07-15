@@ -610,11 +610,23 @@ function AdminMapPins() {
                   ? "Loading…"
                   : `${filtered.length} of ${order.length} pin${order.length === 1 ? "" : "s"}`}
               </h2>
-              <p className="text-xs text-muted-foreground">
-                {dragEnabled
-                  ? "Drag the handle or tap ▲/▼ to reorder. Order controls list & export priority."
-                  : "Clear search & filter to reorder."}
-              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={exportCsv}
+                  disabled={order.length === 0}
+                  title="Download all pins as CSV in the current order"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export CSV
+                </button>
+                <p className="text-xs text-muted-foreground">
+                  {dragEnabled
+                    ? "Drag the handle or tap ▲/▼ to reorder."
+                    : "Clear search & filter to reorder."}
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
