@@ -853,8 +853,13 @@ export function AdminSettings() {
                             label="Copy current FetLife URL"
                             kindLabel="current FetLife URL"
                             disabled={save.isPending}
+                            onCopied={() => setLastCopiedFetlife("current")}
                           />
+                          {lastCopiedFetlife === "current" ? (
+                            <LastCopiedBadge which="current" />
+                          ) : null}
                         </>
+
                       ) : (
                         <span className="text-muted-foreground">(none)</span>
                       )}
