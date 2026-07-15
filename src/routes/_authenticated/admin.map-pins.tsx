@@ -56,6 +56,23 @@ function AdminMapPins() {
     queryFn: () => listFn(),
   });
 
+  // URL-persisted search + status filter.
+  const { q, state } = Route.useSearch();
+  const navigate = useNavigate({ from: "/_authenticated/admin/map-pins" });
+  const [qInput, setQInput] = useState(q);
+  useEffect(() => setQInput(q), [q]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (qInput !== q) navigate({ search: (prev) => ({ ...prev, q: qInput }), replace: true });
+    }, 200);
+    return () => clearTimeout(t);
+  }, [qInput, q, navigate]);
+  const setState = (next: string) =>
+    navigate({ search: (prev) => ({ ...prev, state: next }), replace: true });
+
+  const stateFilter: "all" | "described" | "missing_desc" | "featured" =
+    state === "described" || state === "missing_desc" || state === "featured" ? state : "all";
+
   // Local order state; syncs from server data but allows optimistic drag reorder.
   const [order, setOrder] = useState<MapPin[]>([]);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -63,6 +80,20 @@ function AdminMapPins() {
   useEffect(() => {
     setOrder(pins);
   }, [pins]);
+
+  const filtered = useMemo(() => {
+    const needle = qInput.trim().toLowerCase();
+    return order.filter((p) => {
+      if (stateFilter === "described" && !(p.description && p.description.trim())) return false;
+      if (stateFilter === "missing_desc" && p.description && p.description.trim()) return false;
+      if (stateFilter === "featured" && p.sort_order !== 0) return false;
+      if (!needle) return true;
+      const hay = `${p.title} ${p.description ?? ""} ${p.latitude} ${p.longitude}`.toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [order, qInput, stateFilter]);
+
+  const dragEnabled = !qInput.trim() && stateFilter === "all";
 
   const reorder = useMutation({
     mutationFn: (ids: string[]) => reorderFn({ data: { ids } }),
