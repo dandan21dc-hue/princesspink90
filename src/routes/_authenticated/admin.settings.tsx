@@ -424,7 +424,7 @@ export function AdminSettings() {
 
       return;
     }
-    save.mutate();
+    startSave();
   };
 
 
