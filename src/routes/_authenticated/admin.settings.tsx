@@ -720,6 +720,10 @@ export function AdminSettings() {
         <AlertDialogContent
           id={fetlifeConfirmDialogId}
           aria-describedby={`${fetlifeConfirmDialogId}-desc`}
+          // Announce the whole dialog as busy while the save request is in
+          // flight so screen readers pause and re-announce updates only after
+          // the mutation settles.
+          aria-busy={save.isPending || undefined}
           // Radix's FocusScope traps Tab/Shift+Tab inside this content while
           // the dialog is open and restores focus to the previously-focused
           // element on close. We open the dialog programmatically (no Radix
