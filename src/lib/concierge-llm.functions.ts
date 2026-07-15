@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SYSTEM_PROMPT =
   "You are an elite, discreet VIP booking concierge for a premium venue. Be helpful, alluring, and concise.";
@@ -15,7 +16,10 @@ const InputSchema = z.object({
 
 export type ChatWithConciergeInput = z.infer<typeof InputSchema>;
 
+// Auth-gated: requireSupabaseAuth blocks unauthenticated callers so anonymous
+// visitors can't script this endpoint to drain paid OpenRouter credits.
 export const chatWithConcierge = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => InputSchema.parse(data))
   .handler(async ({ data }) => {
     const apiKey = process.env.OPENROUTER_API_KEY;
