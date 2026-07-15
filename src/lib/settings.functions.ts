@@ -168,13 +168,30 @@ export function validateContactEmail(raw: string): string | null {
 
 export const contactSettingsUpdateSchema = z.object({
   email: z.string().trim().email().max(CONTACT_EMAIL_MAX),
+  // Two-stage validation so we can produce the exact same actionable
+  // message the client-side `validateFetlifeHandle` returns (control chars,
+  // wrong host, too short, illegal characters). Zod's default "regex
+  // failed" message would hide the real reason from anyone bypassing our
+  // form and calling `updateSiteSettings` directly.
   fetlife_handle: z
-    .string()
+    .string({ error: "FetLife handle must be a string." })
+    .max(FETLIFE_HANDLE_RAW_MAX, {
+      message: `FetLife handle input is too long (max ${FETLIFE_HANDLE_RAW_MAX} characters).`,
+    })
+    .superRefine((raw, ctx) => {
+      const error = validateFetlifeHandle(raw);
+      if (error) {
+        ctx.addIssue({ code: "custom", message: error });
+      }
+    })
     .transform((v) => normalizeFetlifeHandle(v))
     .refine((v) => FETLIFE_HANDLE_RE.test(v), {
+      // Belt-and-braces: superRefine above catches every bad input, but if
+      // a future edit to normalizeFetlifeHandle regresses we still reject.
       message:
         "FetLife handle must be 3-20 characters of letters, digits, underscore, or hyphen.",
     }),
+
   reddit_handle: z.string().trim().min(1).max(100),
   glory_holes_enabled: z.boolean(),
   session_price_cents: z
