@@ -545,9 +545,9 @@ function SecondaryRoomSessionsAdmin() {
         <BulkAddDialog
           pending={bulkMut.isPending}
           onCancel={() => setBulkOpen(false)}
-          onSubmit={(slots) => {
+          onSubmit={(payload) => {
             setError(null);
-            bulkMut.mutate(slots);
+            bulkMut.mutate(payload);
           }}
         />
       )}
