@@ -180,9 +180,15 @@ function AdminSettings() {
             required
             maxLength={255}
             value={email}
+            aria-invalid={emailError !== null}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+              emailError ? "border-destructive" : "border-border"
+            }`}
           />
+          {emailError && (
+            <div className="mt-1 text-[11px] text-destructive">{emailError}</div>
+          )}
         </Field>
         <Field label="FetLife handle" hint="Without leading slash, e.g. pink_princess90">
           <input
