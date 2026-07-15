@@ -202,19 +202,19 @@ function AdminAuditPage() {
 
   if (me.isLoading) {
     return (
-      <main className="min-h-screen bg-background p-8 text-sm text-muted-foreground">
+      <div className="min-h-screen bg-background p-8 text-sm text-muted-foreground">
         Checking access…
-      </main>
+      </div>
     );
   }
 
   if (!isAdmin) {
     return (
-      <main className="min-h-screen bg-background p-8">
+      <div className="min-h-screen bg-background p-8">
         <div className="mx-auto max-w-lg rounded-2xl border border-destructive/40 bg-destructive/10 p-6 text-sm text-destructive">
           Admin access required. This page is restricted to administrators.
         </div>
-      </main>
+      </div>
     );
   }
 
@@ -224,7 +224,7 @@ function AdminAuditPage() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-5xl px-5 pt-16 pb-8">
         <Link
           to="/dashboard"
@@ -1167,7 +1167,7 @@ ${truncated ? `<div class="warn">${esc(truncationMsg(totalCount))}</div>` : ""}
           onClose={() => setSelectedId(null)}
         />
       )}
-    </main>
+    </div>
   );
 }
 

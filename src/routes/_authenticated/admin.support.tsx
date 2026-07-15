@@ -33,7 +33,7 @@ function AdminSupportInboxPage() {
   const [selected, setSelected] = useState<string | null>(null);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-6xl px-5 pt-16 pb-6">
         <Link
           to="/dashboard"
@@ -116,7 +116,7 @@ function AdminSupportInboxPage() {
           )}
         </section>
       </div>
-    </main>
+    </div>
   );
 }
 

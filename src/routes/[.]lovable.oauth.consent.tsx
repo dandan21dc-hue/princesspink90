@@ -56,7 +56,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
   },
   component: Consent,
   errorComponent: ({ error }) => (
-    <main className="mx-auto max-w-lg px-5 py-16">
+    <div className="mx-auto max-w-lg px-5 py-16">
       <h1 className="font-display text-2xl font-bold">Authorization unavailable</h1>
       <p className="mt-3 text-sm text-muted-foreground">
         We couldn't load this authorization request. It may have expired.
@@ -64,7 +64,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
       <pre className="mt-6 overflow-auto rounded bg-muted p-3 text-xs">
         {(error as Error)?.message ?? String(error)}
       </pre>
-    </main>
+    </div>
   ),
 });
 
@@ -98,7 +98,7 @@ function Consent() {
   }
 
   return (
-    <main className="mx-auto max-w-lg px-5 py-16">
+    <div className="mx-auto max-w-lg px-5 py-16">
       <div className="text-xs uppercase tracking-[0.3em] text-primary">Authorize</div>
       <h1 className="mt-2 font-display text-3xl font-extrabold">
         Connect {clientName} to your account
@@ -143,6 +143,6 @@ function Consent() {
           Cancel connection
         </button>
       </div>
-    </main>
+    </div>
   );
 }

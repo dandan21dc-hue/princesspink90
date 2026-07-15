@@ -89,7 +89,7 @@ function DocCard({
 
 function CompliancePage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-3xl px-5 pt-20 pb-10">
         <Link
           to="/"
@@ -232,7 +232,7 @@ function CompliancePage() {
           transparency. It is not legal advice.
         </div>
       </footer>
-    </main>
+    </div>
   );
 }
 

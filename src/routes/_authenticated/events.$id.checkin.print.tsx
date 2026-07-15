@@ -79,7 +79,7 @@ function PrintPage() {
         </button>
       </div>
 
-      <main className="sheet mx-auto max-w-[210mm] p-8">
+      <div className="sheet mx-auto max-w-[210mm] p-8">
         <header style={{ borderBottom: "2px solid #000", paddingBottom: 8, marginBottom: 16 }}>
           <div style={{ fontSize: "9pt", textTransform: "uppercase", letterSpacing: "0.2em" }}>
             Door admission sheet
@@ -153,7 +153,7 @@ function PrintPage() {
           admitted. Circle party-size changes and note walk-ins on the back. Printed{" "}
           {new Date().toLocaleString()}.
         </footer>
-      </main>
+      </div>
     </>
   );
 }

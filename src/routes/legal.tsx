@@ -27,7 +27,7 @@ const LAST_UPDATED = "5 July 2026";
 
 function LegalPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border/50 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="mx-auto max-w-3xl px-5 pt-16 pb-12">
           <Link
@@ -177,7 +177,7 @@ function LegalPage() {
           </li>
         </ul>
       </Section>
-    </main>
+    </div>
   );
 }
 

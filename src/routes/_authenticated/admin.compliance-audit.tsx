@@ -38,7 +38,7 @@ function AdminComplianceAuditPage() {
   );
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-5xl px-5 pt-16 pb-8">
         <Link
           to="/dashboard"
@@ -187,6 +187,6 @@ function AdminComplianceAuditPage() {
           </div>
         )}
       </section>
-    </main>
+    </div>
   );
 }

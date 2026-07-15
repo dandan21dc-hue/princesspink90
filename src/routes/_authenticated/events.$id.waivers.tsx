@@ -30,7 +30,7 @@ function WaiversPage() {
   });
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl px-5 py-10">
+    <div className="mx-auto min-h-screen max-w-6xl px-5 py-10">
       <div className="flex items-center justify-between gap-4">
         <div>
           <Link
@@ -111,7 +111,7 @@ function WaiversPage() {
           />
         </>
       )}
-    </main>
+    </div>
   );
 }
 

@@ -41,7 +41,7 @@ function VerifyPage() {
   const canStart = ageAck && !start.isPending && !isApproved;
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-12">
+    <div className="mx-auto max-w-2xl px-5 py-12">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Access</div>
@@ -120,7 +120,7 @@ function VerifyPage() {
       )}
 
       <HealthScreeningSection />
-    </main>
+    </div>
   );
 }
 
