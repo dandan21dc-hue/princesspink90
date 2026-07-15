@@ -28,11 +28,12 @@ const DESTRUCTIVE = new Set<AdminAssistantAction["tool"]>([
   "setListingSold",
 ]);
 
-function isProposal(value: unknown): value is Proposal {
+function isProposalEnvelope(value: unknown): value is { proposal: Proposal } {
   if (!value || typeof value !== "object") return false;
-  const obj = value as { proposal?: unknown };
-  const p = obj.proposal as Proposal | undefined;
-  return !!p && typeof p === "object" && typeof p.tool === "string" && typeof p.summary === "string";
+  const p = (value as { proposal?: unknown }).proposal;
+  if (!p || typeof p !== "object") return false;
+  const cast = p as Partial<Proposal>;
+  return typeof cast.tool === "string" && typeof cast.summary === "string";
 }
 
 export function AdminAssistantChat() {
