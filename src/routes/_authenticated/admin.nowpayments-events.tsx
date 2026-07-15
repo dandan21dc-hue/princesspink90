@@ -526,28 +526,45 @@ function EventRow({
                 : "None granted"}
             </div>
           )}
-          {canRetry && (
+          <div className="flex flex-col gap-2 items-end mt-2">
             <Button
               type="button"
               size="sm"
-              variant={e.handled ? "outline" : "default"}
-              onClick={onRetry}
-              disabled={retryPending}
-              className="mt-2 gap-1"
+              variant="outline"
+              onClick={onViewPayload}
+              disabled={!e.payload_json}
+              className="gap-1"
               title={
-                e.handled
-                  ? "Re-run the idempotent grant (safe — will not double-grant)"
-                  : "Reprocess this failed / unhandled grant"
+                e.payload_json
+                  ? "View raw IPN payload and parsed fields"
+                  : "No stored payload"
               }
             >
-              {retryPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RotateCw className="h-3 w-3" />
-              )}
-              {e.handled ? "Re-run grant" : "Retry grant"}
+              <FileJson className="h-3 w-3" /> View payload
             </Button>
-          )}
+            {canRetry && (
+              <Button
+                type="button"
+                size="sm"
+                variant={e.handled ? "outline" : "default"}
+                onClick={onRetry}
+                disabled={retryPending}
+                className="gap-1"
+                title={
+                  e.handled
+                    ? "Re-run the idempotent grant (safe — will not double-grant)"
+                    : "Reprocess this failed / unhandled grant"
+                }
+              >
+                {retryPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RotateCw className="h-3 w-3" />
+                )}
+                {e.handled ? "Re-run grant" : "Retry grant"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </Card>
