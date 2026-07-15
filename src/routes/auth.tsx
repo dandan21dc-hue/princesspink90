@@ -131,6 +131,15 @@ function Auth() {
             className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
           />
           {mode === "signup" && (
+            <input
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 12))}
+              placeholder="Referral code (optional)"
+              autoCapitalize="characters"
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm font-mono tracking-widest uppercase focus:border-primary focus:outline-none"
+            />
+          )}
+          {mode === "signup" && (
             <label className="flex items-start gap-2 pt-1 text-xs text-muted-foreground">
               <input
                 type="checkbox"
