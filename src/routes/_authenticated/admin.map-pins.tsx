@@ -882,6 +882,14 @@ function AdminMapPins() {
             {reorder.isPending && (
               <p className="text-xs text-muted-foreground">Saving new order…</p>
             )}
+            <div
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="sr-only"
+            >
+              {reorderAnnouncement}
+            </div>
           </div>
         </div>
       </div>
