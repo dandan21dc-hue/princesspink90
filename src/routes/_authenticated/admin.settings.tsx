@@ -1051,9 +1051,8 @@ function CopyUrlButton({
         >
           {status.message}
         </span>
-      ) : (
-        <span role="status" aria-live="polite" className="sr-only" />
-      )}
+      ) : null}
+
     </>
   );
 }
