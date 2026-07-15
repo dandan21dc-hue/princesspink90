@@ -1079,6 +1079,70 @@ export function AdminSettings() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/*
+        Post-save FetLife confirmation. Shown after a successful save that
+        changed the handle and whose saved value round-trips cleanly. Purely
+        informational — no destructive action, closing just dismisses.
+      */}
+      <AlertDialog
+        open={postSaveFetlife !== null}
+        onOpenChange={(open) => {
+          if (!open) setPostSaveFetlife(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>FetLife handle saved</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  The public profile link now points to:
+                </p>
+                {postSaveFetlife?.handle ? (
+                  <div className="rounded-md border border-border bg-muted/40 p-3">
+                    <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Normalized URL
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={postSaveFetlife.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all font-mono text-sm underline underline-offset-2 hover:text-primary"
+                      >
+                        {postSaveFetlife.url}
+                      </a>
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Handle: <span className="font-mono">{postSaveFetlife.handle}</span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      <Check className="h-3.5 w-3.5" aria-hidden />
+                      Verified: URL round-trips back to the saved handle.
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">
+                    The FetLife handle has been cleared — no public profile
+                    link will be shown.
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Open the link above to double-check it loads the intended
+                  FetLife profile.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setPostSaveFetlife(null)}>
+              Done
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Shell>
   );
 }
