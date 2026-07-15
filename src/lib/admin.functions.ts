@@ -798,3 +798,221 @@ export const adminListAllAccessAudit = createServerFn({ method: "POST" })
     };
   });
 
+// ---------- NOWPayments IPN event browser (admin) ----------
+
+// Local parser mirrors src/routes/api/public/payments/nowpayments-webhook.ts.
+// Duplicated intentionally to avoid pulling a route module into a server fn.
+const NPE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type NpeParsedOrder =
+  | { kind: "aap30d" | "lifetime"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "panty"; pantyListingId: string; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "booking"; bookingId: string; userId: string; environment: "sandbox" | "live"; amountCents: number };
+
+function parseOrderId(orderId: string | null | undefined): NpeParsedOrder | null {
+  if (!orderId) return null;
+  const parts = orderId.split(":");
+  const parseEnv = (v: string) => (v === "sandbox" || v === "live" ? (v as "sandbox" | "live") : null);
+  const parseAmount = (v: string) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 && Number.isInteger(n) ? n : null;
+  };
+  if (parts.length === 4) {
+    const [kind, userId, envRaw, amountRaw] = parts;
+    if (kind !== "aap30d" && kind !== "lifetime") return null;
+    if (!NPE_UUID_RE.test(userId)) return null;
+    const environment = parseEnv(envRaw);
+    if (!environment) return null;
+    const amountCents = parseAmount(amountRaw);
+    if (amountCents == null) return null;
+    return { kind: kind as "aap30d" | "lifetime", userId, environment, amountCents };
+  }
+  if (parts.length === 5) {
+    const [kind, entityId, userId, envRaw, amountRaw] = parts;
+    if (kind !== "panty" && kind !== "booking") return null;
+    if (!NPE_UUID_RE.test(entityId) || !NPE_UUID_RE.test(userId)) return null;
+    const environment = parseEnv(envRaw);
+    if (!environment) return null;
+    const amountCents = parseAmount(amountRaw);
+    if (amountCents == null) return null;
+    if (kind === "panty") {
+      return { kind: "panty", pantyListingId: entityId, userId, environment, amountCents };
+    }
+    return { kind: "booking", bookingId: entityId, userId, environment, amountCents };
+  }
+  return null;
+}
+
+
+export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (
+      d: {
+        limit?: number;
+        status?: string;
+        handled?: "all" | "handled" | "unhandled";
+        search?: string;
+      } = {},
+    ) => ({
+      limit: Math.min(Math.max(d.limit ?? 100, 1), 500),
+      status: d.status?.trim() || undefined,
+      handled: d.handled ?? "all",
+      search: d.search?.trim() || undefined,
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let q = supabaseAdmin
+      .from("nowpayments_ipn_events")
+      .select(
+        "payment_id, last_status, order_id, handled, reason, payload, received_count, first_seen_at, last_seen_at, processed_at",
+      )
+      .order("last_seen_at", { ascending: false })
+      .limit(data.limit);
+
+    if (data.status) q = q.eq("last_status", data.status);
+    if (data.handled === "handled") q = q.eq("handled", true);
+    if (data.handled === "unhandled") q = q.eq("handled", false);
+    if (data.search) {
+      // Search on payment_id or order_id (both text columns).
+      q = q.or(`payment_id.ilike.%${data.search}%,order_id.ilike.%${data.search}%`);
+    }
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+
+    type Row = NonNullable<typeof rows>[number];
+    const events = rows ?? [];
+
+    // Bucket lookups per entitlement kind, keyed by external_payment_reference.
+    const paymentRefs = events.map((e: Row) => `nowpayments:${e.payment_id}`);
+    const userIds = new Set<string>();
+    const parsedByPaymentId = new Map<string, ReturnType<typeof parseOrderId>>();
+
+    for (const e of events) {
+      const parsed = parseOrderId(e.order_id ?? undefined);
+      parsedByPaymentId.set(e.payment_id, parsed);
+      if (parsed) userIds.add(parsed.userId);
+    }
+
+    const [
+      { data: memberships },
+      { data: pantyOrders },
+      { data: bookings },
+    ] = await Promise.all([
+      paymentRefs.length
+        ? supabaseAdmin
+            .from("memberships")
+            .select("id, user_id, kind, environment, expires_at, external_payment_reference")
+            .in("external_payment_reference", paymentRefs)
+        : Promise.resolve({ data: [] as any[] }),
+      paymentRefs.length
+        ? supabaseAdmin
+            .from("panty_orders")
+            .select("id, user_id, panty_listing_id, status, environment, external_payment_reference")
+            .in("external_payment_reference", paymentRefs)
+        : Promise.resolve({ data: [] as any[] }),
+      paymentRefs.length
+        ? supabaseAdmin
+            .from("private_room_bookings")
+            .select("id, user_id, status, starts_at, environment, external_payment_reference")
+            .in("external_payment_reference", paymentRefs)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const membershipByRef = new Map((memberships ?? []).map((m: any) => [m.external_payment_reference, m]));
+    const pantyByRef = new Map((pantyOrders ?? []).map((p: any) => [p.external_payment_reference, p]));
+    const bookingByRef = new Map((bookings ?? []).map((b: any) => [b.external_payment_reference, b]));
+
+    // Resolve user emails/display names for any users referenced.
+    const userMap = new Map<string, { email: string | null; display_name: string | null }>();
+    const idArray = Array.from(userIds);
+    if (idArray.length > 0) {
+      const { data: profiles } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", idArray);
+      for (const p of profiles ?? []) {
+        userMap.set(p.user_id as string, { email: null, display_name: p.display_name ?? null });
+      }
+      for (const id of idArray) {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
+          const existing = userMap.get(id) ?? { email: null, display_name: null };
+          userMap.set(id, { ...existing, email: u?.user?.email ?? null });
+        } catch {
+          /* best-effort */
+        }
+      }
+    }
+
+    const items = events.map((e: Row) => {
+      const parsed = parsedByPaymentId.get(e.payment_id) ?? null;
+      const ref = `nowpayments:${e.payment_id}`;
+      const membership = membershipByRef.get(ref) ?? null;
+      const panty = pantyByRef.get(ref) ?? null;
+      const booking = bookingByRef.get(ref) ?? null;
+
+      let entitlement:
+        | { kind: "membership"; id: string; label: string }
+        | { kind: "panty_order"; id: string; label: string }
+        | { kind: "booking"; id: string; label: string }
+        | null = null;
+      if (membership) {
+        entitlement = {
+          kind: "membership",
+          id: membership.id as string,
+          label: membership.kind as string,
+        };
+      } else if (panty) {
+        entitlement = {
+          kind: "panty_order",
+          id: panty.id as string,
+          label: `panty order (${panty.status})`,
+        };
+      } else if (booking) {
+        entitlement = {
+          kind: "booking",
+          id: booking.id as string,
+          label: `booking ${booking.status}`,
+        };
+      }
+
+      const userId = parsed?.userId ?? null;
+      const user = userId ? userMap.get(userId) ?? null : null;
+
+      return {
+        payment_id: e.payment_id,
+        last_status: e.last_status,
+        order_id: e.order_id,
+        handled: e.handled,
+        reason: e.reason,
+        received_count: e.received_count,
+        first_seen_at: e.first_seen_at,
+        last_seen_at: e.last_seen_at,
+        processed_at: e.processed_at,
+        // Signature: only signature-verified webhooks are ever written to this
+        // ledger (invalid signatures return 401 before insert), so any stored
+        // row is signature-verified by construction.
+        signature_verified: true,
+        parsed_order: parsed,
+        user_id: userId,
+        user_email: user?.email ?? null,
+        user_display_name: user?.display_name ?? null,
+        entitlement,
+      };
+    });
+
+    const summary = {
+      total: items.length,
+      handled: items.filter((i) => i.handled).length,
+      unhandled: items.filter((i) => !i.handled).length,
+      finished: items.filter((i) => i.last_status === "finished").length,
+    };
+
+    return { items, summary };
+  });
+
+
