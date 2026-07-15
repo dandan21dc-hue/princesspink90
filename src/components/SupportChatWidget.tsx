@@ -902,18 +902,21 @@ function TypingIndicator() {
   );
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, timeZone?: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone,
   });
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string, timeZone?: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
+    timeZone,
+    timeZoneName: timeZone ? "short" : undefined,
   });
 }
 
