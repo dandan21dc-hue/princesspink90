@@ -109,7 +109,7 @@ export const template = {
     return `[${sev}] Admin audit — ${kind}${count}`
   },
   displayName: 'Admin — audit integrity alert',
-  to: 'danielle@princesspink90.com',
+  to: 'midnight-glory@princesspink90.com',
   previewData: {
     severity: 'critical',
     kind: 'tampered_entries',
