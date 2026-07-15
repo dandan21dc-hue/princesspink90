@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ShieldCheck, Plus, Pencil, Trash2, X } from "lucide-react";
+import { ShieldCheck, Plus, Pencil, Trash2, X, Download } from "lucide-react";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
@@ -40,6 +40,64 @@ type Entry = {
   created_at: string;
   updated_at: string;
 };
+
+async function downloadEntryPdf(entry: Entry) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 56;
+  const maxWidth = pageWidth - margin * 2;
+  let y = margin;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(120);
+  doc.text(`SECURITY CHANGELOG · VERSION ${entry.version}`, margin, y);
+  y += 20;
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(20);
+  const titleLines = doc.splitTextToSize(entry.title, maxWidth);
+  doc.text(titleLines, margin, y);
+  y += titleLines.length * 24 + 4;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(120);
+  doc.text(
+    `Published ${new Date(entry.published_at).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })}`,
+    margin,
+    y,
+  );
+  y += 24;
+
+  doc.setDrawColor(220);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 20;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.setTextColor(30);
+  const lineHeight = 16;
+  const summaryLines = doc.splitTextToSize(entry.summary, maxWidth);
+  for (const line of summaryLines) {
+    if (y + lineHeight > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.text(line, margin, y);
+    y += lineHeight;
+  }
+
+  const safeTitle = entry.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "entry";
+  doc.save(`security-changelog-v${entry.version}-${safeTitle}.pdf`);
+}
 
 function Page() {
   return (
@@ -193,7 +251,14 @@ function SecurityChangelogView() {
                       {selected.title}
                     </h2>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadEntryPdf(selected)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs hover:bg-muted/40"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download PDF
+                    </button>
                     <button
                       type="button"
                       onClick={() => setEditing(selected)}
