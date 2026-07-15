@@ -3,8 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Copy, Gift, Activity } from "lucide-react";
-import { getMyRewards, getMyRewardActivity } from "@/lib/rewards.functions";
+import { Copy, Gift, Activity, Users } from "lucide-react";
+import { getMyRewards, getMyRewardActivity, getMyReferralHistory } from "@/lib/rewards.functions";
 
 export const Route = createFileRoute("/_authenticated/account/rewards")({
   head: () => ({ meta: [{ title: "Rewards · AFTERDARK" }] }),
