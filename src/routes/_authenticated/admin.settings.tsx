@@ -1063,23 +1063,20 @@ function CopyUrlButton({
   label,
   kindLabel,
   disabled = false,
+  onCopied,
 }: {
   value: string;
   label: string;
-  /**
-   * Human-friendly description of what's being copied (e.g. "current FetLife
-   * URL"). Rendered into the toast so admins can tell which of the two
-   * side-by-side copy buttons fired, and repeated in an aria-live region
-   * so screen readers hear the result inline.
-   */
   kindLabel: string;
-  /**
-   * Disable the button while the FetLife handle save is in-flight. Prevents
-   * rapid repeated clicks from firing while the underlying URL value may be
-   * about to change (current becomes stale, new becomes current).
-   */
   disabled?: boolean;
+  /**
+   * Fired after a successful copy. Parent uses this to remember which of the
+   * two side-by-side URLs was last copied so it can render a "Last copied"
+   * badge.
+   */
+  onCopied?: () => void;
 }) {
+
 
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<null | { kind: "ok" | "err"; message: string }>(null);
