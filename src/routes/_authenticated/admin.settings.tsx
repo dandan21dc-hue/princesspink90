@@ -280,10 +280,11 @@ export function AdminSettings() {
       // Explain up-front why Save didn't persist immediately — the AlertDialog
       // is modal but easy to miss on wide screens, and the FetLife handle
       // drives a public URL where a silent typo is costly.
-      toast.info("Confirmation required", {
+      toast("Confirmation required", {
         description:
           "Review the old and new FetLife URLs in the dialog, then confirm to save.",
       });
+
       return;
     }
     save.mutate();
