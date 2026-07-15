@@ -571,14 +571,29 @@ function AdminMapPins() {
   );
 }
 
-const inputCls =
-  "w-full rounded-md border border-border bg-background/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
+const baseInputCls =
+  "w-full rounded-md border bg-background/60 px-3 py-2 text-sm focus:outline-none focus:ring-2";
+const fieldCls = (hasError: boolean) =>
+  `${baseInputCls} ${
+    hasError
+      ? "border-destructive focus:ring-destructive/50"
+      : "border-border focus:ring-primary/50"
+  }`;
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
       {children}
+      {error && <span className="mt-1 block text-xs text-destructive">{error}</span>}
     </label>
   );
 }
