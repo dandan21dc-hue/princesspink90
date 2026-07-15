@@ -39,7 +39,7 @@ export function AllAccessCard() {
     },
     {
       label: "Lifetime",
-      price: "A$500",
+      price: "A$600",
       cadence: "one-time",
       perk: "Never expires · + 1 ticketed event & 1 private room session",
       plan: "lifetime_onetime_aud",
