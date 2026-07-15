@@ -1869,6 +1869,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_restricted: boolean
           age_gate_confirmed_at: string | null
           consents_to_recording: boolean
           created_at: string
@@ -1877,11 +1878,13 @@ export type Database = {
           pending_deletion_at: string | null
           referral_code: string | null
           reward_points: number
+          staff_notes: string | null
           user_id: string
           veriff_session_id: string | null
           verification_status: Database["public"]["Enums"]["verification_status"]
         }
         Insert: {
+          account_restricted?: boolean
           age_gate_confirmed_at?: string | null
           consents_to_recording?: boolean
           created_at?: string
@@ -1890,11 +1893,13 @@ export type Database = {
           pending_deletion_at?: string | null
           referral_code?: string | null
           reward_points?: number
+          staff_notes?: string | null
           user_id: string
           veriff_session_id?: string | null
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Update: {
+          account_restricted?: boolean
           age_gate_confirmed_at?: string | null
           consents_to_recording?: boolean
           created_at?: string
@@ -1903,6 +1908,7 @@ export type Database = {
           pending_deletion_at?: string | null
           referral_code?: string | null
           reward_points?: number
+          staff_notes?: string | null
           user_id?: string
           veriff_session_id?: string | null
           verification_status?: Database["public"]["Enums"]["verification_status"]
