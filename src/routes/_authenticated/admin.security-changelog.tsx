@@ -193,7 +193,14 @@ function SecurityChangelogView() {
                       {selected.title}
                     </h2>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => downloadEntryPdf(selected)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs hover:bg-muted/40"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download PDF
+                    </button>
                     <button
                       type="button"
                       onClick={() => setEditing(selected)}
