@@ -988,11 +988,23 @@ export const adminModerateContentItem = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Snapshot the previous status + item metadata so the audit row is
+    // self-contained even if the item is deleted later.
+    const { data: prev } = await supabaseAdmin
+      .from("content_items")
+      .select("id,title,kind,creator_id,moderation_status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!prev) throw new Error("Content item not found");
+
+    const trimmedNotes = data.notes?.trim() || null;
+
     const { data: row, error } = await supabaseAdmin
       .from("content_items")
       .update({
         moderation_status: data.decision,
-        moderation_notes: data.notes?.trim() || null,
+        moderation_notes: trimmedNotes,
         moderation_reviewed_by: context.userId,
         moderation_reviewed_at: new Date().toISOString(),
       } as any)
@@ -1000,6 +1012,31 @@ export const adminModerateContentItem = createServerFn({ method: "POST" })
       .select("id,moderation_status")
       .single();
     if (error) throw new Error(error.message);
+
+    // Best-effort: record the decision. Never fail the moderation call on an
+    // audit-log write failure — the primary action already succeeded.
+    try {
+      const { data: actor } = await supabaseAdmin
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      const actorEmail = context.claims?.email ?? actor?.display_name ?? null;
+      await supabaseAdmin.from("content_moderation_audit").insert({
+        content_item_id: data.id,
+        item_title: prev.title,
+        item_kind: prev.kind,
+        creator_id: prev.creator_id,
+        action: data.decision,
+        previous_status: prev.moderation_status,
+        notes: trimmedNotes,
+        actor_id: context.userId,
+        actor_email: actorEmail,
+      } as any);
+    } catch (e) {
+      console.warn("content_moderation_audit insert failed", e);
+    }
+
     return row;
   });
 
