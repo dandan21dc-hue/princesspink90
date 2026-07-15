@@ -111,7 +111,7 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
     // Verify the guest signed the CURRENT waiver text (not a stale cached copy).
     const { data: evRow, error: evErr } = await context.supabase
       .from("events")
-      .select("waiver_text")
+      .select("waiver_text, title, starts_at, venue_name")
       .eq("id", data.event_id)
       .maybeSingle();
     if (evErr) throw evErr;
