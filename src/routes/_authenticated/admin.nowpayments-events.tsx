@@ -29,7 +29,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/nowpayments-events")({
   head: () => ({ meta: [{ title: "NOWPayments IPN Events · Admin" }] }),
@@ -80,6 +87,7 @@ function AdminNowpaymentsEvents() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
+  const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
   const list = useQuery({
     queryKey: ["admin-nowpayments-events", { status, handled, reversal, search }],
@@ -279,11 +287,12 @@ function AdminNowpaymentsEvents() {
             No matching webhook events.
           </Card>
         ) : (
-          items.map((e) => (
+          items.map((e: EventItem) => (
             <EventRow
               key={`${e.payment_id}:${e.last_status}`}
               e={e}
               onRetry={() => setPendingRetry(e)}
+              onViewPayload={() => setPayloadEvent(e)}
               retryPending={retry.isPending && pendingRetry?.payment_id === e.payment_id}
             />
           ))
@@ -347,6 +356,11 @@ function AdminNowpaymentsEvents() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PayloadDialog
+        event={payloadEvent}
+        onClose={() => setPayloadEvent(null)}
+      />
     </Shell>
   );
 }
@@ -380,15 +394,18 @@ type EventItem = {
         applied: boolean;
       }
     | null;
+  payload_json: string | null;
 };
 
 function EventRow({
   e,
   onRetry,
+  onViewPayload,
   retryPending,
 }: {
   e: EventItem;
   onRetry: () => void;
+  onViewPayload: () => void;
   retryPending: boolean;
 }) {
   const canRetry = e.last_status === "finished" && e.parsed_order !== null;
@@ -514,28 +531,45 @@ function EventRow({
                 : "None granted"}
             </div>
           )}
-          {canRetry && (
+          <div className="flex flex-col gap-2 items-end mt-2">
             <Button
               type="button"
               size="sm"
-              variant={e.handled ? "outline" : "default"}
-              onClick={onRetry}
-              disabled={retryPending}
-              className="mt-2 gap-1"
+              variant="outline"
+              onClick={onViewPayload}
+              disabled={!e.payload_json}
+              className="gap-1"
               title={
-                e.handled
-                  ? "Re-run the idempotent grant (safe — will not double-grant)"
-                  : "Reprocess this failed / unhandled grant"
+                e.payload_json
+                  ? "View raw IPN payload and parsed fields"
+                  : "No stored payload"
               }
             >
-              {retryPending ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <RotateCw className="h-3 w-3" />
-              )}
-              {e.handled ? "Re-run grant" : "Retry grant"}
+              <FileJson className="h-3 w-3" /> View payload
             </Button>
-          )}
+            {canRetry && (
+              <Button
+                type="button"
+                size="sm"
+                variant={e.handled ? "outline" : "default"}
+                onClick={onRetry}
+                disabled={retryPending}
+                className="gap-1"
+                title={
+                  e.handled
+                    ? "Re-run the idempotent grant (safe — will not double-grant)"
+                    : "Reprocess this failed / unhandled grant"
+                }
+              >
+                {retryPending ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RotateCw className="h-3 w-3" />
+                )}
+                {e.handled ? "Re-run grant" : "Retry grant"}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </Card>
@@ -593,3 +627,166 @@ function EntitlementLink({
 function Shell({ children }: { children: React.ReactNode }) {
   return <section className="mx-auto max-w-5xl px-5 py-12">{children}</section>;
 }
+
+// Fields commonly emitted by NOWPayments IPN payloads that are useful to
+// audit at a glance when reviewing a reversal or unusual outcome.
+const PARSED_FIELD_ORDER = [
+  "payment_id",
+  "payment_status",
+  "order_id",
+  "order_description",
+  "purchase_id",
+  "invoice_id",
+  "price_amount",
+  "price_currency",
+  "pay_amount",
+  "pay_currency",
+  "actually_paid",
+  "actually_paid_at_fiat",
+  "outcome_amount",
+  "outcome_currency",
+  "fee",
+  "network",
+  "network_precision",
+  "pay_address",
+  "payin_hash",
+  "payout_hash",
+  "created_at",
+  "updated_at",
+] as const;
+
+function PayloadDialog({
+  event,
+  onClose,
+}: {
+  event: EventItem | null;
+  onClose: () => void;
+}) {
+  const parsed = (() => {
+    if (!event?.payload_json) return null;
+    try {
+      return JSON.parse(event.payload_json) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  })();
+  const pretty = (() => {
+    if (!event?.payload_json) return "";
+    try {
+      return JSON.stringify(JSON.parse(event.payload_json), null, 2);
+    } catch {
+      return event.payload_json;
+    }
+  })();
+
+  const parsedRows = parsed
+    ? [
+        ...PARSED_FIELD_ORDER.filter((k) => k in parsed).map((k) => [k, parsed[k]] as const),
+        ...Object.entries(parsed).filter(
+          ([k]) => !(PARSED_FIELD_ORDER as readonly string[]).includes(k),
+        ),
+      ]
+    : [];
+
+  const copy = async () => {
+    if (!pretty) return;
+    try {
+      await navigator.clipboard.writeText(pretty);
+      toast.success("Payload copied to clipboard");
+    } catch {
+      toast.error("Could not copy payload");
+    }
+  };
+
+  return (
+    <Dialog open={event !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileJson className="h-4 w-4 text-primary" /> IPN payload
+          </DialogTitle>
+          <DialogDescription>
+            Raw signature-verified NOWPayments webhook body for{" "}
+            <code className="font-mono">payment_id {event?.payment_id}</code>
+            {event?.received_count && event.received_count > 1
+              ? ` · latest of ${event.received_count} deliveries`
+              : ""}
+            .
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="overflow-y-auto space-y-5 pr-1">
+          <section>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Ledger row
+            </div>
+            <div className="rounded-md border bg-muted/40 p-3 text-xs font-mono grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 break-all">
+              <div>last_status: {event?.last_status}</div>
+              <div>handled: {String(event?.handled)}</div>
+              <div>received_count: {event?.received_count}</div>
+              <div>reason: {event?.reason ?? "—"}</div>
+              <div>first_seen_at: {event?.first_seen_at}</div>
+              <div>last_seen_at: {event?.last_seen_at}</div>
+              <div className="sm:col-span-2">processed_at: {event?.processed_at ?? "—"}</div>
+              <div className="sm:col-span-2">order_id: {event?.order_id ?? "—"}</div>
+              {event?.parsed_order && (
+                <div className="sm:col-span-2">
+                  parsed order: {event.parsed_order.kind} · {event.parsed_order.environment} ·{" "}
+                  user {event.parsed_order.userId} · {event.parsed_order.amountCents}c
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Parsed IPN fields
+            </div>
+            {parsedRows.length === 0 ? (
+              <div className="text-xs text-muted-foreground">
+                {parsed === null ? "Payload is not valid JSON." : "No fields present."}
+              </div>
+            ) : (
+              <div className="rounded-md border divide-y text-xs">
+                {parsedRows.map(([k, v]) => (
+                  <div key={k} className="grid grid-cols-[180px_1fr] gap-3 p-2">
+                    <div className="font-mono text-muted-foreground">{k}</div>
+                    <div className="font-mono break-all">
+                      {v === null || v === undefined
+                        ? "—"
+                        : typeof v === "object"
+                          ? JSON.stringify(v)
+                          : String(v)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                Raw JSON
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={copy}
+                disabled={!pretty}
+                className="gap-1"
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </Button>
+            </div>
+            <pre className="rounded-md border bg-muted/40 p-3 text-[11px] font-mono overflow-x-auto max-h-[40vh] whitespace-pre">
+              {pretty || "(no payload stored)"}
+            </pre>
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+

@@ -1063,7 +1063,9 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         user_display_name: user?.display_name ?? null,
         entitlement,
         reversal,
+        payload_json: e.payload == null ? null : JSON.stringify(e.payload),
       };
+
     });
 
     const summary = {
