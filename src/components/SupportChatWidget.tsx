@@ -887,8 +887,11 @@ export function SupportChatWidget() {
                 message={m}
                 bookingSlot={bookingSlot}
                 timezone={timezone}
+                leadDraft={leadDraft}
+                pendingLeadSlot={pendingLeadSlot}
                 onSlotPick={proposeSlot}
                 onConfirm={confirmSlot}
+                onLeadSubmit={onLeadSubmit}
               />
             ))}
             {pending && <TypingIndicator />}
