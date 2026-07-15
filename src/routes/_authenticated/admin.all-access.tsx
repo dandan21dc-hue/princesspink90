@@ -439,3 +439,275 @@ function AuditLogPanel({
   );
 }
 
+type BulkRow = {
+  email: string;
+  action: "grant" | "revoke";
+  kind?: "term_pass_all_access_30d" | "lifetime";
+  raw: string;
+  parseError?: string;
+};
+
+type BulkResult = {
+  email: string;
+  action: "grant" | "revoke";
+  kind?: string;
+  status: "success" | "error";
+  message: string;
+  membership_id?: string | null;
+  revoked_count?: number;
+};
+
+const CSV_TEMPLATE =
+  "email,action,kind\nalice@example.com,grant,lifetime\nbob@example.com,grant,term_pass_all_access_30d\ncarol@example.com,revoke,\n";
+
+function normalizeKind(v: string): "term_pass_all_access_30d" | "lifetime" | undefined {
+  const s = v.trim().toLowerCase();
+  if (!s) return undefined;
+  if (s === "lifetime") return "lifetime";
+  if (s === "30d" || s === "30-day" || s === "term_pass_all_access_30d" || s === "pass") {
+    return "term_pass_all_access_30d";
+  }
+  return undefined;
+}
+
+function parseCsv(text: string): BulkRow[] {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+  const first = lines[0].toLowerCase();
+  const startIdx = first.startsWith("email") ? 1 : 0;
+  const rows: BulkRow[] = [];
+  for (let i = startIdx; i < lines.length; i++) {
+    const raw = lines[i];
+    const parts = raw.split(",").map((p) => p.trim());
+    const email = (parts[0] ?? "").toLowerCase();
+    const actionRaw = (parts[1] ?? "").toLowerCase();
+    const kindRaw = parts[2] ?? "";
+    const row: BulkRow = {
+      email,
+      action: actionRaw === "revoke" ? "revoke" : "grant",
+      raw,
+    };
+    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      row.parseError = "Invalid email";
+    } else if (actionRaw !== "grant" && actionRaw !== "revoke") {
+      row.parseError = `Invalid action "${actionRaw || "(empty)"}" — use grant or revoke`;
+    } else if (actionRaw === "grant") {
+      const kind = normalizeKind(kindRaw);
+      if (!kind) {
+        row.parseError = `Grant requires kind "lifetime" or "term_pass_all_access_30d"`;
+      } else {
+        row.kind = kind;
+      }
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function BulkPanel() {
+  const bulkFn = useServerFn(adminBulkAllAccess);
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+  const [results, setResults] = useState<BulkResult[] | null>(null);
+
+  const rows = parseCsv(text);
+  const validRows = rows.filter((r) => !r.parseError);
+  const invalidRows = rows.filter((r) => r.parseError);
+
+  const bulk = useMutation({
+    mutationFn: () =>
+      bulkFn({
+        data: {
+          operations: validRows.map((r) => ({
+            email: r.email,
+            action: r.action,
+            kind: r.kind,
+          })),
+        },
+      }),
+    onSuccess: (res) => {
+      setResults(res.results as BulkResult[]);
+      const okCount = res.summary.success;
+      const errCount = res.summary.errors;
+      if (errCount === 0) toast.success(`Bulk complete: ${okCount} succeeded`);
+      else toast.warning(`Bulk complete: ${okCount} succeeded, ${errCount} failed`);
+      qc.invalidateQueries({ queryKey: ["admin-all-access-lookup"] });
+      qc.invalidateQueries({ queryKey: ["admin-all-access-audit"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const onFile = async (file: File) => {
+    const t = await file.text();
+    setText(t);
+    setResults(null);
+  };
+
+  return (
+    <div className="mt-12">
+      <h2 className="text-sm uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+        <Upload className="h-4 w-4" /> Bulk grant / revoke by CSV
+      </h2>
+      <Card className="p-5 space-y-4">
+        <div className="text-xs text-muted-foreground">
+          CSV columns: <code className="font-mono">email,action,kind</code>. Action is{" "}
+          <code className="font-mono">grant</code> or <code className="font-mono">revoke</code>.
+          Kind (grant only) is <code className="font-mono">lifetime</code> or{" "}
+          <code className="font-mono">term_pass_all_access_30d</code>. Revoke removes every
+          All-Access membership row for that user in the current environment. Max 500 rows.
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground cursor-pointer">
+            <input
+              type="file"
+              accept=".csv,text/csv,text/plain"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onFile(f);
+                e.target.value = "";
+              }}
+            />
+            <span className="rounded-md border border-border/60 px-3 py-2 hover:bg-muted/40">
+              Upload CSV
+            </span>
+          </label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setText(CSV_TEMPLATE);
+              setResults(null);
+            }}
+          >
+            Load example
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setText("");
+              setResults(null);
+            }}
+            disabled={!text}
+          >
+            Clear
+          </Button>
+        </div>
+
+        <Textarea
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            setResults(null);
+          }}
+          rows={8}
+          spellCheck={false}
+          placeholder="email,action,kind&#10;alice@example.com,grant,lifetime&#10;bob@example.com,revoke,"
+          className="font-mono text-xs"
+        />
+
+        {rows.length > 0 && (
+          <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
+            <span>
+              Parsed <span className="text-foreground">{rows.length}</span> row
+              {rows.length === 1 ? "" : "s"}
+            </span>
+            <span>
+              Valid: <span className="text-foreground">{validRows.length}</span>
+            </span>
+            {invalidRows.length > 0 && (
+              <span className="text-destructive">Invalid: {invalidRows.length}</span>
+            )}
+          </div>
+        )}
+
+        {invalidRows.length > 0 && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs space-y-1 max-h-40 overflow-auto">
+            {invalidRows.slice(0, 20).map((r, i) => (
+              <div key={i}>
+                <span className="font-mono">{r.raw}</span>{" "}
+                <span className="text-destructive">— {r.parseError}</span>
+              </div>
+            ))}
+            {invalidRows.length > 20 && (
+              <div className="text-muted-foreground">
+                …and {invalidRows.length - 20} more
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            onClick={() => {
+              const grants = validRows.filter((r) => r.action === "grant").length;
+              const revokes = validRows.filter((r) => r.action === "revoke").length;
+              if (
+                !confirm(
+                  `Run bulk on ${validRows.length} row${validRows.length === 1 ? "" : "s"}?\n` +
+                    `Grants: ${grants}\nRevokes: ${revokes}`,
+                )
+              )
+                return;
+              bulk.mutate();
+            }}
+            disabled={validRows.length === 0 || bulk.isPending}
+          >
+            {bulk.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="h-4 w-4 mr-2" />
+            )}
+            Run bulk ({validRows.length})
+          </Button>
+        </div>
+
+        {results && (
+          <div className="border-t border-border/40 pt-4 space-y-2">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              Results
+            </div>
+            <div className="max-h-80 overflow-auto space-y-1">
+              {results.map((r, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between gap-3 text-xs border border-border/40 rounded-md px-3 py-2"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge
+                      variant={r.status === "success" ? "default" : "destructive"}
+                      className="text-[10px]"
+                    >
+                      {r.status === "success" ? "OK" : "ERR"}
+                    </Badge>
+                    <span className="font-mono truncate">{r.email}</span>
+                    <span className="text-muted-foreground">{r.action}</span>
+                    {r.kind && (
+                      <Badge variant="outline" className="text-[10px]">
+                        {r.kind}
+                      </Badge>
+                    )}
+                  </div>
+                  <div
+                    className={
+                      r.status === "success" ? "text-muted-foreground" : "text-destructive"
+                    }
+                  >
+                    {r.message}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+
