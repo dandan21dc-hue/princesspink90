@@ -348,7 +348,8 @@ function AdminNowpaymentsEvents() {
 
         {summary && (
           <div className="text-xs text-muted-foreground flex flex-wrap gap-4">
-            <span>Total: {summary.total}</span>
+            <span>Matching total: {totalCount}</span>
+            <span>On this page: {summary.total}</span>
             <span>Handled: {summary.handled}</span>
             <span>Unhandled: {summary.unhandled}</span>
             <span>Finished: {summary.finished}</span>
@@ -377,6 +378,18 @@ function AdminNowpaymentsEvents() {
           ))
         )}
       </div>
+
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        showing={items.length}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => p + 1)}
+        onJump={(p) => setPage(p)}
+        loading={list.isFetching}
+      />
+
 
       <AlertDialog
         open={pendingRetry !== null}
