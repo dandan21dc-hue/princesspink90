@@ -66,7 +66,7 @@ export function AdminMediaModeration() {
           </button>
         ))}
       </div>
-      <Queue status={status} />
+      <Queue status={status} onViewStatus={setStatus} />
       <RecentActivityPanel />
     </Shell>
   );
