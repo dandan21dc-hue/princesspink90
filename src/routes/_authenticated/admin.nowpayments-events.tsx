@@ -618,6 +618,36 @@ function AdminNowpaymentsEvents() {
           </form>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2">
+          <label
+            htmlFor="quick-search-input"
+            className="text-xs uppercase tracking-widest text-muted-foreground mr-1"
+          >
+            Quick search
+          </label>
+          <div className="relative min-w-[280px] flex-1 max-w-md">
+            <Input
+              id="quick-search-input"
+              type="search"
+              value={quickSearch}
+              onChange={(e) => setQuickSearch(e.target.value)}
+              placeholder="Filter by order id, payer email, or transaction id…"
+              aria-label="Quick search by order id, payer email, or transaction id"
+              className="pr-8"
+            />
+            {quickSearch && (
+              <button
+                type="button"
+                onClick={() => setQuickSearch("")}
+                aria-label="Clear quick search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            )}
+          </div>
+        </div>
+
 
         {(() => {
           const chips: { key: string; label: string; clear: () => void }[] = [];
