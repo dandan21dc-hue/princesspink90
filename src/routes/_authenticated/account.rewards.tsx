@@ -22,6 +22,11 @@ function RewardsTab() {
     queryKey: ["my-reward-activity"],
     queryFn: () => fetchActivity(),
   });
+  const fetchReferralHistory = useServerFn(getMyReferralHistory);
+  const referralHistory = useQuery({
+    queryKey: ["my-referral-history"],
+    queryFn: () => fetchReferralHistory(),
+  });
 
   const code = rewards.data?.referral_code ?? "";
   const points = rewards.data?.reward_points ?? 0;
