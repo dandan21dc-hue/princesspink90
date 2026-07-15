@@ -802,7 +802,9 @@ export function AdminSettings() {
                           <CopyUrlButton
                             value={`https://fetlife.com/${settings.data.fetlife_handle}`}
                             label="Copy current FetLife URL"
+                            kindLabel="current FetLife URL"
                           />
+
                         </>
                       ) : (
                         <span className="text-muted-foreground">(none)</span>
@@ -838,7 +840,9 @@ export function AdminSettings() {
                           <CopyUrlButton
                             value={newFetlifeUrl}
                             label="Copy new FetLife URL"
+                            kindLabel="new FetLife URL"
                           />
+
                         </>
                       ) : (
                         <span className="text-destructive">(empty)</span>
@@ -963,8 +967,23 @@ export function AdminSettings() {
   );
 }
 
-function CopyUrlButton({ value, label }: { value: string; label: string }) {
+function CopyUrlButton({
+  value,
+  label,
+  kindLabel,
+}: {
+  value: string;
+  label: string;
+  /**
+   * Human-friendly description of what's being copied (e.g. "current FetLife
+   * URL"). Rendered into the toast so admins can tell which of the two
+   * side-by-side copy buttons fired, and repeated in an aria-live region
+   * so screen readers hear the result inline.
+   */
+  kindLabel: string;
+}) {
   const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<null | { kind: "ok" | "err"; message: string }>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     return () => {
@@ -984,33 +1003,60 @@ function CopyUrlButton({ value, label }: { value: string; label: string }) {
         ta.style.left = "-9999px";
         document.body.appendChild(ta);
         ta.select();
-        document.execCommand("copy");
+        const ok = document.execCommand("copy");
         document.body.removeChild(ta);
+        if (!ok) throw new Error("execCommand copy returned false");
       }
       setCopied(true);
-      toast.success("URL copied to clipboard");
+      setStatus({ kind: "ok", message: `Copied ${kindLabel}` });
+      toast.success(`Copied ${kindLabel}`, { description: value });
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setCopied(false), 1500);
-    } catch {
-      toast.error("Couldn't copy URL");
+      timeoutRef.current = setTimeout(() => {
+        setCopied(false);
+        setStatus(null);
+      }, 2000);
+    } catch (e) {
+      const message = e instanceof Error && e.message ? e.message : "Clipboard access denied";
+      setStatus({ kind: "err", message: `Couldn't copy ${kindLabel}: ${message}` });
+      toast.error(`Couldn't copy ${kindLabel}`, { description: message });
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setStatus(null), 3000);
     }
   };
   return (
-    <button
-      type="button"
-      onClick={onCopy}
-      aria-label={label}
-      title={label}
-      className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
-    >
-      {copied ? (
-        <Check className="h-3 w-3" aria-hidden />
-      ) : (
-        <Copy className="h-3 w-3" aria-hidden />
-      )}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={onCopy}
+        aria-label={label}
+        title={label}
+        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+      >
+        {copied ? (
+          <Check className="h-3 w-3" aria-hidden />
+        ) : (
+          <Copy className="h-3 w-3" aria-hidden />
+        )}
+      </button>
+      {status ? (
+        <span
+          role="status"
+          aria-live="polite"
+          data-copy-status={status.kind}
+          className={
+            status.kind === "ok"
+              ? "ml-1 align-middle text-[11px] font-medium text-primary"
+              : "ml-1 align-middle text-[11px] font-medium text-destructive"
+          }
+        >
+          {status.message}
+        </span>
+      ) : null}
+
+    </>
   );
 }
+
 
 /**
  * Small "Open ↗" affordance rendered next to a URL. The URL text itself is
