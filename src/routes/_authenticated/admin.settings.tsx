@@ -896,11 +896,9 @@ export function AdminSettings() {
                 // Prevent Radix's default close-on-click so the dialog stays
                 // open with a loading state until the mutation settles.
                 event.preventDefault();
-                if (save.isPending || fetlifeConfirmBlocked) return;
+                if (save.isPending || saveInFlightRef.current || fetlifeConfirmBlocked) return;
                 fetlifeDismissIntentRef.current = "confirm";
-                save.mutate(undefined, {
-                  onSettled: () => setPendingFetlifeConfirm(false),
-                });
+                startSave(() => setPendingFetlifeConfirm(false));
               }}
             >
               {save.isPending ? (
