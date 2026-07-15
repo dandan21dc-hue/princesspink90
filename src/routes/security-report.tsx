@@ -54,13 +54,14 @@ export const Route = createFileRoute("/security-report")({
       { rel: "canonical", href: "https://princesspink90.lovable.app/security-report" },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(reportQueryOptions),
+  loader: () => null,
   component: SecurityReportPage,
   errorComponent: SecurityReportError,
 });
 
 function SecurityReportPage() {
-  const { data } = useSuspenseQuery(reportQueryOptions);
+  const { data, isLoading, error } = useQuery(reportQueryOptions);
+
 
   return (
     <main className="min-h-screen bg-background text-foreground">
