@@ -241,12 +241,16 @@ function HomeView({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="space-y-8">
       {isAdmin && (
-        <div>
-          <h2 className="mb-4 font-display text-lg">Admin Command Center</h2>
-          <AdminCommandCenter />
+        <div className="space-y-4">
+          <MaintenanceModeToggle />
+          <div>
+            <h2 className="mb-4 font-display text-lg">Admin Command Center</h2>
+            <AdminCommandCenter />
+          </div>
         </div>
       )}
       {isAdmin && <PendingVerificationsCard />}
+
       <PerksWidget />
 
       <SubscriberDiscountPanel />
