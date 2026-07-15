@@ -74,6 +74,50 @@ const INITIAL_GREETING: ChatMessage = {
 
 const LOCAL_KEY = "concierge:history:v1";
 
+const TERMINAL_STATUSES = new Set(["confirmed", "cancelled", "failed", "refunded"]);
+
+function statusLabel(status: string): { label: string; tone: "info" | "warn" | "ok" | "err" } {
+  switch (status) {
+    case "pending":
+    case "awaiting_payment":
+      return { label: "Pending payment", tone: "warn" };
+    case "confirmed":
+      return { label: "Confirmed", tone: "ok" };
+    case "cancelled":
+      return { label: "Cancelled", tone: "err" };
+    case "failed":
+      return { label: "Payment failed", tone: "err" };
+    case "refunded":
+      return { label: "Refunded", tone: "info" };
+    default:
+      return { label: status.replace(/_/g, " "), tone: "info" };
+  }
+}
+
+function statusNarration(status: string, startsAt: string): string {
+  const when = new Date(startsAt).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  switch (status) {
+    case "confirmed":
+      return `✅ Booking confirmed for ${when}. You'll get an email receipt shortly.`;
+    case "cancelled":
+      return `❌ Booking for ${when} was cancelled.`;
+    case "failed":
+      return `⚠️ Payment failed for the ${when} booking. Try again or pick another slot.`;
+    case "refunded":
+      return `↩️ Your ${when} booking was refunded.`;
+    case "awaiting_payment":
+      return `⏳ Still waiting on payment confirmation for ${when}.`;
+    default:
+      return `Booking for ${when}: ${status}.`;
+  }
+}
+
 function readLocal(): ChatMessage[] {
   if (typeof window === "undefined") return [];
   try {
