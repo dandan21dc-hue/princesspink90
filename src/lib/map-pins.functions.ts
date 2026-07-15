@@ -13,8 +13,10 @@ export type MapPin = {
 };
 
 async function geocodeAddress(address: string): Promise<{ latitude: number; longitude: number }> {
-  const token = process.env.MAPBOX_TOKEN;
-  if (!token) throw new Error("MAPBOX_TOKEN is not configured");
+  const { getSecretMapboxToken } = await import("@/lib/mapbox-token");
+  const check = getSecretMapboxToken();
+  if (!check.ok) throw new Error(check.error);
+  const token = check.token;
   const q = encodeURIComponent(address.trim());
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?limit=1&access_token=${token}`;
   const res = await fetch(url);
