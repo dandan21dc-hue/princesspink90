@@ -57,9 +57,14 @@ const STATUS_OPTIONS = [
   "partially_paid",
   "failed",
   "refunded",
+  "reversed",
+  "chargeback",
+  "disputed",
   "expired",
   "unknown",
 ];
+
+type ReversalFilter = "all" | "any" | "revoked" | "suspended";
 
 function AdminNowpaymentsEvents() {
   const meFn = useServerFn(amIAdmin);
