@@ -748,8 +748,17 @@ function BulkAddDialog({
       setLocalErr(`Too many slots (${slots.length}). Max 500 per bulk add — narrow the range.`);
       return;
     }
+    let priceCents: number | null = null;
+    if (priceAud.trim() !== "") {
+      const n = Number(priceAud);
+      if (!Number.isFinite(n) || n < 0) {
+        setLocalErr("Price must be A$0 or greater.");
+        return;
+      }
+      priceCents = Math.round(n * 100);
+    }
     setLocalErr(null);
-    onSubmit(slots);
+    onSubmit({ slots, durationMinutes: duration, priceCents });
   };
 
   return (
