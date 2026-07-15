@@ -90,31 +90,51 @@ class Expected:
 
 
 def load_expected_from_db() -> Expected:
+    """Read the source-of-truth row via `psql`.
+
+    Uses whatever connection info is already in the environment: DATABASE_URL
+    if set, otherwise the standard PG* vars. Shelling out to psql sidesteps
+    the Supabase pooler's missing client_encoding handshake that trips
+    psycopg2, and keeps this script dependency-free.
+    """
+    if not shutil.which("psql"):
+        raise RuntimeError(
+            "psql not found on PATH — install the PostgreSQL client, "
+            "or set DATABASE_URL to something a container with psql can reach."
+        )
+
+    cmd = ["psql", "-XAt", "-v", "ON_ERROR_STOP=1"]
     dsn = os.environ.get("DATABASE_URL")
     if dsn:
-        conn = psycopg2.connect(dsn)
-    else:
-        # Fall back to standard PG* env vars. Supabase pooler requires TLS.
-        conn = psycopg2.connect(sslmode=os.environ.get("PGSSLMODE", "require"))
+        cmd.extend(["-d", dsn])
+    cmd.extend([
+        "-c",
+        "SELECT json_build_object('email', email, 'fetlife_handle', fetlife_handle) "
+        "FROM public.site_settings WHERE id = 'host'",
+    ])
+
     try:
-        with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-            cur.execute(
-                "SELECT email, fetlife_handle FROM public.site_settings WHERE id = 'host'"
-            )
-            row = cur.fetchone()
-            if row is None:
-                raise RuntimeError(
-                    "site_settings row id='host' not found — migrations may not have run."
-                )
-            email = (row["email"] or "").strip()
-            fet = (row["fetlife_handle"] or "").strip()
-            if not email or not fet:
-                raise RuntimeError(
-                    f"site_settings has blank values (email={email!r}, fetlife_handle={fet!r})"
-                )
-            return Expected(email=email, fetlife_handle=fet)
-    finally:
-        conn.close()
+        raw = subprocess.check_output(cmd, stderr=subprocess.PIPE, timeout=15).decode()
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(
+            f"psql failed ({e.returncode}): {e.stderr.decode(errors='replace').strip()}"
+        ) from e
+    except subprocess.TimeoutExpired as e:
+        raise RuntimeError("psql timed out reading site_settings") from e
+
+    line = raw.strip()
+    if not line:
+        raise RuntimeError(
+            "site_settings row id='host' not found — migrations may not have run."
+        )
+    payload = json.loads(line)
+    email = (payload.get("email") or "").strip()
+    fet = (payload.get("fetlife_handle") or "").strip()
+    if not email or not fet:
+        raise RuntimeError(
+            f"site_settings has blank values (email={email!r}, fetlife_handle={fet!r})"
+        )
+    return Expected(email=email, fetlife_handle=fet)
 
 
 # ---------------------------------------------------------------------------
