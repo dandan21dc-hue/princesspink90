@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-const CANONICAL = "https://princesspink90.com/guide/what-to-wear-to-a-kink-party";
-const TITLE = "What to Wear to a Kink Party — First-Timer's Dress Code Guide";
+const CANONICAL = "https://princesspink90.lovable.app/guide/what-to-wear-to-a-kink-party";
+const TITLE = "What to Wear to a Kink Party — First-Timer Dress Code";
 const DESCRIPTION =
-  "What to wear to a kink party, what happens on the night, and the etiquette rules first-timers miss. Glory hole nights, theatre takeovers, and private rooms explained. 18+ only.";
+  "What to wear to a kink party plus first-timer etiquette. Dress codes for glory hole nights, theatre takeovers, and private rooms explained. 18+ only.";
 
 const FAQS: { q: string; a: string }[] = [
   {

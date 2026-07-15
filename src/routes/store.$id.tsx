@@ -34,9 +34,9 @@ export const Route = createFileRoute("/store/$id")({
     return {
       meta: [
         { title: `${loaderData.title} — Midnight Glory store` },
-        { name: "description", content: loaderData.description ?? "Buy on Midnight Glory's store." },
+        { name: "description", content: loaderData.description ?? `${loaderData.title} — shop this item from Midnight Glory's Sydney kink store. Apparel, toys, and party essentials for 18+ guests.` },
         { property: "og:title", content: loaderData.title },
-        { property: "og:description", content: loaderData.description ?? "" },
+        { property: "og:description", content: loaderData.description ?? `${loaderData.title} — shop this item from Midnight Glory's Sydney kink store.` },
         { property: "og:type", content: "product" },
         { property: "og:url", content: url },
         ...(loaderData.cover_url ? [{ property: "og:image", content: loaderData.cover_url }] : []),
