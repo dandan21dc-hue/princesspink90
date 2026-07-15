@@ -10,8 +10,10 @@ import {
   updateSiteSettings,
   listPricingAudit,
   exportPricingAudit,
+  listContactSettingsAudit,
   type PricingAuditEntry,
   type PricingAuditSortColumn,
+  type ContactSettingsAuditEntry,
   SESSION_PRICE_MIN_CENTS,
   SESSION_PRICE_MAX_CENTS,
   SESSION_DURATION_MIN_MINUTES,
@@ -360,6 +362,7 @@ function AdminSettings() {
         </div>
       </form>
 
+      <ContactSettingsAuditSection />
       <PricingAuditSection />
       <ReminderJobConfigSection />
       {/* Stripe catalogue sync / subscription refresh sections removed. */}
