@@ -473,6 +473,51 @@ function AdminSettings() {
       <PricingAuditSection />
       <ReminderJobConfigSection />
       {/* Stripe catalogue sync / subscription refresh sections removed. */}
+      <AlertDialog
+        open={pendingFetlifeConfirm}
+        onOpenChange={(open) => {
+          if (!open) setPendingFetlifeConfirm(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm FetLife handle change</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  This updates the public profile link on the homepage. A typo
+                  here sends visitors to the wrong (or a missing) FetLife
+                  profile.
+                </p>
+                <div className="rounded-md border border-border bg-muted/40 p-3 font-mono text-xs">
+                  <div>
+                    <span className="text-muted-foreground">From:</span>{" "}
+                    {settings.data?.fetlife_handle ?? "(none)"}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">To:</span>{" "}
+                    {fetlifeNormalized}
+                  </div>
+                  <div className="mt-1 break-all text-muted-foreground">
+                    https://fetlife.com/{fetlifeNormalized}
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current handle</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setPendingFetlifeConfirm(false);
+                save.mutate();
+              }}
+            >
+              Yes, update handle
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 }
