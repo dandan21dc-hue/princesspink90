@@ -420,9 +420,7 @@ function AdminMapPins() {
                         Edit
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`Remove "${p.title}"?`)) remove.mutate(p.id);
-                        }}
+                        onClick={() => setPendingDelete(p)}
                         className="rounded-md border border-destructive/60 px-3 py-1 text-xs text-destructive"
                       >
                         Delete
