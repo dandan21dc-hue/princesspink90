@@ -520,8 +520,8 @@ describe("admin settings — FetLife confirmation gate", () => {
     await waitFor(() => {
       expect(
         (within(dialog).getByRole("button", { name: /saving…/i }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
+          .getAttribute("aria-disabled"),
+      ).toBe("true");
     });
     fireEvent.click(
       within(dialog).getByRole("button", { name: /saving…/i }),
