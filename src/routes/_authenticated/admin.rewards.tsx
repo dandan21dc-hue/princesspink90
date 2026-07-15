@@ -334,7 +334,120 @@ function RewardForm({
   );
 }
 
+// ---------------- Admin alert prefs ----------------
+
+function AdminAlertPrefsSection() {
+  const qc = useQueryClient();
+  const getFn = useServerFn(getAdminRewardAlertPrefs);
+  const updateFn = useServerFn(updateAdminRewardAlertPrefs);
+
+  const prefs = useQuery({
+    queryKey: ["admin-reward-alert-prefs"],
+    queryFn: () => getFn(),
+  });
+
+  const [enabled, setEnabled] = useState(false);
+  const [email, setEmail] = useState("");
+  const [dirty, setDirty] = useState(false);
+
+  // Hydrate local form state whenever the server value changes.
+  const loaded = prefs.data;
+  const loadedKey = loaded
+    ? `${loaded.enabled}::${loaded.email ?? ""}`
+    : null;
+  const [syncedKey, setSyncedKey] = useState<string | null>(null);
+  if (loaded && loadedKey !== syncedKey) {
+    setEnabled(loaded.enabled);
+    setEmail(loaded.email ?? "");
+    setDirty(false);
+    setSyncedKey(loadedKey);
+  }
+
+  const save = useMutation({
+    mutationFn: () =>
+      updateFn({
+        data: {
+          enabled,
+          email: email.trim() === "" ? null : email.trim(),
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Alert settings saved");
+      setDirty(false);
+      qc.invalidateQueries({ queryKey: ["admin-reward-alert-prefs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const fallback = prefs.data?.fallback_email ?? null;
+
+  return (
+    <section className="rounded-2xl border border-border/60 bg-card">
+      <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+        <div>
+          <h2 className="font-display text-lg font-semibold">Redemption Email Alerts</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Get emailed the moment a member redeems a reward that is waiting for fulfilment.
+          </p>
+        </div>
+      </div>
+      <div className="space-y-4 p-5">
+        <label className="flex items-start gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => {
+              setEnabled(e.target.checked);
+              setDirty(true);
+            }}
+            className="mt-0.5 h-4 w-4 accent-primary"
+            disabled={prefs.isLoading}
+          />
+          <span>
+            <span className="font-semibold">Email me on new redemptions</span>
+            <span className="block text-xs text-muted-foreground">
+              One email per redemption, sent as soon as it enters the pending queue.
+            </span>
+          </span>
+        </label>
+        <label className="block text-sm">
+          <span className="text-xs uppercase tracking-widest text-muted-foreground">
+            Alert email
+          </span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setDirty(true);
+            }}
+            placeholder={fallback ? `Leave blank to use ${fallback}` : "you@example.com"}
+            className="mt-1 w-full rounded-md border border-border/60 bg-background px-3 py-2"
+            disabled={prefs.isLoading}
+          />
+          <span className="mt-1 block text-xs text-muted-foreground">
+            {fallback
+              ? `Leave blank to send to the site contact email (${fallback}).`
+              : "Set a contact email in Settings, or enter one above."}
+          </span>
+        </label>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => save.mutate()}
+            disabled={!dirty || save.isPending || prefs.isLoading}
+            className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-60"
+          >
+            {save.isPending ? "Saving…" : "Save alert settings"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ---------------- Pending Redemptions ----------------
+
 
 function PendingRedemptionsSection() {
   const qc = useQueryClient();
