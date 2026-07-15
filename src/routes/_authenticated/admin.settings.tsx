@@ -1210,16 +1210,28 @@ function CopyUrlButton({
       timeoutRef.current = setTimeout(() => setStatus(null), 3000);
     }
   };
+  // Accessible name spells out both the action, which URL it targets, and
+  // the URL value itself, so screen-reader users hear e.g. "Copy current
+  // FetLife URL to clipboard: https://fetlife.com/foo, button". After a
+  // successful copy the name flips to "Copied …" so re-focusing the
+  // button announces the new state.
+  const accessibleLabel = copied
+    ? `Copied ${kindLabel} to clipboard: ${value}`
+    : `${label} to clipboard: ${value}`;
   return (
     <>
       <button
         type="button"
         onClick={onCopy}
-        aria-label={label}
-        title={disabled ? "Saving FetLife handle change…" : label}
+        aria-label={accessibleLabel}
+        title={disabled ? "Saving FetLife handle change…" : accessibleLabel}
         disabled={disabled}
         aria-disabled={disabled || undefined}
-        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+        // Use design-token focus ring via focus-visible so keyboard users get
+        // a clear 2px ring with offset against the dialog background, while
+        // mouse users don't see a ring on click. `outline-none` is paired
+        // with the ring so we never remove focus indication entirely.
+        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
       >
 
         {copied ? (
