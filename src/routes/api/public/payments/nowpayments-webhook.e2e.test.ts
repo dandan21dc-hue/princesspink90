@@ -19,6 +19,9 @@ type MembershipRow = {
   amount_cents: number | null;
   expires_at: Date;
   external_payment_reference: string | null;
+  revoked_at: Date | null;
+  suspended_at: Date | null;
+  revocation_reason: string | null;
 };
 
 const state: { rows: MembershipRow[]; nowMs: number } = { rows: [], nowMs: 0 };
@@ -56,6 +59,9 @@ function fakeGrantAllAccessPass30d(args: {
     amount_cents: args._amount_cents,
     expires_at: newExpiry,
     external_payment_reference: args._external_payment_reference,
+    revoked_at: null,
+    suspended_at: null,
+    revocation_reason: null,
   };
   state.rows.push(row);
   return { data: row, error: null };
@@ -63,10 +69,27 @@ function fakeGrantAllAccessPass30d(args: {
 
 // The webhook loads supabaseAdmin via dynamic import — vi.mock hoisting handles this.
 vi.mock("@/integrations/supabase/client.server", () => {
-  type Row = { handled: boolean; reason: string | null; received_count: number };
+  type Row = {
+    payment_id: string;
+    last_status: string;
+    handled: boolean;
+    reason: string | null;
+    received_count: number;
+    processed_at: string | null;
+  };
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
+    // Silently absorb admin alert inserts so raiseAlert doesn't spam the test log
+    // through its catch-and-warn path.
+    if (table === "admin_activity_audit_alerts") {
+      return {
+        insert: (_row: unknown) => Promise.resolve({ data: null, error: null }),
+        select: (_c?: string) => ({
+          eq: () => ({ gte: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }) }),
+        }),
+      };
+    }
     if (table !== "nowpayments_ipn_events") throw new Error(`unexpected table: ${table}`);
     return {
       insert(row: { payment_id: string; last_status: string }) {
@@ -75,20 +98,34 @@ vi.mock("@/integrations/supabase/client.server", () => {
           select: (_c?: string) => ({
             maybeSingle: () => {
               if (ledger.has(k)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
-              ledger.set(k, { handled: false, reason: null, received_count: 1 });
+              ledger.set(k, {
+                payment_id: row.payment_id,
+                last_status: row.last_status,
+                handled: false,
+                reason: null,
+                received_count: 1,
+                processed_at: null,
+              });
               return Promise.resolve({ data: { payment_id: row.payment_id }, error: null });
             },
           }),
         };
       },
       select(_c?: string) {
-        const f: Record<string, string> = {};
+        const eqs: Record<string, string> = {};
+        const neqs: Record<string, string> = {};
+        const matches = () =>
+          Array.from(ledger.values()).filter(
+            (r) =>
+              Object.entries(eqs).every(([c, v]) => (r as unknown as Record<string, unknown>)[c] === v) &&
+              Object.entries(neqs).every(([c, v]) => (r as unknown as Record<string, unknown>)[c] !== v),
+          );
         const rd = {
-          eq: (c: string, v: string) => { f[c] = v; return rd; },
-          maybeSingle: () => Promise.resolve({
-            data: ledger.get(keyOf(f.payment_id, f.last_status)) ?? null,
-            error: null,
-          }),
+          eq: (c: string, v: string) => { eqs[c] = v; return rd; },
+          neq: (c: string, v: string) => { neqs[c] = v; return rd; },
+          maybeSingle: () => Promise.resolve({ data: matches()[0] ?? null, error: null }),
+          then: (resolve: (v: { data: Row[]; error: null }) => unknown, reject?: (e: unknown) => unknown) =>
+            Promise.resolve({ data: matches(), error: null }).then(resolve, reject),
         };
         return rd;
       },
@@ -106,13 +143,36 @@ vi.mock("@/integrations/supabase/client.server", () => {
       },
     };
   };
+  // Reproduces revoke_entitlement_by_payment_reference for memberships only
+  // (this test suite exercises the aap30d path). Sets revoked_at once and
+  // immediately expires the pass on revoke; sets suspended_at on suspend.
+  function fakeRevokeByRef(args: { _reference: string; _mode: "revoked" | "suspended"; _reason: string }) {
+    const m = state.rows.find((r) => r.external_payment_reference === args._reference);
+    if (!m) return { data: { affected_count: 0, affected: [] }, error: null };
+    if (args._mode === "revoked") {
+      if (!m.revoked_at) m.revoked_at = new Date(state.nowMs);
+      m.revocation_reason = m.revocation_reason ?? args._reason;
+      // Kill the pass window as the real RPC does.
+      if (m.expires_at.getTime() > state.nowMs) m.expires_at = new Date(state.nowMs);
+    } else {
+      if (!m.suspended_at) m.suspended_at = new Date(state.nowMs);
+      m.revocation_reason = m.revocation_reason ?? args._reason;
+    }
+    return {
+      data: { affected_count: 1, affected: [{ kind: "membership", id: m.id }] },
+      error: null,
+    };
+  }
   return {
     supabaseAdmin: {
-      rpc: (name: string, args: Parameters<typeof fakeGrantAllAccessPass30d>[0]) => {
-        if (name !== "grant_all_access_pass_30d") {
-          return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
+      rpc: (name: string, args: any) => {
+        if (name === "grant_all_access_pass_30d") {
+          return Promise.resolve(fakeGrantAllAccessPass30d(args));
         }
-        return Promise.resolve(fakeGrantAllAccessPass30d(args));
+        if (name === "revoke_entitlement_by_payment_reference") {
+          return Promise.resolve(fakeRevokeByRef(args));
+        }
+        return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
       },
       from,
     },
@@ -145,7 +205,12 @@ function signedRequest(body: unknown, opts: { badSig?: boolean; noSig?: boolean 
 /** Mirrors `user_can_access_content`'s pass-window check. */
 function passIsActive(userId: string, env: "sandbox" | "live") {
   return state.rows.some(
-    (r) => r.user_id === userId && r.environment === env && r.expires_at.getTime() > state.nowMs,
+    (r) =>
+      r.user_id === userId &&
+      r.environment === env &&
+      r.expires_at.getTime() > state.nowMs &&
+      r.revoked_at === null &&
+      r.suspended_at === null,
   );
 }
 
@@ -426,5 +491,119 @@ describe("NOWPayments webhook — duplicate delivery across different order IDs"
       expect(json.handled).toBe(true);
     }
     expect(state.rows).toHaveLength(1);
+  });
+});
+
+// ---- reversal idempotency and out-of-order handling ----------------------
+
+describe("NOWPayments webhook — reversal idempotency & out-of-order", () => {
+  async function deliverFinished(payment_id = 5001) {
+    await handleWebhookRequest(
+      signedRequest({ payment_id, payment_status: "finished", order_id: ORDER_ID, price_amount: 10 }),
+    );
+  }
+
+  it("a second `refunded`-alias delivery is a no-op and does not re-report affected rows", async () => {
+    await deliverFinished(6001);
+    expect(passIsActive(USER, "sandbox")).toBe(true);
+
+    // First reversal: refunded — revokes the membership.
+    const first = await handleWebhookRequest(
+      signedRequest({ payment_id: 6001, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+    const firstJson = (await first.json()) as { handled: boolean; reason?: string };
+    expect(firstJson.handled).toBe(true);
+    expect(firstJson.reason).toMatch(/^revoked:1_entitlement/);
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+
+    // Alias delivery: `reversed` for the SAME payment_id — different ledger row,
+    // but the guard must short-circuit rather than re-run the revoke RPC.
+    const second = await handleWebhookRequest(
+      signedRequest({ payment_id: 6001, payment_status: "reversed", order_id: ORDER_ID }),
+    );
+    const secondJson = (await second.json()) as { handled: boolean; reason?: string };
+    expect(secondJson.handled).toBe(true);
+    expect(secondJson.reason).toBe("duplicate_revoked:refunded");
+
+    // Membership stays revoked with the ORIGINAL revoke timestamp (not overwritten).
+    const m = state.rows.find((r) => r.external_payment_reference === "nowpayments:6001")!;
+    expect(m.revoked_at).not.toBeNull();
+  });
+
+  it("a stray `chargeback` arriving after `refunded` does NOT downgrade the revoke to suspended", async () => {
+    await deliverFinished(6002);
+
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 6002, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+    const m = state.rows.find((r) => r.external_payment_reference === "nowpayments:6002")!;
+    expect(m.revoked_at).not.toBeNull();
+    expect(m.suspended_at).toBeNull();
+
+    const late = await handleWebhookRequest(
+      signedRequest({ payment_id: 6002, payment_status: "chargeback", order_id: ORDER_ID }),
+    );
+    const lateJson = (await late.json()) as { handled: boolean; reason?: string };
+    expect(lateJson.handled).toBe(true);
+    expect(lateJson.reason).toBe("ignored_suspend_after_revoke:refunded");
+    // No suspended_at write, no re-activation.
+    expect(m.suspended_at).toBeNull();
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+  });
+
+  it("`refunded` arriving after `chargeback` upgrades to full revoke", async () => {
+    await deliverFinished(6003);
+
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 6003, payment_status: "chargeback", order_id: ORDER_ID }),
+    );
+    const m = state.rows.find((r) => r.external_payment_reference === "nowpayments:6003")!;
+    expect(m.suspended_at).not.toBeNull();
+    expect(m.revoked_at).toBeNull();
+
+    const upgrade = await handleWebhookRequest(
+      signedRequest({ payment_id: 6003, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+    const upgradeJson = (await upgrade.json()) as { handled: boolean; reason?: string };
+    expect(upgradeJson.handled).toBe(true);
+    expect(upgradeJson.reason).toMatch(/^revoked:1_entitlement/);
+    expect(m.revoked_at).not.toBeNull();
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+  });
+
+  it("a late `finished` arriving AFTER a reversal is refused and does NOT re-activate the pass", async () => {
+    // Reversal recorded first — could happen from processor's own out-of-order redelivery.
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 6004, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+
+    // Late-arriving `finished` for the same payment_id must be refused.
+    const late = await handleWebhookRequest(
+      signedRequest({ payment_id: 6004, payment_status: "finished", order_id: ORDER_ID, price_amount: 10 }),
+    );
+    const lateJson = (await late.json()) as { handled: boolean; reason?: string };
+    expect(lateJson.handled).toBe(false);
+    expect(lateJson.reason).toBe("refused_finished_after_reversal:refunded");
+    // No membership row was created by the late finished.
+    expect(state.rows.filter((r) => r.external_payment_reference === "nowpayments:6004")).toHaveLength(0);
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+  });
+
+  it("repeated redeliveries of the same reversal status remain the standard duplicate short-circuit", async () => {
+    await deliverFinished(6005);
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 6005, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+
+    // Exact-status replay — hits the (payment_id, status) ledger dedupe path.
+    for (let i = 0; i < 3; i++) {
+      const res = await handleWebhookRequest(
+        signedRequest({ payment_id: 6005, payment_status: "refunded", order_id: ORDER_ID }),
+      );
+      const json = (await res.json()) as { handled: boolean; reason?: string };
+      expect(json.handled).toBe(true);
+      // Prior outcome was `revoked:1_entitlement(s)`; duplicate returns the same reason string.
+      expect(json.reason).toMatch(/^revoked:1_entitlement/);
+    }
   });
 });
