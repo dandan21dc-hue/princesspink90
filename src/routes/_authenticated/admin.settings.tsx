@@ -685,23 +685,44 @@ export function AdminSettings() {
           <AlertDialogFooter>
             <AlertDialogCancel
               data-cancel
-              onClick={() => {
+              disabled={save.isPending}
+              onClick={(event) => {
+                if (save.isPending) {
+                  event.preventDefault();
+                  return;
+                }
                 fetlifeDismissIntentRef.current = "cancel";
               }}
             >
               Keep current handle
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
+              disabled={save.isPending}
+              aria-busy={save.isPending || undefined}
+              onClick={(event) => {
+                // Prevent Radix's default close-on-click so the dialog stays
+                // open with a loading state until the mutation settles.
+                event.preventDefault();
+                if (save.isPending) return;
                 fetlifeDismissIntentRef.current = "confirm";
-                save.mutate();
+                save.mutate(undefined, {
+                  onSettled: () => setPendingFetlifeConfirm(false),
+                });
               }}
             >
-              Yes, update handle
+              {save.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Yes, update handle"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </Shell>
   );
 }
