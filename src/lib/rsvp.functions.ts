@@ -3,6 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { videoConsentSchema, type VideoConsent } from "@/lib/verification.functions";
 import { normalizeEntryPhrase } from "@/lib/entry-phrase";
+import { assertAccountNotRestricted } from "@/lib/account-restriction";
+
 
 
 async function sha256Hex(input: string): Promise<string> {
@@ -48,8 +50,12 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
   )
 
   .handler(async ({ data, context }) => {
+    // Block bookings for accounts that admins have restricted from the CRM.
+    await assertAccountNotRestricted(context.supabase, context.userId);
+
     // Require an approved age verification on file
     const { data: av } = await context.supabase
+
       .from("age_verifications")
       .select("status")
       .eq("user_id", context.userId)
