@@ -1001,6 +1001,11 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         { count: "exact" },
       )
       .order(sortColumn, { ascending: sortAscending })
+      // Stable tiebreaker on the composite pkey so pagination is deterministic
+      // when the sort column has duplicate values (e.g. many rows share
+      // last_status = 'finished').
+      .order("payment_id", { ascending: true })
+      .order("last_status", { ascending: true })
       .range(from, to);
 
     if (data.status) q = q.eq("last_status", data.status);
