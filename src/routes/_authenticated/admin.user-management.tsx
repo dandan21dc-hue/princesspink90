@@ -27,8 +27,23 @@ type Row = {
 function UserManagementPage() {
   const listFn = useServerFn(listAllUsersWithRoles);
   const setRoleFn = useServerFn(setUserCoHostRole);
+  const downloadComplianceFn = useServerFn(getUserComplianceArchiveDownload);
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
+  const [pendingComplianceUserId, setPendingComplianceUserId] = useState<string | null>(null);
+
+  async function handleDownloadCompliance(userId: string) {
+    setPendingComplianceUserId(userId);
+    try {
+      const res = await downloadComplianceFn({ data: { user_id: userId } });
+      window.open(res.url, "_blank", "noopener,noreferrer");
+      toast.success("Signed compliance PDF ready");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No signed compliance record found");
+    } finally {
+      setPendingComplianceUserId(null);
+    }
+  }
 
   const usersQ = useQuery({
     queryKey: ["admin", "all-users-with-roles"],
