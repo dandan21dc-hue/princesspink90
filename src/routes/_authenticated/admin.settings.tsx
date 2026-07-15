@@ -107,15 +107,30 @@ function AdminSettings() {
     durationError = `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`;
   }
 
-  const sessionInputsInvalid = priceError !== null || durationError !== null;
+  // Mirror the server-side rule (z.string().trim().email().max(255)) so the
+  // form catches bad addresses before we hit the RPC.
+  const emailTrimmed = email.trim();
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let emailError: string | null = null;
+  if (emailTrimmed === "") {
+    emailError = "Contact email is required.";
+  } else if (emailTrimmed.length > 255) {
+    emailError = "Contact email must be 255 characters or fewer.";
+  } else if (!emailRe.test(emailTrimmed)) {
+    emailError = "Enter a valid email address (e.g. name@example.com).";
+  }
+
+  const sessionInputsInvalid =
+    priceError !== null || durationError !== null || emailError !== null;
 
   const save = useMutation({
     mutationFn: () => {
+      if (emailError) throw new Error(emailError);
       if (priceError) throw new Error(priceError);
       if (durationError) throw new Error(durationError);
       return updateFn({
         data: {
-          email,
+          email: emailTrimmed,
           fetlife_handle: fetlife,
           reddit_handle: reddit,
           glory_holes_enabled: gloryHolesEnabled,
@@ -165,9 +180,15 @@ function AdminSettings() {
             required
             maxLength={255}
             value={email}
+            aria-invalid={emailError !== null}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+              emailError ? "border-destructive" : "border-border"
+            }`}
           />
+          {emailError && (
+            <div className="mt-1 text-[11px] text-destructive">{emailError}</div>
+          )}
         </Field>
         <Field label="FetLife handle" hint="Without leading slash, e.g. pink_princess90">
           <input
