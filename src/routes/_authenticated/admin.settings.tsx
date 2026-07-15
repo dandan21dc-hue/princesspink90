@@ -41,6 +41,8 @@ import {
   fetlifeUrlRoundTripsToHandle,
 
 } from "@/lib/settings.functions";
+import { annotateFetlifeHandleInput } from "@/lib/fetlife-annotate";
+
 import {
   getReminderJobConfig,
   updateReminderJobConfig,
@@ -548,6 +550,8 @@ export function AdminSettings() {
               fetlifeError || serverFetlifeError ? "border-destructive" : "border-border"
             }`}
           />
+          <FetlifeHandleLivePreview raw={fetlife} normalized={fetlifeNormalized} url={newFetlifeUrl} />
+
           {/* role="alert" + aria-live announce the error the moment it appears
               (typed input, or after a server rejection focuses the field). */}
           <div
@@ -2096,6 +2100,89 @@ function LastCopiedBadge({ which }: { which: "current" | "new" }) {
     </span>
   );
 }
+
+/**
+ * Live, inline preview shown below the FetLife handle input as the admin
+ * types. Renders the raw input character-by-character in three colors so
+ * the admin can see at a glance:
+ *   - which characters will be stripped (URL prefix, leading @, sub-paths,
+ *     surrounding whitespace) — dimmed with a line-through
+ *   - which characters will be kept and sent to the server — normal
+ *   - which characters are outright invalid (control chars, disallowed
+ *     characters, or past the 20-char cap) — destructive/red with an
+ *     underline so the exact offending part is unmistakable
+ *
+ * Plus the resulting normalized handle and preview URL. Hidden when the
+ * input is empty so the form stays quiet on first render.
+ */
+function FetlifeHandleLivePreview({
+  raw,
+  normalized,
+  url,
+}: {
+  raw: string;
+  normalized: string;
+  url: string;
+}) {
+  if (raw === "") return null;
+  const segments = annotateFetlifeHandleInput(raw);
+  return (
+    <div
+      className="mt-1.5 space-y-1 rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-[11px]"
+      data-fetlife-live-preview
+    >
+      <div className="flex flex-wrap items-baseline gap-1">
+        <span className="text-muted-foreground">You typed:</span>
+        <code className="whitespace-pre-wrap break-all font-mono">
+          {segments.map((seg, i) => {
+            if (seg.kind === "kept") {
+              return (
+                <span key={i} data-seg="kept" className="text-foreground">
+                  {seg.text}
+                </span>
+              );
+            }
+            if (seg.kind === "stripped") {
+              return (
+                <span
+                  key={i}
+                  data-seg="stripped"
+                  className="text-muted-foreground/60 line-through decoration-muted-foreground/40"
+                  title="Removed during normalization"
+                >
+                  {seg.text}
+                </span>
+              );
+            }
+            return (
+              <span
+                key={i}
+                data-seg="invalid"
+                className="rounded-sm bg-destructive/15 text-destructive underline decoration-destructive decoration-wavy underline-offset-2"
+                title="This character isn't allowed in a FetLife handle"
+              >
+                {seg.text.replace(/\n/g, "↵").replace(/\t/g, "→").replace(/\x00/g, "␀")}
+              </span>
+            );
+          })}
+        </code>
+      </div>
+      <div className="flex flex-wrap items-baseline gap-1">
+        <span className="text-muted-foreground">Normalized handle:</span>
+        <code className="break-all font-mono font-semibold text-foreground">
+          {normalized || <em className="font-normal opacity-60">(empty)</em>}
+        </code>
+      </div>
+      <div className="flex flex-wrap items-baseline gap-1">
+        <span className="text-muted-foreground">Preview URL:</span>
+        <code className="break-all font-mono text-primary">
+          {url || <em className="font-normal opacity-60">(empty)</em>}
+        </code>
+      </div>
+    </div>
+  );
+}
+
 
 
 
