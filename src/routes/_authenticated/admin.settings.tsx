@@ -674,14 +674,20 @@ export function AdminSettings() {
                     <div className="break-all">
                       <span className="text-muted-foreground">URL:</span>{" "}
                       {fetlifeNormalized ? (
-                        <a
-                          href={`https://fetlife.com/${fetlifeNormalized}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-primary underline"
-                        >
-                          https://fetlife.com/{fetlifeNormalized}
-                        </a>
+                        <>
+                          <a
+                            href={`https://fetlife.com/${fetlifeNormalized}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-semibold text-primary underline"
+                          >
+                            https://fetlife.com/{fetlifeNormalized}
+                          </a>
+                          <CopyUrlButton
+                            value={`https://fetlife.com/${fetlifeNormalized}`}
+                            label="Copy new FetLife URL"
+                          />
+                        </>
                       ) : (
                         <span className="text-destructive">(empty)</span>
                       )}
