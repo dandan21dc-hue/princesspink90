@@ -9,6 +9,7 @@ import { template as bookingRescheduled } from './booking-rescheduled'
 import { template as auditAlert } from './audit-alert'
 import { template as allAccessRevoked } from './all-access-revoked'
 import { template as adminRewardRedeemed } from './admin-reward-redeemed'
+import { template as orderReceipt } from './order-receipt'
 
 export interface TemplateEntry {
   component: ComponentType<any>
@@ -33,4 +34,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-alert': auditAlert,
   'all-access-revoked': allAccessRevoked,
   'admin-reward-redeemed': adminRewardRedeemed,
+  'order-receipt': orderReceipt,
 }
