@@ -1171,6 +1171,9 @@ export type Database = {
           private_session_duration_minutes: number
           private_session_fulfilled_at: string | null
           private_session_requested_at: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          suspended_at: string | null
           term_months: number | null
           updated_at: string
           user_id: string
@@ -1190,6 +1193,9 @@ export type Database = {
           private_session_duration_minutes?: number
           private_session_fulfilled_at?: string | null
           private_session_requested_at?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          suspended_at?: string | null
           term_months?: number | null
           updated_at?: string
           user_id: string
@@ -1209,6 +1215,9 @@ export type Database = {
           private_session_duration_minutes?: number
           private_session_fulfilled_at?: string | null
           private_session_requested_at?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          suspended_at?: string | null
           term_months?: number | null
           updated_at?: string
           user_id?: string
@@ -2445,6 +2454,9 @@ export type Database = {
           private_session_duration_minutes: number
           private_session_fulfilled_at: string | null
           private_session_requested_at: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          suspended_at: string | null
           term_months: number | null
           updated_at: string
           user_id: string
@@ -2478,6 +2490,9 @@ export type Database = {
           private_session_duration_minutes: number
           private_session_fulfilled_at: string | null
           private_session_requested_at: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          suspended_at: string | null
           term_months: number | null
           updated_at: string
           user_id: string
@@ -2561,6 +2576,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      revoke_entitlement_by_payment_reference: {
+        Args: { _mode: string; _reason: string; _reference: string }
+        Returns: Json
       }
       run_payment_integrity_checks: { Args: never; Returns: number }
       search_admin_audit_ids: {
