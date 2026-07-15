@@ -304,7 +304,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
         {status !== "rejected" && (
           <button
             type="button"
-            onClick={() => decide.mutate("rejected")}
+            onClick={openReject}
             disabled={busy}
             aria-busy={pendingDecision === "rejected"}
             className="rounded-full bg-destructive/20 border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/30 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -335,7 +335,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
         </button>
         <button
           type="button"
-          onClick={confirmDelete}
+          onClick={openDelete}
           disabled={busy}
           aria-busy={removeItem.isPending}
           className="ml-auto rounded-full border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -349,6 +349,56 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           <ItemHistory contentItemId={row.id} />
         </div>
       )}
+
+      <AlertDialog open={confirmReject} onOpenChange={setConfirmReject}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject "{row.title}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The item will be hidden from the storefront.{" "}
+              {notes.trim()
+                ? `The creator will see your note: “${notes.trim().slice(0, 160)}${notes.trim().length > 160 ? "…" : ""}”`
+                : "No moderator note is attached — consider adding one so the creator knows why."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep reviewing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmReject(false);
+                decide.mutate("rejected");
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently delete "{row.title}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the item, its media, and any purchase records. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmDeleteOpen(false);
+                removeItem.mutate();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </li>
   );
 }
