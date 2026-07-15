@@ -568,7 +568,16 @@ export const adminListAllAccessAudit = createServerFn({ method: "POST" })
         created_at: r.created_at as string,
         actor_id: r.actor_id as string,
         actor: actorMap.get(r.actor_id as string) ?? { email: null, display_name: null },
-        metadata: (r.metadata ?? {}) as Record<string, unknown>,
+        metadata: (r.metadata ?? {}) as {
+          target_user_id?: string;
+          kind?: string;
+          rpc?: string;
+          environment?: string;
+          membership_id?: string | null;
+          expires_at?: string | null;
+          external_payment_reference?: string | null;
+        },
+
       })),
     };
   });
