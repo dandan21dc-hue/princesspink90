@@ -148,7 +148,9 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
   .inputValidator((data) => parseCheckoutInput(data))
   .handler(async ({ data, context }): Promise<Success | Failure> => {
     try {
+      await assertAccountNotRestricted(context.supabase, context.userId);
       const { createInvoice } = await import("@/lib/nowpayments.server");
+
 
       let amountCents: number;
       let currency: string;
