@@ -253,6 +253,10 @@ export function AdminSettings() {
   // the public profile link, a typo is user-visible — we require the admin
   // to explicitly confirm the old → new change before the save actually runs.
   const [pendingFetlifeConfirm, setPendingFetlifeConfirm] = useState(false);
+  // Distinguishes an intentional confirm/cancel button click from a dialog
+  // dismissal (Esc / overlay). We only toast on the latter two — confirming
+  // proceeds to the save toast instead.
+  const fetlifeDismissIntentRef = useRef<"confirm" | "cancel" | null>(null);
   const fetlifeChanged =
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
 
