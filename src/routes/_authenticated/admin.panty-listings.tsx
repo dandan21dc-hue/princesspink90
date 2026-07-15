@@ -552,6 +552,21 @@ function EditModal(props: {
           </div>
         </div>
 
+        {!value.id && ((value.cover_url ?? "") || (value.media_urls ?? []).length > 0) && (
+          <div
+            role="alert"
+            className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200"
+          >
+            <div className="font-semibold uppercase tracking-widest">Photo uploaded — listing not saved yet</div>
+            <p className="mt-1 opacity-90">
+              You've uploaded {(value.cover_url ? 1 : 0) + (value.media_urls ?? []).length}{" "}
+              photo{(value.cover_url ? 1 : 0) + (value.media_urls ?? []).length === 1 ? "" : "s"} but the
+              listing row hasn't been created. Click <span className="font-semibold">Save</span> to attach
+              them to a new pair — closing this dialog will leave the file{(value.cover_url ? 1 : 0) + (value.media_urls ?? []).length === 1 ? "" : "s"} orphaned in storage.
+            </p>
+          </div>
+        )}
+
         <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
