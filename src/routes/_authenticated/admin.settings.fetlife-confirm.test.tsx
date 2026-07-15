@@ -113,10 +113,9 @@ vi.mock("@/components/RoleGuard", () => ({
 }));
 
 // sonner: capture toast calls so we can assert on cancel-notifications.
-const mockToast = Object.assign(vi.fn(), {
-  success: vi.fn(),
-  error: vi.fn(),
-});
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
+}));
 vi.mock("sonner", () => ({
   toast: mockToast,
 }));
