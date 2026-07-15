@@ -585,12 +585,22 @@ function MessageBubble({
           if (part.type === "slots") {
             return <SlotPickerCard key={i} slots={part.slots} onPick={onSlotPick} />;
           }
+          if (part.type === "confirm") {
+            return (
+              <ConfirmSlotCard
+                key={i}
+                slot={part.slot}
+                busy={bookingSlot === part.slot.startsAt}
+                onConfirm={onConfirm}
+              />
+            );
+          }
           return (
-            <ConfirmSlotCard
+            <BookingStatusCard
               key={i}
-              slot={part.slot}
-              busy={bookingSlot === part.slot.startsAt}
-              onConfirm={onConfirm}
+              bookingId={part.bookingId}
+              startsAt={part.startsAt}
+              status={part.status}
             />
           );
         })}
