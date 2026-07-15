@@ -520,8 +520,8 @@ describe("admin settings — FetLife confirmation gate", () => {
     await waitFor(() => {
       expect(
         (within(dialog).getByRole("button", { name: /saving…/i }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
+          .getAttribute("aria-disabled"),
+      ).toBe("true");
     });
     fireEvent.click(
       within(dialog).getByRole("button", { name: /saving…/i }),
@@ -566,21 +566,27 @@ describe("admin settings — FetLife confirmation gate", () => {
       expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
     });
 
-    // Confirm button: label swaps to "Saving…", is disabled, marked aria-busy,
+    // Confirm button: label swaps to "Saving…", is aria-disabled + aria-busy,
     // and renders the Loader2 spinner (identified by lucide's class marker).
+    // We use aria-disabled (not the HTML `disabled` attribute) so the button
+    // stays in the tab order and Radix's FocusScope keeps focus inside the
+    // dialog while the mutation runs.
     const savingBtn = await within(dialog).findByRole("button", {
       name: /saving…/i,
     }) as HTMLButtonElement;
-    expect(savingBtn.disabled).toBe(true);
+    expect(savingBtn.getAttribute("aria-disabled")).toBe("true");
     expect(savingBtn.getAttribute("aria-busy")).toBe("true");
     expect(savingBtn.querySelector(".lucide-loader-circle")).not.toBeNull();
 
-    // Cancel button: disabled so the admin can't abandon a live request.
+    // Cancel button: aria-disabled so the admin can't abandon a live request
+    // (also inert via pointer-events-none; onClick guard is the last line).
     const cancelBtn = within(dialog).getByRole("button", {
       name: /keep current handle/i,
     }) as HTMLButtonElement;
-    expect(cancelBtn.disabled).toBe(true);
-    // Clicking the disabled Cancel is a no-op — the dialog must remain open.
+    expect(cancelBtn.getAttribute("aria-disabled")).toBe("true");
+    // Clicking the aria-disabled Cancel is a no-op — the dialog must remain
+    // open. Radix's AlertDialogCancel does its own dispatch, so we assert
+    // via the onClick guard's observable effect: no state change.
     fireEvent.click(cancelBtn);
     expect(screen.queryByRole("alertdialog")).not.toBeNull();
 
@@ -600,6 +606,65 @@ describe("admin settings — FetLife confirmation gate", () => {
     await waitFor(() => {
       expect(mockToast.success).toHaveBeenCalledTimes(1);
     });
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+    });
+  });
+
+  it("marks the dialog aria-busy, announces the save via a live region, and keeps focus inside the dialog", async () => {
+    // A11y regression guard: while the mutation is in flight the whole
+    // dialog must be aria-busy so SR pauses page updates, a polite live
+    // region must announce "Saving…", and focus must stay parked on the
+    // still-focusable confirm button (using aria-disabled, not `disabled`)
+    // so Radix's FocusScope doesn't lose the trap and dump focus on body.
+    let resolveSave: ((value: { ok: true }) => void) | null = null;
+    mockUpdateSiteSettings.mockImplementationOnce(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle) as HTMLInputElement;
+    fireEvent.change(fetInput, { target: { value: "A11y-Handle" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmBtn = within(dialog).getByRole("button", {
+      name: /yes, update handle/i,
+    }) as HTMLButtonElement;
+    // Focus the confirm button (mirrors a keyboard user Tabbing to it) so we
+    // can prove focus is retained after it flips to the "Saving…" state.
+    confirmBtn.focus();
+    expect(document.activeElement).toBe(confirmBtn);
+
+    fireEvent.click(confirmBtn);
+
+    // Dialog element itself is announced as busy while the mutation runs.
+    await waitFor(() => {
+      expect(dialog.getAttribute("aria-busy")).toBe("true");
+    });
+
+    // A polite live region inside the dialog surfaces the in-flight message
+    // to assistive tech without stealing focus.
+    const status = within(dialog).getByRole("status");
+    expect(status.getAttribute("aria-live")).toBe("polite");
+    expect(status.textContent).toMatch(/saving fetlife handle change/i);
+
+    // Focus stays on the confirm button (now labelled "Saving…"), NOT on
+    // <body>. This is the whole point of using aria-disabled instead of the
+    // HTML `disabled` attribute: `disabled` yanks focus outside the trap.
+    const savingBtn = within(dialog).getByRole("button", {
+      name: /saving…/i,
+    });
+    expect(document.activeElement).toBe(savingBtn);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    // Resolve; dialog closes cleanly and the live region unmounts with it.
+    (resolveSave as ((value: { ok: true }) => void) | null)?.({ ok: true });
     await waitFor(() => {
       expect(screen.queryByRole("alertdialog")).toBeNull();
     });
@@ -652,7 +717,7 @@ describe("admin settings — FetLife confirmation gate", () => {
       const savingBtn = await within(dialog).findByRole("button", {
         name: /saving…/i,
       }) as HTMLButtonElement;
-      expect(savingBtn.disabled).toBe(true);
+      expect(savingBtn.getAttribute("aria-disabled")).toBe("true");
       expect(savingBtn.querySelector(".lucide-loader-circle")).not.toBeNull();
 
       // Settle the mutation.
@@ -692,10 +757,10 @@ describe("admin settings — FetLife confirmation gate", () => {
       const reopenedCancel = within(reopened).getByRole("button", {
         name: /keep current handle/i,
       }) as HTMLButtonElement;
-      expect(reopenedConfirm.disabled).toBe(false);
+      expect(reopenedConfirm.getAttribute("aria-disabled")).not.toBe("true");
       expect(reopenedConfirm.getAttribute("aria-busy")).not.toBe("true");
       expect(reopenedConfirm.querySelector(".lucide-loader-circle")).toBeNull();
-      expect(reopenedCancel.disabled).toBe(false);
+      expect(reopenedCancel.getAttribute("aria-disabled")).not.toBe("true");
     },
   );
 });
@@ -914,7 +979,7 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
     const confirmBtn = within(dialog).getByRole("button", {
       name: /yes, update handle/i,
     }) as HTMLButtonElement;
-    expect(confirmBtn.disabled).toBe(true);
+    expect(confirmBtn.getAttribute("aria-disabled")).toBe("true");
 
     // Typing a valid handle back in re-enables Save and restores the link.
     fireEvent.change(fetInput, { target: { value: "Recovered-Handle" } });
@@ -922,8 +987,8 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
     expect(
       (within(dialog).getByRole("button", {
         name: /yes, update handle/i,
-      }) as HTMLButtonElement).disabled,
-    ).toBe(false);
+      }) as HTMLButtonElement).getAttribute("aria-disabled"),
+    ).not.toBe("true");
   });
 });
 

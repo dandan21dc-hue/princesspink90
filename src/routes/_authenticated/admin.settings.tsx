@@ -720,6 +720,10 @@ export function AdminSettings() {
         <AlertDialogContent
           id={fetlifeConfirmDialogId}
           aria-describedby={`${fetlifeConfirmDialogId}-desc`}
+          // Announce the whole dialog as busy while the save request is in
+          // flight so screen readers pause and re-announce updates only after
+          // the mutation settles.
+          aria-busy={save.isPending || undefined}
           // Radix's FocusScope traps Tab/Shift+Tab inside this content while
           // the dialog is open and restores focus to the previously-focused
           // element on close. We open the dialog programmatically (no Radix
@@ -875,9 +879,23 @@ export function AdminSettings() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
+            {/* Visually-hidden live region: announces the in-flight state to
+                assistive tech without stealing focus. `role=status` +
+                aria-live=polite means SR waits for the current utterance to
+                finish before speaking. */}
+            <span role="status" aria-live="polite" className="sr-only">
+              {save.isPending ? "Saving FetLife handle change, please wait." : ""}
+            </span>
             <AlertDialogCancel
               data-cancel
-              disabled={save.isPending}
+              // Prefer aria-disabled + inert styling over the HTML `disabled`
+              // attribute: `disabled` removes the button from the tab order,
+              // and if focus was on it when it flipped disabled the browser
+              // punts focus to <body> — outside Radix's focus trap. Keeping
+              // the element focusable preserves the trap; the onClick guard
+              // below still blocks activation.
+              aria-disabled={save.isPending || undefined}
+              className={save.isPending ? "pointer-events-none opacity-50" : undefined}
               onClick={(event) => {
                 if (save.isPending) {
                   event.preventDefault();
@@ -889,9 +907,17 @@ export function AdminSettings() {
               Keep current handle
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={save.isPending || fetlifeConfirmBlocked}
+              // Same rationale as the Cancel button: use aria-disabled instead
+              // of `disabled` so focus stays parked on the confirm button
+              // (now labelled "Saving…") while the mutation is in flight,
+              // keeping focus inside Radix's FocusScope.
               aria-busy={save.isPending || undefined}
               aria-disabled={save.isPending || fetlifeConfirmBlocked || undefined}
+              className={
+                save.isPending || fetlifeConfirmBlocked
+                  ? "pointer-events-none opacity-50"
+                  : undefined
+              }
               onClick={(event) => {
                 // Prevent Radix's default close-on-click so the dialog stays
                 // open with a loading state until the mutation settles.
@@ -899,6 +925,17 @@ export function AdminSettings() {
                 if (save.isPending || saveInFlightRef.current || fetlifeConfirmBlocked) return;
                 fetlifeDismissIntentRef.current = "confirm";
                 startSave(() => setPendingFetlifeConfirm(false));
+              }}
+              onKeyDown={(event) => {
+                // Belt-and-braces: block Enter/Space activation while pending,
+                // matching the aria-disabled contract (some AT synthesize a
+                // click via keydown before onClick's guard runs).
+                if (
+                  (event.key === "Enter" || event.key === " ") &&
+                  (save.isPending || saveInFlightRef.current || fetlifeConfirmBlocked)
+                ) {
+                  event.preventDefault();
+                }
               }}
             >
               {save.isPending ? (
