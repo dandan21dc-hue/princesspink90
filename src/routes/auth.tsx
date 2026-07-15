@@ -6,7 +6,7 @@ import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: z.object({ next: z.string().optional() }),
+  validateSearch: z.object({ next: z.string().optional(), ref: z.string().optional() }),
   head: () => ({
     meta: [
       { title: "Sign in · AFTERDARK" },
