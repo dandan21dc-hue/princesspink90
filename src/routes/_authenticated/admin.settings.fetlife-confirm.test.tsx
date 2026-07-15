@@ -407,6 +407,98 @@ describe("admin settings — FetLife confirmation gate", () => {
   });
 });
 
+describe("admin settings — FetLife handle client-side normalization + validation", () => {
+  // The Save button is disabled while `fetlifeError` is truthy, but keyboard
+  // Enter and programmatic submits (Retry save) still reach the submit
+  // handler. These tests drive the form via `fireEvent.submit` to bypass the
+  // disabled button and guarantee the handler is the last line of defence:
+  // invalid input toasts an error, never opens the dialog, never calls the
+  // server. Valid pasted input is normalized into the input on submit.
+
+  function getFetlifeForm() {
+    const input = screen.getByDisplayValue(SAVED.fetlife_handle);
+    const form = input.closest("form");
+    if (!form) throw new Error("FetLife form not found");
+    return { input: input as HTMLInputElement, form };
+  }
+
+  it.each([
+    ["whitespace-only", "     ", /required/i],
+    ["too short", "ab", /at least/i],
+    ["contains a space", "bad handle", /letters, digits/i],
+    ["contains illegal character", "bad!chars", /letters, digits/i],
+    ["URL that strips to empty", "https://fetlife.com/", /required/i],
+  ])(
+    "blocks Save and toasts when the handle is %s",
+    async (_label, value, expectedMessage) => {
+      renderPage();
+      await waitForFormLoaded();
+
+      const { input, form } = getFetlifeForm();
+      fireEvent.change(input, { target: { value } });
+      fireEvent.submit(form);
+
+      // No dialog, no server call.
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+      expect(mockUpdateSiteSettings).not.toHaveBeenCalled();
+
+      // The last error toast surfaces the validator's reason.
+      const errorCalls = mockToast.error.mock.calls;
+      expect(errorCalls.length).toBeGreaterThan(0);
+      const [title, opts] = errorCalls[errorCalls.length - 1]!;
+      expect(String(title)).toMatch(/fix the fetlife handle/i);
+      expect(String((opts as { description?: string }).description)).toMatch(
+        expectedMessage,
+      );
+    },
+  );
+
+  it("normalizes a pasted profile URL into the input on submit before opening the dialog", async () => {
+    renderPage();
+    await waitForFormLoaded();
+
+    const { input, form } = getFetlifeForm();
+    fireEvent.change(input, {
+      target: { value: "  https://www.fetlife.com/Pasted-Handle/photos?ref=x  " },
+    });
+    fireEvent.submit(form);
+
+    // Dialog opens with the normalized value…
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getAllByText(/Pasted-Handle/)[0]).toBeTruthy();
+
+    // …and the input has been rewritten to the normalized handle so what the
+    // admin sees is exactly what the confirm dialog is about to save.
+    expect((screen.getByDisplayValue("Pasted-Handle") as HTMLInputElement).value).toBe(
+      "Pasted-Handle",
+    );
+    expect(mockUpdateSiteSettings).not.toHaveBeenCalled();
+  });
+
+  it("does not open the dialog when whitespace trims back to the saved handle", async () => {
+    renderPage();
+    await waitForFormLoaded();
+
+    const { input, form } = getFetlifeForm();
+    // Padding-only edit — normalizes to the same saved value.
+    fireEvent.change(input, {
+      target: { value: `   ${SAVED.fetlife_handle}   ` },
+    });
+    fireEvent.submit(form);
+
+    // No confirmation dialog (nothing effectively changed) and the save
+    // fires straight through with the unchanged handle.
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    await waitFor(() => {
+      expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
+    });
+    const call = mockUpdateSiteSettings.mock.calls[0]![0] as {
+      data: typeof SAVED;
+    };
+    expect(call.data.fetlife_handle).toBe(SAVED.fetlife_handle);
+  });
+});
+
 
 
 
