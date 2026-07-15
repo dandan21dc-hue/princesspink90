@@ -432,6 +432,8 @@ function SecondaryRoomSessionsAdmin() {
                   </th>
                   <th className="px-4 py-3">Start</th>
                   <th className="px-4 py-3">End</th>
+                  <th className="px-4 py-3">Duration</th>
+                  <th className="px-4 py-3">Price</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Notes</th>
                   <th className="px-4 py-3 text-right">Actions</th>
