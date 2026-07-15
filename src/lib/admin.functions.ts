@@ -1004,6 +1004,45 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       const userId = parsed?.userId ?? null;
       const user = userId ? userMap.get(userId) ?? null : null;
 
+      // Compute reversal outcome. Membership carries explicit revoked_at /
+      // suspended_at columns. Panty orders and bookings reflect it in status.
+      const isRevokeStatus = (REVERSAL_REVOKE_STATUSES as readonly string[]).includes(
+        e.last_status,
+      );
+      const isSuspendStatus = (REVERSAL_SUSPEND_STATUSES as readonly string[]).includes(
+        e.last_status,
+      );
+      let reversal:
+        | {
+            mode: "revoked" | "suspended";
+            reason: string | null;
+            at: string | null;
+            applied: boolean;
+          }
+        | null = null;
+      if (isRevokeStatus || isSuspendStatus) {
+        const mode: "revoked" | "suspended" = isRevokeStatus ? "revoked" : "suspended";
+        let at: string | null = null;
+        let reason: string | null = null;
+        let applied = false;
+        if (membership) {
+          const m = membership as any;
+          at = mode === "revoked" ? m.revoked_at ?? null : m.suspended_at ?? null;
+          reason = m.revocation_reason ?? null;
+          applied = at !== null;
+        } else if (panty) {
+          const p = panty as any;
+          applied =
+            mode === "revoked" ? p.status === "refunded" : p.status === "disputed";
+          at = applied ? p.updated_at ?? null : null;
+        } else if (booking) {
+          const b = booking as any;
+          applied = b.status === "cancelled";
+          at = applied ? b.updated_at ?? null : null;
+        }
+        reversal = { mode, reason, at, applied };
+      }
+
       return {
         payment_id: e.payment_id,
         last_status: e.last_status,
@@ -1023,6 +1062,7 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         user_email: user?.email ?? null,
         user_display_name: user?.display_name ?? null,
         entitlement,
+        reversal,
       };
     });
 
