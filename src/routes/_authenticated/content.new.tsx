@@ -214,6 +214,7 @@ function NewContentPage() {
             });
           } else {
             setCoverUrl(data.signedUrl);
+            coverFilenameRef.current = item.name;
           }
         }
       } else {
