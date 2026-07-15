@@ -162,6 +162,28 @@ export function AdminSettings() {
   const fetlifeNormalized = normalizeFetlifeHandle(fetlife);
   const fetlifeError = validateFetlifeHandle(fetlife);
 
+  // The dialog renders the URL from `fetlifeNormalized`. Round-trip parse it
+  // back to a handle so we can prove the visible URL still maps to the value
+  // we're about to save — catches any drift between the preview and the
+  // normalized handle (whitespace, case, stray path segments) before the
+  // admin confirms. Save is disabled when the URL is missing or mismatched.
+  const newFetlifeUrl = fetlifeNormalized
+    ? `https://fetlife.com/${fetlifeNormalized}`
+    : "";
+  const fetlifeUrlMatchesHandle = (() => {
+    if (!fetlifeNormalized) return false;
+    try {
+      const u = new URL(newFetlifeUrl);
+      if (u.host.toLowerCase() !== "fetlife.com") return false;
+      const handleFromUrl = u.pathname.replace(/^\/+|\/+$/g, "");
+      return handleFromUrl === fetlifeNormalized;
+    } catch {
+      return false;
+    }
+  })();
+  const confirmDisabled =
+    save.isPending || fetlifeError !== null || !fetlifeUrlMatchesHandle;
+
   const sessionInputsInvalid =
     priceError !== null ||
     durationError !== null ||
