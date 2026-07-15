@@ -285,6 +285,14 @@ export function SupportChatWidget() {
   const [timezone, setTimezone] = useState<string>(
     () => readStoredTimezone() ?? detectBrowserTimezone(),
   );
+  // Lead-capture — persisted per-browser so returning users only fill it
+  // once. Also tracks which slot's form is currently being submitted so we
+  // can disable the corresponding card.
+  const [leadDraft, setLeadDraft] = useState<LeadDetails>(
+    () => readStoredLead() ?? EMPTY_LEAD,
+  );
+  const [pendingLeadSlot, setPendingLeadSlot] = useState<string | null>(null);
+  const hasLead = (l: LeadDetails) => validateLead(l) === null;
 
   // Merge the browser-detected zone with the curated list, dedupe, keep
   // detected zone pinned first for quick reset.
