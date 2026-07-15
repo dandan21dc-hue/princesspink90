@@ -162,6 +162,28 @@ export function AdminSettings() {
   const fetlifeNormalized = normalizeFetlifeHandle(fetlife);
   const fetlifeError = validateFetlifeHandle(fetlife);
 
+  // The dialog renders the URL from `fetlifeNormalized`. Round-trip parse it
+  // back to a handle so we can prove the visible URL still maps to the value
+  // we're about to save — catches any drift between the preview and the
+  // normalized handle (whitespace, case, stray path segments) before the
+  // admin confirms. Save is disabled when the URL is missing or mismatched.
+  const newFetlifeUrl = fetlifeNormalized
+    ? `https://fetlife.com/${fetlifeNormalized}`
+    : "";
+  const fetlifeUrlMatchesHandle = (() => {
+    if (!fetlifeNormalized) return false;
+    try {
+      const u = new URL(newFetlifeUrl);
+      if (u.host.toLowerCase() !== "fetlife.com") return false;
+      const handleFromUrl = u.pathname.replace(/^\/+|\/+$/g, "");
+      return handleFromUrl === fetlifeNormalized;
+    } catch {
+      return false;
+    }
+  })();
+  const fetlifeConfirmBlocked =
+    fetlifeError !== null || !fetlifeUrlMatchesHandle;
+
   const sessionInputsInvalid =
     priceError !== null ||
     durationError !== null ||
@@ -611,7 +633,7 @@ export function AdminSettings() {
             // activates whichever button currently has focus (Radix default).
             if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
               event.preventDefault();
-              if (save.isPending) return;
+              if (save.isPending || fetlifeConfirmBlocked) return;
               fetlifeDismissIntentRef.current = "confirm";
               save.mutate(undefined, {
                 onSettled: () => setPendingFetlifeConfirm(false),
@@ -676,15 +698,15 @@ export function AdminSettings() {
                       {fetlifeNormalized ? (
                         <>
                           <a
-                            href={`https://fetlife.com/${fetlifeNormalized}`}
+                            href={newFetlifeUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="font-semibold text-primary underline"
                           >
-                            https://fetlife.com/{fetlifeNormalized}
+                            {newFetlifeUrl}
                           </a>
                           <CopyUrlButton
-                            value={`https://fetlife.com/${fetlifeNormalized}`}
+                            value={newFetlifeUrl}
                             label="Copy new FetLife URL"
                           />
                         </>
@@ -693,6 +715,18 @@ export function AdminSettings() {
                       )}
                     </div>
                   </div>
+                  {fetlifeConfirmBlocked && (
+                    <div
+                      role="alert"
+                      className="rounded-md border border-destructive/50 bg-destructive/10 p-2 font-sans text-xs text-destructive"
+                    >
+                      {fetlifeError
+                        ? fetlifeError
+                        : !fetlifeNormalized
+                          ? "Enter a FetLife handle before saving."
+                          : "The preview URL doesn't match the normalized handle — fix the handle and try again."}
+                    </div>
+                  )}
                   <div className="border-t border-border/60 pt-2 text-[10px] uppercase tracking-widest text-muted-foreground/80">
                     Tip: press Esc to cancel, or Ctrl/⌘+Enter to confirm.
                   </div>
@@ -715,13 +749,14 @@ export function AdminSettings() {
               Keep current handle
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={save.isPending}
+              disabled={save.isPending || fetlifeConfirmBlocked}
               aria-busy={save.isPending || undefined}
+              aria-disabled={save.isPending || fetlifeConfirmBlocked || undefined}
               onClick={(event) => {
                 // Prevent Radix's default close-on-click so the dialog stays
                 // open with a loading state until the mutation settles.
                 event.preventDefault();
-                if (save.isPending) return;
+                if (save.isPending || fetlifeConfirmBlocked) return;
                 fetlifeDismissIntentRef.current = "confirm";
                 save.mutate(undefined, {
                   onSettled: () => setPendingFetlifeConfirm(false),
