@@ -40,6 +40,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 type ParsedOrder =
   | { kind: "aap30d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "aap90d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "aap180d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "aap365d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
   | { kind: "lifetime"; userId: string; environment: "sandbox" | "live"; amountCents: number }
   | {
       kind: "panty";
@@ -56,6 +59,8 @@ type ParsedOrder =
       environment: "sandbox" | "live";
       amountCents: number;
     };
+
+const TIME_PASS_KINDS = new Set(["aap30d", "aap90d", "aap180d", "aap365d", "lifetime"]);
 
 function parseEnv(v: string): "sandbox" | "live" | null {
   return v === "sandbox" || v === "live" ? v : null;
