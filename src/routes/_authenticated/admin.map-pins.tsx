@@ -85,12 +85,13 @@ function AdminMapPins() {
     toast.success(ms === 0 ? "Auto-refresh off" : `Auto-refresh every ${label}`);
   };
 
-  const { data: pins = [], isLoading, isFetching, refetch, dataUpdatedAt } = useQuery({
+  const { data: pins = [], isLoading, isFetching, isError, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["admin-map-pins"],
     queryFn: () => listFn(),
     refetchInterval: refreshIntervalMs > 0 ? refreshIntervalMs : false,
     refetchIntervalInBackground: false,
   });
+  const errorMessage = isError ? (error instanceof Error ? error.message : "Unknown error") : null;
 
   const handleRefresh = async () => {
     const before = pins.length;
