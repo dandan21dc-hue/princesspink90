@@ -145,6 +145,50 @@ export const updateAdultContentRelease = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/**
+ * Derived verification status for the current user, used to show a shortcut
+ * card on the profile. Extends the existing age_verifications pipeline —
+ * no new column, no parallel table.
+ */
+export const getMyVerificationStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase
+      .from("age_verifications")
+      .select("status, submitted_at, reviewed_at, notes")
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    return {
+      status: (data?.status ?? "unsubmitted") as
+        | "unsubmitted"
+        | "pending"
+        | "approved"
+        | "rejected",
+      submitted_at: data?.submitted_at ?? null,
+      reviewed_at: data?.reviewed_at ?? null,
+      notes: data?.notes ?? null,
+    };
+  });
+
+/** Admin: count of verifications waiting for review. */
+export const adminCountPendingAgeVerifications = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { count, error } = await context.supabase
+      .from("age_verifications")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending");
+    if (error) throw error;
+    return { pending: count ?? 0 };
+  });
+
+
+
 
 /** Admin: list all verifications. */
 export const adminListAgeVerifications = createServerFn({ method: "GET" })

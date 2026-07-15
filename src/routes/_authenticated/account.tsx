@@ -9,6 +9,8 @@ import {
 } from "@/lib/account.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { PerksWidget } from "@/components/PerksWidget";
+import { VerificationStatusCard } from "@/components/VerificationStatusCard";
+
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: AccountLayout,
@@ -76,7 +78,10 @@ export function AccountIndex() {
       </div>
 
 
+      <VerificationStatusCard />
+
       <PerksWidget />
+
 
       <section className="rounded-lg border border-border p-5">
         <h2 className="font-display text-lg">Billing</h2>
