@@ -861,3 +861,45 @@ function formatTime(iso: string): string {
     minute: "2-digit",
   });
 }
+
+function BookingStatusCard({
+  bookingId,
+  startsAt,
+  status,
+}: {
+  bookingId: string;
+  startsAt: string;
+  status: string;
+}) {
+  const { label, tone } = statusLabel(status);
+  const toneClass =
+    tone === "ok"
+      ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200"
+      : tone === "warn"
+        ? "border-amber-400/40 bg-amber-400/10 text-amber-200"
+        : tone === "err"
+          ? "border-rose-400/40 bg-rose-400/10 text-rose-200"
+          : "border-white/15 bg-white/[0.04] text-neutral-200";
+  const live = !TERMINAL_STATUSES.has(status);
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="text-[10px] uppercase tracking-widest text-neutral-500">
+          Booking · {bookingId.slice(0, 8)}
+        </div>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${toneClass}`}
+          aria-live="polite"
+        >
+          {live && (
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" aria-hidden />
+          )}
+          {label}
+        </span>
+      </div>
+      <div className="text-sm font-semibold text-neutral-100">{formatDate(startsAt)}</div>
+      <div className="text-xs text-neutral-400">{formatTime(startsAt)} · Private Room</div>
+    </div>
+  );
+}
+
