@@ -534,9 +534,41 @@ function Badge({ children }: { children: React.ReactNode }) {
     </span>
   );
 }
+function PendingVerificationsCard() {
+  const fn = useServerFn(adminCountPendingAgeVerifications);
+  const q = useQuery({
+    queryKey: ["admin-pending-verifications-count"],
+    queryFn: () => fn(),
+    refetchInterval: 60_000,
+  });
+  const count = q.data?.pending ?? 0;
+  return (
+    <Link
+      to="/admin/verifications"
+      className="flex items-center justify-between rounded-xl border border-border/60 bg-card p-4 transition hover:border-primary/60"
+    >
+      <div className="flex items-center gap-3">
+        <BadgeCheck className={`h-5 w-5 ${count > 0 ? "text-amber-400" : "text-emerald-400"}`} />
+        <div>
+          <div className="font-display text-sm">Pending verifications</div>
+          <div className="text-xs text-muted-foreground">
+            {q.isLoading ? "Loading…" : count === 0 ? "No IDs waiting for review." : `${count} member${count === 1 ? "" : "s"} awaiting Approve/Reject.`}
+          </div>
+        </div>
+      </div>
+      {count > 0 && (
+        <span className="rounded-full bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300">
+          {count}
+        </span>
+      )}
+    </Link>
+  );
+}
+
 function Skeleton() {
   return <div className="h-24 animate-pulse rounded-xl bg-card" />;
 }
+
 function Empty({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
