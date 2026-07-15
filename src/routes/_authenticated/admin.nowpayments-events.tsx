@@ -46,8 +46,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy, Download, StickyNote, CheckSquare, Square } from "lucide-react";
 
 
+const searchSchema = z.object({
+  status: fallback(z.string(), "all").default("all"),
+  handled: fallback(z.string(), "all").default("all"),
+  reversal: fallback(z.string(), "all").default("all"),
+  sort: fallback(z.string(), "last_seen_desc").default("last_seen_desc"),
+  q: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int(), 1).default(1),
+  pageSize: fallback(z.number().int(), 50).default(50),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/nowpayments-events")({
   head: () => ({ meta: [{ title: "NOWPayments IPN Events · Admin" }] }),
+  validateSearch: zodValidator(searchSchema),
   component: AdminNowpaymentsEvents,
 });
 
