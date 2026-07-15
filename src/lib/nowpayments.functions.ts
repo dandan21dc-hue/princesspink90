@@ -225,14 +225,18 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
         orderId = `${AAP30D_KEY}:${context.userId}:${data.environment}:${amountCents}`;
       }
 
+      // Ignore any client-supplied `returnOrigin`; always build URLs from
+      // the server-verified app origin so an attacker can't redirect a
+      // paying customer or divert the IPN webhook to a domain they control.
+      const appOrigin = resolveAppOrigin(getRequest());
       const invoice = await createInvoice({
         priceAmount: amountCents / 100,
         priceCurrency: currency,
         orderId,
         orderDescription: description,
-        ipnCallbackUrl: `${data.returnOrigin}/api/public/payments/nowpayments-webhook`,
-        successUrl: `${data.returnOrigin}/checkout/return?provider=nowpayments&status=success`,
-        cancelUrl: `${data.returnOrigin}/checkout/return?provider=nowpayments&status=cancel`,
+        ipnCallbackUrl: `${appOrigin}/api/public/payments/nowpayments-webhook`,
+        successUrl: `${appOrigin}/checkout/return?provider=nowpayments&status=success`,
+        cancelUrl: `${appOrigin}/checkout/return?provider=nowpayments&status=cancel`,
       });
       return { invoiceUrl: invoice.invoice_url };
     } catch (e) {
