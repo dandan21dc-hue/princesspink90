@@ -20,7 +20,10 @@ import { resolveAppOrigin } from "@/lib/app-origin.server";
  */
 const inputSchema = z.object({
   environment: z.enum(["sandbox", "live"]),
-  returnOrigin: z.string().url(),
+  // `returnOrigin` is accepted for backwards compatibility with older
+  // clients but is deliberately ignored — success/cancel/IPN URLs are
+  // built from the server-verified app origin (see `resolveAppOrigin`).
+  returnOrigin: z.string().url().optional(),
   roomType: z.enum(["private_room", "glory_hole"]),
   bookingStartsAt: z.string().datetime(),
   bookingNotes: z.string().max(1000).optional(),
