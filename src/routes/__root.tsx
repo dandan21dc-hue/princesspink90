@@ -69,13 +69,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Midnight Glory — Glory holes, private rooms & theatre nights" },
+      { title: "Midnight Glory — Adult events in Melbourne" },
       {
         name: "description",
         content:
           "Midnight Glory hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only.",
       },
-      { property: "og:title", content: "Midnight Glory — Glory holes, private rooms & theatre nights" },
+      { property: "og:title", content: "Midnight Glory — Adult events in Melbourne" },
       {
         property: "og:description",
         content: "Glory holes, private rooms, and adult theatre takeovers hosted by Midnight Glory. 18+ only.",
@@ -84,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:site_name", content: "Midnight Glory" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "theme-color", content: "#0a0a0f" },
-      { name: "twitter:title", content: "Midnight Glory — Glory holes, private rooms & theatre nights" },
+      { name: "twitter:title", content: "Midnight Glory — Adult events in Melbourne" },
       { name: "twitter:description", content: "Midnight Glory hosts discreet, consent-first adult events — glory hole nights, private rooms, and adult theatre takeovers. 18+ only." },
       { name: "google-site-verification", content: "L6cxAJZao3yrM4xXKeBrsyMdFa94p4LVYXQ-tdjqmus" },
       { name: "google-site-verification", content: "Wo7hK4LGCO_LvBmYvKi1Yc_GEw-tZBJkOoegAVxV6Eo" },
