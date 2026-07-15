@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "sdk_version": "0.22.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://bxwwrlhtgrqbsgbmaxgq.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "princess-pink-mcp",
+      "version": "0.1.0",
+      "title": "Princess Pink"
+    },
+    "tools": [
+      {
+        "name": "list_upcoming_events",
+        "title": "List upcoming events",
+        "description": "List published, public upcoming events at Princess Pink (id, title, venue, starts_at, ticket price in cents). Use this to find event IDs for other tools.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "default": 10,
+              "description": "Maximum number of events to return (1-50).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_rsvps",
+        "title": "List my RSVPs",
+        "description": "List the signed-in user's RSVPs (event_id, status, entry_code, entry_phrase, guest_count, check-in state). Runs under RLS as that user.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "upcomingOnly": {
+              "default": true,
+              "description": "When true, only return RSVPs for events that haven't started yet.",
+              "type": "boolean"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_my_memberships",
+        "title": "List my memberships",
+        "description": "List the signed-in user's memberships and passes (kind, environment, expires_at, revoked/suspended state). Read-only. Runs under RLS as that user.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
