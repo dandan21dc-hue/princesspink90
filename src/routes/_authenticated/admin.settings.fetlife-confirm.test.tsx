@@ -76,7 +76,7 @@ const SAVED = {
   session_duration_minutes: 60,
 };
 
-const mockUpdateSiteSettings = vi.fn(async () => ({ ok: true }));
+const mockUpdateSiteSettings = vi.fn(async (_args: { data: typeof SAVED }) => ({ ok: true }));
 
 vi.mock("@/lib/settings.functions", async () => {
   const actual = await vi.importActual<Record<string, unknown>>(
