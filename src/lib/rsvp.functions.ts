@@ -54,6 +54,8 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Block bookings for accounts that admins have restricted from the CRM.
     await assertAccountNotRestricted(context.supabase, context.userId);
+    await assertNotInMaintenance(context);
+
 
     // Require an approved age verification on file
     const { data: av } = await context.supabase
