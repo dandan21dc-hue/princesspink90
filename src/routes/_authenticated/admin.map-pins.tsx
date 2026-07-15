@@ -89,6 +89,7 @@ function AdminMapPins() {
   const [order, setOrder] = useState<MapPin[]>([]);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<MapPin | null>(null);
   useEffect(() => {
     setOrder(pins);
   }, [pins]);
