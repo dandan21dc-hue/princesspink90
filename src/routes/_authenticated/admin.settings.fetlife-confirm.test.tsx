@@ -1050,6 +1050,39 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       }) as HTMLButtonElement).getAttribute("aria-disabled"),
     ).not.toBe("true");
   });
+
+  it("renders an Open-in-new-tab affordance next to BOTH the current and new FetLife URLs", async () => {
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle);
+    fireEvent.change(fetInput, { target: { value: "Reviewable-Handle" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+
+    // Both Open affordances render, each pointing at its own URL, opening
+    // in a new tab with hardened `rel` so window.opener can't be hijacked.
+    const openCurrent = within(dialog).getByRole("link", {
+      name: /open current fetlife url in a new tab/i,
+    });
+    const openNew = within(dialog).getByRole("link", {
+      name: /open new fetlife url in a new tab/i,
+    });
+    expect(openCurrent.getAttribute("href")).toBe(
+      `https://fetlife.com/${SAVED.fetlife_handle}`,
+    );
+    expect(openNew.getAttribute("href")).toBe(
+      "https://fetlife.com/Reviewable-Handle",
+    );
+    for (const link of [openCurrent, openNew]) {
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toContain("noopener");
+      expect(link.getAttribute("rel")).toContain("noreferrer");
+      expect(link.textContent?.toLowerCase()).toContain("open");
+    }
+  });
 });
+
 
 
