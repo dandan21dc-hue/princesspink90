@@ -32,6 +32,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as GuideWhatToWearToAKinkPartyRouteImport } from './routes/guide.what-to-wear-to-a-kink-party'
+import { Route as GuideWhatHappensAtAKinkPartyRouteImport } from './routes/guide.what-happens-at-a-kink-party'
 import { Route as GuideEtiquetteRouteImport } from './routes/guide.etiquette'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
 import { Route as EmailUnsubscribeRouteImport } from './routes/email/unsubscribe'
@@ -240,6 +241,12 @@ const GuideWhatToWearToAKinkPartyRoute =
   GuideWhatToWearToAKinkPartyRouteImport.update({
     id: '/guide/what-to-wear-to-a-kink-party',
     path: '/guide/what-to-wear-to-a-kink-party',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const GuideWhatHappensAtAKinkPartyRoute =
+  GuideWhatHappensAtAKinkPartyRouteImport.update({
+    id: '/guide/what-happens-at-a-kink-party',
+    path: '/guide/what-happens-at-a-kink-party',
     getParentRoute: () => rootRouteImport,
   } as any)
 const GuideEtiquetteRoute = GuideEtiquetteRouteImport.update({
@@ -818,6 +825,7 @@ export interface FileRoutesByFullPath {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
+  '/guide/what-happens-at-a-kink-party': typeof GuideWhatHappensAtAKinkPartyRoute
   '/guide/what-to-wear-to-a-kink-party': typeof GuideWhatToWearToAKinkPartyRoute
   '/store/$id': typeof StoreIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -935,6 +943,7 @@ export interface FileRoutesByTo {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
+  '/guide/what-happens-at-a-kink-party': typeof GuideWhatHappensAtAKinkPartyRoute
   '/guide/what-to-wear-to-a-kink-party': typeof GuideWhatToWearToAKinkPartyRoute
   '/store/$id': typeof StoreIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -1054,6 +1063,7 @@ export interface FileRoutesById {
   '/email/unsubscribe': typeof EmailUnsubscribeRoute
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
+  '/guide/what-happens-at-a-kink-party': typeof GuideWhatHappensAtAKinkPartyRoute
   '/guide/what-to-wear-to-a-kink-party': typeof GuideWhatToWearToAKinkPartyRoute
   '/store/$id': typeof StoreIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
@@ -1174,6 +1184,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/events/$id'
     | '/guide/etiquette'
+    | '/guide/what-happens-at-a-kink-party'
     | '/guide/what-to-wear-to-a-kink-party'
     | '/store/$id'
     | '/.lovable/oauth/consent'
@@ -1291,6 +1302,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/events/$id'
     | '/guide/etiquette'
+    | '/guide/what-happens-at-a-kink-party'
     | '/guide/what-to-wear-to-a-kink-party'
     | '/store/$id'
     | '/.lovable/oauth/consent'
@@ -1409,6 +1421,7 @@ export interface FileRouteTypes {
     | '/email/unsubscribe'
     | '/events/$id'
     | '/guide/etiquette'
+    | '/guide/what-happens-at-a-kink-party'
     | '/guide/what-to-wear-to-a-kink-party'
     | '/store/$id'
     | '/.lovable/oauth/consent'
@@ -1521,6 +1534,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventsIdRoute: typeof EventsIdRoute
   GuideEtiquetteRoute: typeof GuideEtiquetteRoute
+  GuideWhatHappensAtAKinkPartyRoute: typeof GuideWhatHappensAtAKinkPartyRoute
   GuideWhatToWearToAKinkPartyRoute: typeof GuideWhatToWearToAKinkPartyRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -1709,6 +1723,13 @@ declare module '@tanstack/react-router' {
       path: '/guide/what-to-wear-to-a-kink-party'
       fullPath: '/guide/what-to-wear-to-a-kink-party'
       preLoaderRoute: typeof GuideWhatToWearToAKinkPartyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guide/what-happens-at-a-kink-party': {
+      id: '/guide/what-happens-at-a-kink-party'
+      path: '/guide/what-happens-at-a-kink-party'
+      fullPath: '/guide/what-happens-at-a-kink-party'
+      preLoaderRoute: typeof GuideWhatHappensAtAKinkPartyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guide/etiquette': {
@@ -2614,6 +2635,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventsIdRoute: EventsIdRoute,
   GuideEtiquetteRoute: GuideEtiquetteRoute,
+  GuideWhatHappensAtAKinkPartyRoute: GuideWhatHappensAtAKinkPartyRoute,
   GuideWhatToWearToAKinkPartyRoute: GuideWhatToWearToAKinkPartyRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
