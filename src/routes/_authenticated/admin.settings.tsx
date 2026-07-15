@@ -296,6 +296,17 @@ export function AdminSettings() {
         toast.error("Couldn't save FetLife handle", {
           description: `${message} — public link still points to ${attempt.oldHandle ?? "(none)"}.`,
           duration: 8000,
+          action: {
+            label: "Retry",
+            // Re-attempt the save directly. The mutation's own onSuccess /
+            // onError handlers will surface the follow-up toast, so we don't
+            // need to duplicate that here.
+            onClick: () => {
+              if (save.isPending) return;
+              save.reset();
+              save.mutate();
+            },
+          },
         });
         // Send focus back to the handle input so the admin can immediately
         // edit and retry — the field is where the failure happened.
