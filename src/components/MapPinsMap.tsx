@@ -19,28 +19,34 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props
     onPinClickRef.current = onPinClick;
   }, [onPinClick]);
 
+  // Always render in sort_order (ascending), with a stable tie-break on id so
+  // callers don't need to pre-sort. Matches the admin drag-and-drop order.
+  const sortedPins = [...pins].sort(
+    (a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id),
+  );
+
   useEffect(() => {
     if (!containerRef.current || !PUBLIC_TOKEN) return;
     mapboxgl.accessToken = PUBLIC_TOKEN;
 
-    const initialCenter: [number, number] = pins.length
-      ? [pins[0].longitude, pins[0].latitude]
+    const initialCenter: [number, number] = sortedPins.length
+      ? [sortedPins[0].longitude, sortedPins[0].latitude]
       : [151.2093, -33.8688]; // Sydney fallback
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center: initialCenter,
-      zoom: pins.length > 1 ? 3 : 11,
+      zoom: sortedPins.length > 1 ? 3 : 11,
       attributionControl: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: false }), "top-right");
     mapRef.current = map;
 
     map.on("load", () => {
-      if (pins.length === 0) return;
+      if (sortedPins.length === 0) return;
       const bounds = new mapboxgl.LngLatBounds();
-      for (const pin of pins) {
+      for (const pin of sortedPins) {
         const el = document.createElement("div");
         const isSelected = selectedPinId === pin.id;
         el.className = `h-4 w-4 rounded-full border-2 border-background bg-primary cursor-pointer transition-transform ${
@@ -67,7 +73,7 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props
         }
         bounds.extend([pin.longitude, pin.latitude]);
       }
-      if (pins.length > 1) {
+      if (sortedPins.length > 1) {
         map.fitBounds(bounds, { padding: 60, maxZoom: 12, duration: 0 });
       }
     });

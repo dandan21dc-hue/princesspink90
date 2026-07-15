@@ -101,6 +101,7 @@ function AdminMapPins() {
       return;
     }
     qc.invalidateQueries({ queryKey: ["map-pins"] });
+    qc.invalidateQueries({ queryKey: ["dashboard-map-pins"] });
     const after = res.data?.length ?? before;
     const diff = after - before;
     toast.success(
@@ -243,6 +244,7 @@ function AdminMapPins() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin-map-pins"] });
     qc.invalidateQueries({ queryKey: ["map-pins"] });
+    qc.invalidateQueries({ queryKey: ["dashboard-map-pins"] });
   };
 
   const validate = (): {
