@@ -446,7 +446,13 @@ export const adminCommandCenterChat = createServerFn({ method: "POST" })
         };
       }
       const out = await runTool(context.supabase, turn.name, turn.args);
-      tool_calls.push({ name: turn.name, args: turn.args, ok: out.ok, result: out.result });
+      tool_calls.push({
+        name: turn.name,
+        args: JSON.parse(JSON.stringify(turn.args)) as { [k: string]: Json },
+        ok: out.ok,
+        result: JSON.parse(JSON.stringify(out.result ?? null)) as Json,
+      });
+
       convo.push({
         role: "tool",
         tool_name: turn.name,
