@@ -410,6 +410,110 @@ function AdminNowpaymentsEvents() {
           ))}
         </div>
 
+        {(() => {
+          const chips: { key: string; label: string; clear: () => void }[] = [];
+          if (status !== "all") {
+            chips.push({
+              key: "status",
+              label: `Status: ${status}`,
+              clear: () => {
+                resetToFirstPage();
+                setStatus("all");
+              },
+            });
+          }
+          if (handled !== "all") {
+            chips.push({
+              key: "handled",
+              label: handled === "handled" ? "Handled" : "Unhandled",
+              clear: () => {
+                resetToFirstPage();
+                setHandled("all");
+              },
+            });
+          }
+          if (reversal !== "all") {
+            const label =
+              reversal === "any"
+                ? "Reversal needed"
+                : reversal === "revoked"
+                ? "Revoked"
+                : "Suspended";
+            chips.push({
+              key: "reversal",
+              label: `Reversal: ${label}`,
+              clear: () => {
+                resetToFirstPage();
+                setReversal("all");
+              },
+            });
+          }
+          if (sort !== "last_seen_desc") {
+            chips.push({
+              key: "sort",
+              label: `Sort: ${sort}`,
+              clear: () => {
+                resetToFirstPage();
+                setSort("last_seen_desc");
+              },
+            });
+          }
+          if (search) {
+            chips.push({
+              key: "search",
+              label: `Search: ${search}`,
+              clear: () => {
+                resetToFirstPage();
+                setSearchInput("");
+                setSearch("");
+              },
+            });
+          }
+          if (chips.length === 0) return null;
+          return (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-widest text-muted-foreground mr-1">
+                Active
+              </span>
+              {chips.map((c) => (
+                <Badge
+                  key={c.key}
+                  variant="secondary"
+                  className="gap-1 pl-2 pr-1 py-1"
+                >
+                  <span>{c.label}</span>
+                  <button
+                    type="button"
+                    aria-label={`Remove filter ${c.label}`}
+                    onClick={c.clear}
+                    className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-muted-foreground/20"
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ))}
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  resetToFirstPage();
+                  setStatus("all");
+                  setHandled("all");
+                  setReversal("all");
+                  setSort("last_seen_desc");
+                  setSearchInput("");
+                  setSearch("");
+                }}
+              >
+                Clear all
+              </Button>
+            </div>
+          );
+        })()}
+
+
+
 
         <form
           className="flex flex-wrap gap-3 items-end"
