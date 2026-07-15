@@ -300,7 +300,7 @@ export function AdminSettings() {
       // keep the error visible so the admin still sees something is off.
       const attempt = lastAttemptFetlifeChangeRef.current;
       if (attempt?.changed) {
-        const savedHandle = attempt.newHandle;
+        const savedHandle = attempt.newHandle ?? "";
         const roundTripsOk =
           savedHandle === "" || fetlifeUrlRoundTripsToHandle(savedHandle);
         if (roundTripsOk) {
