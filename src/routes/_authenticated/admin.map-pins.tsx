@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { GripVertical } from "lucide-react";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   listMapPins,
   createMapPin,
   updateMapPin,
   deleteMapPin,
+  reorderMapPins,
   type MapPin,
 } from "@/lib/map-pins.functions";
 import { MapPinsMap } from "@/components/MapPinsMap";
