@@ -21,27 +21,9 @@ type TierMeta = {
 
 const TERM_TIERS: TierMeta[] = [
   {
-    plan: "all_access_monthly_aud",
-    label: "Monthly All-Access",
-    blurb: "30 days of unlimited streaming.",
-    Icon: Calendar,
-  },
-  {
-    plan: "all_access_3mo_monthly_aud",
-    label: "3-Month Term Pass",
-    blurb: "Three months of All-Access — no auto-renewal.",
-    Icon: Calendar,
-  },
-  {
-    plan: "all_access_6mo_monthly_aud",
-    label: "6-Month Term Pass",
-    blurb: "Six months of All-Access — no auto-renewal.",
-    Icon: Calendar,
-  },
-  {
-    plan: "all_access_12mo_monthly_aud",
-    label: "12-Month Term Pass",
-    blurb: "A full year of All-Access — no auto-renewal.",
+    plan: "all_access_30d_aud",
+    label: "30-Day All-Access Pass",
+    blurb: "30 days of unlimited streaming — one-time crypto payment.",
     Icon: Calendar,
   },
 ];
