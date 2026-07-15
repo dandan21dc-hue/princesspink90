@@ -1,12 +1,26 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { amIAdmin, adminListNowpaymentsEvents } from "@/lib/admin.functions";
+import {
+  amIAdmin,
+  adminListNowpaymentsEvents,
+  adminRetryNowpaymentsGrant,
+} from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -14,7 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ShieldCheck, ExternalLink, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/nowpayments-events")({
   head: () => ({ meta: [{ title: "NOWPayments IPN Events · Admin" }] }),
@@ -49,6 +64,8 @@ const STATUS_OPTIONS = [
 function AdminNowpaymentsEvents() {
   const meFn = useServerFn(amIAdmin);
   const listFn = useServerFn(adminListNowpaymentsEvents);
+  const retryFn = useServerFn(adminRetryNowpaymentsGrant);
+  const qc = useQueryClient();
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
 
@@ -56,6 +73,7 @@ function AdminNowpaymentsEvents() {
   const [handled, setHandled] = useState<"all" | "handled" | "unhandled">("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
 
   const list = useQuery({
     queryKey: ["admin-nowpayments-events", { status, handled, search }],
@@ -69,6 +87,28 @@ function AdminNowpaymentsEvents() {
         },
       }),
     enabled: me.data?.isAdmin === true,
+  });
+
+  const retry = useMutation({
+    mutationFn: (paymentId: string) => retryFn({ data: { paymentId } }),
+    onSuccess: (res) => {
+      if (res.handled) {
+        toast.success(
+          `Retry succeeded: ${res.kind} grant is idempotently applied${
+            res.entitlementId ? ` (id ${res.entitlementId.slice(0, 8)}…)` : ""
+          }.`,
+        );
+      } else {
+        toast.warning(
+          `Retry ran but did not grant: ${res.reason ?? "no reason returned"}.`,
+        );
+      }
+      setPendingRetry(null);
+      qc.invalidateQueries({ queryKey: ["admin-nowpayments-events"] });
+    },
+    onError: (e) => {
+      toast.error(e instanceof Error ? e.message : String(e));
+    },
   });
 
   if (me.isLoading) {
@@ -211,12 +251,78 @@ function AdminNowpaymentsEvents() {
             No matching webhook events.
           </Card>
         ) : (
-          items.map((e) => <EventRow key={`${e.payment_id}:${e.last_status}`} e={e} />)
+          items.map((e) => (
+            <EventRow
+              key={`${e.payment_id}:${e.last_status}`}
+              e={e}
+              onRetry={() => setPendingRetry(e)}
+              retryPending={retry.isPending && pendingRetry?.payment_id === e.payment_id}
+            />
+          ))
         )}
       </div>
+
+      <AlertDialog
+        open={pendingRetry !== null}
+        onOpenChange={(open) => {
+          if (!open && !retry.isPending) setPendingRetry(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retry NOWPayments grant?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  This re-runs the grant path for the signature-verified event
+                  below. It is safe to retry — the underlying grant is
+                  idempotent on <code className="font-mono">external_payment_reference</code>{" "}
+                  (<code className="font-mono">nowpayments:{pendingRetry?.payment_id}</code>),
+                  so an already-granted entitlement will not be duplicated.
+                </p>
+                <div className="rounded-md bg-muted/60 p-3 text-xs font-mono space-y-1 break-all">
+                  <div>payment_id: {pendingRetry?.payment_id}</div>
+                  <div>status: {pendingRetry?.last_status}</div>
+                  <div>order_id: {pendingRetry?.order_id ?? "—"}</div>
+                  {pendingRetry?.parsed_order && (
+                    <div>
+                      kind: {pendingRetry.parsed_order.kind} ·{" "}
+                      {pendingRetry.parsed_order.environment}
+                    </div>
+                  )}
+                  {pendingRetry?.reason && !pendingRetry.handled && (
+                    <div>previous reason: {pendingRetry.reason}</div>
+                  )}
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={retry.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={retry.isPending || !pendingRetry}
+              onClick={(ev) => {
+                ev.preventDefault();
+                if (pendingRetry) retry.mutate(pendingRetry.payment_id);
+              }}
+            >
+              {retry.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Retrying…
+                </>
+              ) : (
+                <>
+                  <RotateCw className="h-4 w-4 mr-2" /> Retry grant
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 }
+
 
 type EventItem = {
   payment_id: string;
@@ -240,7 +346,16 @@ type EventItem = {
     | null;
 };
 
-function EventRow({ e }: { e: EventItem }) {
+function EventRow({
+  e,
+  onRetry,
+  retryPending,
+}: {
+  e: EventItem;
+  onRetry: () => void;
+  retryPending: boolean;
+}) {
+  const canRetry = e.last_status === "finished" && e.parsed_order !== null;
   const statusVariant: "default" | "secondary" | "outline" | "destructive" =
     e.last_status === "finished"
       ? "default"
@@ -334,11 +449,34 @@ function EventRow({ e }: { e: EventItem }) {
                 : "None granted"}
             </div>
           )}
+          {canRetry && (
+            <Button
+              type="button"
+              size="sm"
+              variant={e.handled ? "outline" : "default"}
+              onClick={onRetry}
+              disabled={retryPending}
+              className="mt-2 gap-1"
+              title={
+                e.handled
+                  ? "Re-run the idempotent grant (safe — will not double-grant)"
+                  : "Reprocess this failed / unhandled grant"
+              }
+            >
+              {retryPending ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RotateCw className="h-3 w-3" />
+              )}
+              {e.handled ? "Re-run grant" : "Retry grant"}
+            </Button>
+          )}
         </div>
       </div>
     </Card>
   );
 }
+
 
 function EntitlementLink({
   e,

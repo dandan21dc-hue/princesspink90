@@ -1015,4 +1015,194 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
     return { items, summary };
   });
 
+// ---------- Retry a failed / unhandled NOWPayments grant ----------
+//
+// Reprocesses the grant path for a previously received (and signature-verified)
+// IPN event, keyed by payment_id. Idempotency is preserved by the underlying
+// RPCs (grant_all_access_pass_30d / grant_lifetime_membership /
+// grant_panty_listing_order all short-circuit on the unique
+// external_payment_reference `nowpayments:<payment_id>`) and by the booking
+// update guard (matches on id + no conflicting external_payment_reference).
+// A retry can therefore never double-grant.
+export const adminRetryNowpaymentsGrant = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { paymentId: string }) => {
+    if (!d?.paymentId || typeof d.paymentId !== "string") {
+      throw new Error("paymentId required");
+    }
+    return { paymentId: d.paymentId.trim() };
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Prefer a `finished` ledger row (that's the only status that grants), else
+    // fall back to the most recent row for this payment_id.
+    const { data: rows, error: loadErr } = await supabaseAdmin
+      .from("nowpayments_ipn_events")
+      .select("payment_id, last_status, order_id, payload, handled, reason")
+      .eq("payment_id", data.paymentId)
+      .order("last_seen_at", { ascending: false });
+    if (loadErr) throw new Error(`load ipn event failed: ${loadErr.message}`);
+    if (!rows || rows.length === 0) {
+      throw new Error(`No IPN event found for payment_id ${data.paymentId}`);
+    }
+
+    const row =
+      rows.find((r: { last_status: string }) => r.last_status === "finished") ?? rows[0];
+
+    if (row.last_status !== "finished") {
+      throw new Error(
+        `Cannot retry: latest status is "${row.last_status}". Grants only run on payment_status="finished".`,
+      );
+    }
+
+    const order = parseOrderId(row.order_id ?? undefined);
+    if (!order) {
+      throw new Error(`Cannot retry: order_id "${row.order_id ?? ""}" is unrecognised.`);
+    }
+
+    const paymentRef = `nowpayments:${data.paymentId}`;
+    let outcome: { handled: boolean; reason?: string; entitlementId?: string | null };
+
+    try {
+      if (order.kind === "aap30d") {
+        const { data: m, error } = await supabaseAdmin.rpc("grant_all_access_pass_30d", {
+          _user_id: order.userId,
+          _environment: order.environment,
+          _amount_cents: order.amountCents,
+          _external_payment_reference: paymentRef,
+        });
+        if (error) throw new Error(`grant_all_access_pass_30d failed: ${error.message}`);
+        outcome = { handled: true, entitlementId: (m as { id?: string } | null)?.id ?? null };
+      } else if (order.kind === "lifetime") {
+        const { data: m, error } = await supabaseAdmin.rpc("grant_lifetime_membership", {
+          _user_id: order.userId,
+          _environment: order.environment,
+          _amount_cents: order.amountCents,
+          _external_payment_reference: paymentRef,
+        });
+        if (error) throw new Error(`grant_lifetime_membership failed: ${error.message}`);
+        outcome = { handled: true, entitlementId: (m as { id?: string } | null)?.id ?? null };
+      } else if (order.kind === "panty") {
+        const { data: p, error } = await supabaseAdmin.rpc("grant_panty_listing_order", {
+          _user_id: order.userId,
+          _panty_listing_id: order.pantyListingId,
+          _environment: order.environment,
+          _amount_cents: order.amountCents,
+          _external_payment_reference: paymentRef,
+        });
+        if (error) throw new Error(`grant_panty_listing_order failed: ${error.message}`);
+        outcome = { handled: true, entitlementId: (p as { id?: string } | null)?.id ?? null };
+      } else if (order.kind === "booking") {
+        // booking — mirror the webhook's idempotent update.
+        const { data: existing, error: fetchErr } = await supabaseAdmin
+          .from("private_room_bookings")
+          .select("id, status, external_payment_reference, user_id")
+          .eq("id", order.bookingId)
+          .maybeSingle();
+        if (fetchErr) throw new Error(`booking lookup failed: ${fetchErr.message}`);
+        if (!existing) {
+          outcome = { handled: false, reason: "booking_not_found", entitlementId: null };
+        } else if (existing.user_id !== order.userId) {
+          outcome = { handled: false, reason: "booking_user_mismatch", entitlementId: existing.id };
+        } else if (
+          existing.external_payment_reference &&
+          existing.external_payment_reference !== paymentRef
+        ) {
+          outcome = { handled: false, reason: "booking_already_paid", entitlementId: existing.id };
+        } else if (
+          existing.status === "confirmed" &&
+          existing.external_payment_reference === paymentRef
+        ) {
+          outcome = { handled: true, entitlementId: existing.id };
+        } else {
+          const { error } = await supabaseAdmin
+            .from("private_room_bookings")
+            .update({
+              status: "confirmed",
+              external_payment_reference: paymentRef,
+              amount_cents: order.amountCents,
+              environment: order.environment,
+            })
+            .eq("id", order.bookingId);
+          if (error) throw new Error(`confirm booking failed: ${error.message}`);
+          outcome = { handled: true, entitlementId: existing.id };
+        }
+      } else {
+        throw new Error(`Cannot retry: unsupported kind "${(order as { kind: string }).kind}"`);
+      }
+
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      await supabaseAdmin
+        .from("nowpayments_ipn_events")
+        .update({
+          reason: `retry_failed:${message.slice(0, 200)}`,
+          last_seen_at: new Date().toISOString(),
+        })
+        .eq("payment_id", data.paymentId)
+        .eq("last_status", row.last_status);
+
+      await context.supabase.from("admin_activity_audit").insert({
+        actor_id: context.userId,
+        action: "retry_nowpayments_grant",
+        resource: `nowpayments:${data.paymentId}`,
+        metadata: {
+          payment_id: data.paymentId,
+          order_id: row.order_id,
+          kind: order.kind,
+          environment: order.environment,
+          target_user_id: order.userId,
+          external_payment_reference: paymentRef,
+          previous_handled: row.handled,
+          previous_reason: row.reason,
+          outcome: "error",
+          error: message,
+        },
+      });
+      throw e;
+    }
+
+    await supabaseAdmin
+      .from("nowpayments_ipn_events")
+      .update({
+        handled: outcome.handled,
+        reason: outcome.reason ?? (outcome.handled ? null : row.reason),
+        processed_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+      })
+      .eq("payment_id", data.paymentId)
+      .eq("last_status", row.last_status);
+
+    await context.supabase.from("admin_activity_audit").insert({
+      actor_id: context.userId,
+      action: "retry_nowpayments_grant",
+      resource: `nowpayments:${data.paymentId}`,
+      metadata: {
+        payment_id: data.paymentId,
+        order_id: row.order_id,
+        kind: order.kind,
+        environment: order.environment,
+        target_user_id: order.userId,
+        external_payment_reference: paymentRef,
+        previous_handled: row.handled,
+        previous_reason: row.reason,
+        outcome: outcome.handled ? "handled" : "not_handled",
+        reason: outcome.reason ?? null,
+        entitlement_id: outcome.entitlementId ?? null,
+      },
+    });
+
+    return {
+      ok: true,
+      handled: outcome.handled,
+      reason: outcome.reason ?? null,
+      paymentId: data.paymentId,
+      kind: order.kind,
+      entitlementId: outcome.entitlementId ?? null,
+    };
+  });
+
+
 
