@@ -57,6 +57,7 @@ function AdminMediaModeration() {
         ))}
       </div>
       <Queue status={status} />
+      <RecentActivityPanel />
     </Shell>
   );
 }
