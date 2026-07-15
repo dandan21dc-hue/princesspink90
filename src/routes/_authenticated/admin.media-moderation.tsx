@@ -115,21 +115,46 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
     mutationFn: (decision: "approved" | "rejected" | "pending") =>
       decideFn({ data: { id: row.id, decision, notes } }),
     onSuccess: (_r, decision) => {
-      toast.success(`Marked ${decision}`);
       qc.invalidateQueries({ queryKey: ["admin-media-moderation"] });
       qc.invalidateQueries({ queryKey: ["store-items"] });
+      if (decision === "approved") {
+        toast.success(`Approved: ${row.title}`, {
+          description: "The item is now live on the public storefront.",
+        });
+      } else if (decision === "rejected") {
+        toast.success(`Rejected: ${row.title}`, {
+          description: notes.trim()
+            ? `Creator will see your note: “${notes.trim().slice(0, 120)}${notes.trim().length > 120 ? "…" : ""}”`
+            : "Item is hidden from the storefront. Consider adding a moderator note so the creator knows why.",
+        });
+      } else {
+        toast.success(`Sent back to pending: ${row.title}`, {
+          description: "Item is off the storefront until it's reviewed again.",
+        });
+      }
     },
-    onError: (e) => toast.error((e as Error).message),
+    onError: (e, decision) => {
+      toast.error(`Couldn't mark "${row.title}" as ${decision}`, {
+        description: (e as Error).message || "Please try again.",
+      });
+    },
   });
 
   const removeItem = useMutation({
     mutationFn: () => deleteFn({ data: { id: row.id } }),
     onSuccess: () => {
-      toast.success("Item deleted");
       qc.invalidateQueries({ queryKey: ["admin-media-moderation"] });
       qc.invalidateQueries({ queryKey: ["store-items"] });
+      toast.success(`Deleted: ${row.title}`, {
+        description:
+          "Item, its media, and any purchase records have been permanently removed.",
+      });
     },
-    onError: (e) => toast.error((e as Error).message),
+    onError: (e) => {
+      toast.error(`Couldn't delete "${row.title}"`, {
+        description: (e as Error).message || "Please try again.",
+      });
+    },
   });
 
   const busy = decide.isPending || removeItem.isPending;
