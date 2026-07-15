@@ -438,6 +438,8 @@ function SlotDialog({
     endTime: string;
     isBooked: boolean;
     notes: string;
+    durationMinutes: number | null;
+    priceCents: number | null;
   }) => void;
 }) {
   const now = new Date();
@@ -450,6 +452,12 @@ function SlotDialog({
   );
   const [isBooked, setIsBooked] = useState(initial?.is_booked ?? false);
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [duration, setDuration] = useState<string>(
+    initial?.duration_minutes != null ? String(initial.duration_minutes) : "",
+  );
+  const [priceAud, setPriceAud] = useState<string>(
+    initial?.price_cents != null ? (initial.price_cents / 100).toFixed(2) : "",
+  );
   const [localErr, setLocalErr] = useState<string | null>(null);
 
   const startISO = start ? fromLocalInput(start) : "";
@@ -480,12 +488,32 @@ function SlotDialog({
       );
       return;
     }
+    let durationMinutes: number | null = null;
+    if (duration.trim() !== "") {
+      const n = Number(duration);
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+        setLocalErr("Duration must be a whole number of minutes.");
+        return;
+      }
+      durationMinutes = n;
+    }
+    let priceCents: number | null = null;
+    if (priceAud.trim() !== "") {
+      const n = Number(priceAud);
+      if (!Number.isFinite(n) || n < 0) {
+        setLocalErr("Price must be A$0 or greater.");
+        return;
+      }
+      priceCents = Math.round(n * 100);
+    }
     setLocalErr(null);
     onSubmit({
       startTime: startISO,
       endTime: endISO,
       isBooked,
       notes,
+      durationMinutes,
+      priceCents,
     });
   };
 
