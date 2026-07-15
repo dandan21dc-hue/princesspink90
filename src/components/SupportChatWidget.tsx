@@ -867,13 +867,26 @@ function MessageBubble({
               />
             );
           }
+          if (part.type === "booking") {
+            return (
+              <BookingStatusCard
+                key={i}
+                bookingId={part.bookingId}
+                startsAt={part.startsAt}
+                status={part.status}
+                timezone={timezone}
+              />
+            );
+          }
           return (
-            <BookingStatusCard
+            <LeadFormCard
               key={i}
-              bookingId={part.bookingId}
-              startsAt={part.startsAt}
-              status={part.status}
+              slot={part.slot}
               timezone={timezone}
+              submitted={part.submitted}
+              initial={leadDraft}
+              busy={pendingLeadSlot === part.slot.startsAt}
+              onSubmit={onLeadSubmit}
             />
           );
         })}
