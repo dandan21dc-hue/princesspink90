@@ -698,15 +698,15 @@ export function AdminSettings() {
                       {fetlifeNormalized ? (
                         <>
                           <a
-                            href={`https://fetlife.com/${fetlifeNormalized}`}
+                            href={newFetlifeUrl}
                             target="_blank"
                             rel="noreferrer"
                             className="font-semibold text-primary underline"
                           >
-                            https://fetlife.com/{fetlifeNormalized}
+                            {newFetlifeUrl}
                           </a>
                           <CopyUrlButton
-                            value={`https://fetlife.com/${fetlifeNormalized}`}
+                            value={newFetlifeUrl}
                             label="Copy new FetLife URL"
                           />
                         </>
@@ -715,6 +715,18 @@ export function AdminSettings() {
                       )}
                     </div>
                   </div>
+                  {fetlifeConfirmBlocked && (
+                    <div
+                      role="alert"
+                      className="rounded-md border border-destructive/50 bg-destructive/10 p-2 font-sans text-xs text-destructive"
+                    >
+                      {fetlifeError
+                        ? fetlifeError
+                        : !fetlifeNormalized
+                          ? "Enter a FetLife handle before saving."
+                          : "The preview URL doesn't match the normalized handle — fix the handle and try again."}
+                    </div>
+                  )}
                   <div className="border-t border-border/60 pt-2 text-[10px] uppercase tracking-widest text-muted-foreground/80">
                     Tip: press Esc to cancel, or Ctrl/⌘+Enter to confirm.
                   </div>
