@@ -104,10 +104,18 @@ type StoredMessageRow = {
   created_at: string;
 };
 
+type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [k: string]: Json }
+  | Json[];
+
 export type StoredMessage = {
   id: string;
   role: "user" | "assistant" | "system";
-  parts: unknown[];
+  parts: Json[];
 };
 
 export const getAdminThreadMessages = createServerFn({ method: "POST" })
@@ -135,6 +143,6 @@ export const getAdminThreadMessages = createServerFn({ method: "POST" })
     return ((rows ?? []) as StoredMessageRow[]).map((r) => ({
       id: r.client_id,
       role: r.role,
-      parts: Array.isArray(r.parts) ? (r.parts as unknown[]) : [],
+      parts: Array.isArray(r.parts) ? (r.parts as Json[]) : [],
     }));
   });
