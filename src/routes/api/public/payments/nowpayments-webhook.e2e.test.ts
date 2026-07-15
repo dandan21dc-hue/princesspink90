@@ -294,3 +294,137 @@ describe("NOWPayments webhook — entitlement expiration behavior", () => {
     expect(passIsActive(USER, "live")).toBe(true);
   });
 });
+
+// ---- duplicate delivery across different order IDs ---------------------
+//
+// NOWPayments retries an IPN until it gets a 2xx (up to several days), and
+// operators occasionally reissue an invoice with a rewritten order_id for
+// the same on-chain payment. The webhook must be idempotent *by payment*,
+// not by order — two `finished` deliveries for the same `payment_id` must
+// grant exactly one entitlement, even when the second delivery advertises
+// a different `order_id`.
+describe("NOWPayments webhook — duplicate delivery across different order IDs", () => {
+  const USER_A = "22222222-2222-2222-2222-222222222222";
+
+  it("same payment_id delivered twice with different order IDs grants only once", async () => {
+    const paymentId = 700;
+
+    // First delivery: legitimate order for USER.
+    const first = await handleWebhookRequest(
+      signedRequest({
+        payment_status: "finished",
+        order_id: `aap30d:${USER}:sandbox:1000`,
+        payment_id: paymentId,
+      }),
+    );
+    expect(first.status).toBe(200);
+    const firstJson = (await first.json()) as { handled: boolean; reason?: string };
+    expect(firstJson.handled).toBe(true);
+    expect(firstJson.reason).toBeUndefined();
+    expect(state.rows).toHaveLength(1);
+    expect(state.rows[0].user_id).toBe(USER);
+    expect(state.rows[0].external_payment_reference).toBe(`nowpayments:${paymentId}`);
+
+    // Second delivery: same payment_id, different order_id pointing at a
+    // different user. The ledger's (payment_id, status) key rejects it as
+    // a duplicate before any RPC runs — no new membership, no cross-user
+    // grant leakage.
+    const second = await handleWebhookRequest(
+      signedRequest({
+        payment_status: "finished",
+        order_id: `aap30d:${USER_A}:sandbox:1000`,
+        payment_id: paymentId,
+      }),
+    );
+    expect(second.status).toBe(200);
+    const secondJson = (await second.json()) as { handled: boolean; reason?: string };
+    expect(secondJson.reason).toBe("duplicate_ipn");
+    // Prior outcome was handled=true, so the replay reports handled=true too.
+    expect(secondJson.handled).toBe(true);
+
+    // Critically: still exactly one row, still owned by USER — the rewritten
+    // order_id must not create an entitlement for USER_A.
+    expect(state.rows).toHaveLength(1);
+    expect(state.rows[0].user_id).toBe(USER);
+    expect(passIsActive(USER_A, "sandbox")).toBe(false);
+  });
+
+  it("same payment_id delivered with two different amounts grants only the first", async () => {
+    const paymentId = 701;
+
+    // Real amount from the invoice we issued (1000 cents).
+    await handleWebhookRequest(
+      signedRequest({
+        payment_status: "finished",
+        order_id: `aap30d:${USER}:sandbox:1000`,
+        payment_id: paymentId,
+      }),
+    );
+    expect(state.rows).toHaveLength(1);
+    expect(state.rows[0].amount_cents).toBe(1000);
+
+    // Redelivery with a tampered amount in the order_id — must not overwrite
+    // the row and must not create a second one.
+    const replay = await handleWebhookRequest(
+      signedRequest({
+        payment_status: "finished",
+        order_id: `aap30d:${USER}:sandbox:9999999`,
+        payment_id: paymentId,
+      }),
+    );
+    const replayJson = (await replay.json()) as { reason?: string };
+    expect(replayJson.reason).toBe("duplicate_ipn");
+    expect(state.rows).toHaveLength(1);
+    expect(state.rows[0].amount_cents).toBe(1000);
+  });
+
+  it("two distinct payment_ids for the same order_id grant per-payment but never stack", async () => {
+    // Both invoices reference the same logical order. The ledger keys on
+    // payment_id, so each delivery is processed; but the grant RPC's
+    // "one active pass per user/env" rule refreshes rather than stacks.
+    await handleWebhookRequest(
+      signedRequest({
+        payment_status: "finished",
+        order_id: `aap30d:${USER}:sandbox:1000`,
+        payment_id: 800,
+      }),
+    );
+    expect(state.rows).toHaveLength(1);
+    expect(state.rows[0].external_payment_reference).toBe("nowpayments:800");
+
+    // Second payment, same order_id — either a re-issued invoice or a
+    // secondary payment for the same buyer. Should update the same row,
+    // not create a second one; entitlement window resets to now()+30d.
+    state.nowMs += 3 * 24 * 60 * 60 * 1000;
+    await handleWebhookRequest(
+      signedRequest({
+        payment_status: "finished",
+        order_id: `aap30d:${USER}:sandbox:1000`,
+        payment_id: 801,
+      }),
+    );
+    expect(state.rows).toHaveLength(1);
+    expect(state.rows[0].external_payment_reference).toBe("nowpayments:801");
+    const daysLeft = (state.rows[0].expires_at.getTime() - state.nowMs) / (24 * 60 * 60 * 1000);
+    expect(daysLeft).toBe(30);
+  });
+
+  it("redelivery of an already-handled payment reports duplicate but stays handled=true", async () => {
+    const body = {
+      payment_status: "finished",
+      order_id: `aap30d:${USER}:sandbox:1000`,
+      payment_id: 900,
+    };
+    const first = await handleWebhookRequest(signedRequest(body));
+    expect(((await first.json()) as { handled: boolean }).handled).toBe(true);
+
+    for (let i = 0; i < 3; i++) {
+      const res = await handleWebhookRequest(signedRequest(body));
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { handled: boolean; reason?: string };
+      expect(json.reason).toBe("duplicate_ipn");
+      expect(json.handled).toBe(true);
+    }
+    expect(state.rows).toHaveLength(1);
+  });
+});
