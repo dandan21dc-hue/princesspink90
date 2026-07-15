@@ -174,6 +174,24 @@ function AdminNowpaymentsEvents() {
     },
   });
 
+  const bulk = useMutation({
+    mutationFn: (input: { keys: Array<{ paymentId: string; lastStatus: string }>; action: NowpaymentsBulkAction; note?: string }) =>
+      bulkFn({ data: input }),
+    onSuccess: (res) => {
+      if (res.failed.length === 0) {
+        toast.success(`Updated ${res.updated} of ${res.total} event(s).`);
+      } else {
+        toast.warning(`Updated ${res.updated}/${res.total} — ${res.failed.length} failed. First error: ${res.failed[0]?.error}`);
+      }
+      setBulkAction(null);
+      setBulkNote("");
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["admin-nowpayments-events"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
+
   if (me.isLoading) {
     return (
       <Shell>
