@@ -52,12 +52,21 @@ function AdminAllAccess() {
     enabled: !!searched && me.data?.isAdmin === true,
   });
 
+  const targetUserId = lookup.data?.user?.id ?? null;
+
+  const audit = useQuery({
+    queryKey: ["admin-all-access-audit", targetUserId],
+    queryFn: () => auditFn({ data: { userId: targetUserId ?? undefined, limit: 25 } }),
+    enabled: me.data?.isAdmin === true && !!targetUserId,
+  });
+
   const grant = useMutation({
     mutationFn: (kind: "term_pass_all_access_30d" | "lifetime") =>
       grantFn({ data: { userId: lookup.data!.user!.id, kind } }),
     onSuccess: (_, kind) => {
       toast.success(kind === "lifetime" ? "Lifetime granted" : "30-day pass granted");
       qc.invalidateQueries({ queryKey: ["admin-all-access-lookup"] });
+      qc.invalidateQueries({ queryKey: ["admin-all-access-audit"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -67,9 +76,11 @@ function AdminAllAccess() {
     onSuccess: () => {
       toast.success("Membership revoked");
       qc.invalidateQueries({ queryKey: ["admin-all-access-lookup"] });
+      qc.invalidateQueries({ queryKey: ["admin-all-access-audit"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   if (me.isLoading) return <Shell><p className="text-muted-foreground">Loading…</p></Shell>;
   if (!me.data?.isAdmin) {
