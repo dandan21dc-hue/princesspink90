@@ -345,6 +345,39 @@ function NewContentPage() {
             JPG, PNG, WEBP, GIF, or AVIF · up to 15 MB.
           </p>
           {coverUrl && <img src={coverUrl} alt="" className="mt-3 h-40 w-40 rounded-md object-cover" />}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={runAutoFill}
+              disabled={!coverUrl || autoFilling}
+              title={coverUrl ? "Auto-fill title, description, price & tags from the cover image" : "Upload a cover image first"}
+              className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {autoFilling ? (
+                <>
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
+                  Auto-filling…
+                </>
+              ) : (
+                <>✨ AI Auto-Fill Form</>
+              )}
+            </button>
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] uppercase tracking-widest text-primary"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            AI drafts populate title, description, price (AUD) & tags. Review before publishing.
+          </p>
         </Field>
 
 
