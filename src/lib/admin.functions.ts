@@ -800,6 +800,49 @@ export const adminListAllAccessAudit = createServerFn({ method: "POST" })
 
 // ---------- NOWPayments IPN event browser (admin) ----------
 
+// Local parser mirrors src/routes/api/public/payments/nowpayments-webhook.ts.
+// Duplicated intentionally to avoid pulling a route module into a server fn.
+const NPE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type NpeParsedOrder =
+  | { kind: "aap30d" | "lifetime"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "panty"; pantyListingId: string; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "booking"; bookingId: string; userId: string; environment: "sandbox" | "live"; amountCents: number };
+
+function parseOrderId(orderId: string | null | undefined): NpeParsedOrder | null {
+  if (!orderId) return null;
+  const parts = orderId.split(":");
+  const parseEnv = (v: string) => (v === "sandbox" || v === "live" ? (v as "sandbox" | "live") : null);
+  const parseAmount = (v: string) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 && Number.isInteger(n) ? n : null;
+  };
+  if (parts.length === 4) {
+    const [kind, userId, envRaw, amountRaw] = parts;
+    if (kind !== "aap30d" && kind !== "lifetime") return null;
+    if (!NPE_UUID_RE.test(userId)) return null;
+    const environment = parseEnv(envRaw);
+    if (!environment) return null;
+    const amountCents = parseAmount(amountRaw);
+    if (amountCents == null) return null;
+    return { kind: kind as "aap30d" | "lifetime", userId, environment, amountCents };
+  }
+  if (parts.length === 5) {
+    const [kind, entityId, userId, envRaw, amountRaw] = parts;
+    if (kind !== "panty" && kind !== "booking") return null;
+    if (!NPE_UUID_RE.test(entityId) || !NPE_UUID_RE.test(userId)) return null;
+    const environment = parseEnv(envRaw);
+    if (!environment) return null;
+    const amountCents = parseAmount(amountRaw);
+    if (amountCents == null) return null;
+    if (kind === "panty") {
+      return { kind: "panty", pantyListingId: entityId, userId, environment, amountCents };
+    }
+    return { kind: "booking", bookingId: entityId, userId, environment, amountCents };
+  }
+  return null;
+}
+
+
 export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
