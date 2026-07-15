@@ -137,6 +137,47 @@ function writeStoredTimezone(tz: string) {
   }
 }
 
+// --- Lead details (name/email/phone) -----------------------------------
+const LEAD_KEY = "concierge:lead:v1";
+const EMPTY_LEAD: LeadDetails = { name: "", email: "", phone: "" };
+
+function readStoredLead(): LeadDetails | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(LEAD_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LeadDetails>;
+    if (!parsed?.name || !parsed?.email || !parsed?.phone) return null;
+    return { name: parsed.name, email: parsed.email, phone: parsed.phone };
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredLead(lead: LeadDetails) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LEAD_KEY, JSON.stringify(lead));
+  } catch {
+    /* quota — ignore */
+  }
+}
+
+function validateLead(lead: LeadDetails): string | null {
+  const name = lead.name.trim();
+  const email = lead.email.trim();
+  const phone = lead.phone.trim();
+  if (name.length < 2) return "Please enter your name.";
+  if (name.length > 120) return "Name is too long.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email.";
+  if (email.length > 255) return "Email is too long.";
+  if (phone.replace(/\D/g, "").length < 6) return "Please enter a valid phone number.";
+  if (phone.length > 40) return "Phone number is too long.";
+  return null;
+}
+
+
+
 
 const TERMINAL_STATUSES = new Set(["confirmed", "cancelled", "failed", "refunded"]);
 
