@@ -58,7 +58,23 @@ vi.mock("@/lib/admin.functions", () => ({
   amIAdmin: vi.fn(async () => ({ isAdmin: true })),
 }));
 
-const ROW = {
+type Row = {
+  id: string;
+  kind: string;
+  title: string;
+  description: string | null;
+  cover_url: string | null;
+  media_urls: Array<{ url: string; type?: string }>;
+  creator_id: string;
+  published: boolean;
+  moderation_status: "pending" | "approved" | "rejected";
+  moderation_notes: string | null;
+  moderation_reviewed_at: string | null;
+  moderation_submitted_at: string;
+  created_at: string;
+};
+
+const ROW: Row = {
   id: "item-1",
   kind: "photo",
   title: "Sunset Shoot",
@@ -67,21 +83,21 @@ const ROW = {
   media_urls: [],
   creator_id: "creator-1",
   published: false,
-  moderation_status: "pending" as const,
+  moderation_status: "pending",
   moderation_notes: null,
   moderation_reviewed_at: null,
   moderation_submitted_at: new Date("2025-01-01T00:00:00Z").toISOString(),
   created_at: new Date("2025-01-01T00:00:00Z").toISOString(),
 };
 
-const mockListQueue = vi.fn(async () => [ROW]);
+const mockListQueue = vi.fn<() => Promise<Row[]>>(async () => [ROW]);
 const mockModerate = vi.fn(async (_args: unknown) => ({ ok: true }));
 const mockDelete = vi.fn(async (_args: unknown) => ({ ok: true }));
 const mockListAudit = vi.fn(async () => []);
 const mockGetUrl = vi.fn(async () => ({ url: "https://example.test/x" }));
 
 vi.mock("@/lib/store.functions", () => ({
-  adminListModerationQueue: (args: unknown) => mockListQueue(),
+  adminListModerationQueue: () => mockListQueue(),
   adminModerateContentItem: (args: unknown) => mockModerate(args),
   adminDeleteContentItem: (args: unknown) => mockDelete(args),
   adminListModerationAudit: () => mockListAudit(),
