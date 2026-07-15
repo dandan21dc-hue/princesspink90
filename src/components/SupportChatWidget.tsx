@@ -149,13 +149,15 @@ function statusLabel(status: string): { label: string; tone: "info" | "warn" | "
   }
 }
 
-function statusNarration(status: string, startsAt: string): string {
+function statusNarration(status: string, startsAt: string, timeZone?: string): string {
   const when = new Date(startsAt).toLocaleString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone,
+    timeZoneName: timeZone ? "short" : undefined,
   });
   switch (status) {
     case "confirmed":
