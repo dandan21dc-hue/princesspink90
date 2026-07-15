@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
 import type { MapPin } from "@/lib/map-pins.functions";
 import { getPublicMapboxToken } from "@/lib/mapbox-token";
 
@@ -45,7 +44,7 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId, isLoadi
       container: containerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center: initialCenter,
-      zoom: sortedPins.length > 1 ? 3 : 11,
+      zoom: sortedPins.length > 1 ? 3 : 12,
       attributionControl: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: false }), "top-right");
@@ -117,7 +116,7 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId, isLoadi
       className={`relative w-full rounded-xl overflow-hidden border border-border/60 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.35)] ${className ?? ""}`}
       style={{ minHeight: 420, width: "100%" }}
     >
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0" style={{ width: "100%", height: "100%" }} />
       {showCount && (
         <div
           role="status"
