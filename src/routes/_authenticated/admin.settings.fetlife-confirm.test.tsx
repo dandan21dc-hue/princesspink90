@@ -303,10 +303,12 @@ describe("admin settings — FetLife confirmation gate", () => {
       expect(mockToast.error).toHaveBeenCalledTimes(1);
     });
     const [errTitle, errOpts] = mockToast.error.mock.calls[0]!;
-    expect(String(errTitle)).toMatch(/couldn't save settings/i);
-    expect(
-      String((errOpts as { description?: string }).description),
-    ).toMatch(/server exploded/i);
+    expect(String(errTitle)).toMatch(/couldn't save fetlife handle/i);
+    const errDesc = String((errOpts as { description?: string }).description);
+    expect(errDesc).toMatch(/server exploded/i);
+    // Description also reassures the admin the public link is unchanged.
+    expect(errDesc).toContain(SAVED.fetlife_handle);
+
 
     // Success surface must stay dark: no success toast, no "Saved ✓" indicator.
     expect(mockToast.success).not.toHaveBeenCalled();
