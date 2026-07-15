@@ -116,6 +116,10 @@ export function AdminSettings() {
   // Populated in the mutation's onError when the server rejects the email;
   // cleared as the admin edits the field or a save succeeds.
   const [serverEmailError, setServerEmailError] = useState<string | null>(null);
+  // Server-side rejection for the FetLife handle. Populated when a confirmed
+  // save fails so we can echo the exact message inline under the input
+  // (alongside the toast); cleared on edit or on a successful save.
+  const [serverFetlifeError, setServerFetlifeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings.data) {
@@ -259,6 +263,7 @@ export function AdminSettings() {
     onSuccess: ({ changes }) => {
       setSaved(true);
       setServerEmailError(null);
+      setServerFetlifeError(null);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
@@ -288,6 +293,8 @@ export function AdminSettings() {
     onError: (err) => {
       setServerEmailError(extractEmailValidationMessage(err));
       const message = err instanceof Error ? err.message : "Please try again.";
+      const attemptForInline = lastAttemptFetlifeChangeRef.current;
+      if (attemptForInline?.changed) setServerFetlifeError(message);
       const attempt = lastAttemptFetlifeChangeRef.current;
       if (attempt?.changed) {
         // FetLife-specific failure toast: name the field explicitly, echo the
@@ -452,12 +459,18 @@ export function AdminSettings() {
             required
             maxLength={100}
             value={fetlife}
-            aria-invalid={fetlifeError !== null}
-            aria-errormessage={fetlifeError ? "fetlife-handle-error" : undefined}
-            onChange={(e) => setFetlife(e.target.value)}
+            aria-invalid={fetlifeError !== null || serverFetlifeError !== null}
+            aria-errormessage={
+              fetlifeError || serverFetlifeError ? "fetlife-handle-error" : undefined
+            }
+            onChange={(e) => {
+              setFetlife(e.target.value);
+              // Editing dismisses any prior server-side rejection for this field.
+              if (serverFetlifeError) setServerFetlifeError(null);
+            }}
             onBlur={() => setFetlife((v) => normalizeFetlifeHandle(v))}
             className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
-              fetlifeError ? "border-destructive" : "border-border"
+              fetlifeError || serverFetlifeError ? "border-destructive" : "border-border"
             }`}
           />
           {/* role="alert" + aria-live announce the error the moment it appears
@@ -468,7 +481,7 @@ export function AdminSettings() {
             aria-live="polite"
             className="mt-1 text-[11px] text-destructive"
           >
-            {fetlifeError ?? ""}
+            {fetlifeError ?? (serverFetlifeError ? `Server rejected this handle: ${serverFetlifeError}` : "")}
           </div>
         </Field>
         <ContactLinkPreview
