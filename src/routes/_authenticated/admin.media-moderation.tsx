@@ -148,6 +148,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-media-moderation"] });
       qc.invalidateQueries({ queryKey: ["store-items"] });
+      qc.invalidateQueries({ queryKey: ["admin-moderation-audit"] });
       toast.success(`Deleted: ${row.title}`, {
         description:
           "Item, its media, and any purchase records have been permanently removed.",
