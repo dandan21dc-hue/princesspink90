@@ -51,7 +51,7 @@ export const Route = createFileRoute("/store")({
             "Browse and buy individual photo sets and video clips from Midnight Glory's Media Boutique.",
           mainEntity: {
             "@type": "ItemList",
-            itemListElement: (loaderData ?? []).slice(0, 50).map((item, i) => ({
+            itemListElement: (loaderData ?? []).slice(0, 50).map((item: { id: string; title: string }, i: number) => ({
               "@type": "ListItem",
               position: i + 1,
               url: `https://princesspink90.lovable.app/store/${item.id}`,
