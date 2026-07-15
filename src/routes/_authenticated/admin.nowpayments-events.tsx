@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
@@ -44,8 +46,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy, Download, StickyNote, CheckSquare, Square } from "lucide-react";
 
 
+const searchSchema = z.object({
+  status: fallback(z.string(), "all").default("all"),
+  handled: fallback(z.string(), "all").default("all"),
+  reversal: fallback(z.string(), "all").default("all"),
+  sort: fallback(z.string(), "last_seen_desc").default("last_seen_desc"),
+  q: fallback(z.string(), "").default(""),
+  page: fallback(z.number().int(), 1).default(1),
+  pageSize: fallback(z.number().int(), 50).default(50),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/nowpayments-events")({
   head: () => ({ meta: [{ title: "NOWPayments IPN Events · Admin" }] }),
+  validateSearch: zodValidator(searchSchema),
   component: AdminNowpaymentsEvents,
 });
 
@@ -109,14 +122,31 @@ function AdminNowpaymentsEvents() {
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
 
-  const [status, setStatus] = useState<string>("all");
-  const [handled, setHandled] = useState<"all" | "handled" | "unhandled">("all");
-  const [reversal, setReversal] = useState<ReversalFilter>("all");
-  const [sort, setSort] = useState<SortMode>("last_seen_desc");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const urlSearch = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+
+  const HANDLED_VALUES = ["all", "handled", "unhandled"] as const;
+  const REVERSAL_VALUES: ReversalFilter[] = ["all", "any", "revoked", "suspended"];
+  const SORT_VALUES = Object.keys(SORT_LABELS) as SortMode[];
+  const initialHandled = (HANDLED_VALUES as readonly string[]).includes(urlSearch.handled)
+    ? (urlSearch.handled as "all" | "handled" | "unhandled")
+    : "all";
+  const initialReversal = (REVERSAL_VALUES as string[]).includes(urlSearch.reversal)
+    ? (urlSearch.reversal as ReversalFilter)
+    : "all";
+  const initialSort = (SORT_VALUES as string[]).includes(urlSearch.sort)
+    ? (urlSearch.sort as SortMode)
+    : "last_seen_desc";
+  const initialStatus = STATUS_OPTIONS.includes(urlSearch.status) ? urlSearch.status : "all";
+
+  const [status, setStatus] = useState<string>(initialStatus);
+  const [handled, setHandled] = useState<"all" | "handled" | "unhandled">(initialHandled);
+  const [reversal, setReversal] = useState<ReversalFilter>(initialReversal);
+  const [sort, setSort] = useState<SortMode>(initialSort);
+  const [searchInput, setSearchInput] = useState(urlSearch.q);
+  const [search, setSearch] = useState(urlSearch.q);
+  const [page, setPage] = useState<number>(urlSearch.page);
+  const [pageSize, setPageSize] = useState<number>(urlSearch.pageSize);
   const [autoRefresh, setAutoRefresh] = useState<number>(0); // seconds; 0 = off
   const [exportScope, setExportScope] = useState<"page" | "all">("page");
   const [isExporting, setIsExporting] = useState(false);
@@ -165,6 +195,25 @@ function AdminNowpaymentsEvents() {
     }
   }, [customPresets, presetsLoaded]);
 
+
+  // Sync current filter/search/sort/page state → URL query params so the view is
+  // shareable and reloadable. Uses replace: true so state changes don't spam
+  // browser history.
+  useEffect(() => {
+    navigate({
+      search: {
+        status,
+        handled,
+        reversal,
+        sort,
+        q: search,
+        page,
+        pageSize,
+      },
+      replace: true,
+      resetScroll: false,
+    });
+  }, [status, handled, reversal, sort, search, page, pageSize, navigate]);
 
 
   // Reset to page 1 whenever filters/search/sort/pageSize change.
