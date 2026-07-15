@@ -366,18 +366,73 @@ function AdminNowpaymentsEvents() {
               <RefreshCw className="h-4 w-4" />
             )}
           </Button>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Export scope
+            </label>
+            <Select value={exportScope} onValueChange={(v) => setExportScope(v as "page" | "all")}>
+              <SelectTrigger className="mt-1 w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="page">This page ({items.length})</SelectItem>
+                <SelectItem value="all">All filtered ({totalCount})</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button
             type="button"
             variant="outline"
-            onClick={() => exportEventsCsv(items, { status, handled, reversal, sort, search })}
-            disabled={items.length === 0}
+            onClick={async () => {
+              if (exportScope === "page") {
+                exportEventsCsv(items, { status, handled, reversal, sort, search });
+                return;
+              }
+              if (totalCount === 0) return;
+              setIsExporting(true);
+              try {
+                const all: EventItem[] = [];
+                const chunkSize = 500;
+                const totalPages = Math.max(1, Math.ceil(totalCount / chunkSize));
+                for (let p = 1; p <= totalPages; p++) {
+                  const res = await listFn({
+                    data: {
+                      page: p,
+                      pageSize: chunkSize,
+                      status: status === "all" ? undefined : status,
+                      handled,
+                      reversal,
+                      sort,
+                      search: search || undefined,
+                    },
+                  });
+                  all.push(...(res.items as EventItem[]));
+                  if (res.items.length < chunkSize) break;
+                }
+                exportEventsCsv(all, { status, handled, reversal, sort, search });
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : String(err));
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+            disabled={isExporting || (exportScope === "page" ? items.length === 0 : totalCount === 0)}
             title={
-              items.length === 0
-                ? "No rows to export"
-                : `Download ${items.length} filtered event(s) as CSV`
+              exportScope === "page"
+                ? items.length === 0
+                  ? "No rows to export"
+                  : `Download ${items.length} event(s) on this page as CSV`
+                : totalCount === 0
+                  ? "No rows to export"
+                  : `Download all ${totalCount} filtered event(s) as CSV`
             }
           >
-            <Download className="h-4 w-4 mr-1" /> Export CSV
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            Export CSV
           </Button>
         </form>
 
