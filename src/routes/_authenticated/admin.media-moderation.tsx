@@ -362,6 +362,7 @@ function ItemRow({
           aria-controls={`moderation-history-${row.id}`}
         >
           {historyOpen ? "Hide history" : "History"}
+          <span className="sr-only"> for {row.title}</span>
         </button>
         <button
           type="button"
@@ -372,13 +373,15 @@ function ItemRow({
           title="Permanently remove this item and its media"
         >
           {removeItem.isPending ? "Deleting…" : "Delete"}
+          <span className="sr-only"> {row.title}</span>
         </button>
       </div>
       {historyOpen && (
         <div id={`moderation-history-${row.id}`} className="mt-4">
-          <ItemHistory contentItemId={row.id} />
+          <ItemHistory contentItemId={row.id} itemTitle={row.title} />
         </div>
       )}
+
 
       <AlertDialog open={confirmReject} onOpenChange={setConfirmReject}>
         <AlertDialogContent>
