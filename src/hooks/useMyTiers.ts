@@ -45,6 +45,9 @@ type TiersData = Omit<MyTiersState, "refresh">;
 
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
   all_access_30d_aud: false,
+  all_access_90d_aud: false,
+  all_access_180d_aud: false,
+  all_access_365d_aud: false,
   lifetime_onetime_aud: false,
 };
 
