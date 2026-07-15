@@ -611,6 +611,65 @@ describe("admin settings — FetLife confirmation gate", () => {
     });
   });
 
+  it("marks the dialog aria-busy, announces the save via a live region, and keeps focus inside the dialog", async () => {
+    // A11y regression guard: while the mutation is in flight the whole
+    // dialog must be aria-busy so SR pauses page updates, a polite live
+    // region must announce "Saving…", and focus must stay parked on the
+    // still-focusable confirm button (using aria-disabled, not `disabled`)
+    // so Radix's FocusScope doesn't lose the trap and dump focus on body.
+    let resolveSave: ((value: { ok: true }) => void) | null = null;
+    mockUpdateSiteSettings.mockImplementationOnce(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle) as HTMLInputElement;
+    fireEvent.change(fetInput, { target: { value: "A11y-Handle" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+    const confirmBtn = within(dialog).getByRole("button", {
+      name: /yes, update handle/i,
+    }) as HTMLButtonElement;
+    // Focus the confirm button (mirrors a keyboard user Tabbing to it) so we
+    // can prove focus is retained after it flips to the "Saving…" state.
+    confirmBtn.focus();
+    expect(document.activeElement).toBe(confirmBtn);
+
+    fireEvent.click(confirmBtn);
+
+    // Dialog element itself is announced as busy while the mutation runs.
+    await waitFor(() => {
+      expect(dialog.getAttribute("aria-busy")).toBe("true");
+    });
+
+    // A polite live region inside the dialog surfaces the in-flight message
+    // to assistive tech without stealing focus.
+    const status = within(dialog).getByRole("status");
+    expect(status.getAttribute("aria-live")).toBe("polite");
+    expect(status.textContent).toMatch(/saving fetlife handle change/i);
+
+    // Focus stays on the confirm button (now labelled "Saving…"), NOT on
+    // <body>. This is the whole point of using aria-disabled instead of the
+    // HTML `disabled` attribute: `disabled` yanks focus outside the trap.
+    const savingBtn = within(dialog).getByRole("button", {
+      name: /saving…/i,
+    });
+    expect(document.activeElement).toBe(savingBtn);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    // Resolve; dialog closes cleanly and the live region unmounts with it.
+    (resolveSave as ((value: { ok: true }) => void) | null)?.({ ok: true });
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+    });
+  });
+
   it.each([
     {
       outcome: "success" as const,
