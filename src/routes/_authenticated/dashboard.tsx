@@ -96,6 +96,8 @@ const GROUPS: NavGroup[] = [
       { label: "Availability Manager", to: "/admin/availability", icon: CalendarDays, adminOnly: true },
       { label: "Secondary Room Sessions", to: "/admin/secondary-room-sessions", icon: CalendarDays, adminOnly: true },
       { label: "Free-Entry Perks", to: "/admin/perks", icon: Gift, adminOnly: true },
+      { label: "Rewards Manager", to: "/admin/rewards", icon: Gift, adminOnly: true },
+      { label: "Rewards Gallery", to: "/rewards", icon: Gift },
       { label: "Map Pins / Venues", to: "/admin/map-pins", icon: MapPin, adminOnly: true },
       { label: "Host an Event", to: "/events/new", icon: PartyPopper },
 

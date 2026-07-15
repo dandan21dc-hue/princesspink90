@@ -39,6 +39,7 @@ import { Route as CheckoutCartRouteImport } from './routes/checkout.cart'
 import { Route as ApiChatRouteImport } from './routes/api/chat'
 import { Route as AuthenticatedVerifyRouteImport } from './routes/_authenticated/verify'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
+import { Route as AuthenticatedRewardsRouteImport } from './routes/_authenticated/rewards'
 import { Route as AuthenticatedLibraryRouteImport } from './routes/_authenticated/library'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCohostApplyRouteImport } from './routes/_authenticated/cohost-apply'
@@ -65,6 +66,7 @@ import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
 import { Route as AuthenticatedAdminSecondaryRoomSessionsRouteImport } from './routes/_authenticated/admin.secondary-room-sessions'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
+import { Route as AuthenticatedAdminRewardsRouteImport } from './routes/_authenticated/admin.rewards'
 import { Route as AuthenticatedAdminPerksRouteImport } from './routes/_authenticated/admin.perks'
 import { Route as AuthenticatedAdminPaymentIntegrityRouteImport } from './routes/_authenticated/admin.payment-integrity'
 import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_authenticated/admin.partnerships'
@@ -270,6 +272,11 @@ const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
   path: '/support',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRewardsRoute = AuthenticatedRewardsRouteImport.update({
+  id: '/rewards',
+  path: '/rewards',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedLibraryRoute = AuthenticatedLibraryRouteImport.update({
   id: '/library',
   path: '/library',
@@ -413,6 +420,12 @@ const AuthenticatedAdminSafetyIncidentsRoute =
   AuthenticatedAdminSafetyIncidentsRouteImport.update({
     id: '/admin/safety-incidents',
     path: '/admin/safety-incidents',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminRewardsRoute =
+  AuthenticatedAdminRewardsRouteImport.update({
+    id: '/admin/rewards',
+    path: '/admin/rewards',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminPerksRoute = AuthenticatedAdminPerksRouteImport.update({
@@ -769,6 +782,7 @@ export interface FileRoutesByFullPath {
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
@@ -809,6 +823,7 @@ export interface FileRoutesByFullPath {
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
+  '/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -880,6 +895,7 @@ export interface FileRoutesByTo {
   '/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/library': typeof AuthenticatedLibraryRoute
+  '/rewards': typeof AuthenticatedRewardsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
@@ -919,6 +935,7 @@ export interface FileRoutesByTo {
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
+  '/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -993,6 +1010,7 @@ export interface FileRoutesById {
   '/_authenticated/cohost-apply': typeof AuthenticatedCohostApplyRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/library': typeof AuthenticatedLibraryRoute
+  '/_authenticated/rewards': typeof AuthenticatedRewardsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/verify': typeof AuthenticatedVerifyRoute
   '/api/chat': typeof ApiChatRoute
@@ -1033,6 +1051,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/_authenticated/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
+  '/_authenticated/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
@@ -1107,6 +1126,7 @@ export interface FileRouteTypes {
     | '/cohost-apply'
     | '/dashboard'
     | '/library'
+    | '/rewards'
     | '/support'
     | '/verify'
     | '/api/chat'
@@ -1147,6 +1167,7 @@ export interface FileRouteTypes {
     | '/admin/partnerships'
     | '/admin/payment-integrity'
     | '/admin/perks'
+    | '/admin/rewards'
     | '/admin/safety-incidents'
     | '/admin/secondary-room-sessions'
     | '/admin/settings'
@@ -1218,6 +1239,7 @@ export interface FileRouteTypes {
     | '/cohost-apply'
     | '/dashboard'
     | '/library'
+    | '/rewards'
     | '/support'
     | '/verify'
     | '/api/chat'
@@ -1257,6 +1279,7 @@ export interface FileRouteTypes {
     | '/admin/partnerships'
     | '/admin/payment-integrity'
     | '/admin/perks'
+    | '/admin/rewards'
     | '/admin/safety-incidents'
     | '/admin/secondary-room-sessions'
     | '/admin/settings'
@@ -1330,6 +1353,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cohost-apply'
     | '/_authenticated/dashboard'
     | '/_authenticated/library'
+    | '/_authenticated/rewards'
     | '/_authenticated/support'
     | '/_authenticated/verify'
     | '/api/chat'
@@ -1370,6 +1394,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/partnerships'
     | '/_authenticated/admin/payment-integrity'
     | '/_authenticated/admin/perks'
+    | '/_authenticated/admin/rewards'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/secondary-room-sessions'
     | '/_authenticated/admin/settings'
@@ -1683,6 +1708,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSupportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/rewards': {
+      id: '/_authenticated/rewards'
+      path: '/rewards'
+      fullPath: '/rewards'
+      preLoaderRoute: typeof AuthenticatedRewardsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/library': {
       id: '/_authenticated/library'
       path: '/library'
@@ -1863,6 +1895,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/safety-incidents'
       fullPath: '/admin/safety-incidents'
       preLoaderRoute: typeof AuthenticatedAdminSafetyIncidentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/rewards': {
+      id: '/_authenticated/admin/rewards'
+      path: '/admin/rewards'
+      fullPath: '/admin/rewards'
+      preLoaderRoute: typeof AuthenticatedAdminRewardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/perks': {
@@ -2324,6 +2363,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCohostApplyRoute: typeof AuthenticatedCohostApplyRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLibraryRoute: typeof AuthenticatedLibraryRoute
+  AuthenticatedRewardsRoute: typeof AuthenticatedRewardsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedAdminActivityAuditRoute: typeof AuthenticatedAdminActivityAuditRoute
@@ -2352,6 +2392,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRouteWithChildren
   AuthenticatedAdminPaymentIntegrityRoute: typeof AuthenticatedAdminPaymentIntegrityRoute
   AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
+  AuthenticatedAdminRewardsRoute: typeof AuthenticatedAdminRewardsRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSecondaryRoomSessionsRoute: typeof AuthenticatedAdminSecondaryRoomSessionsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
@@ -2376,6 +2417,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCohostApplyRoute: AuthenticatedCohostApplyRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLibraryRoute: AuthenticatedLibraryRoute,
+  AuthenticatedRewardsRoute: AuthenticatedRewardsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedAdminActivityAuditRoute: AuthenticatedAdminActivityAuditRoute,
@@ -2415,6 +2457,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminPaymentIntegrityRoute:
     AuthenticatedAdminPaymentIntegrityRoute,
   AuthenticatedAdminPerksRoute: AuthenticatedAdminPerksRoute,
+  AuthenticatedAdminRewardsRoute: AuthenticatedAdminRewardsRoute,
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
   AuthenticatedAdminSecondaryRoomSessionsRoute:
