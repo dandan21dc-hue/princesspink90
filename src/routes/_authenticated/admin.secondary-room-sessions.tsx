@@ -849,7 +849,11 @@ function BulkAddDialog({
 }: {
   pending: boolean;
   onCancel: () => void;
-  onSubmit: (slots: Array<{ startTime: string; endTime: string }>) => void;
+  onSubmit: (v: {
+    slots: Array<{ startTime: string; endTime: string }>;
+    durationMinutes: number | null;
+    priceCents: number | null;
+  }) => void;
 }) {
   const today = new Date();
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
