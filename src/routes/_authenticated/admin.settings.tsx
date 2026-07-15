@@ -975,6 +975,7 @@ function CopyUrlButton({
   value,
   label,
   kindLabel,
+  disabled = false,
 }: {
   value: string;
   label: string;
@@ -985,7 +986,14 @@ function CopyUrlButton({
    * so screen readers hear the result inline.
    */
   kindLabel: string;
+  /**
+   * Disable the button while the FetLife handle save is in-flight. Prevents
+   * rapid repeated clicks from firing while the underlying URL value may be
+   * about to change (current becomes stale, new becomes current).
+   */
+  disabled?: boolean;
 }) {
+
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<null | { kind: "ok" | "err"; message: string }>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
