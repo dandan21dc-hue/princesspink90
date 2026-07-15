@@ -23,6 +23,12 @@ const inputSchema = z.object({
   bookingStartsAt: z.string().datetime(),
   bookingNotes: z.string().max(1000).optional(),
   bookingPartySize: z.number().int().min(1).max(10).optional(),
+  // Optional pre-checkout lead capture (e.g. from the concierge chat form).
+  // Server still trusts the authenticated user id for authorization; these
+  // are purely contact details persisted onto the booking row.
+  customerName: z.string().trim().min(1).max(120).optional(),
+  customerEmail: z.string().trim().email().max(255).optional(),
+  customerPhone: z.string().trim().min(4).max(40).optional(),
 });
 
 type Success = { invoiceUrl: string; bookingId: string };
@@ -75,7 +81,20 @@ export const createBookingInvoice = createServerFn({ method: "POST" })
       }
 
       const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(context.userId);
-      const customerEmail = authUser.user?.email ?? null;
+      const authEmail = authUser.user?.email ?? null;
+      const customerEmail = data.customerEmail ?? authEmail;
+
+      // Merge lead contact into the booking notes so admins see it on the
+      // booking row (schema has no dedicated name/phone columns).
+      const contactLines = [
+        data.customerName ? `Name: ${data.customerName}` : null,
+        data.customerPhone ? `Phone: ${data.customerPhone}` : null,
+      ].filter(Boolean);
+      const notesBody = data.bookingNotes?.trim() || null;
+      const mergedNotes =
+        contactLines.length > 0
+          ? [contactLines.join(" · "), notesBody].filter(Boolean).join("\n")
+          : notesBody;
 
       const { data: booking, error: insertErr } = await supabaseAdmin
         .from("private_room_bookings")
@@ -88,7 +107,7 @@ export const createBookingInvoice = createServerFn({ method: "POST" })
           currency: "aud",
           environment: data.environment,
           customer_email: customerEmail,
-          notes: data.bookingNotes ?? null,
+          notes: mergedNotes,
           party_size: data.bookingPartySize ?? null,
         })
         .select("id")

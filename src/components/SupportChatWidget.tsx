@@ -40,6 +40,8 @@ type BookingStatus =
   | "refunded"
   | string;
 
+type LeadDetails = { name: string; email: string; phone: string };
+
 type MessagePart =
   | { type: "text"; text: string }
   | { type: "slots"; slots: ConciergeSlot[] }
@@ -49,6 +51,13 @@ type MessagePart =
       bookingId: string;
       startsAt: string;
       status: BookingStatus;
+    }
+  | {
+      type: "lead";
+      /** Slot the form was raised for so we can resume the confirm on submit. */
+      slot: ConciergeSlot;
+      /** Filled once the user submits — freezes the card into a summary. */
+      submitted?: LeadDetails;
     };
 
 type ChatMessage = {
@@ -127,6 +136,47 @@ function writeStoredTimezone(tz: string) {
     /* ignore quota */
   }
 }
+
+// --- Lead details (name/email/phone) -----------------------------------
+const LEAD_KEY = "concierge:lead:v1";
+const EMPTY_LEAD: LeadDetails = { name: "", email: "", phone: "" };
+
+function readStoredLead(): LeadDetails | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(LEAD_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LeadDetails>;
+    if (!parsed?.name || !parsed?.email || !parsed?.phone) return null;
+    return { name: parsed.name, email: parsed.email, phone: parsed.phone };
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredLead(lead: LeadDetails) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LEAD_KEY, JSON.stringify(lead));
+  } catch {
+    /* quota — ignore */
+  }
+}
+
+function validateLead(lead: LeadDetails): string | null {
+  const name = lead.name.trim();
+  const email = lead.email.trim();
+  const phone = lead.phone.trim();
+  if (name.length < 2) return "Please enter your name.";
+  if (name.length > 120) return "Name is too long.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Please enter a valid email.";
+  if (email.length > 255) return "Email is too long.";
+  if (phone.replace(/\D/g, "").length < 6) return "Please enter a valid phone number.";
+  if (phone.length > 40) return "Phone number is too long.";
+  return null;
+}
+
+
 
 
 const TERMINAL_STATUSES = new Set(["confirmed", "cancelled", "failed", "refunded"]);
@@ -235,6 +285,14 @@ export function SupportChatWidget() {
   const [timezone, setTimezone] = useState<string>(
     () => readStoredTimezone() ?? detectBrowserTimezone(),
   );
+  // Lead-capture — persisted per-browser so returning users only fill it
+  // once. Also tracks which slot's form is currently being submitted so we
+  // can disable the corresponding card.
+  const [leadDraft, setLeadDraft] = useState<LeadDetails>(
+    () => readStoredLead() ?? EMPTY_LEAD,
+  );
+  const [pendingLeadSlot, setPendingLeadSlot] = useState<string | null>(null);
+  const hasLead = (l: LeadDetails) => validateLead(l) === null;
 
   // Merge the browser-detected zone with the curated list, dedupe, keep
   // detected zone pinned first for quick reset.
@@ -602,8 +660,12 @@ export function SupportChatWidget() {
   /**
    * Confirm card → start the Create Booking workflow (invoice + pending
    * `private_room_bookings` row) and hand off to checkout.
+   *
+   * Gated on lead details (name/email/phone). If we don't have them yet,
+   * we drop a `lead` form into the feed and wait for `onLeadSubmit` to
+   * resume this flow with the collected contact.
    */
-  const confirmSlot = async (slot: ConciergeSlot) => {
+  const confirmSlot = async (slot: ConciergeSlot, overrideLead?: LeadDetails) => {
     if (bookingSlot) return;
     const { data: session } = await supabase.auth.getSession();
     if (!session.session) {
@@ -612,6 +674,21 @@ export function SupportChatWidget() {
       });
       return;
     }
+
+    const lead = overrideLead ?? leadDraft;
+    if (!hasLead(lead)) {
+      // Avoid stacking duplicate forms if the user hammers "Confirm & pay".
+      const alreadyOpen = messagesRef.current.some((m) =>
+        m.parts.some(
+          (p) => p.type === "lead" && p.slot.startsAt === slot.startsAt && !p.submitted,
+        ),
+      );
+      if (!alreadyOpen) {
+        appendMessage({ role: "assistant", parts: [{ type: "lead", slot }] });
+      }
+      return;
+    }
+
     setBookingSlot(slot.startsAt);
     try {
       const result = await startBooking({
@@ -623,6 +700,9 @@ export function SupportChatWidget() {
           roomType: "private_room",
           bookingStartsAt: slot.startsAt,
           bookingPartySize: 1,
+          customerName: lead.name.trim(),
+          customerEmail: lead.email.trim(),
+          customerPhone: lead.phone.trim(),
         },
       });
       if ("error" in result) {
@@ -665,6 +745,49 @@ export function SupportChatWidget() {
       void refreshSlotCards();
     }
   };
+
+  /**
+   * Lead form submit → persist contact per-browser, freeze the form card
+   * into a summary, then resume the booking flow for the slot the form
+   * was raised against.
+   */
+  const onLeadSubmit = async (slot: ConciergeSlot, lead: LeadDetails) => {
+    const err = validateLead(lead);
+    if (err) {
+      toast.error(err);
+      return;
+    }
+    const cleaned: LeadDetails = {
+      name: lead.name.trim(),
+      email: lead.email.trim(),
+      phone: lead.phone.trim(),
+    };
+    writeStoredLead(cleaned);
+    setLeadDraft(cleaned);
+    // Freeze this specific lead card into a submitted summary.
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (!m.parts.some((p) => p.type === "lead" && p.slot.startsAt === slot.startsAt)) {
+          return m;
+        }
+        return {
+          ...m,
+          parts: m.parts.map((p) =>
+            p.type === "lead" && p.slot.startsAt === slot.startsAt
+              ? { ...p, submitted: cleaned }
+              : p,
+          ),
+        };
+      }),
+    );
+    setPendingLeadSlot(slot.startsAt);
+    try {
+      await confirmSlot(slot, cleaned);
+    } finally {
+      setPendingLeadSlot(null);
+    }
+  };
+
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -764,8 +887,11 @@ export function SupportChatWidget() {
                 message={m}
                 bookingSlot={bookingSlot}
                 timezone={timezone}
+                leadDraft={leadDraft}
+                pendingLeadSlot={pendingLeadSlot}
                 onSlotPick={proposeSlot}
                 onConfirm={confirmSlot}
+                onLeadSubmit={onLeadSubmit}
               />
             ))}
             {pending && <TypingIndicator />}
@@ -815,14 +941,20 @@ function MessageBubble({
   message,
   bookingSlot,
   timezone,
+  leadDraft,
+  pendingLeadSlot,
   onSlotPick,
   onConfirm,
+  onLeadSubmit,
 }: {
   message: ChatMessage;
   bookingSlot: string | null;
   timezone: string;
+  leadDraft: LeadDetails;
+  pendingLeadSlot: string | null;
   onSlotPick: (slot: ConciergeSlot) => void;
   onConfirm: (slot: ConciergeSlot) => void;
+  onLeadSubmit: (slot: ConciergeSlot, lead: LeadDetails) => void;
 }) {
   const isUser = message.role === "user";
   return (
@@ -858,13 +990,26 @@ function MessageBubble({
               />
             );
           }
+          if (part.type === "booking") {
+            return (
+              <BookingStatusCard
+                key={i}
+                bookingId={part.bookingId}
+                startsAt={part.startsAt}
+                status={part.status}
+                timezone={timezone}
+              />
+            );
+          }
           return (
-            <BookingStatusCard
+            <LeadFormCard
               key={i}
-              bookingId={part.bookingId}
-              startsAt={part.startsAt}
-              status={part.status}
+              slot={part.slot}
               timezone={timezone}
+              submitted={part.submitted}
+              initial={leadDraft}
+              busy={pendingLeadSlot === part.slot.startsAt}
+              onSubmit={onLeadSubmit}
             />
           );
         })}
@@ -1025,4 +1170,124 @@ function BookingStatusCard({
     </div>
   );
 }
+
+function LeadFormCard({
+  slot,
+  timezone,
+  submitted,
+  initial,
+  busy,
+  onSubmit,
+}: {
+  slot: ConciergeSlot;
+  timezone: string;
+  submitted?: LeadDetails;
+  initial: LeadDetails;
+  busy: boolean;
+  onSubmit: (slot: ConciergeSlot, lead: LeadDetails) => void;
+}) {
+  const [form, setForm] = useState<LeadDetails>(submitted ?? initial);
+  const [touched, setTouched] = useState(false);
+  const err = touched ? validateLead(form) : null;
+
+  if (submitted) {
+    return (
+      <div className="rounded-lg border border-emerald-400/30 bg-emerald-400/5 p-3">
+        <div className="mb-1 text-[10px] uppercase tracking-widest text-emerald-300/80">
+          Contact details saved
+        </div>
+        <div className="text-sm font-semibold text-neutral-100">{submitted.name}</div>
+        <div className="text-xs text-neutral-400">
+          {submitted.email} · {submitted.phone}
+        </div>
+        <div className="mt-1 text-[11px] text-neutral-500">
+          For {formatDate(slot.startsAt, timezone)} · {formatTime(slot.startsAt, timezone)}
+        </div>
+      </div>
+    );
+  }
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setTouched(true);
+    if (validateLead(form)) return;
+    onSubmit(slot, form);
+  };
+
+  const field =
+    "w-full rounded-md border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs text-neutral-100 placeholder:text-neutral-500 focus:border-primary/60 focus:outline-none disabled:opacity-60";
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-2 rounded-lg border border-primary/30 bg-primary/[0.04] p-3"
+    >
+      <div className="text-[10px] uppercase tracking-widest text-primary/80">
+        Before we hold the slot
+      </div>
+      <div className="text-[11px] text-neutral-400">
+        Needed for the {formatDate(slot.startsAt, timezone)} ·{" "}
+        {formatTime(slot.startsAt, timezone)} booking.
+      </div>
+      <label className="block">
+        <span className="sr-only">Full name</span>
+        <input
+          type="text"
+          autoComplete="name"
+          required
+          placeholder="Full name"
+          value={form.name}
+          onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          disabled={busy}
+          maxLength={120}
+          className={field}
+        />
+      </label>
+      <label className="block">
+        <span className="sr-only">Email</span>
+        <input
+          type="email"
+          autoComplete="email"
+          required
+          placeholder="Email"
+          value={form.email}
+          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          disabled={busy}
+          maxLength={255}
+          className={field}
+        />
+      </label>
+      <label className="block">
+        <span className="sr-only">Phone</span>
+        <input
+          type="tel"
+          autoComplete="tel"
+          required
+          placeholder="Phone"
+          value={form.phone}
+          onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+          disabled={busy}
+          maxLength={40}
+          className={field}
+        />
+      </label>
+      {err && <div className="text-[11px] text-rose-300">{err}</div>}
+      <button
+        type="submit"
+        disabled={busy}
+        className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0b10] disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {busy ? (
+          <>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            Saving…
+          </>
+        ) : (
+          "Save & continue to checkout"
+        )}
+      </button>
+    </form>
+  );
+}
+
 
