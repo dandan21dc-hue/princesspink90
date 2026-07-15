@@ -100,6 +100,39 @@ export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
   return null;
 }
 
+async function raiseAlert(
+  supabaseAdmin: { from: (t: string) => any },
+  args: {
+    severity: "info" | "warning" | "critical";
+    kind: string;
+    detail: Record<string, unknown>;
+    throttleWindowMinutes?: number;
+  },
+): Promise<void> {
+  try {
+    if (args.throttleWindowMinutes && args.throttleWindowMinutes > 0) {
+      const since = new Date(Date.now() - args.throttleWindowMinutes * 60_000).toISOString();
+      const { data: recent } = await supabaseAdmin
+        .from("admin_activity_audit_alerts")
+        .select("id")
+        .eq("kind", args.kind)
+        .gte("detected_at", since)
+        .limit(1);
+      if (recent && recent.length > 0) return;
+    }
+    await supabaseAdmin
+      .from("admin_activity_audit_alerts")
+      .insert({
+        severity: args.severity,
+        kind: args.kind,
+        detail: args.detail,
+      });
+  } catch (e) {
+    // Never let alert failures break webhook processing.
+    console.warn("nowpayments alert insert failed:", e);
+  }
+}
+
 export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: boolean; reason?: string; duplicate?: boolean }> {
   const status = String(event.payment_status ?? "").toLowerCase();
   const paymentIdRaw = event.payment_id != null ? String(event.payment_id) : null;
@@ -110,6 +143,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const statusKey = status || "unknown";
+
 
   // Ledger-first idempotency: composite PK (payment_id, last_status) records
   // every distinct status transition once. A redelivery of the SAME status
@@ -166,8 +200,31 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       })
       .eq("payment_id", paymentIdRaw)
       .eq("last_status", statusKey);
+
+    // Raise an admin alert whenever a signature-verified `finished` payment
+    // fails to grant. This is the money-losing failure mode: the buyer paid
+    // but did not get their entitlement. Naturally deduped per (payment_id,
+    // status) by the ledger, so no throttle needed.
+    if (status === "finished" && !outcome.handled) {
+      await raiseAlert(supabaseAdmin, {
+        severity: "critical",
+        kind: "nowpayments_finished_ungranted",
+        detail: {
+          payment_id: paymentIdRaw,
+          order_id: event.order_id ?? null,
+          reason: outcome.reason ?? null,
+          price_amount: event.price_amount ?? null,
+          price_currency: event.price_currency ?? null,
+          pay_amount: event.pay_amount ?? null,
+          pay_currency: event.pay_currency ?? null,
+          count: 1,
+        },
+      });
+    }
+
     return outcome;
   };
+
 
   // Only grant entitlements on a confirmed, settled payment. All other statuses
   // (waiting, confirming, confirmed, sending, partially_paid, failed, refunded, expired)
@@ -265,8 +322,39 @@ export async function handleWebhookRequest(request: Request): Promise<Response> 
 
   if (!verifyNowPaymentsSignature(rawBody, signature, secret)) {
     console.warn("NOWPayments webhook: invalid signature");
+
+    // Alert admins: unsigned/tampered requests hitting the IPN endpoint are a
+    // security signal. Throttle to 1 per hour so a burst of retries or a
+    // scanner doesn't flood the alert channel.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      // Snapshot a small, safe slice of the body (never log the whole payload).
+      let bodySample: string | null = null;
+      try {
+        bodySample = rawBody.slice(0, 500);
+      } catch {
+        bodySample = null;
+      }
+      await raiseAlert(supabaseAdmin, {
+        severity: "critical",
+        kind: "nowpayments_invalid_signature",
+        detail: {
+          signature_present: Boolean(signature),
+          signature_length: signature ? signature.length : 0,
+          user_agent: request.headers.get("user-agent") ?? null,
+          content_length: rawBody.length,
+          body_sample: bodySample,
+          count: 1,
+        },
+        throttleWindowMinutes: 60,
+      });
+    } catch (e) {
+      console.warn("nowpayments invalid-signature alert failed:", e);
+    }
+
     return new Response("Invalid signature", { status: 401 });
   }
+
 
   let event: NowPaymentsIpn;
   try {
