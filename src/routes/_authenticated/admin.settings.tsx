@@ -107,15 +107,30 @@ function AdminSettings() {
     durationError = `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`;
   }
 
-  const sessionInputsInvalid = priceError !== null || durationError !== null;
+  // Mirror the server-side rule (z.string().trim().email().max(255)) so the
+  // form catches bad addresses before we hit the RPC.
+  const emailTrimmed = email.trim();
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  let emailError: string | null = null;
+  if (emailTrimmed === "") {
+    emailError = "Contact email is required.";
+  } else if (emailTrimmed.length > 255) {
+    emailError = "Contact email must be 255 characters or fewer.";
+  } else if (!emailRe.test(emailTrimmed)) {
+    emailError = "Enter a valid email address (e.g. name@example.com).";
+  }
+
+  const sessionInputsInvalid =
+    priceError !== null || durationError !== null || emailError !== null;
 
   const save = useMutation({
     mutationFn: () => {
+      if (emailError) throw new Error(emailError);
       if (priceError) throw new Error(priceError);
       if (durationError) throw new Error(durationError);
       return updateFn({
         data: {
-          email,
+          email: emailTrimmed,
           fetlife_handle: fetlife,
           reddit_handle: reddit,
           glory_holes_enabled: gloryHolesEnabled,
