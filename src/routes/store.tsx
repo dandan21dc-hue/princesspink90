@@ -27,7 +27,7 @@ const storeSearchSchema = z.object({
 export const Route = createFileRoute("/store")({
   validateSearch: zodValidator(storeSearchSchema),
   loader: ({ context }) => context.queryClient.ensureQueryData(storeQuery),
-  head: () => ({
+  head: ({ loaderData }) => ({
     meta: [
       { title: "Media Boutique — Midnight Glory" },
       {
@@ -39,6 +39,28 @@ export const Route = createFileRoute("/store")({
       { property: "og:url", content: "https://princesspink90.lovable.app/store" },
     ],
     links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/store" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Media Boutique",
+          url: "https://princesspink90.lovable.app/store",
+          description:
+            "Browse and buy individual photo sets and video clips from Midnight Glory's Media Boutique.",
+          mainEntity: {
+            "@type": "ItemList",
+            itemListElement: (loaderData ?? []).slice(0, 50).map((item, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              url: `https://princesspink90.lovable.app/store/${item.id}`,
+              name: item.title,
+            })),
+          },
+        }),
+      },
+    ],
   }),
   component: StorePage,
   pendingComponent: PagePending,
