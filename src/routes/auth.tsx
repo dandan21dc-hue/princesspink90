@@ -199,13 +199,36 @@ function Auth() {
             className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
           />
           {mode === "signup" && (
-            <input
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 12))}
-              placeholder="Referral code (optional)"
-              autoCapitalize="characters"
-              className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm font-mono tracking-widest uppercase focus:border-primary focus:outline-none"
-            />
+            <div>
+              <input
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 12))}
+                placeholder="Referral code (optional)"
+                autoCapitalize="characters"
+                aria-invalid={refStatus.state === "invalid" || refStatus.state === "self"}
+                className={`w-full rounded-md border bg-background px-4 py-3 text-sm font-mono tracking-widest uppercase focus:outline-none ${
+                  refStatus.state === "invalid" || refStatus.state === "self"
+                    ? "border-destructive focus:border-destructive"
+                    : refStatus.state === "ok"
+                      ? "border-primary focus:border-primary"
+                      : "border-input focus:border-primary"
+                }`}
+              />
+              {refStatus.message ? (
+                <p
+                  className={`mt-1 text-xs ${
+                    refStatus.state === "invalid" || refStatus.state === "self"
+                      ? "text-destructive"
+                      : refStatus.state === "ok"
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                  }`}
+                  role={refStatus.state === "invalid" || refStatus.state === "self" ? "alert" : undefined}
+                >
+                  {refStatus.message}
+                </p>
+              ) : null}
+            </div>
           )}
           {mode === "signup" && (
             <label className="flex items-start gap-2 pt-1 text-xs text-muted-foreground">
