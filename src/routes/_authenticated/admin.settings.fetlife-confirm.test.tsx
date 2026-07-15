@@ -329,6 +329,121 @@ describe("admin settings — FetLife confirmation gate", () => {
 
     // Inline error message from the mutation is shown near the Save button.
     expect(screen.getAllByText(/server exploded/i).length).toBeGreaterThan(0);
+});
+
+describe("admin settings — FetLife confirmation dialog updates live", () => {
+  // The dialog previews both the currently-live URL (from server data) and
+  // the new URL derived from the draft input. The old URL is a snapshot of
+  // what visitors see today and must never change while the admin is
+  // editing. The new URL must track the normalized handle in real time as
+  // the admin types or pastes different formats — otherwise the admin is
+  // making a decision from a stale preview.
+
+  // Helper: open the confirm dialog with an initial edit and return the
+  // dialog + input handles for follow-up interactions.
+  async function openDialogWithEdit(initialValue: string) {
+    renderPage();
+    await waitForFormLoaded();
+    const fetInput = screen.getByDisplayValue(
+      SAVED.fetlife_handle,
+    ) as HTMLInputElement;
+    fireEvent.change(fetInput, { target: { value: initialValue } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+    const dialog = await screen.findByRole("alertdialog");
+    return { dialog, fetInput };
+  }
+
+  // Assert the "Currently live" section still points at the SAVED handle
+  // and the "New (unsaved)" section shows `expectedNewHandle`.
+  function assertDialogUrls(
+    dialog: HTMLElement,
+    expectedNewHandle: string,
+  ) {
+    const savedUrl = `https://fetlife.com/${SAVED.fetlife_handle}`;
+    const newUrl = `https://fetlife.com/${expectedNewHandle}`;
+
+    // Old URL: rendered as a link with the saved handle in the href.
+    const oldLink = within(dialog).getByRole("link", {
+      name: savedUrl,
+    }) as HTMLAnchorElement;
+    expect(oldLink.getAttribute("href")).toBe(savedUrl);
+
+    // New URL: rendered as a link with the normalized handle in the href.
+    const newLink = within(dialog).getByRole("link", {
+      name: newUrl,
+    }) as HTMLAnchorElement;
+    expect(newLink.getAttribute("href")).toBe(newUrl);
+  }
+
+  it("updates the new URL preview as the admin types successive characters", async () => {
+    const { dialog, fetInput } = await openDialogWithEdit("A");
+    // Initial edit sanity check — the new URL renders after just one char.
+    assertDialogUrls(dialog, "A");
+
+    for (const value of ["Ab", "Abc", "Abc-1", "Abc-12"]) {
+      fireEvent.change(fetInput, { target: { value } });
+      await waitFor(() => assertDialogUrls(dialog, value));
+    }
+  });
+
+  it("normalizes pasted formats live and keeps the old URL pinned to the saved handle", async () => {
+    const { dialog, fetInput } = await openDialogWithEdit("Placeholder-1");
+    assertDialogUrls(dialog, "Placeholder-1");
+
+    // Each of these raw pastes should normalize to the same handle,
+    // "Kinky-Pasted-Handle", and the dialog must reflect that on the new
+    // URL line while the old URL stays pinned to SAVED.fetlife_handle.
+    const rawPastes = [
+      "Kinky-Pasted-Handle",
+      "  Kinky-Pasted-Handle  ",
+      "@Kinky-Pasted-Handle",
+      "/Kinky-Pasted-Handle",
+      "https://fetlife.com/Kinky-Pasted-Handle",
+      "http://fetlife.com/Kinky-Pasted-Handle",
+      "https://www.fetlife.com/Kinky-Pasted-Handle",
+      "https://fetlife.com/Kinky-Pasted-Handle/photos",
+      "https://fetlife.com/Kinky-Pasted-Handle?ref=x",
+    ];
+    for (const raw of rawPastes) {
+      fireEvent.change(fetInput, { target: { value: raw } });
+      await waitFor(() => assertDialogUrls(dialog, "Kinky-Pasted-Handle"));
+    }
+  });
+
+  it("disables Save and hides the new URL link when the pasted value normalizes to an invalid handle", async () => {
+    const { dialog, fetInput } = await openDialogWithEdit("Good-Handle");
+    assertDialogUrls(dialog, "Good-Handle");
+
+    // Paste a URL that strips to an empty handle — the new URL link must
+    // disappear (rendered as "(empty)") and Save must be disabled.
+    fireEvent.change(fetInput, {
+      target: { value: "https://fetlife.com/" },
+    });
+    await waitFor(() => {
+      expect(
+        within(dialog).queryByRole("link", { name: /^https:\/\/fetlife\.com\// }),
+      ).toBeNull();
+    });
+    // Old URL still pinned to the saved handle.
+    const savedUrl = `https://fetlife.com/${SAVED.fetlife_handle}`;
+    expect(
+      within(dialog).getByRole("link", { name: savedUrl }).getAttribute("href"),
+    ).toBe(savedUrl);
+
+    const confirmBtn = within(dialog).getByRole("button", {
+      name: /yes, update handle/i,
+    }) as HTMLButtonElement;
+    expect(confirmBtn.disabled).toBe(true);
+
+    // Typing a valid handle back in re-enables Save and restores the link.
+    fireEvent.change(fetInput, { target: { value: "Recovered-Handle" } });
+    await waitFor(() => assertDialogUrls(dialog, "Recovered-Handle"));
+    expect(
+      (within(dialog).getByRole("button", {
+        name: /yes, update handle/i,
+      }) as HTMLButtonElement).disabled,
+    ).toBe(false);
   });
 });
+
 
