@@ -486,7 +486,15 @@ export function AdminSettings() {
       <AlertDialog
         open={pendingFetlifeConfirm}
         onOpenChange={(open) => {
-          if (!open) setPendingFetlifeConfirm(false);
+          if (!open && pendingFetlifeConfirm) {
+            // Dialog dismissed without confirming (Cancel button, Esc, or
+            // overlay click) — surface a toast so the admin isn't left
+            // wondering whether the FetLife change went through.
+            toast("FetLife handle change not saved", {
+              description: `Kept current handle: ${settings.data?.fetlife_handle ?? "(none)"}`,
+            });
+            setPendingFetlifeConfirm(false);
+          }
         }}
       >
         <AlertDialogContent>
