@@ -32,17 +32,19 @@ export type AdminChatMessage = {
   content: string;
   tool_name?: string;
 };
+export type Json = string | number | boolean | null | Json[] | { [k: string]: Json };
 export type AdminToolCall = {
   name: string;
-  args: Record<string, string | number | boolean | null>;
+  args: { [k: string]: Json };
   ok: boolean;
-  result: unknown | null;
+  result: Json;
 };
 export type AdminChatResponse = {
   reply: string;
   tool_calls: AdminToolCall[];
   llm_configured: boolean;
 };
+
 
 // ---------- Tool schema exposed to the LLM ----------
 
