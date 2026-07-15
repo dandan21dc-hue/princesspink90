@@ -920,19 +920,25 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       paymentRefs.length
         ? supabaseAdmin
             .from("memberships")
-            .select("id, user_id, kind, environment, expires_at, external_payment_reference")
+            .select(
+              "id, user_id, kind, environment, expires_at, external_payment_reference, revoked_at, suspended_at, revocation_reason",
+            )
             .in("external_payment_reference", paymentRefs)
         : Promise.resolve({ data: [] as any[] }),
       paymentRefs.length
         ? supabaseAdmin
             .from("panty_orders")
-            .select("id, user_id, panty_listing_id, status, environment, external_payment_reference")
+            .select(
+              "id, user_id, panty_listing_id, status, environment, external_payment_reference, updated_at",
+            )
             .in("external_payment_reference", paymentRefs)
         : Promise.resolve({ data: [] as any[] }),
       paymentRefs.length
         ? supabaseAdmin
             .from("private_room_bookings")
-            .select("id, user_id, status, starts_at, environment, external_payment_reference")
+            .select(
+              "id, user_id, status, starts_at, environment, external_payment_reference, updated_at",
+            )
             .in("external_payment_reference", paymentRefs)
         : Promise.resolve({ data: [] as any[] }),
     ]);
