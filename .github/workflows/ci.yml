@@ -40,6 +40,15 @@ jobs:
       - name: Scan UI + emails for USD strings
         run: bun run lint:usd
 
+      # Static regression guard for three previously-fixed vulnerability
+      # classes: open-redirect on payment/billing flows, `.select('*')`
+      # on guest-exposed tables, and SECURITY DEFINER migrations without
+      # a pinned search_path. Runs offline (no secrets, no network),
+      # baselined via security/regression-baseline.json.
+      - name: Security regression scan (source patterns)
+        run: bun run lint:security-regression
+
+
   supabase_security_config_validate:
     name: Supabase / Config Validate
     runs-on: ubuntu-latest
