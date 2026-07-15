@@ -11,6 +11,8 @@ import {
   adminToggleRewardActive,
   adminListPendingRedemptions,
   adminFulfillRedemption,
+  getAdminRewardAlertPrefs,
+  updateAdminRewardAlertPrefs,
 } from "@/lib/rewards-catalog.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/rewards")({
