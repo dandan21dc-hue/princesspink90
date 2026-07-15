@@ -149,7 +149,7 @@ function EmptyState() {
         to unlock the full library, private-room bookings, and member perks.
       </p>
       <Link
-        to="/store/subscribe"
+        to="/all-access-pass"
         className="mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
       >
         Browse passes
