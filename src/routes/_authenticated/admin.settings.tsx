@@ -1004,6 +1004,30 @@ function CopyUrlButton({ value, label }: { value: string; label: string }) {
   );
 }
 
+/**
+ * Small "Open ↗" affordance rendered next to a URL. The URL text itself is
+ * also a link, but the plain-text URL doesn't visually read as "click me
+ * to open a new tab" — this button-styled link makes the review step
+ * obvious for admins scanning the confirmation dialog. Always opens in a
+ * new tab with `rel="noopener noreferrer"` so window.opener can't be
+ * hijacked by the destination page.
+ */
+function OpenUrlLink({ value, label }: { value: string; label: string }) {
+  return (
+    <a
+      href={value}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      title={label}
+      className="ml-1 inline-flex h-5 items-center gap-1 rounded border border-border/60 px-1.5 align-middle text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+    >
+      Open
+      <ExternalLink className="h-3 w-3" aria-hidden />
+    </a>
+  );
+}
+
 function ContactLinkPreview({
   draftEmail,
   draftFetlife,
