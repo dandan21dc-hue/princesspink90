@@ -90,7 +90,7 @@ function formatValidationError(issue: z.ZodIssue, input: unknown): string {
     : undefined;
   if (
     (field === "pantyListingId" || field === "contentItemId") &&
-    issue.code === "invalid_string"
+    (issue.code === "invalid_format" || issue.code === "invalid_type")
   ) {
     return `Invalid checkout request: ${field} — ${issue.message} ${describeInvalidId(received)}.`;
   }
