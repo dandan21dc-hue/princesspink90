@@ -7,11 +7,17 @@ const PUBLIC_TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN 
 interface Props {
   pins: MapPin[];
   className?: string;
+  onPinClick?: (pin: MapPin) => void;
+  selectedPinId?: string | null;
 }
 
-export function MapPinsMap({ pins, className }: Props) {
+export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const onPinClickRef = useRef(onPinClick);
+  useEffect(() => {
+    onPinClickRef.current = onPinClick;
+  }, [onPinClick]);
 
   useEffect(() => {
     if (!containerRef.current || !PUBLIC_TOKEN) return;
@@ -36,18 +42,29 @@ export function MapPinsMap({ pins, className }: Props) {
       const bounds = new mapboxgl.LngLatBounds();
       for (const pin of pins) {
         const el = document.createElement("div");
-        el.className =
-          "h-4 w-4 rounded-full border-2 border-background shadow-[0_0_12px_hsl(var(--primary))] bg-primary cursor-pointer";
-        new mapboxgl.Marker({ element: el })
+        const isSelected = selectedPinId === pin.id;
+        el.className = `h-4 w-4 rounded-full border-2 border-background bg-primary cursor-pointer transition-transform ${
+          isSelected ? "scale-150 shadow-[0_0_18px_hsl(var(--primary))]" : "shadow-[0_0_12px_hsl(var(--primary))]"
+        }`;
+        el.dataset.pinId = pin.id;
+        const marker = new mapboxgl.Marker({ element: el })
           .setLngLat([pin.longitude, pin.latitude])
-          .setPopup(
+          .addTo(map);
+
+        if (onPinClickRef.current) {
+          el.addEventListener("click", (e) => {
+            e.stopPropagation();
+            onPinClickRef.current?.(pin);
+          });
+        } else {
+          marker.setPopup(
             new mapboxgl.Popup({ offset: 16, closeButton: false }).setHTML(
               `<div style="font-family:inherit"><div style="font-weight:600;color:#111">${escapeHtml(pin.title)}</div>${
                 pin.description ? `<div style="margin-top:2px;color:#333;font-size:12px">${escapeHtml(pin.description)}</div>` : ""
               }</div>`,
             ),
-          )
-          .addTo(map);
+          );
+        }
         bounds.extend([pin.longitude, pin.latitude]);
       }
       if (pins.length > 1) {
@@ -59,7 +76,7 @@ export function MapPinsMap({ pins, className }: Props) {
       map.remove();
       mapRef.current = null;
     };
-  }, [pins]);
+  }, [pins, selectedPinId]);
 
   if (!PUBLIC_TOKEN) {
     return (
