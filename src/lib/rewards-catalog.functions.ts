@@ -53,7 +53,7 @@ export const redeemReward = createServerFn({ method: "POST" })
       }
       throw new Error(msg || "Redemption failed");
     }
-    return row as {
+    const redemption = row as {
       id: string;
       reward_id: string;
       reward_name: string;
@@ -61,6 +61,54 @@ export const redeemReward = createServerFn({ method: "POST" })
       status: string;
       created_at: string;
     };
+
+    // Fire-and-forget admin alert. Never block or fail the redemption on
+    // an email error — the pending row is already the source of truth.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: settings } = await supabaseAdmin
+        .from("site_settings")
+        .select("admin_reward_alerts_enabled, admin_reward_alert_email, email")
+        .eq("id", "host")
+        .maybeSingle();
+      const enabled = (settings as any)?.admin_reward_alerts_enabled === true;
+      const recipient =
+        ((settings as any)?.admin_reward_alert_email as string | null) ||
+        ((settings as any)?.email as string | null) ||
+        null;
+      if (enabled && recipient) {
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", context.userId)
+          .maybeSingle();
+        let memberEmail: string | undefined;
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+          memberEmail = u?.user?.email ?? undefined;
+        } catch {
+          /* ignore */
+        }
+        const { enqueueTemplateEmail } = await import("@/lib/email/enqueue.server");
+        await enqueueTemplateEmail({
+          templateName: "admin-reward-redeemed",
+          recipientEmail: recipient,
+          idempotencyKey: `admin-reward-redeemed-${redemption.id}`,
+          templateData: {
+            rewardName: redemption.reward_name,
+            pointsSpent: redemption.points_spent,
+            memberEmail,
+            memberDisplayName: (profile as any)?.display_name ?? undefined,
+            redeemedAt: redemption.created_at,
+            fulfillUrl: "https://princesspink90.lovable.app/admin/rewards",
+          },
+        });
+      }
+    } catch (e) {
+      console.error("redeemReward: admin alert enqueue failed", e);
+    }
+
+    return redemption;
   });
 
 export const listMyRedemptions = createServerFn({ method: "GET" })
@@ -232,4 +280,80 @@ export const adminFulfillRedemption = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return row;
+  });
+
+// -------------------- Admin reward-alert prefs --------------------
+
+export type AdminRewardAlertPrefs = {
+  enabled: boolean;
+  email: string | null;
+  fallback_email: string | null;
+};
+
+export const getAdminRewardAlertPrefs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AdminRewardAlertPrefs> => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("site_settings")
+      .select("admin_reward_alerts_enabled, admin_reward_alert_email, email")
+      .eq("id", "host")
+      .maybeSingle();
+    const row = (data ?? {}) as {
+      admin_reward_alerts_enabled?: boolean | null;
+      admin_reward_alert_email?: string | null;
+      email?: string | null;
+    };
+    return {
+      enabled: row.admin_reward_alerts_enabled === true,
+      email: row.admin_reward_alert_email ?? null,
+      fallback_email: row.email ?? null,
+    };
+  });
+
+export const updateAdminRewardAlertPrefs = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) =>
+    z
+      .object({
+        enabled: z.boolean(),
+        email: z
+          .string()
+          .trim()
+          .max(255)
+          .email("Enter a valid email address.")
+          .nullable()
+          .optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    // If enabling, require an alert email OR a fallback contact email.
+    if (data.enabled) {
+      const alertEmail = data.email?.trim() || null;
+      if (!alertEmail) {
+        const { data: current } = await context.supabase
+          .from("site_settings")
+          .select("email")
+          .eq("id", "host")
+          .maybeSingle();
+        const fallback = (current as any)?.email as string | null | undefined;
+        if (!fallback) {
+          throw new Error(
+            "Set an alert email (or a contact email in Settings) before enabling alerts.",
+          );
+        }
+      }
+    }
+    const { error } = await context.supabase
+      .from("site_settings")
+      .update({
+        admin_reward_alerts_enabled: data.enabled,
+        admin_reward_alert_email: data.email?.trim() || null,
+      })
+      .eq("id", "host");
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });

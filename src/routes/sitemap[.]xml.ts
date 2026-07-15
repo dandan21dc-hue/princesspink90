@@ -31,10 +31,11 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/legal", changefreq: "yearly", priority: "0.3" },
           { path: "/guide/etiquette", changefreq: "monthly", priority: "0.6" },
         ];
-        // Intentionally omitted: /auth, /forgot-password, /reset-password,
-        // /age-gate, /unsubscribe, /checkout/*, /security-report — these are
-        // auth flows, transactional utility pages, or protected content and
-        // should not be indexed by crawlers.
+        // Intentionally omitted from the sitemap AND disallowed in
+        // public/robots.txt: /auth, /forgot-password, /reset-password,
+        // /age-gate, /unsubscribe, /checkout/*, /security-report, /mcp —
+        // these are auth flows, transactional utility pages, an MCP API
+        // endpoint, or protected content that should not be indexed.
 
         try {
           const events = await listPublicEvents();
