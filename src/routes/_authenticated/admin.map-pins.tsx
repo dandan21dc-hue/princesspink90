@@ -157,17 +157,63 @@ function AdminMapPins() {
 
   const dragEnabled = !qInput.trim() && stateFilter === "all";
 
+  type ReorderVars = { ids: string[]; prevIds: string[]; prevOrder: MapPin[]; isUndo: boolean };
   const reorder = useMutation({
-    mutationFn: (ids: string[]) => reorderFn({ data: { ids } }),
-    onSuccess: () => {
-      toast.success("Order saved");
+    mutationFn: (vars: ReorderVars) => reorderFn({ data: { ids: vars.ids } }),
+    onSuccess: (_data, vars) => {
       invalidate();
+      const sameAsBefore =
+        vars.prevIds.length === vars.ids.length &&
+        vars.prevIds.every((id, i) => id === vars.ids[i]);
+      if (sameAsBefore) {
+        toast.success("Order saved");
+        return;
+      }
+      // Detect a simple 1-step move for a friendlier description.
+      const changedIdx = vars.ids.findIndex((id, i) => id !== vars.prevIds[i]);
+      const moved =
+        changedIdx >= 0 ? vars.prevOrder.find((p) => p.id === vars.ids[changedIdx]) : null;
+      const description = moved
+        ? `"${moved.title}" is now #${changedIdx + 1}`
+        : `${vars.ids.length} pin${vars.ids.length === 1 ? "" : "s"} reordered`;
+
+      if (vars.isUndo) {
+        toast.success("Reorder undone", { description });
+        return;
+      }
+      toast.success("Order saved", {
+        description,
+        duration: 6000,
+        action: {
+          label: "Undo",
+          onClick: () => {
+            setOrder(vars.prevOrder);
+            reorder.mutate({
+              ids: vars.prevIds,
+              prevIds: vars.ids,
+              prevOrder: [...vars.prevOrder],
+              isUndo: true,
+            });
+          },
+        },
+      });
     },
-    onError: (e: unknown) => {
+    onError: (e: unknown, vars) => {
       toast.error(e instanceof Error ? e.message : "Failed to save order");
-      setOrder(pins);
+      setOrder(vars?.prevOrder ?? pins);
     },
   });
+
+  const runReorder = (nextOrder: MapPin[]) => {
+    const prevOrder = order;
+    setOrder(nextOrder);
+    reorder.mutate({
+      ids: nextOrder.map((p) => p.id),
+      prevIds: prevOrder.map((p) => p.id),
+      prevOrder,
+      isUndo: false,
+    });
+  };
 
   const handleDrop = (targetId: string) => {
     if (!dragId || dragId === targetId) {
@@ -181,10 +227,9 @@ function AdminMapPins() {
     const next = order.slice();
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
-    setOrder(next);
     setDragId(null);
     setOverId(null);
-    reorder.mutate(next.map((p) => p.id));
+    runReorder(next);
   };
 
   const moveByStep = (id: string, delta: -1 | 1) => {
@@ -195,8 +240,7 @@ function AdminMapPins() {
     const next = order.slice();
     const [moved] = next.splice(from, 1);
     next.splice(to, 0, moved);
-    setOrder(next);
-    reorder.mutate(next.map((p) => p.id));
+    runReorder(next);
   };
 
   const exportCsv = () => {
