@@ -3,7 +3,11 @@ import { MessageCircle, X, Send, CalendarClock, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
-import { listConciergeSlots, type ConciergeSlot } from "@/lib/concierge.functions";
+import {
+  listConciergeSlots,
+  getConciergeBookingStatuses,
+  type ConciergeSlot,
+} from "@/lib/concierge.functions";
 import { createBookingInvoice } from "@/lib/bookingInvoice.functions";
 import {
   loadConciergeHistory,
@@ -27,10 +31,25 @@ import { supabase } from "@/integrations/supabase/client";
 
 type ChatRole = "user" | "assistant" | "system";
 
+type BookingStatus =
+  | "pending"
+  | "awaiting_payment"
+  | "confirmed"
+  | "cancelled"
+  | "failed"
+  | "refunded"
+  | string;
+
 type MessagePart =
   | { type: "text"; text: string }
   | { type: "slots"; slots: ConciergeSlot[] }
-  | { type: "confirm"; slot: ConciergeSlot };
+  | { type: "confirm"; slot: ConciergeSlot }
+  | {
+      type: "booking";
+      bookingId: string;
+      startsAt: string;
+      status: BookingStatus;
+    };
 
 type ChatMessage = {
   role: ChatRole;
