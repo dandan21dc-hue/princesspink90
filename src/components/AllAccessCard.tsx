@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useServerFn } from "@tanstack/react-start";
 import { track } from "@/lib/track";
 import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
@@ -209,6 +210,35 @@ export function AllAccessCard() {
                       >
                         {p.perk}
                       </p>
+                    )}
+                    {isLifetime && (
+                      <TooltipProvider delayDuration={100}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="mt-2 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-widest text-gold/80 hover:text-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-gold/60 rounded"
+                              aria-label="What's included in the Lifetime Pass"
+                            >
+                              <Info className="h-3 w-3" aria-hidden />
+                              What's included
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="bottom"
+                            align="start"
+                            className="max-w-[16rem] border-gold/40 bg-[oklch(0.18_0.05_60_/_0.95)] text-[11px] leading-relaxed text-gold/95"
+                          >
+                            <p className="font-semibold text-gold mb-1">A$600 one-time — includes:</p>
+                            <ul className="list-disc pl-4 space-y-0.5">
+                              <li>Unlimited lifetime access to the full library</li>
+                              <li>1 complimentary ticketed event</li>
+                              <li>1 complimentary private room session</li>
+                              <li>No renewals, no subscriptions — pay once</li>
+                            </ul>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     )}
                     {owned && isLifetime && start && (
                       <p className="mt-2 text-[10px] text-muted-foreground">
