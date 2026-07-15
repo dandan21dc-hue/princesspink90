@@ -1106,6 +1106,8 @@ function CopyUrlButton({
       setCopied(true);
       setStatus({ kind: "ok", message: `Copied ${kindLabel}` });
       toast.success(`Copied ${kindLabel}`, { description: value });
+      onCopied?.();
+
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         setCopied(false);
