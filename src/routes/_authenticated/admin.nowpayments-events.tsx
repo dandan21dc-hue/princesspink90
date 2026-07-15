@@ -169,6 +169,8 @@ function AdminNowpaymentsEvents() {
 
   const items = list.data?.items ?? [];
   const summary = list.data?.summary;
+  const totalCount = list.data?.totalCount ?? 0;
+
 
   return (
     <Shell>
