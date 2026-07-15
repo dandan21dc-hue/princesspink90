@@ -214,16 +214,16 @@ function AdminSettings() {
               fetlifeError ? "border-destructive" : "border-border"
             }`}
           />
-          {fetlifeError ? (
+          {fetlifeError && (
             <div className="mt-1 text-[11px] text-destructive">{fetlifeError}</div>
-          ) : (
-            fetlifeNormalized && (
-              <div className="mt-1 text-[11px] text-muted-foreground">
-                Profile URL: https://fetlife.com/{fetlifeNormalized}
-              </div>
-            )
           )}
         </Field>
+        <ContactLinkPreview
+          draftEmail={emailError ? null : emailTrimmed}
+          draftFetlife={fetlifeError ? null : fetlifeNormalized}
+          savedEmail={settings.data?.email ?? null}
+          savedFetlife={settings.data?.fetlife_handle ?? null}
+        />
         <Field label="Reddit handle" hint="Without u/ prefix, e.g. 19pink-princess90">
           <input
             required
@@ -364,6 +364,74 @@ function AdminSettings() {
       <ReminderJobConfigSection />
       {/* Stripe catalogue sync / subscription refresh sections removed. */}
     </Shell>
+  );
+}
+
+function ContactLinkPreview({
+  draftEmail,
+  draftFetlife,
+  savedEmail,
+  savedFetlife,
+}: {
+  draftEmail: string | null;
+  draftFetlife: string | null;
+  savedEmail: string | null;
+  savedFetlife: string | null;
+}) {
+  const mailto = draftEmail ? `mailto:${draftEmail}` : null;
+  const fetUrl = draftFetlife ? `https://fetlife.com/${draftFetlife}` : null;
+  const emailChanged = draftEmail !== null && savedEmail !== null && draftEmail !== savedEmail;
+  const fetChanged =
+    draftFetlife !== null && savedFetlife !== null && draftFetlife !== savedFetlife;
+  const anyChange = emailChanged || fetChanged;
+  return (
+    <div className="rounded-md border border-border/60 bg-muted/30 p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="text-xs uppercase tracking-widest text-muted-foreground">
+          Live public link preview
+        </div>
+        {anyChange ? (
+          <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-primary">
+            Unsaved changes
+          </span>
+        ) : (
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Matches saved
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Exactly what the homepage's "Your host" card will link to after Save.
+      </p>
+      <dl className="mt-3 space-y-2 text-sm">
+        <div>
+          <dt className="text-[11px] uppercase tracking-widest text-muted-foreground">
+            Email link
+          </dt>
+          <dd className={`mt-0.5 break-all font-mono text-xs ${emailChanged ? "text-primary font-semibold" : ""}`}>
+            {mailto ? (
+              <a href={mailto} className="hover:underline">{mailto}</a>
+            ) : (
+              <span className="text-destructive">Fix the email field to preview</span>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[11px] uppercase tracking-widest text-muted-foreground">
+            FetLife profile URL
+          </dt>
+          <dd className={`mt-0.5 break-all font-mono text-xs ${fetChanged ? "text-primary font-semibold" : ""}`}>
+            {fetUrl ? (
+              <a href={fetUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                {fetUrl}
+              </a>
+            ) : (
+              <span className="text-destructive">Fix the FetLife handle to preview</span>
+            )}
+          </dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 
