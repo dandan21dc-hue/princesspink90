@@ -72,7 +72,13 @@ export function AdminMediaModeration() {
   );
 }
 
-function Queue({ status }: { status: StatusFilter }) {
+function Queue({
+  status,
+  onViewStatus,
+}: {
+  status: StatusFilter;
+  onViewStatus: (s: StatusFilter) => void;
+}) {
   const listFn = useServerFn(adminListModerationQueue);
   const q = useQuery({
     queryKey: ["admin-media-moderation", status],
@@ -95,7 +101,12 @@ function Queue({ status }: { status: StatusFilter }) {
   return (
     <ul className="space-y-6">
       {q.data.map((row) => (
-        <ItemRow key={row.id} row={row as ModerationRow} status={status} />
+        <ItemRow
+          key={row.id}
+          row={row as ModerationRow}
+          status={status}
+          onViewStatus={onViewStatus}
+        />
       ))}
     </ul>
   );
