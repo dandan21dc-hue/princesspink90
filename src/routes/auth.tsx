@@ -23,6 +23,9 @@ function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [referralCode, setReferralCode] = useState(
+    typeof search.ref === "string" ? search.ref.toUpperCase().trim().slice(0, 12) : "",
+  );
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -48,11 +51,15 @@ function Auth() {
     setLoading(true);
     try {
       if (mode === "signup") {
+        const trimmedRef = referralCode.trim().toUpperCase();
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
             emailRedirectTo: returnTo,
-            data: { display_name: displayName || email.split("@")[0] },
+            data: {
+              display_name: displayName || email.split("@")[0],
+              ...(trimmedRef ? { referral_code: trimmedRef } : {}),
+            },
           },
         });
         if (error) throw error;
