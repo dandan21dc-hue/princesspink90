@@ -67,9 +67,11 @@ export function useMyTiers(): MyTiersState {
 
       const { data } = await supabase
         .from("memberships")
-        .select("kind,expires_at,created_at")
+        .select("kind,expires_at,created_at,revoked_at,suspended_at")
         .eq("user_id", userId)
-        .eq("environment", env);
+        .eq("environment", env)
+        .is("revoked_at", null)
+        .is("suspended_at", null);
       if (cancelled) return;
 
       const mems = data ?? [];
