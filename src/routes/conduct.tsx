@@ -20,6 +20,21 @@ export const Route = createFileRoute("/conduct")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/conduct" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Our Standards — Consent, Safety & Community Conduct",
+          url: "https://princesspink90.lovable.app/conduct",
+          description:
+            "Our Consent-First philosophy, zero-tolerance harassment policy, and how our vetting process keeps the community safe.",
+          author: { "@type": "Organization", name: "Midnight Glory" },
+          publisher: { "@type": "Organization", name: "Midnight Glory" },
+        }),
+      },
+    ],
   }),
   component: ConductPage,
 });
