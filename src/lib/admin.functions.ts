@@ -820,9 +820,6 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { parseOrderId } = await import(
-      "@/routes/api/public/payments/nowpayments-webhook"
-    );
 
     let q = supabaseAdmin
       .from("nowpayments_ipn_events")
