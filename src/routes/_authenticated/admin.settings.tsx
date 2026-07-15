@@ -199,14 +199,30 @@ function AdminSettings() {
             <div className="mt-1 text-[11px] text-destructive">{emailError}</div>
           )}
         </Field>
-        <Field label="FetLife handle" hint="Without leading slash, e.g. pink_princess90">
+        <Field
+          label="FetLife handle"
+          hint="3-20 characters: letters, digits, underscore, or hyphen. Pasting a full profile URL is fine — it will be normalized."
+        >
           <input
             required
             maxLength={100}
             value={fetlife}
+            aria-invalid={fetlifeError !== null}
             onChange={(e) => setFetlife(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            onBlur={() => setFetlife((v) => normalizeFetlifeHandle(v))}
+            className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+              fetlifeError ? "border-destructive" : "border-border"
+            }`}
           />
+          {fetlifeError ? (
+            <div className="mt-1 text-[11px] text-destructive">{fetlifeError}</div>
+          ) : (
+            fetlifeNormalized && (
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                Profile URL: https://fetlife.com/{fetlifeNormalized}
+              </div>
+            )
+          )}
         </Field>
         <Field label="Reddit handle" hint="Without u/ prefix, e.g. 19pink-princess90">
           <input
