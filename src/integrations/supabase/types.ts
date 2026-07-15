@@ -2222,6 +2222,86 @@ export type Database = {
         }
         Relationships: []
       }
+      security_scan_findings: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          details: string
+          id: string
+          internal_id: string
+          level: string
+          name: string
+          scan_id: string
+          scanned_at: string
+          scanner_name: string
+          state: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          details?: string
+          id?: string
+          internal_id: string
+          level?: string
+          name?: string
+          scan_id: string
+          scanned_at?: string
+          scanner_name?: string
+          state?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          details?: string
+          id?: string
+          internal_id?: string
+          level?: string
+          name?: string
+          scan_id?: string
+          scanned_at?: string
+          scanner_name?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_scan_findings_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "security_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_scans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          finding_count: number
+          id: string
+          note: string | null
+          scanned_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          finding_count?: number
+          id?: string
+          note?: string | null
+          scanned_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          finding_count?: number
+          id?: string
+          note?: string | null
+          scanned_at?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           email: string
