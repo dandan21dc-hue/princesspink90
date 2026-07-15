@@ -86,6 +86,7 @@ import { Route as AuthenticatedAdminEventsComplianceRouteImport } from './routes
 import { Route as AuthenticatedAdminEmailSetupRouteImport } from './routes/_authenticated/admin.email-setup'
 import { Route as AuthenticatedAdminEmailRecipientSearchRouteImport } from './routes/_authenticated/admin.email-recipient-search'
 import { Route as AuthenticatedAdminEmailDeliveryRouteImport } from './routes/_authenticated/admin.email-delivery'
+import { Route as AuthenticatedAdminCrmRouteImport } from './routes/_authenticated/admin.crm'
 import { Route as AuthenticatedAdminConsentReviewRouteImport } from './routes/_authenticated/admin.consent-review'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
@@ -544,6 +545,11 @@ const AuthenticatedAdminEmailDeliveryRoute =
     path: '/admin/email-delivery',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminCrmRoute = AuthenticatedAdminCrmRouteImport.update({
+  id: '/admin/crm',
+  path: '/admin/crm',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminConsentReviewRoute =
   AuthenticatedAdminConsentReviewRouteImport.update({
     id: '/admin/consent-review',
@@ -829,6 +835,7 @@ export interface FileRoutesByFullPath {
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
+  '/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/admin/email-recipient-search': typeof AuthenticatedAdminEmailRecipientSearchRoute
   '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
@@ -944,6 +951,7 @@ export interface FileRoutesByTo {
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
+  '/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/admin/email-recipient-search': typeof AuthenticatedAdminEmailRecipientSearchRoute
   '/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
@@ -1063,6 +1071,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/_authenticated/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
+  '/_authenticated/admin/crm': typeof AuthenticatedAdminCrmRoute
   '/_authenticated/admin/email-delivery': typeof AuthenticatedAdminEmailDeliveryRoute
   '/_authenticated/admin/email-recipient-search': typeof AuthenticatedAdminEmailRecipientSearchRoute
   '/_authenticated/admin/email-setup': typeof AuthenticatedAdminEmailSetupRoute
@@ -1182,6 +1191,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/consent-review'
+    | '/admin/crm'
     | '/admin/email-delivery'
     | '/admin/email-recipient-search'
     | '/admin/email-setup'
@@ -1297,6 +1307,7 @@ export interface FileRouteTypes {
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/consent-review'
+    | '/admin/crm'
     | '/admin/email-delivery'
     | '/admin/email-recipient-search'
     | '/admin/email-setup'
@@ -1415,6 +1426,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
     | '/_authenticated/admin/consent-review'
+    | '/_authenticated/admin/crm'
     | '/_authenticated/admin/email-delivery'
     | '/_authenticated/admin/email-recipient-search'
     | '/_authenticated/admin/email-setup'
@@ -2077,6 +2089,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEmailDeliveryRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/crm': {
+      id: '/_authenticated/admin/crm'
+      path: '/admin/crm'
+      fullPath: '/admin/crm'
+      preLoaderRoute: typeof AuthenticatedAdminCrmRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/consent-review': {
       id: '/_authenticated/admin/consent-review'
       path: '/admin/consent-review'
@@ -2437,6 +2456,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
   AuthenticatedAdminConsentReviewRoute: typeof AuthenticatedAdminConsentReviewRoute
+  AuthenticatedAdminCrmRoute: typeof AuthenticatedAdminCrmRoute
   AuthenticatedAdminEmailDeliveryRoute: typeof AuthenticatedAdminEmailDeliveryRoute
   AuthenticatedAdminEmailRecipientSearchRoute: typeof AuthenticatedAdminEmailRecipientSearchRoute
   AuthenticatedAdminEmailSetupRoute: typeof AuthenticatedAdminEmailSetupRoute
@@ -2497,6 +2517,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminCompliancePolicyRoute:
     AuthenticatedAdminCompliancePolicyRoute,
   AuthenticatedAdminConsentReviewRoute: AuthenticatedAdminConsentReviewRoute,
+  AuthenticatedAdminCrmRoute: AuthenticatedAdminCrmRoute,
   AuthenticatedAdminEmailDeliveryRoute: AuthenticatedAdminEmailDeliveryRoute,
   AuthenticatedAdminEmailRecipientSearchRoute:
     AuthenticatedAdminEmailRecipientSearchRoute,
