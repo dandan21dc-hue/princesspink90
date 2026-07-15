@@ -41,11 +41,50 @@ function AdminMapPins() {
   const createFn = useServerFn(createMapPin);
   const updateFn = useServerFn(updateMapPin);
   const deleteFn = useServerFn(deleteMapPin);
+  const reorderFn = useServerFn(reorderMapPins);
 
   const { data: pins = [], isLoading } = useQuery({
     queryKey: ["admin-map-pins"],
     queryFn: () => listFn(),
   });
+
+  // Local order state; syncs from server data but allows optimistic drag reorder.
+  const [order, setOrder] = useState<MapPin[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  useEffect(() => {
+    setOrder(pins);
+  }, [pins]);
+
+  const reorder = useMutation({
+    mutationFn: (ids: string[]) => reorderFn({ data: { ids } }),
+    onSuccess: () => {
+      toast.success("Order saved");
+      invalidate();
+    },
+    onError: (e: unknown) => {
+      toast.error(e instanceof Error ? e.message : "Failed to save order");
+      setOrder(pins);
+    },
+  });
+
+  const handleDrop = (targetId: string) => {
+    if (!dragId || dragId === targetId) {
+      setDragId(null);
+      setOverId(null);
+      return;
+    }
+    const from = order.findIndex((p) => p.id === dragId);
+    const to = order.findIndex((p) => p.id === targetId);
+    if (from < 0 || to < 0) return;
+    const next = order.slice();
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setOrder(next);
+    setDragId(null);
+    setOverId(null);
+    reorder.mutate(next.map((p) => p.id));
+  };
 
   const [form, setForm] = useState<FormState>(empty);
   const editing = Boolean(form.id);
