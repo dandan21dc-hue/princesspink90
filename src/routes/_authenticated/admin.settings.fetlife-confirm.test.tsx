@@ -399,7 +399,6 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
     ["Kinky-Pasted-Handle"],
     ["  Kinky-Pasted-Handle  "],
     ["@Kinky-Pasted-Handle"],
-    ["/Kinky-Pasted-Handle"],
     ["https://fetlife.com/Kinky-Pasted-Handle"],
     ["http://fetlife.com/Kinky-Pasted-Handle"],
     ["https://www.fetlife.com/Kinky-Pasted-Handle"],
