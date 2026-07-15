@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getPlanPriceSpec, getDefaultAap30dSpec } from "@/lib/planPriceValidation.server";
 import { resolveAppOrigin } from "@/lib/app-origin.server";
-import { assertAccountNotRestricted } from "@/lib/account-restriction";
+import { assertAccountNotRestricted, assertProfileVerified } from "@/lib/account-restriction";
 import { assertNotInMaintenance } from "@/lib/maintenance.functions";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -125,6 +125,7 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<Success | Failure> => {
     try {
       await assertAccountNotRestricted(context.supabase, context.userId);
+      await assertProfileVerified(context.supabase, context.userId);
       await assertNotInMaintenance(context);
 
       const { createInvoice } = await import("@/lib/nowpayments.server");
