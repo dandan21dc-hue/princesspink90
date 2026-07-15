@@ -250,6 +250,7 @@ function AdminMapPins() {
   });
 
   const startEdit = (pin: MapPin) => {
+    setErrors({});
     setForm({
       id: pin.id,
       title: pin.title,
@@ -257,6 +258,17 @@ function AdminMapPins() {
       latitude: String(pin.latitude),
       longitude: String(pin.longitude),
       sort_order: String(pin.sort_order),
+    });
+  };
+
+  const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((prev) => {
+      if (!prev[key] && !prev._form) return prev;
+      const next = { ...prev };
+      delete next[key];
+      delete next._form;
+      return next;
     });
   };
 
