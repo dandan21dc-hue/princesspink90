@@ -824,14 +824,20 @@ function MessageBubble({
   message,
   bookingSlot,
   timezone,
+  leadDraft,
+  pendingLeadSlot,
   onSlotPick,
   onConfirm,
+  onLeadSubmit,
 }: {
   message: ChatMessage;
   bookingSlot: string | null;
   timezone: string;
+  leadDraft: LeadDetails;
+  pendingLeadSlot: string | null;
   onSlotPick: (slot: ConciergeSlot) => void;
   onConfirm: (slot: ConciergeSlot) => void;
+  onLeadSubmit: (slot: ConciergeSlot, lead: LeadDetails) => void;
 }) {
   const isUser = message.role === "user";
   return (
