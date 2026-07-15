@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { EXPECTED_PLAN_PRICES } from "@/lib/planPriceValidation.server";
+import { resolveAppOrigin } from "@/lib/app-origin.server";
 
 // Fallback price when no priceId is supplied: the 30-day All-Access Pass.
 const AAP30D_PRICE_CENTS = 1000; // A$10.00
