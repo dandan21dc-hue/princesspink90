@@ -214,12 +214,16 @@ describe("admin settings — FetLife confirmation gate", () => {
 
     // Toast confirms the admin that nothing was saved, and echoes the
     // current handle so they know what the public link still points to.
-    expect(mockToast).toHaveBeenCalledTimes(1);
-    const [message, opts] = mockToast.mock.calls[0]!;
+    // Two toasts fire: (1) "Confirmation required" when the dialog opens so
+    // the admin knows Save didn't persist, (2) "not saved" when they cancel.
+    expect(mockToast).toHaveBeenCalledTimes(2);
+    expect(String(mockToast.mock.calls[0]![0])).toMatch(/confirmation required/i);
+    const [message, opts] = mockToast.mock.calls[1]!;
     expect(String(message)).toMatch(/not saved/i);
     expect(String((opts as { description?: string }).description)).toContain(
       SAVED.fetlife_handle,
     );
+
   });
 
   it("confirming the dialog persists the new normalized handle", async () => {
