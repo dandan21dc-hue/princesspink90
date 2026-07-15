@@ -194,7 +194,7 @@ describe("admin settings — FetLife confirmation gate", () => {
     expect(mockUpdateSiteSettings).not.toHaveBeenCalled();
   });
 
-  it("cancelling the dialog does not persist the change", async () => {
+  it("cancelling the dialog does not persist the change and toasts the admin", async () => {
     renderPage();
     await waitForFormLoaded();
 
@@ -211,6 +211,15 @@ describe("admin settings — FetLife confirmation gate", () => {
       expect(screen.queryByRole("alertdialog")).toBeNull();
     });
     expect(mockUpdateSiteSettings).not.toHaveBeenCalled();
+
+    // Toast confirms the admin that nothing was saved, and echoes the
+    // current handle so they know what the public link still points to.
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    const [message, opts] = mockToast.mock.calls[0]!;
+    expect(String(message)).toMatch(/not saved/i);
+    expect(String((opts as { description?: string }).description)).toContain(
+      SAVED.fetlife_handle,
+    );
   });
 
   it("confirming the dialog persists the new normalized handle", async () => {
