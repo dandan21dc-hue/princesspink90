@@ -107,7 +107,7 @@ export function PinPickerMap({ latitude, longitude, onChange, className }: Props
     <div className={className}>
       <div
         ref={containerRef}
-        className="h-48 w-full rounded-lg overflow-hidden border border-border/60"
+        className="w-full min-h-[400px] rounded-lg overflow-hidden border border-border/60"
       />
       <div className="mt-1.5 flex items-center justify-between text-[11px] text-muted-foreground">
         <span>Click the map or drag the pin to set its location.</span>
