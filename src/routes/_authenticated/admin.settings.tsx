@@ -550,6 +550,8 @@ export function AdminSettings() {
               fetlifeError || serverFetlifeError ? "border-destructive" : "border-border"
             }`}
           />
+          <FetlifeHandleLivePreview raw={fetlife} normalized={fetlifeNormalized} url={newFetlifeUrl} />
+
           {/* role="alert" + aria-live announce the error the moment it appears
               (typed input, or after a server rejection focuses the field). */}
           <div
