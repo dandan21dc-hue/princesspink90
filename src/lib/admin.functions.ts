@@ -997,9 +997,10 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
     let q = supabaseAdmin
       .from("nowpayments_ipn_events")
       .select(
-        "payment_id, last_status, order_id, handled, reason, payload, received_count, first_seen_at, last_seen_at, processed_at",
+        "payment_id, last_status, order_id, handled, reason, payload, received_count, first_seen_at, last_seen_at, processed_at, admin_note, admin_note_updated_at, handled_updated_at",
         { count: "exact" },
       )
+
       .order(sortColumn, { ascending: sortAscending })
       // Stable tiebreaker on the composite pkey so pagination is deterministic
       // when the sort column has duplicate values (e.g. many rows share
@@ -1220,9 +1221,13 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         entitlement,
         reversal,
         payload_json: e.payload == null ? null : JSON.stringify(e.payload),
+        admin_note: (e as any).admin_note ?? null,
+        admin_note_updated_at: (e as any).admin_note_updated_at ?? null,
+        handled_updated_at: (e as any).handled_updated_at ?? null,
       };
 
     });
+
 
     const summary = {
       total: items.length,
@@ -1237,7 +1242,106 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
   });
 
 
+// ---------- Bulk update NOWPayments IPN events ----------
+//
+// Applies one of a small set of admin actions to a list of (payment_id,
+// last_status) rows in a single call:
+//   • mark_handled   — set handled=true, clear reason
+//   • mark_unhandled — set handled=false
+//   • set_note       — write admin_note (empty string clears the note)
+// Every mutation records the admin actor + timestamp on the row and inserts a
+// single admin_activity_audit entry summarising the batch.
+export type NowpaymentsBulkAction = "mark_handled" | "mark_unhandled" | "set_note";
+
+export const adminBulkUpdateNowpaymentsEvents = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(
+    (d: {
+      keys: Array<{ paymentId: string; lastStatus: string }>;
+      action: NowpaymentsBulkAction;
+      note?: string;
+    }) => {
+      if (!d || !Array.isArray(d.keys) || d.keys.length === 0) {
+        throw new Error("keys required");
+      }
+      if (d.keys.length > 500) throw new Error("Too many rows (max 500 per batch)");
+      const action = d.action;
+      if (action !== "mark_handled" && action !== "mark_unhandled" && action !== "set_note") {
+        throw new Error("action must be mark_handled | mark_unhandled | set_note");
+      }
+      const keys = d.keys.map((k) => {
+        if (!k?.paymentId || !k?.lastStatus) throw new Error("each key needs paymentId + lastStatus");
+        return { paymentId: String(k.paymentId), lastStatus: String(k.lastStatus) };
+      });
+      const note = action === "set_note" ? (d.note ?? "").slice(0, 2000) : undefined;
+      return { keys, action, note };
+    },
+  )
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const now = new Date().toISOString();
+    let updated = 0;
+    const failed: Array<{ paymentId: string; lastStatus: string; error: string }> = [];
+
+    for (const k of data.keys) {
+      const patch: {
+        handled?: boolean;
+        reason?: string | null;
+        handled_updated_at?: string;
+        handled_updated_by?: string;
+        admin_note?: string | null;
+        admin_note_updated_at?: string;
+        admin_note_updated_by?: string;
+      } = {};
+      if (data.action === "mark_handled") {
+        patch.handled = true;
+        patch.reason = null;
+        patch.handled_updated_at = now;
+        patch.handled_updated_by = context.userId;
+      } else if (data.action === "mark_unhandled") {
+        patch.handled = false;
+        patch.handled_updated_at = now;
+        patch.handled_updated_by = context.userId;
+      } else {
+        patch.admin_note = (data.note ?? "").trim() === "" ? null : data.note ?? null;
+        patch.admin_note_updated_at = now;
+        patch.admin_note_updated_by = context.userId;
+      }
+      const { error } = await supabaseAdmin
+        .from("nowpayments_ipn_events")
+        .update(patch)
+        .eq("payment_id", k.paymentId)
+        .eq("last_status", k.lastStatus);
+
+      if (error) {
+        failed.push({ paymentId: k.paymentId, lastStatus: k.lastStatus, error: error.message });
+      } else {
+        updated += 1;
+      }
+    }
+
+    await context.supabase.from("admin_activity_audit").insert({
+      actor_id: context.userId,
+      action: `nowpayments_bulk_${data.action}`,
+      resource: `nowpayments_ipn_events:${data.keys.length}`,
+      metadata: {
+        action: data.action,
+        note: data.action === "set_note" ? data.note ?? null : undefined,
+        requested: data.keys.length,
+        updated,
+        failed_count: failed.length,
+        failed: failed.slice(0, 20),
+      },
+    });
+
+    return { updated, failed, total: data.keys.length };
+  });
+
+
 // ---------- Retry a failed / unhandled NOWPayments grant ----------
+
 //
 // Reprocesses the grant path for a previously received (and signature-verified)
 // IPN event, keyed by payment_id. Idempotency is preserved by the underlying

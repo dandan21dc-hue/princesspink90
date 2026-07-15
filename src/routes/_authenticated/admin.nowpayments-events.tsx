@@ -6,7 +6,10 @@ import {
   amIAdmin,
   adminListNowpaymentsEvents,
   adminRetryNowpaymentsGrant,
+  adminBulkUpdateNowpaymentsEvents,
+  type NowpaymentsBulkAction,
 } from "@/lib/admin.functions";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +39,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy, Download } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy, Download, StickyNote, CheckSquare, Square } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/admin/nowpayments-events")({
   head: () => ({ meta: [{ title: "NOWPayments IPN Events · Admin" }] }),
@@ -97,7 +103,9 @@ function AdminNowpaymentsEvents() {
   const meFn = useServerFn(amIAdmin);
   const listFn = useServerFn(adminListNowpaymentsEvents);
   const retryFn = useServerFn(adminRetryNowpaymentsGrant);
+  const bulkFn = useServerFn(adminBulkUpdateNowpaymentsEvents);
   const qc = useQueryClient();
+
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
 
@@ -115,6 +123,11 @@ function AdminNowpaymentsEvents() {
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
   const [jumpInput, setJumpInput] = useState("");
+  // Bulk-selection state — keyed by `${payment_id}::${last_status}` (composite pk).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<NowpaymentsBulkAction | null>(null);
+  const [bulkNote, setBulkNote] = useState("");
+
 
   // Reset to page 1 whenever filters/search/sort/pageSize change.
   const resetToFirstPage = () => setPage(1);
@@ -160,6 +173,24 @@ function AdminNowpaymentsEvents() {
       toast.error(e instanceof Error ? e.message : String(e));
     },
   });
+
+  const bulk = useMutation({
+    mutationFn: (input: { keys: Array<{ paymentId: string; lastStatus: string }>; action: NowpaymentsBulkAction; note?: string }) =>
+      bulkFn({ data: input }),
+    onSuccess: (res) => {
+      if (res.failed.length === 0) {
+        toast.success(`Updated ${res.updated} of ${res.total} event(s).`);
+      } else {
+        toast.warning(`Updated ${res.updated}/${res.total} — ${res.failed.length} failed. First error: ${res.failed[0]?.error}`);
+      }
+      setBulkAction(null);
+      setBulkNote("");
+      setSelected(new Set());
+      qc.invalidateQueries({ queryKey: ["admin-nowpayments-events"] });
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
 
   if (me.isLoading) {
     return (
@@ -613,7 +644,78 @@ function AdminNowpaymentsEvents() {
         )}
       </Card>
 
-      <div className="mt-6 space-y-3">
+      {items.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border/60 bg-muted/20 p-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-xs font-medium hover:text-primary"
+            onClick={() => {
+              const allKeys = items.map((e: EventItem) => `${e.payment_id}::${e.last_status}`);
+              const allSelected = allKeys.every((k) => selected.has(k));
+              const next = new Set(selected);
+              if (allSelected) {
+                for (const k of allKeys) next.delete(k);
+              } else {
+                for (const k of allKeys) next.add(k);
+              }
+              setSelected(next);
+            }}
+          >
+            {items.every((e: EventItem) => selected.has(`${e.payment_id}::${e.last_status}`)) ? (
+              <CheckSquare className="h-4 w-4" />
+            ) : (
+              <Square className="h-4 w-4" />
+            )}
+            Select page ({items.length})
+          </button>
+          <span className="text-xs text-muted-foreground">
+            {selected.size} selected
+          </span>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={selected.size === 0}
+              onClick={() => setBulkAction("mark_handled")}
+            >
+              <CheckSquare className="h-3 w-3 mr-1" /> Mark handled
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={selected.size === 0}
+              onClick={() => setBulkAction("mark_unhandled")}
+            >
+              <Square className="h-3 w-3 mr-1" /> Mark unhandled
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={selected.size === 0}
+              onClick={() => {
+                setBulkNote("");
+                setBulkAction("set_note");
+              }}
+            >
+              <StickyNote className="h-3 w-3 mr-1" /> Add / edit note
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={selected.size === 0}
+              onClick={() => setSelected(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 space-y-3">
         {list.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading events…</p>
         ) : items.length === 0 ? (
@@ -621,17 +723,28 @@ function AdminNowpaymentsEvents() {
             No matching webhook events.
           </Card>
         ) : (
-          items.map((e: EventItem) => (
-            <EventRow
-              key={`${e.payment_id}:${e.last_status}`}
-              e={e}
-              onRetry={() => setPendingRetry(e)}
-              onViewPayload={() => setPayloadEvent(e)}
-              retryPending={retry.isPending && pendingRetry?.payment_id === e.payment_id}
-            />
-          ))
+          items.map((e: EventItem) => {
+            const key = `${e.payment_id}::${e.last_status}`;
+            return (
+              <EventRow
+                key={key}
+                e={e}
+                selected={selected.has(key)}
+                onToggleSelect={() => {
+                  const next = new Set(selected);
+                  if (next.has(key)) next.delete(key);
+                  else next.add(key);
+                  setSelected(next);
+                }}
+                onRetry={() => setPendingRetry(e)}
+                onViewPayload={() => setPayloadEvent(e)}
+                retryPending={retry.isPending && pendingRetry?.payment_id === e.payment_id}
+              />
+            );
+          })
         )}
       </div>
+
 
       <Pagination
         page={page}
@@ -707,6 +820,92 @@ function AdminNowpaymentsEvents() {
         event={payloadEvent}
         onClose={() => setPayloadEvent(null)}
       />
+
+      <AlertDialog
+        open={bulkAction !== null}
+        onOpenChange={(open) => {
+          if (!open && !bulk.isPending) {
+            setBulkAction(null);
+            setBulkNote("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkAction === "mark_handled" && `Mark ${selected.size} event(s) as handled?`}
+              {bulkAction === "mark_unhandled" && `Mark ${selected.size} event(s) as unhandled?`}
+              {bulkAction === "set_note" && `Set admin note on ${selected.size} event(s)?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  This applies to <strong>{selected.size}</strong> signature-verified webhook
+                  {selected.size === 1 ? " event" : " events"}. It only updates admin metadata —
+                  no grants, refunds, or user-visible entitlements change.
+                </p>
+                {bulkAction === "mark_handled" && (
+                  <p className="text-muted-foreground">
+                    Sets <code className="font-mono">handled = true</code> and clears any prior
+                    unhandled reason. Use this to acknowledge events you've already resolved manually.
+                  </p>
+                )}
+                {bulkAction === "mark_unhandled" && (
+                  <p className="text-muted-foreground">
+                    Sets <code className="font-mono">handled = false</code>. Useful to re-flag rows
+                    that need another look.
+                  </p>
+                )}
+                {bulkAction === "set_note" && (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Note (leave empty to clear)
+                    </label>
+                    <Textarea
+                      value={bulkNote}
+                      onChange={(e) => setBulkNote(e.target.value)}
+                      placeholder="e.g. Refunded manually via NOWPayments dashboard — see ticket #482"
+                      rows={4}
+                      maxLength={2000}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Same note will overwrite any existing admin_note on every selected row (max 2000 chars).
+                    </p>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulk.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulk.isPending || bulkAction === null || selected.size === 0}
+              onClick={(ev) => {
+                ev.preventDefault();
+                if (!bulkAction) return;
+                const keys = Array.from(selected).map((k) => {
+                  const idx = k.indexOf("::");
+                  return { paymentId: k.slice(0, idx), lastStatus: k.slice(idx + 2) };
+                });
+                bulk.mutate({
+                  keys,
+                  action: bulkAction,
+                  note: bulkAction === "set_note" ? bulkNote : undefined,
+                });
+              }}
+            >
+              {bulk.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Applying…
+                </>
+              ) : (
+                <>Apply to {selected.size}</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Shell>
   );
 }
@@ -741,15 +940,22 @@ type EventItem = {
       }
     | null;
   payload_json: string | null;
+  admin_note: string | null;
+  admin_note_updated_at: string | null;
+  handled_updated_at: string | null;
 };
 
 function EventRow({
   e,
+  selected,
+  onToggleSelect,
   onRetry,
   onViewPayload,
   retryPending,
 }: {
   e: EventItem;
+  selected: boolean;
+  onToggleSelect: () => void;
   onRetry: () => void;
   onViewPayload: () => void;
   retryPending: boolean;
@@ -765,10 +971,18 @@ function EventRow({
         : "secondary";
 
   return (
-    <Card className="p-4">
+    <Card className={`p-4 ${selected ? "ring-2 ring-primary/50" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={onToggleSelect}
+            aria-label="Select event"
+            className="mt-1"
+          />
+          <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
+
             <Badge variant={statusVariant}>{e.last_status}</Badge>
             <Badge variant="outline" className="gap-1 text-[10px]">
               <ShieldCheck className="h-3 w-3 text-primary" /> Signature verified
@@ -862,7 +1076,23 @@ function EventRow({
               </div>
             )}
           </div>
+          {e.admin_note && (
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 p-2 text-xs">
+              <StickyNote className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="whitespace-pre-wrap break-words">{e.admin_note}</div>
+                {e.admin_note_updated_at && (
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    Note updated {fmt(e.admin_note_updated_at)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          </div>
         </div>
+
+
 
         <div className="text-right space-y-2 min-w-[180px]">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">
