@@ -866,34 +866,6 @@ export const getSubscriberStatus = createServerFn({ method: "GET" })
     }
   });
 
-/**
- * Auto-renew term passes: resolve (or idempotently create) a recurring
- * Stripe price with interval=month, interval_count={3,6,12} that mirrors
- * the one-time term pass amount/product. Lookup key is
- * `all_access_{n}mo_renew_aud` so it's stable across sandbox and live.
- */
-async function ensureRenewalPrice(
-  stripe: Stripe,
-  termMonths: number,
-  sourcePrice: Stripe.Price,
-): Promise<Stripe.Price> {
-  const lookupKey = `all_access_${termMonths}mo_renew_aud`;
-  const existing = await stripe.prices.list({ lookup_keys: [lookupKey], limit: 1, active: true });
-  if (existing.data[0]) return existing.data[0];
-
-  const productId =
-    typeof sourcePrice.product === "string" ? sourcePrice.product : sourcePrice.product.id;
-
-  return stripe.prices.create({
-    product: productId,
-    currency: assertAudCurrency(sourcePrice.currency),
-    unit_amount: sourcePrice.unit_amount ?? 0,
-    recurring: { interval: "month", interval_count: termMonths },
-    lookup_key: lookupKey,
-    transfer_lookup_key: true,
-    nickname: `All-Access ${termMonths}mo (auto-renew)`,
-  });
-}
 
 
 
