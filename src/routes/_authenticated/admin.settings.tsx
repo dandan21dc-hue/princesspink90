@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Check, Copy } from "lucide-react";
+import { Loader2, Check, Copy, ExternalLink } from "lucide-react";
 
 import {
   AlertDialog,
@@ -795,6 +795,10 @@ export function AdminSettings() {
                           >
                             https://fetlife.com/{settings.data.fetlife_handle}
                           </a>
+                          <OpenUrlLink
+                            value={`https://fetlife.com/${settings.data.fetlife_handle}`}
+                            label="Open current FetLife URL in a new tab"
+                          />
                           <CopyUrlButton
                             value={`https://fetlife.com/${settings.data.fetlife_handle}`}
                             label="Copy current FetLife URL"
@@ -827,6 +831,10 @@ export function AdminSettings() {
                           >
                             {newFetlifeUrl}
                           </a>
+                          <OpenUrlLink
+                            value={newFetlifeUrl}
+                            label="Open new FetLife URL in a new tab"
+                          />
                           <CopyUrlButton
                             value={newFetlifeUrl}
                             label="Copy new FetLife URL"
@@ -1001,6 +1009,30 @@ function CopyUrlButton({ value, label }: { value: string; label: string }) {
         <Copy className="h-3 w-3" aria-hidden />
       )}
     </button>
+  );
+}
+
+/**
+ * Small "Open ↗" affordance rendered next to a URL. The URL text itself is
+ * also a link, but the plain-text URL doesn't visually read as "click me
+ * to open a new tab" — this button-styled link makes the review step
+ * obvious for admins scanning the confirmation dialog. Always opens in a
+ * new tab with `rel="noopener noreferrer"` so window.opener can't be
+ * hijacked by the destination page.
+ */
+function OpenUrlLink({ value, label }: { value: string; label: string }) {
+  return (
+    <a
+      href={value}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      title={label}
+      className="ml-1 inline-flex h-5 items-center gap-1 rounded border border-border/60 px-1.5 align-middle text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+    >
+      Open
+      <ExternalLink className="h-3 w-3" aria-hidden />
+    </a>
   );
 }
 

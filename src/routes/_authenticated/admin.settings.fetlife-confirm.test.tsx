@@ -1024,13 +1024,17 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       // on the Handle line and once where the new-URL link used to sit.
       expect(within(dialog).getAllByText(/^\(empty\)$/i).length).toBeGreaterThanOrEqual(1);
     });
-    // Only the "Currently live" link remains — the new-URL link is gone.
+    // Only the "Currently live" URL is linked — the new-URL block is gone.
+    // Both the URL text and the "Open" affordance point to the same href,
+    // so we assert on the unique href set rather than raw link count.
     const savedUrl = `https://fetlife.com/${SAVED.fetlife_handle}`;
-    const fetlifeLinks = within(dialog)
-      .getAllByRole("link")
-      .filter((el) => (el.getAttribute("href") ?? "").startsWith("https://fetlife.com/"));
-    expect(fetlifeLinks).toHaveLength(1);
-    expect(fetlifeLinks[0]!.getAttribute("href")).toBe(savedUrl);
+    const fetlifeHrefs = new Set(
+      within(dialog)
+        .getAllByRole("link")
+        .map((el) => el.getAttribute("href") ?? "")
+        .filter((h) => h.startsWith("https://fetlife.com/")),
+    );
+    expect([...fetlifeHrefs]).toEqual([savedUrl]);
 
     const confirmBtn = within(dialog).getByRole("button", {
       name: /yes, update handle/i,
@@ -1046,6 +1050,39 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       }) as HTMLButtonElement).getAttribute("aria-disabled"),
     ).not.toBe("true");
   });
+
+  it("renders an Open-in-new-tab affordance next to BOTH the current and new FetLife URLs", async () => {
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle);
+    fireEvent.change(fetInput, { target: { value: "Reviewable-Handle" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+
+    // Both Open affordances render, each pointing at its own URL, opening
+    // in a new tab with hardened `rel` so window.opener can't be hijacked.
+    const openCurrent = within(dialog).getByRole("link", {
+      name: /open current fetlife url in a new tab/i,
+    });
+    const openNew = within(dialog).getByRole("link", {
+      name: /open new fetlife url in a new tab/i,
+    });
+    expect(openCurrent.getAttribute("href")).toBe(
+      `https://fetlife.com/${SAVED.fetlife_handle}`,
+    );
+    expect(openNew.getAttribute("href")).toBe(
+      "https://fetlife.com/Reviewable-Handle",
+    );
+    for (const link of [openCurrent, openNew]) {
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toContain("noopener");
+      expect(link.getAttribute("rel")).toContain("noreferrer");
+      expect(link.textContent?.toLowerCase()).toContain("open");
+    }
+  });
 });
+
 
 
