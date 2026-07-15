@@ -883,7 +883,7 @@ export const listMyContent = createServerFn({ method: "GET" })
     const { supabase, userId } = context;
     const { data, error } = await supabase
       .from("content_items")
-      .select("id,kind,title,price_cents,currency,subscribers_only,published,created_at")
+      .select("id,kind,title,price_cents,currency,subscribers_only,published,created_at,moderation_status,moderation_notes,moderation_reviewed_at")
       .eq("creator_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
