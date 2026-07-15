@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { listAllUsersWithRoles, setUserCoHostRole } from "@/lib/admin.functions";
+import { getUserComplianceArchiveDownload } from "@/lib/compliance-archive.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/user-management")({
   head: () => ({
@@ -26,8 +27,23 @@ type Row = {
 function UserManagementPage() {
   const listFn = useServerFn(listAllUsersWithRoles);
   const setRoleFn = useServerFn(setUserCoHostRole);
+  const downloadComplianceFn = useServerFn(getUserComplianceArchiveDownload);
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
+  const [pendingComplianceUserId, setPendingComplianceUserId] = useState<string | null>(null);
+
+  async function handleDownloadCompliance(userId: string) {
+    setPendingComplianceUserId(userId);
+    try {
+      const res = await downloadComplianceFn({ data: { user_id: userId } });
+      window.open(res.url, "_blank", "noopener,noreferrer");
+      toast.success("Signed compliance PDF ready");
+    } catch (e: any) {
+      toast.error(e?.message ?? "No signed compliance record found");
+    } finally {
+      setPendingComplianceUserId(null);
+    }
+  }
 
   const usersQ = useQuery({
     queryKey: ["admin", "all-users-with-roles"],
@@ -106,6 +122,7 @@ function UserManagementPage() {
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Joined</th>
                 <th className="px-4 py-3">Roles</th>
+                <th className="px-4 py-3">Compliance</th>
                 <th className="px-4 py-3 text-right">Access</th>
               </tr>
             </thead>
@@ -158,6 +175,17 @@ function UserManagementPage() {
                           </span>
                         ))}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadCompliance(u.id)}
+                        disabled={pendingComplianceUserId === u.id}
+                        className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/20 disabled:opacity-50"
+                        title="Download the user's latest signed compliance waiver PDF"
+                      >
+                        {pendingComplianceUserId === u.id ? "Preparing…" : "Download PDF"}
+                      </button>
                     </td>
                     <td className="px-4 py-3 text-right">
                       {isAdmin ? (
