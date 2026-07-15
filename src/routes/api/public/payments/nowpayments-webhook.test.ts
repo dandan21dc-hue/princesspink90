@@ -66,9 +66,10 @@ describe("parseOrderId", () => {
 describe("processIpn", () => {
   const validOrderId = "aap30d:11111111-1111-1111-1111-111111111111:sandbox:1000";
 
-  it("ignores non-finished statuses without touching the DB", async () => {
-    for (const status of ["waiting", "confirming", "sending", "partially_paid", "failed"]) {
-      const res = await processIpn({ payment_status: status, order_id: validOrderId, payment_id: 1 });
+  it("ignores non-finished statuses without touching the RPC", async () => {
+    const statuses = ["waiting", "confirming", "sending", "partially_paid", "failed"];
+    for (const [i, status] of statuses.entries()) {
+      const res = await processIpn({ payment_status: status, order_id: validOrderId, payment_id: 1000 + i });
       expect(res.handled).toBe(false);
       expect(res.reason).toBe(`ignored_status:${status}`);
     }
@@ -76,7 +77,7 @@ describe("processIpn", () => {
   });
 
   it("rejects finished events with an unrecognised order_id", async () => {
-    const res = await processIpn({ payment_status: "finished", order_id: "garbage", payment_id: 1 });
+    const res = await processIpn({ payment_status: "finished", order_id: "garbage", payment_id: 2001 });
     expect(res).toEqual({ handled: false, reason: "unrecognised_order_id" });
     expect(rpcMock).not.toHaveBeenCalled();
   });
@@ -93,7 +94,7 @@ describe("processIpn", () => {
       order_id: validOrderId,
       payment_id: 987654,
     });
-    expect(res).toEqual({ handled: true });
+    expect(res.handled).toBe(true);
     expect(rpcMock).toHaveBeenCalledTimes(1);
     expect(rpcMock).toHaveBeenCalledWith("grant_all_access_pass_30d", {
       _user_id: "11111111-1111-1111-1111-111111111111",
@@ -103,10 +104,21 @@ describe("processIpn", () => {
     });
   });
 
+  it("short-circuits on redelivered payment_id without re-invoking the RPC", async () => {
+    const evt = { payment_status: "finished", order_id: validOrderId, payment_id: 3003 };
+    const first = await processIpn(evt);
+    expect(first.handled).toBe(true);
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+    const second = await processIpn(evt);
+    expect(second).toMatchObject({ handled: true, duplicate: true });
+    // No additional RPC call on redelivery.
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+  });
+
   it("throws when the RPC fails so the webhook returns 5xx and NOWPayments retries", async () => {
     rpcMock.mockResolvedValueOnce({ data: null, error: { message: "db down" } });
     await expect(
-      processIpn({ payment_status: "finished", order_id: validOrderId, payment_id: 1 }),
+      processIpn({ payment_status: "finished", order_id: validOrderId, payment_id: 4004 }),
     ).rejects.toThrow(/grant_all_access_pass_30d failed: db down/);
   });
 });
