@@ -68,6 +68,54 @@ function RewardsTab() {
           />
         </div>
       </section>
+
+      <section className="rounded-2xl border border-border/70 bg-card p-6">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+          <Activity className="h-4 w-4 text-primary" /> Activity
+        </div>
+        <h2 className="mt-2 font-display text-lg">Point history</h2>
+
+        <div className="mt-4">
+          {activity.isLoading ? (
+            <div className="text-sm text-muted-foreground">Loading activity…</div>
+          ) : activity.data && activity.data.length > 0 ? (
+            <ul className="divide-y divide-border/60">
+              {activity.data.map((item) => {
+                const positive = item.delta > 0;
+                return (
+                  <li key={item.id} className="flex items-start justify-between gap-4 py-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">{item.reason}</div>
+                      {item.detail ? (
+                        <div className="mt-0.5 text-xs text-muted-foreground">{item.detail}</div>
+                      ) : null}
+                      {item.referral_code ? (
+                        <div className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 font-mono text-[11px] tracking-widest">
+                          {item.referral_code}
+                        </div>
+                      ) : null}
+                      <div className="mt-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+                        {new Date(item.created_at).toLocaleString()}
+                        {item.status ? ` · ${item.status}` : ""}
+                      </div>
+                    </div>
+                    <div
+                      className={`shrink-0 font-mono text-sm ${positive ? "text-neon" : "text-muted-foreground"}`}
+                    >
+                      {positive ? "+" : ""}
+                      {item.delta.toLocaleString()} pts
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No point activity yet. Share your referral code to earn your first points.
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
