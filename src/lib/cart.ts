@@ -61,19 +61,26 @@ function read(): CartItem[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    const cleaned = parsed.filter(
-      (it) =>
+    const cleaned: CartItem[] = [];
+    const removed: CartItem[] = [];
+    for (const it of parsed) {
+      const looksLikeCartItem =
         it &&
         (it.kind === "content" || it.kind === "panty") &&
-        typeof it.id === "string" &&
-        // Drop legacy panty entries whose id was a Stripe lookup key
-        // (e.g. "panty_24hr_aud") — the checkout server function rejects
-        // anything that isn't a `panty_listings.id` UUID.
-        UUID_RE.test(it.id),
-    ) as CartItem[];
+        typeof it.id === "string";
+      if (!looksLikeCartItem) continue;
+      // Drop legacy panty entries whose id was a Stripe lookup key
+      // (e.g. "panty_24hr_aud") — the checkout server function rejects
+      // anything that isn't a `panty_listings.id` UUID.
+      if (UUID_RE.test(it.id)) cleaned.push(it as CartItem);
+      else removed.push(it as CartItem);
+    }
     // If we pruned anything, persist the cleaned list so we don't re-check
-    // on every mount and so other tabs see the same state.
-    if (cleaned.length !== parsed.length) {
+    // on every mount and so other tabs see the same state, AND queue the
+    // removed items so the next mounted UI can surface a single toast
+    // explaining what happened (see `consumePrunedItems`).
+    if (removed.length > 0) {
+      pendingPruned.push(...removed);
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
       } catch {
