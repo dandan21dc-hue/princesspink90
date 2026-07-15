@@ -107,6 +107,15 @@ function KinkPartyGuidePage() {
         glory hole nights, theatre takeovers, and private rooms.
       </p>
 
+      <a
+        href="/downloads/kink-party-dress-code-checklist.pdf"
+        download
+        className="mt-6 inline-flex items-center gap-3 rounded-lg border border-neon/50 bg-neon/10 px-5 py-3 text-sm font-semibold text-neon shadow-[var(--shadow-glow-pink)] hover:bg-neon/20 transition"
+      >
+        <span aria-hidden="true">⬇</span>
+        Download the printable one-page checklist (PDF)
+      </a>
+
       <nav aria-label="On this page" className="mt-8 rounded-lg border border-border bg-card/50 p-4 text-sm">
         <p className="mb-2 text-xs uppercase tracking-widest text-muted-foreground">On this page</p>
         <ul className="grid gap-1 sm:grid-cols-2">
