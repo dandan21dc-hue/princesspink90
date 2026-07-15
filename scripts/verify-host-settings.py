@@ -91,7 +91,11 @@ class Expected:
 
 def load_expected_from_db() -> Expected:
     dsn = os.environ.get("DATABASE_URL")
-    conn = psycopg2.connect(dsn) if dsn else psycopg2.connect()
+    if dsn:
+        conn = psycopg2.connect(dsn)
+    else:
+        # Fall back to standard PG* env vars. Supabase pooler requires TLS.
+        conn = psycopg2.connect(sslmode=os.environ.get("PGSSLMODE", "require"))
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
             cur.execute(
