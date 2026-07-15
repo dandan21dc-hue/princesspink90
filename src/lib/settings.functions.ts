@@ -328,9 +328,11 @@ export const exportPricingAudit = createServerFn({ method: "GET" })
     return (rows ?? []) as PricingAuditEntry[];
   });
 
+export type UpdateSiteSettingsInput = z.input<typeof updateSchema>;
+
 export const updateSiteSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: SiteSettings) => updateSchema.parse(input))
+  .inputValidator((input: UpdateSiteSettingsInput) => updateSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
@@ -346,6 +348,18 @@ export const updateSiteSettings = createServerFn({ method: "POST" })
       .select("email, fetlife_handle")
       .eq("id", "host")
       .maybeSingle();
+
+    // Server-side guard: block FetLife handle changes unless the client
+    // explicitly set `fetlife_confirmed: true`. Comparing against the stored
+    // value (not just trusting the flag) means a request that omits the flag
+    // for an unchanged handle still succeeds, while any actual change without
+    // the confirmation is rejected before it touches the database.
+    const priorFetlife = before?.fetlife_handle ?? null;
+    const fetlifeChanging = priorFetlife !== data.fetlife_handle;
+    if (fetlifeChanging && !data.fetlife_confirmed) {
+      throw new Error(FETLIFE_CONFIRMATION_REQUIRED_MESSAGE);
+    }
+
 
     const { error } = await context.supabase
       .from("site_settings")
