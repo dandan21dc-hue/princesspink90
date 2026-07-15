@@ -13,7 +13,7 @@ export type SiteSettings = {
 
 const DEFAULTS: SiteSettings = {
   email: "midnight-glory@princesspink90.com",
-  fetlife_handle: "pink_princess90",
+  fetlife_handle: "Gloryhole-Queen",
   reddit_handle: "19pink-princess90",
   glory_holes_enabled: true,
   session_price_cents: 27500,
