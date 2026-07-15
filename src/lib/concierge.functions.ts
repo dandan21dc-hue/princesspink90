@@ -1,7 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createBookingInvoice } from "@/lib/bookingInvoice.functions";
 
 /**
  * Booking Concierge — server APIs exposed to the in-app chat widget.
