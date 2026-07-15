@@ -2,6 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+/**
+ * Admin order status. The legacy `subscriptions` and `stripe_webhook_events`
+ * tables were dropped when Stripe was removed, so the reconciliation columns
+ * (`last_webhook`, subscription rows) are stubbed out. External payment
+ * references now come from NOWPayments IPNs via `external_payment_reference`
+ * on each row.
+ */
+
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase.rpc("has_role", {
     _user_id: userId,
@@ -40,39 +48,17 @@ export type AdminOrderRow = {
   payment_status: string;
   entitlement_state: "granted" | "pending" | "revoked";
   entitlement_reason: string;
-  reference_id: string | null; // session id or subscription id
+  reference_id: string | null;
   detail: string;
   created_at: string;
   updated_at: string | null;
+  /**
+   * Kept in the row shape for UI compatibility. Always null now that the
+   * Stripe webhook events table is gone; NOWPayments IPNs are logged
+   * elsewhere.
+   */
   last_webhook: WebhookRef | null;
 };
-
-function subscriptionEntitlement(row: any): {
-  state: AdminOrderRow["entitlement_state"];
-  reason: string;
-} {
-  const status = row.status as string;
-  const periodEnd = row.current_period_end
-    ? new Date(row.current_period_end).getTime()
-    : null;
-  const active =
-    (["active", "trialing", "past_due"].includes(status) &&
-      (periodEnd === null || periodEnd > Date.now())) ||
-    (status === "canceled" && periodEnd !== null && periodEnd > Date.now());
-  if (active) {
-    return {
-      state: "granted",
-      reason:
-        status === "canceled"
-          ? "Access until period end"
-          : `Subscription ${status}`,
-    };
-  }
-  if (["incomplete", "incomplete_expired", "unpaid"].includes(status)) {
-    return { state: "pending", reason: `Awaiting payment (${status})` };
-  }
-  return { state: "revoked", reason: `Subscription ${status}` };
-}
 
 export const listAdminOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -87,32 +73,22 @@ export const listAdminOrders = createServerFn({ method: "GET" })
     const envFilter = (q: any) =>
       data.environment === "all" ? q : q.eq("environment", data.environment);
 
-    // Fetch each order type in parallel.
     const wantPanty = data.kind === "all" || data.kind === "panty";
-    const wantSub = data.kind === "all" || data.kind === "subscription";
     const wantContent = data.kind === "all" || data.kind === "content";
     const wantBooking = data.kind === "all" || data.kind === "booking";
+    // The `subscription` kind is intentionally a no-op: there is no
+    // subscriptions table anymore. Recurring access lives in `memberships`
+    // and is surfaced by the entitlements admin page instead.
 
-    const [pantyRes, subRes, contentRes, bookingRes] = await Promise.all([
+    const [pantyRes, contentRes, bookingRes] = await Promise.all([
       wantPanty
         ? envFilter(
             sb
               .from("panty_orders")
               .select(
-                "id,user_id,environment,amount_cents,currency,status,stripe_session_id,variant,customer_email,created_at,updated_at",
+                "id,user_id,environment,amount_cents,currency,status,external_payment_reference,variant,customer_email,created_at,updated_at",
               )
               .order("created_at", { ascending: false })
-              .limit(data.limit),
-          )
-        : Promise.resolve({ data: [], error: null }),
-      wantSub
-        ? envFilter(
-            sb
-              .from("subscriptions")
-              .select(
-                "id,user_id,environment,status,price_id,product_id,stripe_subscription_id,stripe_customer_id,current_period_end,cancel_at_period_end,created_at,updated_at",
-              )
-              .order("updated_at", { ascending: false })
               .limit(data.limit),
           )
         : Promise.resolve({ data: [], error: null }),
@@ -121,7 +97,7 @@ export const listAdminOrders = createServerFn({ method: "GET" })
             sb
               .from("content_purchases")
               .select(
-                "id,user_id,environment,amount_cents,content_item_id,stripe_session_id,created_at",
+                "id,user_id,environment,amount_cents,content_item_id,external_payment_reference,created_at",
               )
               .order("created_at", { ascending: false })
               .limit(data.limit),
@@ -132,7 +108,7 @@ export const listAdminOrders = createServerFn({ method: "GET" })
             sb
               .from("private_room_bookings")
               .select(
-                "id,user_id,environment,amount_cents,currency,status,stripe_session_id,starts_at,duration_minutes,customer_email,created_at,updated_at",
+                "id,user_id,environment,amount_cents,currency,status,external_payment_reference,starts_at,duration_minutes,customer_email,created_at,updated_at",
               )
               .order("created_at", { ascending: false })
               .limit(data.limit),
@@ -140,62 +116,8 @@ export const listAdminOrders = createServerFn({ method: "GET" })
         : Promise.resolve({ data: [], error: null }),
     ]);
 
-    for (const r of [pantyRes, subRes, contentRes, bookingRes]) {
+    for (const r of [pantyRes, contentRes, bookingRes]) {
       if ((r as any).error) throw (r as any).error;
-    }
-
-    // Collect Stripe reference ids to correlate against webhook events.
-    const refIds = new Set<string>();
-    for (const p of pantyRes.data ?? [])
-      if (p.stripe_session_id) refIds.add(p.stripe_session_id);
-    for (const s of subRes.data ?? []) {
-      if (s.stripe_subscription_id) refIds.add(s.stripe_subscription_id);
-      if (s.stripe_customer_id) refIds.add(s.stripe_customer_id);
-    }
-    for (const c of contentRes.data ?? [])
-      if (c.stripe_session_id) refIds.add(c.stripe_session_id);
-    for (const b of bookingRes.data ?? [])
-      if (b.stripe_session_id) refIds.add(b.stripe_session_id);
-
-    // Fetch recent webhook events (last 30 days) that reference any of these
-    // objects. PostgREST supports JSON extraction in select, so we grab the
-    // object id from raw_payload -> data -> object -> id and correlate in
-    // memory. Cap at 1000 for the admin view.
-    const webhookByRef = new Map<string, WebhookRef>();
-    if (refIds.size > 0) {
-      const since = new Date(Date.now() - 30 * 86400_000).toISOString();
-      let wq = sb
-        .from("stripe_webhook_events")
-        .select(
-          "id, stripe_event_id, event_type, status, received_at, error_message, raw_payload",
-        )
-        .gte("received_at", since)
-        .order("received_at", { ascending: false })
-        .limit(1000);
-      if (data.environment !== "all") wq = wq.eq("environment", data.environment);
-      const { data: whRows, error: whErr } = await wq;
-      if (whErr) throw whErr;
-      for (const evt of whRows ?? []) {
-        const obj = evt?.raw_payload?.data?.object ?? {};
-        const candidates: Array<string | undefined> = [
-          obj.id,
-          obj.subscription,
-          obj.customer,
-          obj.payment_intent,
-        ];
-        for (const c of candidates) {
-          if (!c || typeof c !== "string" || !refIds.has(c)) continue;
-          if (webhookByRef.has(c)) continue; // first hit is most recent
-          webhookByRef.set(c, {
-            id: evt.id,
-            stripe_event_id: evt.stripe_event_id,
-            event_type: evt.event_type,
-            status: evt.status,
-            received_at: evt.received_at,
-            error_message: evt.error_message,
-          });
-        }
-      }
     }
 
     const rows: AdminOrderRow[] = [];
@@ -221,40 +143,11 @@ export const listAdminOrders = createServerFn({ method: "GET" })
           : entitled
             ? "Order fulfilled — access granted"
             : "Awaiting payment confirmation",
-        reference_id: p.stripe_session_id,
+        reference_id: p.external_payment_reference ?? null,
         detail: `${p.variant}${p.customer_email ? ` · ${p.customer_email}` : ""}`,
         created_at: p.created_at,
         updated_at: p.updated_at,
-        last_webhook: p.stripe_session_id
-          ? (webhookByRef.get(p.stripe_session_id) ?? null)
-          : null,
-      });
-    }
-
-    for (const s of subRes.data ?? []) {
-      const { state, reason } = subscriptionEntitlement(s);
-      rows.push({
-        kind: "subscription",
-        id: s.id,
-        user_id: s.user_id,
-        environment: s.environment,
-        amount_cents: null,
-        currency: null,
-        payment_status: s.status,
-        entitlement_state: state,
-        entitlement_reason: reason,
-        reference_id: s.stripe_subscription_id,
-        detail: `${s.price_id}${s.cancel_at_period_end ? " · cancels at period end" : ""}`,
-        created_at: s.created_at,
-        updated_at: s.updated_at,
-        last_webhook:
-          (s.stripe_subscription_id
-            ? webhookByRef.get(s.stripe_subscription_id)
-            : undefined) ??
-          (s.stripe_customer_id
-            ? webhookByRef.get(s.stripe_customer_id)
-            : undefined) ??
-          null,
+        last_webhook: null,
       });
     }
 
@@ -269,13 +162,11 @@ export const listAdminOrders = createServerFn({ method: "GET" })
         payment_status: "paid",
         entitlement_state: "granted",
         entitlement_reason: "One-time purchase recorded",
-        reference_id: c.stripe_session_id,
+        reference_id: c.external_payment_reference ?? null,
         detail: `content_item ${c.content_item_id}`,
         created_at: c.created_at,
         updated_at: null,
-        last_webhook: c.stripe_session_id
-          ? (webhookByRef.get(c.stripe_session_id) ?? null)
-          : null,
+        last_webhook: null,
       });
     }
 
@@ -300,13 +191,11 @@ export const listAdminOrders = createServerFn({ method: "GET" })
           : entitled
             ? "Booking confirmed"
             : "Awaiting payment confirmation",
-        reference_id: b.stripe_session_id,
+        reference_id: b.external_payment_reference ?? null,
         detail: `${b.starts_at} · ${b.duration_minutes}m${b.customer_email ? ` · ${b.customer_email}` : ""}`,
         created_at: b.created_at,
         updated_at: b.updated_at,
-        last_webhook: b.stripe_session_id
-          ? (webhookByRef.get(b.stripe_session_id) ?? null)
-          : null,
+        last_webhook: null,
       });
     }
 
