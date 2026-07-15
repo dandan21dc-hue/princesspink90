@@ -30,16 +30,16 @@ Env vars:
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 from dataclasses import dataclass
 from typing import Optional
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
-
-import psycopg2  # pip install psycopg2-binary
-import psycopg2.extras
 
 
 BASE_URL = os.environ.get("BASE_URL", "https://princesspink90.lovable.app").rstrip("/")
