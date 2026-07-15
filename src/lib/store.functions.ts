@@ -7,7 +7,19 @@ import {
   assertAudCurrency,
 } from "@/lib/stripe.server";
 import { TAX_CODES, isEligibleForManagedPayments } from "@/lib/stripe-tax-codes";
-import type Stripe from "stripe";
+// Stripe SDK has been removed. Any lingering `Stripe.*` type references in
+// this file are legacy Stripe checkout paths that are no longer wired up;
+// aliasing to `any` keeps them compilable during the NOWPayments migration.
+// eslint-disable-next-line @typescript-eslint/no-namespace
+type Stripe = any;
+// eslint-disable-next-line @typescript-eslint/no-namespace
+namespace Stripe {
+  export type Price = any;
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  export namespace Checkout {
+    export type SessionCreateParams = any;
+  }
+}
 
 type CheckoutResult = { clientSecret: string } | { error: string };
 
