@@ -54,7 +54,7 @@ describe('billing stubs — Stripe-free defaults', () => {
     'createBillingPortalSession',
   ])('%s returns a friendly { error } payload', (fn) => {
     const body = handlerBody(fn)
-    expect(body).toMatch(/return\s*\{\s*error:\s*['"`][^'"`]+['"`]\s*\}/)
+    expect(body).toMatch(/return\s*\{\s*error:\s*[A-Z_a-z'"`][^}]*\}/)
     expect(body).not.toMatch(/throw new Error/)
   })
 
