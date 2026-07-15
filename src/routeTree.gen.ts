@@ -63,6 +63,7 @@ import { Route as AuthenticatedAdminPaymentIntegrityRouteImport } from './routes
 import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_authenticated/admin.partnerships'
 import { Route as AuthenticatedAdminPantyListingsRouteImport } from './routes/_authenticated/admin.panty-listings'
 import { Route as AuthenticatedAdminOrdersStatusRouteImport } from './routes/_authenticated/admin.orders-status'
+import { Route as AuthenticatedAdminNowpaymentsEventsRouteImport } from './routes/_authenticated/admin.nowpayments-events'
 import { Route as AuthenticatedAdminMediaModerationRouteImport } from './routes/_authenticated/admin.media-moderation'
 import { Route as AuthenticatedAdminMapPinsRouteImport } from './routes/_authenticated/admin.map-pins'
 import { Route as AuthenticatedAdminLifetimeRouteImport } from './routes/_authenticated/admin.lifetime'
@@ -392,6 +393,12 @@ const AuthenticatedAdminOrdersStatusRoute =
     path: '/admin/orders-status',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminNowpaymentsEventsRoute =
+  AuthenticatedAdminNowpaymentsEventsRouteImport.update({
+    id: '/admin/nowpayments-events',
+    path: '/admin/nowpayments-events',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminMediaModerationRoute =
   AuthenticatedAdminMediaModerationRouteImport.update({
     id: '/admin/media-moderation',
@@ -702,6 +709,7 @@ export interface FileRoutesByFullPath {
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/map-pins': typeof AuthenticatedAdminMapPinsRoute
   '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/admin/nowpayments-events': typeof AuthenticatedAdminNowpaymentsEventsRoute
   '/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
@@ -799,6 +807,7 @@ export interface FileRoutesByTo {
   '/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/admin/map-pins': typeof AuthenticatedAdminMapPinsRoute
   '/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/admin/nowpayments-events': typeof AuthenticatedAdminNowpaymentsEventsRoute
   '/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
@@ -899,6 +908,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/lifetime': typeof AuthenticatedAdminLifetimeRoute
   '/_authenticated/admin/map-pins': typeof AuthenticatedAdminMapPinsRoute
   '/_authenticated/admin/media-moderation': typeof AuthenticatedAdminMediaModerationRoute
+  '/_authenticated/admin/nowpayments-events': typeof AuthenticatedAdminNowpaymentsEventsRoute
   '/_authenticated/admin/orders-status': typeof AuthenticatedAdminOrdersStatusRoute
   '/_authenticated/admin/panty-listings': typeof AuthenticatedAdminPantyListingsRoute
   '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
@@ -999,6 +1009,7 @@ export interface FileRouteTypes {
     | '/admin/lifetime'
     | '/admin/map-pins'
     | '/admin/media-moderation'
+    | '/admin/nowpayments-events'
     | '/admin/orders-status'
     | '/admin/panty-listings'
     | '/admin/partnerships'
@@ -1096,6 +1107,7 @@ export interface FileRouteTypes {
     | '/admin/lifetime'
     | '/admin/map-pins'
     | '/admin/media-moderation'
+    | '/admin/nowpayments-events'
     | '/admin/orders-status'
     | '/admin/panty-listings'
     | '/admin/partnerships'
@@ -1195,6 +1207,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/lifetime'
     | '/_authenticated/admin/map-pins'
     | '/_authenticated/admin/media-moderation'
+    | '/_authenticated/admin/nowpayments-events'
     | '/_authenticated/admin/orders-status'
     | '/_authenticated/admin/panty-listings'
     | '/_authenticated/admin/partnerships'
@@ -1668,6 +1681,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminOrdersStatusRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/nowpayments-events': {
+      id: '/_authenticated/admin/nowpayments-events'
+      path: '/admin/nowpayments-events'
+      fullPath: '/admin/nowpayments-events'
+      preLoaderRoute: typeof AuthenticatedAdminNowpaymentsEventsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/media-moderation': {
       id: '/_authenticated/admin/media-moderation'
       path: '/admin/media-moderation'
@@ -2044,6 +2064,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminLifetimeRoute: typeof AuthenticatedAdminLifetimeRoute
   AuthenticatedAdminMapPinsRoute: typeof AuthenticatedAdminMapPinsRoute
   AuthenticatedAdminMediaModerationRoute: typeof AuthenticatedAdminMediaModerationRoute
+  AuthenticatedAdminNowpaymentsEventsRoute: typeof AuthenticatedAdminNowpaymentsEventsRoute
   AuthenticatedAdminOrdersStatusRoute: typeof AuthenticatedAdminOrdersStatusRoute
   AuthenticatedAdminPantyListingsRoute: typeof AuthenticatedAdminPantyListingsRoute
   AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRouteWithChildren
@@ -2100,6 +2121,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminMapPinsRoute: AuthenticatedAdminMapPinsRoute,
   AuthenticatedAdminMediaModerationRoute:
     AuthenticatedAdminMediaModerationRoute,
+  AuthenticatedAdminNowpaymentsEventsRoute:
+    AuthenticatedAdminNowpaymentsEventsRoute,
   AuthenticatedAdminOrdersStatusRoute: AuthenticatedAdminOrdersStatusRoute,
   AuthenticatedAdminPantyListingsRoute: AuthenticatedAdminPantyListingsRoute,
   AuthenticatedAdminPartnershipsRoute:
