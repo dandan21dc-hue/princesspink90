@@ -131,23 +131,23 @@ function PartnershipDetailPage() {
   })
 
   if (inquiriesQ.isLoading) {
-    return <main className="mx-auto max-w-4xl px-5 py-10 text-sm text-muted-foreground">Loading…</main>
+    return <div className="mx-auto max-w-4xl px-5 py-10 text-sm text-muted-foreground">Loading…</div>
   }
   if (!inquiry) {
     return (
-      <main className="mx-auto max-w-4xl px-5 py-10">
+      <div className="mx-auto max-w-4xl px-5 py-10">
         <Link to="/admin/partnerships" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-neon">
           ← Back to enquiries
         </Link>
         <p className="mt-6 text-sm text-red-400">Enquiry not found.</p>
-      </main>
+      </div>
     )
   }
 
   const currentNotes = notes ?? inquiry.notes ?? ''
 
   return (
-    <main className="mx-auto max-w-4xl px-5 py-10 space-y-8">
+    <div className="mx-auto max-w-4xl px-5 py-10 space-y-8">
       <div>
         <Link to="/admin/partnerships" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-neon">
           ← Back to enquiries
@@ -299,7 +299,7 @@ function PartnershipDetailPage() {
           ))}
         </ul>
       </section>
-    </main>
+    </div>
   )
 }
 

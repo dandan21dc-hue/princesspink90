@@ -175,7 +175,7 @@ function CheckinPage() {
 
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10">
+    <div className="mx-auto max-w-2xl px-5 py-10">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Door</div>
@@ -365,7 +365,7 @@ function CheckinPage() {
         loading={roster.isLoading}
         fetching={roster.isFetching}
       />
-    </main>
+    </div>
   );
 }
 

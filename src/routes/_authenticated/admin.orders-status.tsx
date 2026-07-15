@@ -70,7 +70,7 @@ function AdminOrdersStatusPage() {
   );
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-6xl px-5 pt-16 pb-8">
         <Link
           to="/dashboard"
@@ -301,7 +301,7 @@ function AdminOrdersStatusPage() {
           </div>
         )}
       </section>
-    </main>
+    </div>
   );
 }
 

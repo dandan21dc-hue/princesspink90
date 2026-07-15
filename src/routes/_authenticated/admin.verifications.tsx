@@ -144,7 +144,7 @@ function Row({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12">
+    <div className="mx-auto max-w-3xl px-5 py-12">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="font-display text-3xl font-bold">ID verifications</h1>
         <Link to="/dashboard" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
@@ -152,6 +152,6 @@ function Shell({ children }: { children: React.ReactNode }) {
         </Link>
       </div>
       {children}
-    </main>
+    </div>
   );
 }

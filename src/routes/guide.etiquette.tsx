@@ -120,7 +120,7 @@ export const Route = createFileRoute("/guide/etiquette")({
 
 function EtiquettePage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 py-16 text-foreground">
+    <div className="mx-auto max-w-3xl px-4 py-16 text-foreground">
       <p className="text-xs uppercase tracking-widest text-neon">Guide · 18+ only</p>
       <h1 className="mt-2 font-display text-4xl font-bold sm:text-5xl">
         BDSM Party Dress Code & Etiquette Guide
@@ -236,6 +236,6 @@ function EtiquettePage() {
           </Link>
         </div>
       </section>
-    </main>
+    </div>
   );
 }
