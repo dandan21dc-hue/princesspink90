@@ -1269,14 +1269,15 @@ function CopyUrlButton({
  * hijacked by the destination page.
  */
 function OpenUrlLink({ value, label }: { value: string; label: string }) {
+  const accessibleLabel = `${label}: ${value} (opens in a new tab)`;
   return (
     <a
       href={value}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={label}
-      title={label}
-      className="ml-1 inline-flex h-5 items-center gap-1 rounded border border-border/60 px-1.5 align-middle text-[10px] font-semibold uppercase tracking-widest text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+      aria-label={accessibleLabel}
+      title={accessibleLabel}
+      className="ml-1 inline-flex h-5 items-center gap-1 rounded border border-border/60 px-1.5 align-middle text-[10px] font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       Open
       <ExternalLink className="h-3 w-3" aria-hidden />
