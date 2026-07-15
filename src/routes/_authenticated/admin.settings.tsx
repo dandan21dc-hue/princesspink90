@@ -587,7 +587,13 @@ export function AdminSettings() {
             const cancelBtn = root?.querySelector<HTMLButtonElement>("[data-cancel]");
             cancelBtn?.focus();
           }}
-          onEscapeKeyDown={() => {
+          onEscapeKeyDown={(event) => {
+            // While the save is in flight, swallow Escape so the admin can't
+            // dismiss the dialog mid-request and lose the loading indicator.
+            if (save.isPending) {
+              event.preventDefault();
+              return;
+            }
             // Radix closes the dialog on Escape by default; mark the intent
             // as an explicit cancel so onOpenChange takes the "not saved"
             // toast path rather than inferring it from a null ref.
@@ -599,12 +605,15 @@ export function AdminSettings() {
             // activates whichever button currently has focus (Radix default).
             if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
               event.preventDefault();
+              if (save.isPending) return;
               fetlifeDismissIntentRef.current = "confirm";
-              save.mutate();
-              setPendingFetlifeConfirm(false);
+              save.mutate(undefined, {
+                onSettled: () => setPendingFetlifeConfirm(false),
+              });
             }
           }}
         >
+
 
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm FetLife handle change</AlertDialogTitle>
