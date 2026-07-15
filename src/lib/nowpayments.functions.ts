@@ -235,20 +235,20 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
         description = `Private Room — ${minutes} minutes (Midnight Glory)`;
         orderId = `private_room_${minutes}:${context.userId}:${data.environment}:${amountCents}`;
       } else if (data.priceId) {
-        const spec = EXPECTED_PLAN_PRICES[data.priceId];
+        const spec = await getPlanPriceSpec(data.priceId);
         if (!spec) {
           return { error: `Unknown priceId: ${data.priceId}` };
         }
         amountCents = spec.unit_amount;
         currency = spec.currency;
-        description = PRICE_DESCRIPTIONS[data.priceId] ?? data.priceId;
-        const kind = PRICE_KIND[data.priceId] ?? data.priceId;
-        orderId = `${kind}:${context.userId}:${data.environment}:${amountCents}`;
+        description = spec.description;
+        orderId = `${spec.kind}:${context.userId}:${data.environment}:${amountCents}`;
       } else {
-        amountCents = AAP30D_PRICE_CENTS;
-        currency = "aud";
-        description = "All-Access Pass — 30 days (Midnight Glory)";
-        orderId = `${AAP30D_KEY}:${context.userId}:${data.environment}:${amountCents}`;
+        const spec = await getDefaultAap30dSpec();
+        amountCents = spec.unit_amount;
+        currency = spec.currency;
+        description = spec.description;
+        orderId = `${spec.kind}:${context.userId}:${data.environment}:${amountCents}`;
       }
 
       // Ignore any client-supplied `returnOrigin`; always build URLs from
