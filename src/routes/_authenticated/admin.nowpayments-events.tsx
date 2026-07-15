@@ -128,6 +128,44 @@ function AdminNowpaymentsEvents() {
   const [bulkAction, setBulkAction] = useState<NowpaymentsBulkAction | null>(null);
   const [bulkNote, setBulkNote] = useState("");
 
+  // Custom filter presets persisted to localStorage.
+  type CustomPreset = {
+    id: string;
+    name: string;
+    status: string;
+    handled: "all" | "handled" | "unhandled";
+    reversal: ReversalFilter;
+    sort: SortMode;
+    search: string;
+  };
+  const CUSTOM_PRESETS_KEY = "nowpayments-events:custom-presets:v1";
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
+  const [presetName, setPresetName] = useState("");
+  const [presetsLoaded, setPresetsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_PRESETS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as CustomPreset[];
+        if (Array.isArray(parsed)) setCustomPresets(parsed);
+      }
+    } catch {
+      /* ignore */
+    }
+    setPresetsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!presetsLoaded) return;
+    try {
+      localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(customPresets));
+    } catch {
+      /* ignore quota / privacy-mode errors */
+    }
+  }, [customPresets, presetsLoaded]);
+
+
 
   // Reset to page 1 whenever filters/search/sort/pageSize change.
   const resetToFirstPage = () => setPage(1);
