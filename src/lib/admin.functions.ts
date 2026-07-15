@@ -1942,7 +1942,7 @@ export const getCrmUserDetail = createServerFn({ method: "GET" })
         email: authUser?.user?.email ?? null,
         created_at: authUser?.user?.created_at ?? profile?.created_at ?? null,
         display_name: profile?.display_name ?? null,
-        staff_notes: profile?.staff_notes ?? "",
+        staff_notes: staffNotesRow?.notes ?? "",
         account_restricted: Boolean(profile?.account_restricted),
       },
       rsvps: rsvps ?? [],
