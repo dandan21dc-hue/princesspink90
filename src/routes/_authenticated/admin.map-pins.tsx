@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ChevronUp, Download, GripVertical, RefreshCw, Search, X } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
@@ -139,6 +139,11 @@ function AdminMapPins() {
   const [pendingDelete, setPendingDelete] = useState<MapPin | null>(null);
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
   const [reorderAnnouncement, setReorderAnnouncement] = useState("");
+  const reorderSeqRef = useRef(0);
+  const [pendingUndo, setPendingUndo] = useState<
+    | { run: () => void; description: string; sinceCount: number }
+    | null
+  >(null);
   useEffect(() => {
     setOrder(pins);
     setSelectedPin((cur) => (cur ? pins.find((p) => p.id === cur.id) ?? null : null));
@@ -188,19 +193,32 @@ function AdminMapPins() {
         return;
       }
       setReorderAnnouncement(announcement);
+      const mySeq = ++reorderSeqRef.current;
+      const runUndo = () => {
+        setOrder(vars.prevOrder);
+        reorder.mutate({
+          ids: vars.prevIds,
+          prevIds: vars.ids,
+          prevOrder: [...vars.prevOrder],
+          isUndo: true,
+        });
+      };
       toast.success("Order saved", {
         description,
         duration: 6000,
         action: {
           label: "Undo",
           onClick: () => {
-            setOrder(vars.prevOrder);
-            reorder.mutate({
-              ids: vars.prevIds,
-              prevIds: vars.ids,
-              prevOrder: [...vars.prevOrder],
-              isUndo: true,
-            });
+            // If newer reorders happened since this toast, confirm first.
+            if (reorderSeqRef.current !== mySeq) {
+              setPendingUndo({
+                run: runUndo,
+                description,
+                sinceCount: reorderSeqRef.current - mySeq,
+              });
+            } else {
+              runUndo();
+            }
           },
         },
       });
@@ -923,6 +941,38 @@ function AdminMapPins() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {remove.isPending ? "Removing…" : "Remove pin"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!pendingUndo}
+        onOpenChange={(o) => {
+          if (!o) setPendingUndo(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo an earlier reorder?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingUndo
+                ? `${pendingUndo.sinceCount} newer reorder${
+                    pendingUndo.sinceCount === 1 ? " has" : "s have"
+                  } happened since this change (${pendingUndo.description}). Undoing now will roll back to the order before that older change, discarding the newer ones.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                pendingUndo?.run();
+                setPendingUndo(null);
+              }}
+            >
+              Undo anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
