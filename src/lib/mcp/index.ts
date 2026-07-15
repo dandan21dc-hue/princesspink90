@@ -5,6 +5,7 @@ import listMyRsvps from "./tools/list-my-rsvps";
 import listMyMemberships from "./tools/list-my-memberships";
 import createRsvp from "./tools/create-rsvp";
 import cancelRsvp from "./tools/cancel-rsvp";
+import checkInToEvent from "./tools/check-in-to-event";
 
 // The OAuth issuer MUST be the direct Supabase host, not the `.lovable.cloud`
 // proxy that `SUPABASE_URL` resolves to on the published Workers runtime.
@@ -18,10 +19,10 @@ export default defineMcp({
   title: "Princess Pink",
   version: "0.1.0",
   instructions:
-    "Tools for the signed-in Princess Pink member. Use `list_upcoming_events` to discover public events, `get_event_details` to fetch full details for one event, `list_my_rsvps` to see the user's own RSVPs and entry codes, `list_my_memberships` to see their active passes, `create_rsvp` to RSVP to a specific event, and `cancel_rsvp` to cancel an existing RSVP.",
+    "Tools for the signed-in Princess Pink member. Use `list_upcoming_events` to discover public events, `get_event_details` to fetch full details for one event, `list_my_rsvps` to see the user's own RSVPs and entry codes, `list_my_memberships` to see their active passes, `create_rsvp` to RSVP to a specific event, `cancel_rsvp` to cancel an existing RSVP, and `check_in_to_event` to check in with an entry code.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
   }),
-  tools: [listUpcomingEvents, getEventDetails, listMyRsvps, listMyMemberships, createRsvp, cancelRsvp],
+  tools: [listUpcomingEvents, getEventDetails, listMyRsvps, listMyMemberships, createRsvp, cancelRsvp, checkInToEvent],
 });
