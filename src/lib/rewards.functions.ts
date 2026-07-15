@@ -47,7 +47,7 @@ export const getMyRewardActivity = createServerFn({ method: "GET" })
         .limit(100),
       supabase
         .from("reward_point_reservations")
-        .select("id, created_at, points, status, order_id")
+        .select("created_at, points, status, order_id")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(100),
