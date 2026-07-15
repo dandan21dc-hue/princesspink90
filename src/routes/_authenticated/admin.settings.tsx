@@ -41,6 +41,8 @@ import {
   fetlifeUrlRoundTripsToHandle,
 
 } from "@/lib/settings.functions";
+import { annotateFetlifeHandleInput } from "@/lib/fetlife-annotate";
+
 import {
   getReminderJobConfig,
   updateReminderJobConfig,
