@@ -80,6 +80,16 @@ vi.mock("@/integrations/supabase/client.server", () => {
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
+    // Silently absorb admin alert inserts so raiseAlert doesn't spam the test log
+    // through its catch-and-warn path.
+    if (table === "admin_activity_audit_alerts") {
+      return {
+        insert: (_row: unknown) => Promise.resolve({ data: null, error: null }),
+        select: (_c?: string) => ({
+          eq: () => ({ gte: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }) }),
+        }),
+      };
+    }
     if (table !== "nowpayments_ipn_events") throw new Error(`unexpected table: ${table}`);
     return {
       insert(row: { payment_id: string; last_status: string }) {
@@ -133,13 +143,36 @@ vi.mock("@/integrations/supabase/client.server", () => {
       },
     };
   };
+  // Reproduces revoke_entitlement_by_payment_reference for memberships only
+  // (this test suite exercises the aap30d path). Sets revoked_at once and
+  // immediately expires the pass on revoke; sets suspended_at on suspend.
+  function fakeRevokeByRef(args: { _reference: string; _mode: "revoked" | "suspended"; _reason: string }) {
+    const m = state.rows.find((r) => r.external_payment_reference === args._reference);
+    if (!m) return { data: { affected_count: 0, affected: [] }, error: null };
+    if (args._mode === "revoked") {
+      if (!m.revoked_at) m.revoked_at = new Date(state.nowMs);
+      m.revocation_reason = m.revocation_reason ?? args._reason;
+      // Kill the pass window as the real RPC does.
+      if (m.expires_at.getTime() > state.nowMs) m.expires_at = new Date(state.nowMs);
+    } else {
+      if (!m.suspended_at) m.suspended_at = new Date(state.nowMs);
+      m.revocation_reason = m.revocation_reason ?? args._reason;
+    }
+    return {
+      data: { affected_count: 1, affected: [{ kind: "membership", id: m.id }] },
+      error: null,
+    };
+  }
   return {
     supabaseAdmin: {
-      rpc: (name: string, args: Parameters<typeof fakeGrantAllAccessPass30d>[0]) => {
-        if (name !== "grant_all_access_pass_30d") {
-          return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
+      rpc: (name: string, args: any) => {
+        if (name === "grant_all_access_pass_30d") {
+          return Promise.resolve(fakeGrantAllAccessPass30d(args));
         }
-        return Promise.resolve(fakeGrantAllAccessPass30d(args));
+        if (name === "revoke_entitlement_by_payment_reference") {
+          return Promise.resolve(fakeRevokeByRef(args));
+        }
+        return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
       },
       from,
     },
