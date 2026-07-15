@@ -37,6 +37,9 @@ import {
   normalizeFetlifeHandle,
   validateFetlifeHandle,
   validateContactEmail,
+  buildFetlifeUrl,
+  fetlifeUrlRoundTripsToHandle,
+
 } from "@/lib/settings.functions";
 import {
   getReminderJobConfig,
