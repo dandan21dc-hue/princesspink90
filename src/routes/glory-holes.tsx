@@ -67,7 +67,7 @@ function PrivateRoomPage() {
   const durationLabel = formatDuration(duration);
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null);
   const [notes, setNotes] = useState<string>("");
-  const { openCheckout, checkoutElement, isOpen, closeCheckout } = useStripeCheckout();
+  const [isOpen, setIsOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [finding, setFinding] = useState(false);
