@@ -212,11 +212,15 @@ export function SupportChatWidget() {
 
   useEffect(() => {
     if (!open) return;
+    // Any slot card in the feed is instantly stale after the panel was
+    // closed — refresh so users never tap a time that's since been taken.
+    void refreshSlotCards();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const appendMessage = (msg: ChatMessage) => setMessages((prev) => [...prev, msg]);
