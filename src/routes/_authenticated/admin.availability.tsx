@@ -37,6 +37,11 @@ function fmt(iso: string) {
   });
 }
 
+function fmtAud(cents: number | null | undefined) {
+  if (cents == null) return "—";
+  return `A$${(cents / 100).toFixed(2)}`;
+}
+
 type ConflictPair = { a: PrivateSessionSlot; b: PrivateSessionSlot };
 
 function findConflicts(slots: PrivateSessionSlot[]): ConflictPair[] {
