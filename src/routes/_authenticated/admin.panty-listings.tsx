@@ -280,7 +280,10 @@ function EditModal(props: {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   const [describing, setDescribing] = useState(false);
+  const [autoCreating, setAutoCreating] = useState(false);
   const describeFn = useServerFn(describePantyPhoto);
+  const createFn = useServerFn(createPantyListing);
+  const qc = useQueryClient();
 
   const autoDescribe = async (imageUrl: string) => {
     if (!imageUrl) {
