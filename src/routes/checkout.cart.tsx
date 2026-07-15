@@ -47,6 +47,18 @@ function CartCheckoutPage() {
   const [snapshot] = useState(() => cartStore.snapshot());
 
   const payItem = (it: CartItem) => {
+    // Defensive: the cart's `read()` filter already drops entries whose id
+    // isn't a UUID, but a race (localStorage tampering, cross-tab write mid-
+    // click) could still surface a bad line. Refuse rather than sending a
+    // guaranteed-to-fail request to the checkout server function.
+    if (!isCartItemIdValid(it)) {
+      toast.error("This item can't be checked out", {
+        description:
+          "Its reference is out of date. Remove it from the cart and add the current listing again.",
+      });
+      track("cart_checkout_invalid_id", { kind: it.kind, id: String(it.id) });
+      return;
+    }
     track("nowpayments_cart_checkout_click", {
       kind: it.kind,
       id: it.id,
@@ -58,6 +70,7 @@ function CartCheckoutPage() {
         : { contentItemId: it.id };
     void openCheckout(opts);
   };
+
 
   if (snapshot.length === 0 && items.length === 0) {
     return (
