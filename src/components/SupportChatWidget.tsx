@@ -13,6 +13,7 @@ import {
   loadConciergeHistory,
   saveConciergeHistory,
 } from "@/lib/concierge-history.functions";
+import { chatWithConcierge } from "@/lib/concierge-llm.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -65,10 +66,6 @@ type ChatMessage = {
   parts: MessagePart[];
 };
 
-type ConciergeReply = {
-  reply: string;
-  tool?: { name: "show_slots"; args?: { horizonDays?: number; limit?: number } } | { name: "none" };
-};
 
 const INITIAL_GREETING: ChatMessage = {
   role: "assistant",
@@ -598,27 +595,22 @@ export function SupportChatWidget() {
    * Placeholder LLM call → POST /api/concierge/chat. Swap the endpoint for
    * a real provider without touching the widget.
    */
+  const callConcierge = useServerFn(chatWithConcierge);
+
   const runLlm = async (nextHistory: ChatMessage[]) => {
     // Only the text parts are meaningful to the model — tool cards are
     // rendered client-side artefacts.
-    const flatHistory = nextHistory.map((m) => ({
-      role: m.role,
-      content: m.parts
-        .map((p) => (p.type === "text" ? p.text : ""))
-        .join("")
-        .trim(),
-    }));
-    const res = await fetch("/api/concierge/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: flatHistory }),
-    });
-    if (!res.ok) throw new Error(`Concierge chat error (${res.status})`);
-    const data = (await res.json()) as ConciergeReply;
+    const flatHistory = nextHistory
+      .map((m) => ({
+        role: m.role,
+        content: m.parts
+          .map((p) => (p.type === "text" ? p.text : ""))
+          .join("")
+          .trim(),
+      }))
+      .filter((m) => m.content.length > 0);
+    const data = await callConcierge({ data: { messages: flatHistory } });
     appendMessage({ role: "assistant", parts: [{ type: "text", text: data.reply }] });
-    if (data.tool?.name === "show_slots") {
-      await showLiveSlots(data.tool.args);
-    }
   };
 
   const send = async () => {
