@@ -211,6 +211,59 @@ export const rsvpToEvent = createServerFn({ method: "POST" })
         })
         .eq("id", perkRow.id);
     }
+    // Best-effort transactional receipt for the free RSVP. Failures never
+    // block the ticket — the queue will retry on transient errors, and the
+    // idempotency key stops duplicates on client retries.
+    try {
+      const claimEmail =
+        (context.claims as { email?: string } | null | undefined)?.email ?? null;
+      if (claimEmail) {
+        const origin =
+          process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ??
+          process.env.SITE_URL?.replace(/\/$/, "") ??
+          "https://princesspink90.com";
+        const eventDateLabel = evRow.starts_at
+          ? new Date(evRow.starts_at as string).toLocaleString("en-AU", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              timeZone: "Australia/Sydney",
+            })
+          : "";
+        const { enqueueTemplateEmail } = await import("@/lib/email/enqueue.server");
+        await enqueueTemplateEmail({
+          templateName: "order-receipt",
+          recipientEmail: claimEmail,
+          idempotencyKey: `rsvp-confirm-${row.id}`,
+          templateData: {
+            receiptTitle: "Event RSVP",
+            itemDescription: (evRow.title as string | null) ?? "Event RSVP",
+            amount: "Free",
+            purchasedAt: new Date(now).toLocaleString("en-AU", {
+              timeZone: "Australia/Sydney",
+            }),
+            referenceId: row.entry_code ?? row.id,
+            lineItems: [
+              ...(eventDateLabel ? [{ label: "When", value: eventDateLabel }] : []),
+              ...(evRow.venue_name
+                ? [{ label: "Where", value: evRow.venue_name as string }]
+                : []),
+              { label: "Guests", value: String(data.guest_count) },
+              ...(row.entry_phrase
+                ? [{ label: "Entry phrase", value: row.entry_phrase as string }]
+                : []),
+            ],
+            dashboardUrl: `${origin}/bookings`,
+          },
+        });
+      }
+    } catch {
+      // never block a valid RSVP on email queue issues
+    }
+
     return {
       ticket_code: row.ticket_code,
       entry_code: row.entry_code,
