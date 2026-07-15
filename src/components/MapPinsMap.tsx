@@ -18,7 +18,7 @@ interface Props {
 }
 
 
-export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props) {
+export function MapPinsMap({ pins, className, onPinClick, selectedPinId, isLoading, isError, errorMessage, showCount = true }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const onPinClickRef = useRef(onPinClick);
