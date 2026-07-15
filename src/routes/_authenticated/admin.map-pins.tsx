@@ -155,7 +155,7 @@ function AdminMapPins() {
     });
   }, [order, qInput, stateFilter]);
 
-  const dragEnabled = !qInput.trim() && stateFilter === "all" && !reorder.isPending;
+  const filterEnabled = !qInput.trim() && stateFilter === "all";
 
   type ReorderVars = { ids: string[]; prevIds: string[]; prevOrder: MapPin[]; isUndo: boolean };
   const reorder = useMutation({
