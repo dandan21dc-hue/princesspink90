@@ -138,6 +138,7 @@ function AdminMapPins() {
   const [overId, setOverId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MapPin | null>(null);
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
   useEffect(() => {
     setOrder(pins);
     setSelectedPin((cur) => (cur ? pins.find((p) => p.id === cur.id) ?? null : null));
