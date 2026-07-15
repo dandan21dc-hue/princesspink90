@@ -239,6 +239,23 @@ function AdminSettings() {
     },
   });
 
+  // Confirmation gate for FetLife handle changes. Because that value drives
+  // the public profile link, a typo is user-visible — we require the admin
+  // to explicitly confirm the old → new change before the save actually runs.
+  const [pendingFetlifeConfirm, setPendingFetlifeConfirm] = useState(false);
+  const fetlifeChanged =
+    settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
+
+  const handleSubmit = () => {
+    if (fetlifeChanged && !fetlifeError) {
+      setPendingFetlifeConfirm(true);
+      return;
+    }
+    save.mutate();
+  };
+
+
+
 
 
 
