@@ -508,6 +508,193 @@ export const adminRevokeAllAccess = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---------- Bulk grant / revoke by CSV of emails ----------
+
+type BulkOp = {
+  email: string;
+  action: "grant" | "revoke";
+  kind?: AllAccessGrantKind;
+};
+
+export const adminBulkAllAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { operations: BulkOp[] }) => {
+    if (!Array.isArray(d?.operations) || d.operations.length === 0) {
+      throw new Error("operations required");
+    }
+    if (d.operations.length > 500) throw new Error("Maximum 500 rows per batch");
+    for (const op of d.operations) {
+      if (!op.email) throw new Error("each row requires an email");
+      if (op.action !== "grant" && op.action !== "revoke") {
+        throw new Error(`invalid action for ${op.email}: ${op.action}`);
+      }
+      if (op.action === "grant") {
+        if (op.kind !== "term_pass_all_access_30d" && op.kind !== "lifetime") {
+          throw new Error(`grant kind must be term_pass_all_access_30d or lifetime (${op.email})`);
+        }
+      }
+    }
+    return d;
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const environment = env();
+
+    // Build a single email → user map from a paged listUsers scan (avoids per-row scans).
+    const wantEmails = new Set(
+      data.operations.map((o) => o.email.trim().toLowerCase()).filter(Boolean),
+    );
+    const emailToId = new Map<string, string>();
+    let page = 1;
+    const perPage = 200;
+    for (let i = 0; i < 20 && emailToId.size < wantEmails.size; i++) {
+      const { data: pageData, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error) throw new Error(error.message);
+      for (const u of pageData.users) {
+        const em = (u.email ?? "").toLowerCase();
+        if (em && wantEmails.has(em)) emailToId.set(em, u.id as string);
+      }
+      if (pageData.users.length < perPage) break;
+      page += 1;
+    }
+
+    type Result = {
+      email: string;
+      action: "grant" | "revoke";
+      kind?: string;
+      status: "success" | "error";
+      message: string;
+      membership_id?: string | null;
+      revoked_count?: number;
+    };
+    const results: Result[] = [];
+
+    for (const op of data.operations) {
+      const email = op.email.trim().toLowerCase();
+      const userId = emailToId.get(email);
+      if (!userId) {
+        results.push({
+          email: op.email,
+          action: op.action,
+          kind: op.kind,
+          status: "error",
+          message: "User not found",
+        });
+        continue;
+      }
+
+      try {
+        if (op.action === "grant") {
+          const rpc =
+            op.kind === "lifetime" ? "grant_lifetime_membership" : "grant_all_access_pass_30d";
+          const externalRef = `admin_bulk:${context.userId}:${Date.now()}:${email}`;
+          const { data: row, error } = await supabaseAdmin.rpc(rpc, {
+            _user_id: userId,
+            _environment: environment,
+            _amount_cents: 0,
+            _external_payment_reference: externalRef,
+          });
+          if (error) throw new Error(error.message);
+          const membershipId = (row as { id?: string } | null)?.id ?? null;
+
+          await context.supabase.from("admin_activity_audit").insert({
+            actor_id: context.userId,
+            action: "grant_all_access",
+            resource: `user:${userId}`,
+            metadata: {
+              target_user_id: userId,
+              kind: op.kind,
+              rpc,
+              environment,
+              membership_id: membershipId,
+              external_payment_reference: externalRef,
+              bulk: true,
+            },
+          });
+
+          results.push({
+            email: op.email,
+            action: "grant",
+            kind: op.kind,
+            status: "success",
+            message: op.kind === "lifetime" ? "Lifetime granted" : "30-day pass granted",
+            membership_id: membershipId,
+          });
+        } else {
+          // Revoke every All-Access membership row this user has in the current env.
+          const { data: existing, error: readErr } = await supabaseAdmin
+            .from("memberships")
+            .select("id, user_id, kind, environment, expires_at, external_payment_reference")
+            .eq("user_id", userId)
+            .eq("environment", environment)
+            .in("kind", ALL_ACCESS_KINDS as unknown as string[]);
+          if (readErr) throw new Error(readErr.message);
+
+          if (!existing || existing.length === 0) {
+            results.push({
+              email: op.email,
+              action: "revoke",
+              status: "success",
+              message: "No memberships to revoke",
+              revoked_count: 0,
+            });
+            continue;
+          }
+
+          const ids = existing.map((m) => m.id);
+          const { error: delErr } = await supabaseAdmin
+            .from("memberships")
+            .delete()
+            .in("id", ids);
+          if (delErr) throw new Error(delErr.message);
+
+          for (const m of existing) {
+            await context.supabase.from("admin_activity_audit").insert({
+              actor_id: context.userId,
+              action: "revoke_all_access",
+              resource: `user:${m.user_id}`,
+              metadata: {
+                target_user_id: m.user_id,
+                kind: m.kind,
+                rpc: "delete_membership",
+                environment: m.environment,
+                membership_id: m.id,
+                expires_at: m.expires_at,
+                external_payment_reference: m.external_payment_reference,
+                bulk: true,
+              },
+            });
+          }
+
+          results.push({
+            email: op.email,
+            action: "revoke",
+            status: "success",
+            message: `Revoked ${existing.length} membership${existing.length === 1 ? "" : "s"}`,
+            revoked_count: existing.length,
+          });
+        }
+      } catch (e) {
+        results.push({
+          email: op.email,
+          action: op.action,
+          kind: op.kind,
+          status: "error",
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+
+    const summary = {
+      total: results.length,
+      success: results.filter((r) => r.status === "success").length,
+      errors: results.filter((r) => r.status === "error").length,
+    };
+    return { results, summary };
+  });
+
+
 /**
  * Recent grant/revoke history for the manual All-Access admin page.
  * Reads from the append-only hash-chained admin_activity_audit table.
