@@ -122,42 +122,35 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       first_status: status || "unknown",
       last_status: status || "unknown",
       order_id: event.order_id ?? null,
-      payload: event as unknown as Record<string, unknown>,
+      payload: event as unknown as never,
     })
     .select("payment_id")
     .maybeSingle();
 
-  const isDuplicate = !inserted || (insertErr?.code === "23505");
-  if (isDuplicate) {
-    // Update seen counters + latest status; keep original handled/reason.
+  const duplicateCode = insertErr && (insertErr as { code?: string }).code === "23505";
+  if (!inserted || duplicateCode) {
+    if (insertErr && !duplicateCode) {
+      throw new Error(`ipn ledger insert failed: ${insertErr.message}`);
+    }
+    // Redelivery: bump seen counters + latest status, return original outcome.
     const { data: prior } = await supabaseAdmin
       .from("nowpayments_ipn_events")
-      .select("handled, reason")
+      .select("handled, reason, received_count")
       .eq("payment_id", paymentIdRaw)
       .maybeSingle();
-    await supabaseAdmin.rpc("touch_updated_at"); // no-op guard if RPC missing; ignore
     await supabaseAdmin
       .from("nowpayments_ipn_events")
       .update({
         last_status: status || "unknown",
         last_seen_at: new Date().toISOString(),
-        received_count: undefined as unknown as number, // avoid overwriting; incremented below
+        received_count: (prior?.received_count ?? 1) + 1,
       })
-      .eq("payment_id", paymentIdRaw);
-    // Bump received_count atomically via a second update using SQL expression.
-    await supabaseAdmin.rpc as unknown; // placeholder to keep type happy
-    await supabaseAdmin
-      .from("nowpayments_ipn_events")
-      .update({ last_seen_at: new Date().toISOString() })
       .eq("payment_id", paymentIdRaw);
     return {
       handled: Boolean(prior?.handled),
       reason: prior?.reason ?? "duplicate_ipn",
       duplicate: true,
     };
-  }
-  if (insertErr) {
-    throw new Error(`ipn ledger insert failed: ${insertErr.message}`);
   }
 
   const finalize = async (outcome: { handled: boolean; reason?: string }) => {
