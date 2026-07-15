@@ -318,9 +318,9 @@ describe("NOWPayments webhook — duplicate delivery across different order IDs"
       }),
     );
     expect(first.status).toBe(200);
-    const firstJson = (await first.json()) as { handled: boolean; duplicate?: boolean };
+    const firstJson = (await first.json()) as { handled: boolean; reason?: string };
     expect(firstJson.handled).toBe(true);
-    expect(firstJson.duplicate).toBeUndefined();
+    expect(firstJson.reason).toBeUndefined();
     expect(state.rows).toHaveLength(1);
     expect(state.rows[0].user_id).toBe(USER);
     expect(state.rows[0].external_payment_reference).toBe(`nowpayments:${paymentId}`);
@@ -337,8 +337,8 @@ describe("NOWPayments webhook — duplicate delivery across different order IDs"
       }),
     );
     expect(second.status).toBe(200);
-    const secondJson = (await second.json()) as { handled: boolean; reason?: string; duplicate?: boolean };
-    expect(secondJson.duplicate).toBe(true);
+    const secondJson = (await second.json()) as { handled: boolean; reason?: string };
+    expect(secondJson.reason).toBe("duplicate_ipn");
     // Prior outcome was handled=true, so the replay reports handled=true too.
     expect(secondJson.handled).toBe(true);
 
@@ -372,8 +372,8 @@ describe("NOWPayments webhook — duplicate delivery across different order IDs"
         payment_id: paymentId,
       }),
     );
-    const replayJson = (await replay.json()) as { duplicate?: boolean };
-    expect(replayJson.duplicate).toBe(true);
+    const replayJson = (await replay.json()) as { reason?: string };
+    expect(replayJson.reason).toBe("duplicate_ipn");
     expect(state.rows).toHaveLength(1);
     expect(state.rows[0].amount_cents).toBe(1000);
   });
@@ -421,8 +421,8 @@ describe("NOWPayments webhook — duplicate delivery across different order IDs"
     for (let i = 0; i < 3; i++) {
       const res = await handleWebhookRequest(signedRequest(body));
       expect(res.status).toBe(200);
-      const json = (await res.json()) as { handled: boolean; reason?: string; duplicate?: boolean };
-      expect(json.duplicate).toBe(true);
+      const json = (await res.json()) as { handled: boolean; reason?: string };
+      expect(json.reason).toBe("duplicate_ipn");
       expect(json.handled).toBe(true);
     }
     expect(state.rows).toHaveLength(1);
