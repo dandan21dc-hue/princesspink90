@@ -71,6 +71,7 @@ import { Route as AuthenticatedAdminSecurityChangelogRouteImport } from './route
 import { Route as AuthenticatedAdminSecondaryRoomSessionsRouteImport } from './routes/_authenticated/admin.secondary-room-sessions'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminRewardsRouteImport } from './routes/_authenticated/admin.rewards'
+import { Route as AuthenticatedAdminRevenueSplitsRouteImport } from './routes/_authenticated/admin.revenue-splits'
 import { Route as AuthenticatedAdminPerksRouteImport } from './routes/_authenticated/admin.perks'
 import { Route as AuthenticatedAdminPaymentIntegrityRouteImport } from './routes/_authenticated/admin.payment-integrity'
 import { Route as AuthenticatedAdminPartnershipsRouteImport } from './routes/_authenticated/admin.partnerships'
@@ -455,6 +456,12 @@ const AuthenticatedAdminRewardsRoute =
   AuthenticatedAdminRewardsRouteImport.update({
     id: '/admin/rewards',
     path: '/admin/rewards',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminRevenueSplitsRoute =
+  AuthenticatedAdminRevenueSplitsRouteImport.update({
+    id: '/admin/revenue-splits',
+    path: '/admin/revenue-splits',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminPerksRoute = AuthenticatedAdminPerksRouteImport.update({
@@ -860,6 +867,7 @@ export interface FileRoutesByFullPath {
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
+  '/admin/revenue-splits': typeof AuthenticatedAdminRevenueSplitsRoute
   '/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
@@ -977,6 +985,7 @@ export interface FileRoutesByTo {
   '/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/admin/perks': typeof AuthenticatedAdminPerksRoute
+  '/admin/revenue-splits': typeof AuthenticatedAdminRevenueSplitsRoute
   '/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
@@ -1098,6 +1107,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/partnerships': typeof AuthenticatedAdminPartnershipsRouteWithChildren
   '/_authenticated/admin/payment-integrity': typeof AuthenticatedAdminPaymentIntegrityRoute
   '/_authenticated/admin/perks': typeof AuthenticatedAdminPerksRoute
+  '/_authenticated/admin/revenue-splits': typeof AuthenticatedAdminRevenueSplitsRoute
   '/_authenticated/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
@@ -1219,6 +1229,7 @@ export interface FileRouteTypes {
     | '/admin/partnerships'
     | '/admin/payment-integrity'
     | '/admin/perks'
+    | '/admin/revenue-splits'
     | '/admin/rewards'
     | '/admin/safety-incidents'
     | '/admin/secondary-room-sessions'
@@ -1336,6 +1347,7 @@ export interface FileRouteTypes {
     | '/admin/partnerships'
     | '/admin/payment-integrity'
     | '/admin/perks'
+    | '/admin/revenue-splits'
     | '/admin/rewards'
     | '/admin/safety-incidents'
     | '/admin/secondary-room-sessions'
@@ -1456,6 +1468,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/partnerships'
     | '/_authenticated/admin/payment-integrity'
     | '/_authenticated/admin/perks'
+    | '/_authenticated/admin/revenue-splits'
     | '/_authenticated/admin/rewards'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/secondary-room-sessions'
@@ -1998,6 +2011,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRewardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/revenue-splits': {
+      id: '/_authenticated/admin/revenue-splits'
+      path: '/admin/revenue-splits'
+      fullPath: '/admin/revenue-splits'
+      preLoaderRoute: typeof AuthenticatedAdminRevenueSplitsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/perks': {
       id: '/_authenticated/admin/perks'
       path: '/admin/perks'
@@ -2494,6 +2514,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminPartnershipsRoute: typeof AuthenticatedAdminPartnershipsRouteWithChildren
   AuthenticatedAdminPaymentIntegrityRoute: typeof AuthenticatedAdminPaymentIntegrityRoute
   AuthenticatedAdminPerksRoute: typeof AuthenticatedAdminPerksRoute
+  AuthenticatedAdminRevenueSplitsRoute: typeof AuthenticatedAdminRevenueSplitsRoute
   AuthenticatedAdminRewardsRoute: typeof AuthenticatedAdminRewardsRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSecondaryRoomSessionsRoute: typeof AuthenticatedAdminSecondaryRoomSessionsRoute
@@ -2562,6 +2583,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminPaymentIntegrityRoute:
     AuthenticatedAdminPaymentIntegrityRoute,
   AuthenticatedAdminPerksRoute: AuthenticatedAdminPerksRoute,
+  AuthenticatedAdminRevenueSplitsRoute: AuthenticatedAdminRevenueSplitsRoute,
   AuthenticatedAdminRewardsRoute: AuthenticatedAdminRewardsRoute,
   AuthenticatedAdminSafetyIncidentsRoute:
     AuthenticatedAdminSafetyIncidentsRoute,
