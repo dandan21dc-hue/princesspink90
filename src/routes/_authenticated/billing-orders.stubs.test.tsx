@@ -34,20 +34,26 @@ describe('account/billing UI — memberships-only, empty-state safe', () => {
   })
 
   it('renders an empty state with a browse CTA when no tier is active', () => {
-    // The empty-state component must exist and link to the store.
+    // The empty-state component must exist and link to the NOWPayments-only
+    // AAP landing page (no Stripe subscribe route).
     expect(BILLING).toMatch(/No active passes yet/i)
-    expect(BILLING).toMatch(/to=['"]\/store\/subscribe['"]/)
+    expect(BILLING).toMatch(/to=['"]\/all-access-pass['"]/)
   })
 
-  it('lists every known All-Access plan meta entry', () => {
+  it('lists every NOWPayments-supported All-Access plan meta entry', () => {
+    for (const plan of ['all_access_30d_aud', 'lifetime_onetime_aud']) {
+      expect(BILLING).toContain(plan)
+    }
+  })
+
+  it('does not offer any subscription-only tier that NOWPayments cannot grant', () => {
     for (const plan of [
       'all_access_monthly_aud',
       'all_access_3mo_monthly_aud',
       'all_access_6mo_monthly_aud',
       'all_access_12mo_monthly_aud',
-      'lifetime_onetime_aud',
     ]) {
-      expect(BILLING).toContain(plan)
+      expect(BILLING).not.toContain(plan)
     }
   })
 })

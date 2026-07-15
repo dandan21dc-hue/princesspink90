@@ -111,9 +111,9 @@ function PageNotFound() {
 
 function StorePage() {
 
-  // /store is both a leaf page AND a layout parent for /store/subscribe,
-  // /store/$id. When a child route matches, render only the child so the
-  // boutique landing content doesn't leak into every child.
+  // /store is both a leaf page AND a layout parent for /store/$id.
+  // When a child route matches, render only the child so the boutique
+  // landing content doesn't leak into every child.
   const matches = useMatches();
   const isChild = matches.some((m) => m.routeId !== "__root__" && m.routeId !== "/store" && m.routeId.startsWith("/store"));
   if (isChild) return <Outlet />;

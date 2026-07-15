@@ -1,14 +1,24 @@
-import { Link } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { track } from "@/lib/track";
 import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 import { cn } from "@/lib/utils";
-import { HelpCircle } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { createNowpaymentsInvoice } from "@/lib/nowpayments.functions";
+import { getStripeEnvironment } from "@/lib/stripe";
 
 /**
- * All-Access Pass tier picker + optional billing portal button.
- * Extracted from /store so it can render standalone on /all-access-pass
- * and elsewhere without dragging in store-specific chrome.
+ * All-Access Pass tier picker. Every purchase is a one-time NOWPayments
+ * hosted-invoice checkout — there are no Stripe fallbacks and nothing
+ * auto-renews. Two tiers only:
+ *
+ *   • 30-day pass  → NOWPayments `aap30d` order (default priceId omitted)
+ *   • Lifetime     → NOWPayments `lifetime` order (priceId `lifetime_onetime_aud`)
+ *
+ * On click we mint a hosted invoice via `createNowpaymentsInvoice` and
+ * redirect the browser off-site. Entitlements land asynchronously when the
+ * IPN webhook fires.
  */
 export function AllAccessCard() {
   const passes: Array<{
@@ -17,38 +27,38 @@ export function AllAccessCard() {
     cadence: string;
     perk?: string;
     plan: PlanId;
+    /** Passed to createNowpaymentsInvoice. Omitted → server defaults to 30-day pass. */
+    priceId?: string;
   }> = [
-    { label: "Monthly", price: "A$10", cadence: "/month", perk: "Billed monthly · cancel anytime", plan: "all_access_monthly_aud" },
-    { label: "3-Month Term", price: "A$27", cadence: "upfront", perk: "Auto-renewal · 3 months of access", plan: "all_access_3mo_monthly_aud" },
-    { label: "6-Month Term", price: "A$48", cadence: "upfront", perk: "Auto-renewal · 6 months of access", plan: "all_access_6mo_monthly_aud" },
-    { label: "12-Month Term", price: "A$84", cadence: "upfront", perk: "Auto-renewal · 12 months of access · + 1 free ticketed event", plan: "all_access_12mo_monthly_aud" },
-    { label: "Lifetime", price: "A$500", cadence: "one-time", perk: "One-time payment · + 1 free ticketed event & 1 free private room session", plan: "lifetime_onetime_aud" },
+    {
+      label: "30-Day Pass",
+      price: "A$10",
+      cadence: "one-time",
+      perk: "30 days of full library access · pay in crypto",
+      plan: "all_access_30d_aud",
+    },
+    {
+      label: "Lifetime",
+      price: "A$500",
+      cadence: "one-time",
+      perk: "Never expires · + 1 free ticketed event & 1 free private room session",
+      plan: "lifetime_onetime_aud",
+      priceId: "lifetime_onetime_aud",
+    },
   ];
 
   const tiers = useMyTiers();
   const hasLifetime = tiers.active.lifetime_onetime_aud;
-  const TIER_RANK: Record<PlanId, number> = {
-    all_access_monthly_aud: 1,
-    all_access_3mo_monthly_aud: 2,
-    all_access_6mo_monthly_aud: 3,
-    all_access_12mo_monthly_aud: 4,
-    lifetime_onetime_aud: 5,
-  };
   const currentPlan: PlanId | null = hasLifetime
     ? "lifetime_onetime_aud"
-    : tiers.active.all_access_12mo_monthly_aud
-      ? "all_access_12mo_monthly_aud"
-      : tiers.active.all_access_6mo_monthly_aud
-        ? "all_access_6mo_monthly_aud"
-        : tiers.active.all_access_3mo_monthly_aud
-          ? "all_access_3mo_monthly_aud"
-          : tiers.active.all_access_monthly_aud
-            ? "all_access_monthly_aud"
-            : null;
+    : tiers.active.all_access_30d_aud
+      ? "all_access_30d_aud"
+      : null;
   const currentLabel = currentPlan
     ? passes.find((p) => p.plan === currentPlan)?.label ?? null
     : null;
-  const fmtExpiry = (iso?: string | null) => {
+
+  const fmtDate = (iso?: string | null) => {
     if (!iso) return null;
     try {
       return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -57,208 +67,177 @@ export function AllAccessCard() {
     }
   };
 
+  const startCheckout = useServerFn(createNowpaymentsInvoice);
+  const [buyingPlan, setBuyingPlan] = useState<PlanId | null>(null);
+
+  const handleBuy = useCallback(
+    async (p: (typeof passes)[number]) => {
+      if (buyingPlan) return;
+      setBuyingPlan(p.plan);
+      track("all_access_checkout_start", { plan: p.plan, provider: "nowpayments" });
+      try {
+        const environment = getStripeEnvironment();
+        const result = await startCheckout({
+          data: {
+            environment,
+            returnOrigin: window.location.origin,
+            ...(p.priceId ? { priceId: p.priceId } : {}),
+          },
+        });
+        if ("error" in result) {
+          toast.error(`Couldn't start checkout: ${result.error}`);
+          setBuyingPlan(null);
+          return;
+        }
+        // Off-site redirect to the NOWPayments hosted invoice page.
+        window.location.href = result.invoiceUrl;
+      } catch (e) {
+        toast.error(`Couldn't start checkout: ${(e as Error).message}`);
+        setBuyingPlan(null);
+      }
+    },
+    [buyingPlan, startCheckout],
+  );
+
   return (
-    <TooltipProvider>
-      <div className="flex flex-col gap-3 w-full">
-        <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
-          <div className="flex items-center justify-between">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
-            {currentLabel && (
-              <span className="rounded-full border border-primary/60 bg-primary/20 px-2 py-0.5 text-[9px] uppercase tracking-widest text-primary">
-                Your plan: {currentLabel}
-              </span>
-            )}
-          </div>
-          <ul className="mt-2 grid gap-2 text-sm grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
-            {passes.map((p) => {
-              const owned = tiers.active[p.plan];
-              const supersededByLifetime = hasLifetime && p.plan !== "lifetime_onetime_aud";
-              const disabled = owned || supersededByLifetime;
-              const expiry = fmtExpiry(tiers.expires[p.plan]);
-              const start = fmtExpiry(tiers.starts[p.plan]);
-              const willCancel = !!tiers.cancelAtPeriodEnd[p.plan];
-              const isLifetime = p.plan === "lifetime_onetime_aud";
-              let changeLabel: "Upgrade" | "Downgrade" | "Switch" | null = null;
-              if (currentPlan && !owned && !supersededByLifetime) {
-                const delta = TIER_RANK[p.plan] - TIER_RANK[currentPlan];
-                changeLabel = delta > 0 ? "Upgrade" : delta < 0 ? "Downgrade" : "Switch";
-              }
-              const badge = owned
-                ? isLifetime
-                  ? "Owned"
-                  : "Active"
-                : supersededByLifetime
-                  ? "Included"
-                  : changeLabel;
+    <div className="flex flex-col gap-3 w-full">
+      <div className="rounded-2xl border border-primary/50 bg-primary/10 p-4 shadow-[var(--shadow-glow-pink)]">
+        <div className="flex items-center justify-between">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-primary">All-Access Passes</div>
+          {currentLabel && (
+            <span className="rounded-full border border-primary/60 bg-primary/20 px-2 py-0.5 text-[9px] uppercase tracking-widest text-primary">
+              Your plan: {currentLabel}
+            </span>
+          )}
+        </div>
 
-              const cadenceText =
-                p.cadence === "/month"
-                  ? " per month"
-                  : p.cadence === "upfront"
-                    ? " upfront"
-                    : p.cadence === "one-time"
-                      ? " one-time"
-                      : "";
-              const renewalText = owned && !isLifetime && expiry
-                ? `${willCancel ? "Ends" : "Renews"} ${expiry}`
+        <ul className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2">
+          {passes.map((p) => {
+            const owned = tiers.active[p.plan];
+            const supersededByLifetime = hasLifetime && p.plan !== "lifetime_onetime_aud";
+            const disabled = owned || supersededByLifetime;
+            const isLifetime = p.plan === "lifetime_onetime_aud";
+            const expiry = fmtDate(tiers.expires[p.plan] ?? null);
+            const start = fmtDate(tiers.starts[p.plan] ?? null);
+            const busy = buyingPlan === p.plan;
+
+            const badge = owned
+              ? isLifetime
+                ? "Owned"
+                : "Active"
+              : supersededByLifetime
+                ? "Included with Lifetime"
                 : null;
-              const ariaLabel = [
-                `${p.label}, ${p.price}${cadenceText}`,
-                p.perk,
-                badge ? `${badge} plan` : null,
-                renewalText,
-                disabled ? "Current plan" : "Select this plan",
-              ]
-                .filter(Boolean)
-                .join(". ");
 
-              const row = (
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <span
-                      className={cn(
-                        "text-foreground",
-                        !disabled && !isLifetime && "group-hover:text-primary",
-                        isLifetime && "font-display font-bold tracking-wide text-gold",
-                      )}
-                    >
-                      {p.label}
-                    </span>
-                    <span className={cn("font-display font-bold", isLifetime && "text-base text-gold")}>
-                      {p.price}
+            const ariaLabel = [
+              `${p.label}, ${p.price} one-time`,
+              p.perk,
+              badge ?? "Buy with crypto via NOWPayments",
+            ]
+              .filter(Boolean)
+              .join(". ");
+
+            return (
+              <li key={p.plan}>
+                <div
+                  className={cn(
+                    "flex h-full flex-col justify-between gap-3 rounded-xl border p-4",
+                    isLifetime
+                      ? "border-gold/70 bg-[oklch(0.18_0.05_60_/_0.35)]"
+                      : "border-primary/30 bg-primary/5",
+                    disabled && "opacity-70",
+                  )}
+                >
+                  <div>
+                    <div className="flex items-baseline justify-between gap-3">
                       <span
                         className={cn(
-                          "ml-1 text-[10px] font-normal text-muted-foreground",
-                          isLifetime && "text-[11px] font-semibold text-gold",
+                          "font-display text-lg font-semibold text-foreground",
+                          isLifetime && "text-gold",
                         )}
                       >
-                        {p.cadence}
+                        {p.label}
                       </span>
-                    </span>
-                  </div>
-                  {p.perk && !disabled && !changeLabel && (
-                    ["all_access_3mo_monthly_aud", "all_access_6mo_monthly_aud", "all_access_12mo_monthly_aud"].includes(p.plan) ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex items-center gap-1 text-[10px] text-primary/90 cursor-help">
-                            {p.perk}
-                            <HelpCircle className="h-3 w-3" aria-hidden="true" />
-                            <span className="sr-only">Auto-renewal details</span>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-[260px] text-center leading-relaxed">
-                          Term plans auto-renew at the end of each term. You can cancel or switch plans anytime — changes take effect at your next renewal.
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
                       <span
                         className={cn(
-                          "text-[10px] text-primary/90",
-                          isLifetime && "text-[11px] font-medium text-gold",
+                          "font-display text-xl font-bold",
+                          isLifetime ? "text-gold" : "text-foreground",
+                        )}
+                      >
+                        {p.price}
+                        <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                          {p.cadence}
+                        </span>
+                      </span>
+                    </div>
+                    {p.perk && (
+                      <p
+                        className={cn(
+                          "mt-2 text-[11px] leading-relaxed",
+                          isLifetime ? "text-gold/90" : "text-primary/90",
                         )}
                       >
                         {p.perk}
+                      </p>
+                    )}
+                    {owned && isLifetime && start && (
+                      <p className="mt-2 text-[10px] text-muted-foreground">
+                        Started {start} · never expires
+                      </p>
+                    )}
+                    {owned && !isLifetime && expiry && (
+                      <p className="mt-2 text-[10px] text-muted-foreground">
+                        {start ? `Started ${start} · ` : ""}Expires {expiry}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-1">
+                    {disabled ? (
+                      <span className="inline-flex items-center justify-center rounded-full border border-border/60 bg-background/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        {badge ?? "Unavailable"}
                       </span>
-                    )
-                  )}
-                  {badge && <span className="text-[10px] text-primary/90">{badge}</span>}
-                  {owned && isLifetime && start && (
-                    <span className="text-[10px] text-muted-foreground">
-                      Started {start} · never expires
-                    </span>
-                  )}
-                  {owned && !isLifetime && (start || expiry) && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {start ? `Started ${start}` : null}
-                      {start && expiry ? " · " : ""}
-                      {expiry ? `${willCancel ? "Ends" : "Renews"} ${expiry}` : null}
-                    </span>
-                  )}
-                  {isLifetime && !disabled && (
-                    <span className="mt-2 inline-flex items-center justify-center rounded-full bg-gold-gradient px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-black animate-cta-pulse">
-                      Buy Lifetime
-                    </span>
-                  )}
-                  {!isLifetime && !disabled && (
-                    <span className="mt-1 text-[10px] font-medium text-primary group-hover:underline">
-                      Select plan
-                    </span>
-                  )}
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label={ariaLabel}
+                        aria-busy={busy}
+                        disabled={busy || !!buyingPlan}
+                        onClick={() => void handleBuy(p)}
+                        className={cn(
+                          "inline-flex w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-widest transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60",
+                          isLifetime
+                            ? "bg-gold-gradient text-black animate-cta-pulse"
+                            : "bg-primary text-primary-foreground",
+                        )}
+                      >
+                        {busy ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                            Redirecting…
+                          </>
+                        ) : isLifetime ? (
+                          "Buy Lifetime · Crypto"
+                        ) : (
+                          "Buy 30-Day Pass · Crypto"
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
-              );
+              </li>
+            );
+          })}
+        </ul>
 
-              const trackPayload = {
-                plan: p.plan,
-                label: p.label,
-                price: p.price,
-                cadence: p.cadence,
-                owned,
-                superseded_by_lifetime: supersededByLifetime,
-                current_plan: currentPlan ?? "none",
-                change: changeLabel ?? "new",
-              };
-
-              const lifetimeWrapClass = isLifetime
-                ? "relative mt-2 rounded-xl border-2 border-transparent bg-[oklch(0.18_0.05_60_/_0.35)] p-0.5 animate-lifetime-glow"
-                : "";
-
-              const inner = disabled ? (
-                <div
-                  aria-disabled="true"
-                  role="button"
-                  aria-label={ariaLabel}
-                  tabIndex={0}
-                  onClick={() => track("boutique_tier_click", { ...trackPayload, action: "blocked" })}
-                  className={cn(
-                    "-mx-2 flex cursor-not-allowed flex-col gap-0.5 rounded-lg px-2 py-1.5 opacity-60",
-                    isLifetime && "mx-0 opacity-80",
-                  )}
-                >
-                  {row}
-                </div>
-              ) : (
-                <Link
-                  to="/store/subscribe"
-                  search={{ plan: p.plan }}
-                  aria-label={ariaLabel}
-                  onClick={() => {
-                    track("all_access_tier_click", { plan: p.plan, change: changeLabel ?? "new" });
-                    track("boutique_tier_click", { ...trackPayload, action: "navigate" });
-                  }}
-                  className={cn(
-                    "group -mx-2 flex flex-col gap-0.5 rounded-lg px-2 py-1.5 hover:bg-primary/15 focus:bg-primary/15 focus:outline-none",
-                    isLifetime && "mx-0 rounded-lg px-3 py-2 hover:bg-[oklch(0.85_0.17_85_/_0.08)] focus:bg-[oklch(0.85_0.17_85_/_0.08)]",
-                  )}
-                >
-                  {row}
-                </Link>
-              );
-
-              return (
-                <li key={p.plan}>
-                  {isLifetime ? (
-                    <div className={lifetimeWrapClass}>
-                      <span className="animate-badge-shimmer absolute -top-2 -right-2 z-10 rounded-full bg-gold-gradient px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest text-black shadow-lg">
-                        ★ Best Value
-                      </span>
-                      {inner}
-                    </div>
-                  ) : (
-                    inner
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-          <div className="mt-3 text-[11px] text-muted-foreground">
-            {currentPlan
-              ? hasLifetime
-                ? "You have Lifetime — everything's unlocked."
-                : "Change plan anytime — upgrades and downgrades take effect at your next renewal."
-              : "Everything in the library."}
-          </div>
-        </div>
+        <p className="mt-3 text-[11px] text-muted-foreground">
+          {currentPlan
+            ? hasLifetime
+              ? "You have Lifetime — everything's unlocked."
+              : "Your 30-day pass is active. Buy again anytime to extend."
+            : "Every pass is a one-time crypto payment via NOWPayments — nothing auto-renews."}
+        </p>
       </div>
-    </TooltipProvider>
+    </div>
   );
 }

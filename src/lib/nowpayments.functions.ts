@@ -12,10 +12,6 @@ const AAP30D_KEY = "aap30d";
  * NOWPayments' hosted invoice shows something meaningful to the buyer.
  */
 const PRICE_DESCRIPTIONS: Record<string, string> = {
-  all_access_monthly_aud: "All-Access Pass — monthly (Midnight Glory)",
-  all_access_3mo_monthly_aud: "All-Access Pass — 3 months (Midnight Glory)",
-  all_access_6mo_monthly_aud: "All-Access Pass — 6 months (Midnight Glory)",
-  all_access_12mo_monthly_aud: "All-Access Pass — 12 months (Midnight Glory)",
   lifetime_onetime_aud: "Lifetime Membership (Midnight Glory)",
 };
 
