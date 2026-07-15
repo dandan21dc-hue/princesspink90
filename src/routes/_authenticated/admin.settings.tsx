@@ -2084,6 +2084,27 @@ function ContactSettingsAuditSection() {
   );
 }
 
+/**
+ * Small pill rendered next to whichever CopyUrlButton the admin most recently
+ * used in the FetLife confirm dialog. Helps disambiguate the two side-by-side
+ * URLs (current vs new) after the transient "Copied" toast has faded.
+ */
+function LastCopiedBadge({ which }: { which: "current" | "new" }) {
+  return (
+    <span
+      role="status"
+      aria-live="polite"
+      data-last-copied={which}
+      title={`You most recently copied the ${which} FetLife URL`}
+      className="ml-1 inline-flex items-center gap-0.5 rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 align-middle font-sans text-[10px] font-medium uppercase tracking-wide text-primary"
+    >
+      <Check className="h-2.5 w-2.5" aria-hidden />
+      Last copied
+    </span>
+  );
+}
+
+
 
 
 
