@@ -20,8 +20,14 @@ export type CartItem =
     }
   | {
       kind: "panty";
-      /** Stripe lookup_key, e.g. "panty_24hr_aud" */
-      id: "panty_24hr_aud" | "panty_48hr_aud" | "panty_72hr_aud";
+      /**
+       * `panty_listings.id` — a real database UUID. The checkout server
+       * function (`createNowpaymentsInvoice`) looks up the listing row by
+       * this id to derive amount + currency, so it MUST be a UUID, not a
+       * SKU / Stripe lookup key. Legacy carts that stored lookup keys
+       * like `panty_24hr_aud` are dropped by `read()`.
+       */
+      id: string;
       title: string;
       unit_amount_cents: number;
       currency: string;
@@ -29,6 +35,16 @@ export type CartItem =
       quantity: number;
       size?: string;
     };
+
+/** Standard UUID v1-5 shape — must match the server-side `pantyListingId` schema. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isCartItemIdValid(it: Pick<CartItem, "kind" | "id">): boolean {
+  // Content and panty lines both reference database UUIDs on the server.
+  // A non-UUID here means the entry is stale/legacy and cannot check out.
+  return typeof it.id === "string" && UUID_RE.test(it.id);
+}
+
 
 /** Stable per-line identity: same product in different sizes = separate lines. */
 export function cartLineKey(it: Pick<CartItem, "kind" | "id" | "size">): string {
