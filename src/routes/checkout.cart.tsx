@@ -31,6 +31,15 @@ function CartCheckoutPage() {
   const { items, subtotalCents, currency } = useCart();
   const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const { openCheckout, checkoutElement, isOpen } = useStripeCheckout();
+  const fetchRewards = useServerFn(getMyRewards);
+
+  // Reward-point redemption state. Balance is loaded once the user is
+  // known; `appliedPoints` is what the shopper has committed via the
+  // Apply button, and gets attached to the NEXT panty item they check
+  // out. Discount is fixed at 10 pts = $1.00 (100 cents).
+  const [rewardPoints, setRewardPoints] = useState<number | null>(null);
+  const [pointsInput, setPointsInput] = useState<string>("");
+  const [appliedPoints, setAppliedPoints] = useState<number>(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) =>
@@ -39,6 +48,13 @@ function CartCheckoutPage() {
       ),
     );
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchRewards()
+      .then((r) => setRewardPoints(r.reward_points ?? 0))
+      .catch(() => setRewardPoints(0));
+  }, [user, fetchRewards]);
 
   // Bounce to /auth if signed out.
   useEffect(() => {
@@ -70,6 +86,53 @@ function CartCheckoutPage() {
   // Snapshot the cart at mount so the drawer can't mutate it mid-checkout.
   const [snapshot] = useState(() => cartStore.snapshot());
 
+  // Cap the discount so it can never exceed the largest panty item's
+  // price minus $1.00 (NOWPayments minimum invoice). Non-panty items
+  // don't currently accept points.
+  const maxPantyCents = useMemo(() => {
+    return snapshot
+      .filter((it) => it.kind === "panty")
+      .reduce((max, it) => Math.max(max, it.unit_amount_cents), 0);
+  }, [snapshot]);
+  const maxRedeemable = Math.max(
+    0,
+    Math.min(rewardPoints ?? 0, Math.floor((maxPantyCents - 100) / 10)),
+  );
+  const discountCents = appliedPoints * 10;
+
+  const handleApplyPoints = () => {
+    const n = Math.floor(Number(pointsInput));
+    if (!Number.isFinite(n) || n <= 0) {
+      toast.error("Enter a positive number of points to redeem.");
+      return;
+    }
+    if (rewardPoints == null) {
+      toast.error("Loading your balance — try again in a moment.");
+      return;
+    }
+    if (n > rewardPoints) {
+      toast.error(`You only have ${rewardPoints} reward points.`);
+      return;
+    }
+    if (maxPantyCents === 0) {
+      toast.error("Reward points can only be applied to boutique items right now.");
+      return;
+    }
+    if (n > maxRedeemable) {
+      toast.error(
+        `Max ${maxRedeemable} points for this cart (invoice must stay above $1.00).`,
+      );
+      return;
+    }
+    setAppliedPoints(n);
+    toast.success(`${n} points applied — ${formatMoney(n * 10, currency)} off your next payment.`);
+  };
+
+  const handleClearPoints = () => {
+    setAppliedPoints(0);
+    setPointsInput("");
+  };
+
   const payItem = (it: CartItem) => {
     // Defensive: the cart's `read()` filter already drops entries whose id
     // isn't a UUID, but a race (localStorage tampering, cross-tab write mid-
@@ -83,17 +146,30 @@ function CartCheckoutPage() {
       track("cart_checkout_invalid_id", { kind: it.kind, id: String(it.id) });
       return;
     }
+    // Reward points only apply to panty items and only once (to the
+    // first item paid). Clear the applied points after use so the same
+    // discount can't be attached to a second invoice.
+    const canApplyPoints =
+      it.kind === "panty" && appliedPoints > 0 && appliedPoints * 10 < it.unit_amount_cents;
     track("nowpayments_cart_checkout_click", {
       kind: it.kind,
       id: it.id,
       unit_amount_cents: it.unit_amount_cents,
+      points_applied: canApplyPoints ? appliedPoints : 0,
     });
     const opts: Parameters<typeof openCheckout>[0] =
       it.kind === "panty"
-        ? { pantyListingId: it.id }
+        ? { pantyListingId: it.id, ...(canApplyPoints ? { pointsToApply: appliedPoints } : {}) }
         : { contentItemId: it.id };
+    if (canApplyPoints) {
+      // Optimistically clear so a re-click on another item doesn't
+      // double-apply. Server-side reservation is the authoritative guard.
+      setAppliedPoints(0);
+      setPointsInput("");
+    }
     void openCheckout(opts);
   };
+
 
 
   if (snapshot.length === 0 && items.length === 0) {
