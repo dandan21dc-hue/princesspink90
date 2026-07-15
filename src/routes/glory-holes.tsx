@@ -308,9 +308,9 @@ function PrivateRoomPage() {
         >
           ← Store
         </Link>
-        <h1 className="mt-6 font-display text-4xl font-extrabold sm:text-5xl">
+        <h2 className="mt-6 font-display text-4xl font-extrabold sm:text-5xl">
           Glory Holes booking is currently unavailable
-        </h1>
+        </h2>
         <p className="mt-4 text-sm text-muted-foreground">
           This page has been paused by the host. Please check back later.
         </p>

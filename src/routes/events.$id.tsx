@@ -35,9 +35,9 @@ export const Route = createFileRoute("/events/$id")({
     return {
       meta: [
         { title: `${loaderData.title} · Midnight Glory` },
-        { name: "description", content: loaderData.tagline ?? loaderData.description ?? "" },
+        { name: "description", content: loaderData.tagline ?? loaderData.description ?? `Join us for ${loaderData.title} at Midnight Glory — a discreet, consent-first kink night.` },
         { property: "og:title", content: loaderData.title },
-        { property: "og:description", content: loaderData.tagline ?? "" },
+        { property: "og:description", content: loaderData.tagline ?? loaderData.description ?? `Join us for ${loaderData.title} at Midnight Glory.` },
         { property: "og:type", content: "website" },
         { property: "og:url", content: url },
         ...(loaderData.cover_image_url
