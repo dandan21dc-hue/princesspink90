@@ -30,6 +30,12 @@
       "file": "supabase/migrations/20260705200603_email_infra.sql",
       "line": 172,
       "rationale": "public.move_to_dlq pgmq wrapper; body uses fully-qualified pgmq.* calls only."
+    },
+    {
+      "finding": "private_room_bookings_realtime_broadcast",
+      "file": "supabase/migrations/20260715133534_09255b7a-eafe-4ffa-b81f-879d872e0cd1.sql",
+      "line": 2,
+      "rationale": "Historical ADD TABLE. Superseded by a later migration that drops public.private_room_bookings from the supabase_realtime publication entirely; no realtime broadcast is active. Any future re-add must include a column allowlist and will be checked against this rule."
     }
   ]
 }
