@@ -75,6 +75,10 @@ function AdminSettings() {
   const [sessionPriceDollars, setSessionPriceDollars] = useState("275");
   const [sessionDurationMinutes, setSessionDurationMinutes] = useState(60);
   const [saved, setSaved] = useState(false);
+  // Server-side validation error extracted for the contact-email field.
+  // Populated in the mutation's onError when the server rejects the email;
+  // cleared as the admin edits the field or a save succeeds.
+  const [serverEmailError, setServerEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings.data) {
