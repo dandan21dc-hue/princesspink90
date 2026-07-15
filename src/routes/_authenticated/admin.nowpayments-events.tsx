@@ -251,12 +251,78 @@ function AdminNowpaymentsEvents() {
             No matching webhook events.
           </Card>
         ) : (
-          items.map((e) => <EventRow key={`${e.payment_id}:${e.last_status}`} e={e} />)
+          items.map((e) => (
+            <EventRow
+              key={`${e.payment_id}:${e.last_status}`}
+              e={e}
+              onRetry={() => setPendingRetry(e)}
+              retryPending={retry.isPending && pendingRetry?.payment_id === e.payment_id}
+            />
+          ))
         )}
       </div>
+
+      <AlertDialog
+        open={pendingRetry !== null}
+        onOpenChange={(open) => {
+          if (!open && !retry.isPending) setPendingRetry(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retry NOWPayments grant?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  This re-runs the grant path for the signature-verified event
+                  below. It is safe to retry — the underlying grant is
+                  idempotent on <code className="font-mono">external_payment_reference</code>{" "}
+                  (<code className="font-mono">nowpayments:{pendingRetry?.payment_id}</code>),
+                  so an already-granted entitlement will not be duplicated.
+                </p>
+                <div className="rounded-md bg-muted/60 p-3 text-xs font-mono space-y-1 break-all">
+                  <div>payment_id: {pendingRetry?.payment_id}</div>
+                  <div>status: {pendingRetry?.last_status}</div>
+                  <div>order_id: {pendingRetry?.order_id ?? "—"}</div>
+                  {pendingRetry?.parsed_order && (
+                    <div>
+                      kind: {pendingRetry.parsed_order.kind} ·{" "}
+                      {pendingRetry.parsed_order.environment}
+                    </div>
+                  )}
+                  {pendingRetry?.reason && !pendingRetry.handled && (
+                    <div>previous reason: {pendingRetry.reason}</div>
+                  )}
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={retry.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={retry.isPending || !pendingRetry}
+              onClick={(ev) => {
+                ev.preventDefault();
+                if (pendingRetry) retry.mutate(pendingRetry.payment_id);
+              }}
+            >
+              {retry.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Retrying…
+                </>
+              ) : (
+                <>
+                  <RotateCw className="h-4 w-4 mr-2" /> Retry grant
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Shell>
   );
 }
+
 
 type EventItem = {
   payment_id: string;
