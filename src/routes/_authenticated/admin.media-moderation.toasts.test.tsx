@@ -142,6 +142,11 @@ beforeEach(() => {
 });
 afterEach(() => cleanup());
 
+async function clickConfirmInDialog(pattern: RegExp) {
+  const btn = await screen.findByRole("button", { name: pattern });
+  fireEvent.click(btn);
+}
+
 describe("admin media moderation — action toasts", () => {
   it.each([
     {
@@ -149,12 +154,15 @@ describe("admin media moderation — action toasts", () => {
       button: /^approve$/i,
       match: /approved: sunset shoot/i,
       switchTo: null as null | RegExp,
+      confirm: null as null | RegExp,
     },
     {
       label: "Reject",
       button: /^reject$/i,
       match: /rejected: sunset shoot/i,
       switchTo: null,
+      // Reject goes through an AlertDialog now.
+      confirm: /yes, reject/i,
     },
     {
       label: "Send back to pending",
@@ -164,10 +172,11 @@ describe("admin media moderation — action toasts", () => {
       // NOT already on "pending", so flip to the Approved tab (queue is
       // stubbed to return the row regardless of filter).
       switchTo: /^approved$/i,
+      confirm: null,
     },
   ])(
     "fires a success toast on $label",
-    async ({ button, match, switchTo }) => {
+    async ({ button, match, switchTo, confirm }) => {
       renderPage();
       await waitForRow();
       if (switchTo) {
@@ -176,6 +185,7 @@ describe("admin media moderation — action toasts", () => {
       }
 
       fireEvent.click(screen.getByRole("button", { name: button }));
+      if (confirm) await clickConfirmInDialog(confirm);
 
       await waitFor(() => {
         expect(mockModerate).toHaveBeenCalledTimes(1);
@@ -193,22 +203,25 @@ describe("admin media moderation — action toasts", () => {
       button: /^approve$/i,
       decision: /approved/i,
       switchTo: null as null | RegExp,
+      confirm: null as null | RegExp,
     },
     {
       label: "Reject",
       button: /^reject$/i,
       decision: /rejected/i,
       switchTo: null,
+      confirm: /yes, reject/i,
     },
     {
       label: "Send back to pending",
       button: /send back to pending/i,
       decision: /pending/i,
       switchTo: /^approved$/i,
+      confirm: null,
     },
   ])(
     "fires an error toast when $label fails",
-    async ({ button, decision, switchTo }) => {
+    async ({ button, decision, switchTo, confirm }) => {
       mockModerate.mockImplementation(async () => {
         throw new Error("boom");
       });
@@ -220,6 +233,7 @@ describe("admin media moderation — action toasts", () => {
       }
 
       fireEvent.click(screen.getByRole("button", { name: button }));
+      if (confirm) await clickConfirmInDialog(confirm);
 
       await waitFor(() => {
         expect(mockToast.error).toHaveBeenCalled();
@@ -235,12 +249,29 @@ describe("admin media moderation — action toasts", () => {
     },
   );
 
+  it("does NOT reject until the confirm dialog is accepted", async () => {
+    renderPage();
+    await waitForRow();
+
+    fireEvent.click(screen.getByRole("button", { name: /^reject$/i }));
+
+    // Dialog is open; server fn must NOT have been called yet.
+    await screen.findByRole("alertdialog");
+    expect(mockModerate).not.toHaveBeenCalled();
+
+    // Cancel dismisses without firing.
+    fireEvent.click(screen.getByRole("button", { name: /keep reviewing/i }));
+    expect(mockModerate).not.toHaveBeenCalled();
+    expect(mockToast.success).not.toHaveBeenCalled();
+    expect(mockToast.error).not.toHaveBeenCalled();
+  });
+
   it("fires a success toast on Delete (after confirming)", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     renderPage();
     await waitForRow();
 
     fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+    await clickConfirmInDialog(/yes, delete permanently/i);
 
     await waitFor(() => {
       expect(mockDelete).toHaveBeenCalledTimes(1);
@@ -249,24 +280,23 @@ describe("admin media moderation — action toasts", () => {
     const first = mockToast.success.mock.calls[0]![0] as string;
     expect(first).toMatch(/deleted: sunset shoot/i);
     expect(mockToast.error).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it("does NOT toast or delete when the confirm dialog is dismissed", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
     renderPage();
     await waitForRow();
 
     fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+    // Wait for dialog, then cancel.
+    await screen.findByRole("alertdialog");
+    fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
 
     expect(mockDelete).not.toHaveBeenCalled();
     expect(mockToast.success).not.toHaveBeenCalled();
     expect(mockToast.error).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it("fires an error toast when Delete fails", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     mockDelete.mockImplementation(async () => {
       throw new Error("db offline");
     });
@@ -274,6 +304,7 @@ describe("admin media moderation — action toasts", () => {
     await waitForRow();
 
     fireEvent.click(screen.getByRole("button", { name: /^delete$/i }));
+    await clickConfirmInDialog(/yes, delete permanently/i);
 
     await waitFor(() => {
       expect(mockToast.error).toHaveBeenCalled();
@@ -285,6 +316,5 @@ describe("admin media moderation — action toasts", () => {
     expect(msg).toMatch(/couldn't delete "sunset shoot"/i);
     expect(opts?.description).toBe("db offline");
     expect(mockToast.success).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 });
