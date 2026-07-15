@@ -112,6 +112,7 @@ export function SupportChatWidget() {
   const feedRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const launcherRef = useRef<HTMLButtonElement | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([INITIAL_GREETING]);
 
   const fetchSlots = useServerFn(listConciergeSlots);
   const startBooking = useServerFn(createBookingInvoice);
@@ -181,6 +182,7 @@ export function SupportChatWidget() {
 
   // Persist on every message change once we've finished hydrating.
   useEffect(() => {
+    messagesRef.current = messages;
     if (!hydrated) return;
     if (userId) {
       // Fire-and-forget; the next change will retry.
@@ -210,11 +212,15 @@ export function SupportChatWidget() {
 
   useEffect(() => {
     if (!open) return;
+    // Any slot card in the feed is instantly stale after the panel was
+    // closed — refresh so users never tap a time that's since been taken.
+    void refreshSlotCards();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const appendMessage = (msg: ChatMessage) => setMessages((prev) => [...prev, msg]);
@@ -254,6 +260,32 @@ export function SupportChatWidget() {
           },
         ],
       });
+    }
+  };
+
+  /**
+   * Silently re-fetch availability and rewrite any `slots` cards already in
+   * the feed so stale times don't linger after the chat is reopened or a
+   * booking is confirmed. No-op when the feed has no slot cards yet.
+   */
+  const refreshSlotCards = async () => {
+    const hasSlotCard = messagesRef.current.some((m) =>
+      m.parts.some((p) => p.type === "slots"),
+    );
+    if (!hasSlotCard) return;
+    try {
+      const slots = await fetchSlots({ data: { horizonDays: 7, limit: 6 } });
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (!m.parts.some((p) => p.type === "slots")) return m;
+          return {
+            ...m,
+            parts: m.parts.map((p) => (p.type === "slots" ? { type: "slots", slots } : p)),
+          };
+        }),
+      );
+    } catch {
+      /* silent — user can hit "Check availability" to retry */
     }
   };
 
@@ -375,6 +407,9 @@ export function SupportChatWidget() {
       });
     } finally {
       setBookingSlot(null);
+      // The just-held (or just-failed) slot has changed the world — pull
+      // fresh availability so remaining slot cards reflect reality.
+      void refreshSlotCards();
     }
   };
 
