@@ -85,7 +85,7 @@ vi.mock("@/lib/settings.functions", async () => {
   return {
     ...actual,
     getSiteSettings: vi.fn(async () => SAVED),
-    updateSiteSettings: (...args: unknown[]) => mockUpdateSiteSettings(...args),
+    updateSiteSettings: (args: { data: typeof SAVED }) => mockUpdateSiteSettings(args),
     listPricingAudit: vi.fn(async () => ({ rows: [], total: 0 })),
     exportPricingAudit: vi.fn(async () => ""),
     listContactSettingsAudit: vi.fn(async () => ({ rows: [], total: 0 })),
