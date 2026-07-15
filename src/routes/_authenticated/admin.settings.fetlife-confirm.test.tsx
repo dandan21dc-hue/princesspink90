@@ -323,13 +323,19 @@ describe("admin settings — FetLife confirmation gate", () => {
 
 
     // The draft input keeps what the admin typed so they can fix + retry.
-    expect(
-      (screen.getByDisplayValue("Doomed-Handle") as HTMLInputElement).value,
-    ).toBe("Doomed-Handle");
+    const draftInput = screen.getByDisplayValue("Doomed-Handle") as HTMLInputElement;
+    expect(draftInput.value).toBe("Doomed-Handle");
 
     // Inline error message from the mutation is shown near the Save button.
     expect(screen.getAllByText(/server exploded/i).length).toBeGreaterThan(0);
+
+    // Focus returns to the FetLife input so the admin can edit + retry
+    // without hunting for the field with keyboard or screen reader.
+    await waitFor(() => {
+      expect(document.activeElement).toBe(draftInput);
+    });
   });
+
 
   it("retrying after a failed confirmed save persists the new handle and clears the Unsaved changes badge", async () => {
     // First confirmed save fails; the second (retry) succeeds. This guards
