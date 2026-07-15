@@ -341,8 +341,13 @@ export function AdminSettings() {
       toast.error("Fix the FetLife handle first", {
         description: validationError,
       });
+      // Return focus so the admin can immediately edit — the inline error
+      // is announced by its role="alert" span.
+      fetlifeInputRef.current?.focus();
+      fetlifeInputRef.current?.select();
       return;
     }
+
 
     // Recompute the "changed" check against the freshly-normalized value so
     // an admin who typed extra whitespace but kept the same handle doesn't
