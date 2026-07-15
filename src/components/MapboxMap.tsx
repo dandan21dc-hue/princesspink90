@@ -144,8 +144,8 @@ export function MapboxMap({
 
   if (!PUBLIC_TOKEN) {
     return (
-      <div className={`${className} grid place-items-center rounded-2xl border border-dashed border-border/60 bg-card/40 text-sm text-muted-foreground`}>
-        Mapbox token not configured.
+      <div className={`${className} grid place-items-center rounded-2xl border border-dashed border-destructive/50 bg-destructive/10 p-4 text-center text-sm text-destructive`}>
+        {TOKEN_CHECK.ok ? "Mapbox token error." : TOKEN_CHECK.error}
       </div>
     );
   }
