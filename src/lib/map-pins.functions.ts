@@ -95,3 +95,24 @@ export const deleteMapPin = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const reorderMapPins = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { ids: string[] }) => {
+    if (!Array.isArray(data.ids) || data.ids.some((id) => typeof id !== "string" || !id)) {
+      throw new Error("ids must be a non-empty list of pin IDs");
+    }
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: role } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!role) throw new Error("Forbidden");
+    for (let i = 0; i < data.ids.length; i++) {
+      const { error } = await context.supabase
+        .from("map_pins")
+        .update({ sort_order: i })
+        .eq("id", data.ids[i]);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true, count: data.ids.length };
+  });
