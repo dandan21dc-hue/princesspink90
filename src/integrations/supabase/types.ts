@@ -2405,6 +2405,78 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      grant_lifetime_membership: {
+        Args: {
+          _amount_cents: number
+          _environment: string
+          _external_payment_reference: string
+          _user_id: string
+        }
+        Returns: {
+          amount_cents: number | null
+          created_at: string
+          environment: string
+          event_ticket_event_id: string | null
+          event_ticket_used_at: string | null
+          expires_at: string | null
+          external_payment_reference: string | null
+          id: string
+          kind: string
+          private_session_bundle_granted_at: string | null
+          private_session_bundle_id: string | null
+          private_session_duration_minutes: number
+          private_session_fulfilled_at: string | null
+          private_session_requested_at: string | null
+          term_months: number | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      grant_panty_listing_order: {
+        Args: {
+          _amount_cents: number
+          _environment: string
+          _external_payment_reference: string
+          _panty_listing_id: string
+          _user_id: string
+        }
+        Returns: {
+          admin_notes: string | null
+          amount_cents: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          discount_percent: number
+          environment: string
+          external_payment_reference: string | null
+          hours: number
+          id: string
+          panty_listing_id: string | null
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_line1: string | null
+          shipping_line2: string | null
+          shipping_name: string | null
+          shipping_postal_code: string | null
+          shipping_state: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          variant: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "panty_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_age_verification: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {

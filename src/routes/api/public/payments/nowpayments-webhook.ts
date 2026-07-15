@@ -36,19 +36,58 @@ type NowPaymentsIpn = {
 };
 
 
-type AapOrder = { kind: "aap30d"; userId: string; environment: "sandbox" | "live"; amountCents: number };
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function parseOrderId(orderId: string | undefined): AapOrder | null {
+type ParsedOrder =
+  | { kind: "aap30d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "lifetime"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | {
+      kind: "panty";
+      pantyListingId: string;
+      userId: string;
+      environment: "sandbox" | "live";
+      amountCents: number;
+    };
+
+function parseEnv(v: string): "sandbox" | "live" | null {
+  return v === "sandbox" || v === "live" ? v : null;
+}
+
+function parseAmount(v: string): number | null {
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) return null;
+  return n;
+}
+
+export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
   if (!orderId) return null;
   const parts = orderId.split(":");
-  if (parts.length !== 4) return null;
-  const [kind, userId, env, amountRaw] = parts;
-  if (kind !== "aap30d") return null;
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return null;
-  if (env !== "sandbox" && env !== "live") return null;
-  const amountCents = Number(amountRaw);
-  if (!Number.isFinite(amountCents) || amountCents < 0 || !Number.isInteger(amountCents)) return null;
-  return { kind: "aap30d", userId, environment: env, amountCents };
+
+  // aap30d / lifetime — 4 parts: <kind>:<userId>:<env>:<amountCents>
+  if (parts.length === 4) {
+    const [kind, userId, envRaw, amountRaw] = parts;
+    if (kind !== "aap30d" && kind !== "lifetime") return null;
+    if (!UUID_RE.test(userId)) return null;
+    const environment = parseEnv(envRaw);
+    if (!environment) return null;
+    const amountCents = parseAmount(amountRaw);
+    if (amountCents == null) return null;
+    return { kind: kind as "aap30d" | "lifetime", userId, environment, amountCents };
+  }
+
+  // panty — 5 parts: panty:<listingId>:<userId>:<env>:<amountCents>
+  if (parts.length === 5) {
+    const [kind, pantyListingId, userId, envRaw, amountRaw] = parts;
+    if (kind !== "panty") return null;
+    if (!UUID_RE.test(pantyListingId) || !UUID_RE.test(userId)) return null;
+    const environment = parseEnv(envRaw);
+    if (!environment) return null;
+    const amountCents = parseAmount(amountRaw);
+    if (amountCents == null) return null;
+    return { kind: "panty", pantyListingId, userId, environment, amountCents };
+  }
+
+  return null;
 }
 
 export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: boolean; reason?: string }> {
@@ -80,9 +119,30 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _amount_cents: order.amountCents,
       _external_payment_reference: paymentRef,
     });
-    if (error) {
-      throw new Error(`grant_all_access_pass_30d failed: ${error.message}`);
-    }
+    if (error) throw new Error(`grant_all_access_pass_30d failed: ${error.message}`);
+    return { handled: true };
+  }
+
+  if (order.kind === "lifetime") {
+    const { error } = await supabaseAdmin.rpc("grant_lifetime_membership", {
+      _user_id: order.userId,
+      _environment: order.environment,
+      _amount_cents: order.amountCents,
+      _external_payment_reference: paymentRef,
+    });
+    if (error) throw new Error(`grant_lifetime_membership failed: ${error.message}`);
+    return { handled: true };
+  }
+
+  if (order.kind === "panty") {
+    const { error } = await supabaseAdmin.rpc("grant_panty_listing_order", {
+      _user_id: order.userId,
+      _panty_listing_id: order.pantyListingId,
+      _environment: order.environment,
+      _amount_cents: order.amountCents,
+      _external_payment_reference: paymentRef,
+    });
+    if (error) throw new Error(`grant_panty_listing_order failed: ${error.message}`);
     return { handled: true };
   }
 
