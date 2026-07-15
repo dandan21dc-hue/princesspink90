@@ -124,6 +124,15 @@ export function AdminAssistantChat({
     await sendMessage({ text });
   }
 
+  async function sendQuick(text: string) {
+    if (busy) return;
+    await sendMessage({ text });
+  }
+
+  const uuidRe =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  const assetIdValid = uuidRe.test(assetId.trim());
+
   return (
     <Card className="flex h-[75vh] flex-col overflow-hidden">
       <header className="flex items-center gap-2 border-b bg-muted/40 px-4 py-3">
