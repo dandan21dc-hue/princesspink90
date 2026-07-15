@@ -64,11 +64,16 @@ const AdminActionInput = z.discriminatedUnion("tool", [
 
 export type AdminAssistantAction = z.infer<typeof AdminActionInput>;
 
+type JsonValue = string | number | boolean | null | { [k: string]: JsonValue } | JsonValue[];
+
 type ActionResult = {
   ok: true;
   summary: string;
-  detail: Record<string, unknown> | null;
+  detail: { [k: string]: JsonValue } | null;
 };
+
+const toJson = (v: unknown): { [k: string]: JsonValue } | null =>
+  v == null ? null : (JSON.parse(JSON.stringify(v)) as { [k: string]: JsonValue });
 
 export const executeAdminAssistantAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
