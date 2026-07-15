@@ -221,7 +221,7 @@ function MessageBubble({
             const isError = toolPart.state === "output-error";
             const output = toolPart.output;
             const proposalCard =
-              isReady && isProposal(output) ? (output as { proposal: Proposal }).proposal : null;
+              isReady && isProposalEnvelope(output) ? output.proposal : null;
 
             return (
               <div key={i} className="rounded border bg-muted/40 p-2 text-xs">
