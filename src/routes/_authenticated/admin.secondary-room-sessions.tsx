@@ -35,6 +35,7 @@ function fmt(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
 
 function fmtAud(cents: number | null | undefined) {
   if (cents == null) return "—";
