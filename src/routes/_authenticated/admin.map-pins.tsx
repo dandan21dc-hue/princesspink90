@@ -26,6 +26,7 @@ import {
   type MapPin,
 } from "@/lib/map-pins.functions";
 import { MapPinsMap } from "@/components/MapPinsMap";
+import { PinPickerMap } from "@/components/PinPickerMap";
 
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
