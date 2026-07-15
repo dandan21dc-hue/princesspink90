@@ -132,7 +132,8 @@ function StorePage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 pb-16">
-        <div className="mb-6 flex items-end justify-between gap-4">
+        <CreatorHiddenItemsBanner />
+        <div className="mt-6 mb-6 flex items-end justify-between gap-4">
           <div>
             <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Shop the library</div>
             <h2 className="mt-1 font-display text-2xl font-bold">Individual sets &amp; clips</h2>
