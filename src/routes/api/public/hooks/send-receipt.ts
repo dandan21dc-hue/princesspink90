@@ -74,7 +74,7 @@ interface Receipt {
 }
 
 async function loadReceipt(
-  supabase: ReturnType<typeof createClient>,
+  supabase: NonNullable<ReturnType<typeof getServiceClient>>,
   source: Source,
   rowId: string,
 ): Promise<Receipt | null> {
