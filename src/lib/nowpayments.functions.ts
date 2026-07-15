@@ -151,6 +151,8 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<Success | Failure> => {
     try {
       await assertAccountNotRestricted(context.supabase, context.userId);
+      await assertNotInMaintenance(context);
+
       const { createInvoice } = await import("@/lib/nowpayments.server");
 
 
