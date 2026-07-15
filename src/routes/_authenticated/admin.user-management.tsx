@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { listAllUsersWithRoles, setUserCoHostRole } from "@/lib/admin.functions";
+import { getUserComplianceArchiveDownload } from "@/lib/compliance-archive.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/user-management")({
   head: () => ({
