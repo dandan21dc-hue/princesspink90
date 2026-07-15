@@ -114,11 +114,14 @@ export function normalizeFetlifeHandle(input: string): string {
 }
 
 export function validateFetlifeHandle(raw: string): string | null {
-  const trimmed = (raw ?? "").trim();
-  if (trimmed.length > FETLIFE_HANDLE_RAW_MAX)
+  const rawStr = raw ?? "";
+  if (rawStr.length > FETLIFE_HANDLE_RAW_MAX)
     return `FetLife handle input is too long (max ${FETLIFE_HANDLE_RAW_MAX} characters).`;
-  if (CONTROL_CHAR_RE.test(trimmed))
+  // Check control chars against the *raw* string (not trimmed) so a trailing
+  // newline / tab isn't silently stripped before we check.
+  if (CONTROL_CHAR_RE.test(rawStr))
     return "FetLife handle can't contain control characters or line breaks.";
+  const trimmed = rawStr.trim();
   // If someone pasted a URL, make sure the host is actually fetlife.com
   // *before* we normalize it away. Otherwise "https://evil.com/queen"
   // becomes "https:" and the caller just sees a generic character-set
@@ -134,10 +137,8 @@ export function validateFetlifeHandle(raw: string): string | null {
     if (host !== "fetlife.com" && host !== "www.fetlife.com") {
       return `FetLife URL host must be fetlife.com (got ${parsed.host}).`;
     }
-    if (parsed.protocol !== "https:") {
-      return "FetLife URL must use https://.";
-    }
   }
+
   const h = normalizeFetlifeHandle(trimmed);
   if (!h) return "FetLife handle is required.";
   if (h.length < FETLIFE_HANDLE_MIN)
