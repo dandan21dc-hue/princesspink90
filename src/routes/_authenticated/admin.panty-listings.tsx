@@ -281,21 +281,24 @@ function EditModal(props: {
   const [uploading, setUploading] = useState(false);
   const [describing, setDescribing] = useState(false);
   const [autoCreating, setAutoCreating] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
   const describeFn = useServerFn(describePantyPhoto);
   const createFn = useServerFn(createPantyListing);
   const qc = useQueryClient();
 
-  const autoDescribe = async (imageUrl: string) => {
+  const autoFill = async (imageUrl: string) => {
     if (!imageUrl) {
       toast.error("No image uploaded", {
-        description: "Upload a cover photo first, then click AI Auto-Describe.",
+        description: "Upload a cover photo first, then click ✨ AI Auto-Fill Form.",
         duration: 6000,
       });
       return;
     }
     setDescribing(true);
     try {
-      const result = await describeFn({ data: { imageUrl } });
+      const result = await describeFn({
+        data: { imageUrl, itemType: "panty" },
+      });
       if (!result.title && !result.description) {
         toast.error("AI couldn't read that photo", {
           description: "Try a clearer, well-lit shot of a single pair.",
@@ -305,19 +308,19 @@ function EditModal(props: {
       }
       onChange({
         ...value,
-        title: value.title && value.title.trim() ? value.title : result.title,
-        description:
-          value.description && value.description.trim()
-            ? value.description
-            : result.description,
+        title: result.title || value.title || "",
+        description: result.description || value.description || "",
+        price_cents:
+          result.suggested_price > 0 ? result.suggested_price : value.price_cents ?? null,
       });
-      toast.success("Filled title & description", {
-        description: "Review and tweak before saving.",
+      setTags(result.tags ?? []);
+      toast.success("Form auto-filled", {
+        description: "Review title, description, price & tags before saving.",
       });
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      console.error("[AI Auto-Describe] failed:", e);
-      toast.error("AI Auto-Describe failed", {
+      console.error("[AI Auto-Fill] failed:", e);
+      toast.error("AI Auto-Fill failed", {
         description: message,
         duration: 10000,
       });
