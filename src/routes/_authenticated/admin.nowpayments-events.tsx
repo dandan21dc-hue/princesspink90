@@ -372,6 +372,14 @@ type EventItem = {
   entitlement:
     | { kind: "membership" | "panty_order" | "booking"; id: string; label: string }
     | null;
+  reversal:
+    | {
+        mode: "revoked" | "suspended";
+        reason: string | null;
+        at: string | null;
+        applied: boolean;
+      }
+    | null;
 };
 
 function EventRow({
