@@ -250,7 +250,7 @@ function Hero() {
     <section className="relative overflow-hidden">
       <img
         src={heroImg}
-        alt=""
+        alt="Neon-lit stage curtain at a Midnight Glory adult theatre night"
         fetchPriority="high"
         className="absolute inset-0 h-full w-full object-cover opacity-60"
       />
