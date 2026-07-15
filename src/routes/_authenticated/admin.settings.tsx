@@ -382,6 +382,21 @@ export function AdminSettings() {
   // the public profile link, a typo is user-visible — we require the admin
   // to explicitly confirm the old → new change before the save actually runs.
   const [pendingFetlifeConfirm, setPendingFetlifeConfirm] = useState(false);
+  // Tracks which FetLife URL the admin most recently copied from the confirm
+  // dialog, so we can render a "Last copied" indicator next to that button.
+  // Persists across dialog open/close within the session but is intentionally
+  // reset when the saved handle changes (the "current" URL is a new value).
+  const [lastCopiedFetlife, setLastCopiedFetlife] = useState<
+    null | "current" | "new"
+  >(null);
+  const savedFetlifeHandle = settings.data?.fetlife_handle ?? null;
+  useEffect(() => {
+    // If the saved handle changes (e.g. after a successful save), the "current"
+    // URL no longer refers to what was previously copied — clear the memory
+    // so we don't mislead the admin with a stale badge.
+    setLastCopiedFetlife(null);
+  }, [savedFetlifeHandle]);
+
   // Distinguishes an intentional confirm/cancel button click from a dialog
   // dismissal (Esc / overlay). We only toast on the latter two — confirming
   // proceeds to the save toast instead.
