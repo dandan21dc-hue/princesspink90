@@ -866,7 +866,11 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
           | "last_seen_desc"
           | "last_seen_asc"
           | "first_seen_desc"
-          | "first_seen_asc";
+          | "first_seen_asc"
+          | "last_status_asc"
+          | "last_status_desc"
+          | "payment_id_asc"
+          | "payment_id_desc";
       } = {},
     ) => {
       const pageSize = Math.min(Math.max(d.pageSize ?? d.limit ?? 50, 1), 500);
@@ -888,12 +892,24 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const sortColumn =
-      data.sort === "first_seen_desc" || data.sort === "first_seen_asc"
-        ? "first_seen_at"
-        : "last_seen_at";
-    const sortAscending =
-      data.sort === "last_seen_asc" || data.sort === "first_seen_asc";
+    // Map the sort key → indexed column + direction. Every column below is
+    // backed by an index on nowpayments_ipn_events so ORDER BY + range()
+    // stays efficient at high volume.
+    const SORT_MAP: Record<
+      typeof data.sort,
+      { column: "first_seen_at" | "last_seen_at" | "last_status" | "payment_id"; ascending: boolean }
+    > = {
+      last_seen_desc: { column: "last_seen_at", ascending: false },
+      last_seen_asc: { column: "last_seen_at", ascending: true },
+      first_seen_desc: { column: "first_seen_at", ascending: false },
+      first_seen_asc: { column: "first_seen_at", ascending: true },
+      last_status_asc: { column: "last_status", ascending: true },
+      last_status_desc: { column: "last_status", ascending: false },
+      payment_id_asc: { column: "payment_id", ascending: true },
+      payment_id_desc: { column: "payment_id", ascending: false },
+    };
+    const { column: sortColumn, ascending: sortAscending } = SORT_MAP[data.sort];
+
 
     // Pre-resolve smart search into a set of matching payment_ids and/or
     // order_ids so we can combine it with the other filters via a single
