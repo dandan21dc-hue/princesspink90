@@ -46,6 +46,9 @@ export const nowpaymentsProvider: PaymentProvider = {
             ...(opts.priceId ? { priceId: opts.priceId } : {}),
             ...(opts.pantyListingId ? { pantyListingId: opts.pantyListingId } : {}),
             ...(opts.contentItemId ? { contentItemId: opts.contentItemId } : {}),
+            ...(opts.pointsToApply && opts.pointsToApply > 0
+              ? { pointsToApply: opts.pointsToApply }
+              : {}),
           },
         });
         if ("error" in result) {
