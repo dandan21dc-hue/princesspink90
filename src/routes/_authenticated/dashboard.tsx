@@ -35,6 +35,8 @@ import { listMyEvents, getMyEventsCompliance } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
 import { amIAdmin } from "@/lib/admin.functions";
 import { listMapPins } from "@/lib/map-pins.functions";
+import { adminCountPendingAgeVerifications } from "@/lib/verification.functions";
+
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { RewardRedemptionsBell } from "@/components/RewardRedemptionsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
