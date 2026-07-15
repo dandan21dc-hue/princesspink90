@@ -258,6 +258,32 @@ export function SupportChatWidget() {
   };
 
   /**
+   * Silently re-fetch availability and rewrite any `slots` cards already in
+   * the feed so stale times don't linger after the chat is reopened or a
+   * booking is confirmed. No-op when the feed has no slot cards yet.
+   */
+  const refreshSlotCards = async () => {
+    const hasSlotCard = messagesRef.current.some((m) =>
+      m.parts.some((p) => p.type === "slots"),
+    );
+    if (!hasSlotCard) return;
+    try {
+      const slots = await fetchSlots({ data: { horizonDays: 7, limit: 6 } });
+      setMessages((prev) =>
+        prev.map((m) => {
+          if (!m.parts.some((p) => p.type === "slots")) return m;
+          return {
+            ...m,
+            parts: m.parts.map((p) => (p.type === "slots" ? { type: "slots", slots } : p)),
+          };
+        }),
+      );
+    } catch {
+      /* silent — user can hit "Check availability" to retry */
+    }
+  };
+
+  /**
    * Placeholder LLM call → POST /api/concierge/chat. Swap the endpoint for
    * a real provider without touching the widget.
    */
