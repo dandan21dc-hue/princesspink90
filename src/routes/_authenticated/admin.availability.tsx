@@ -845,6 +845,21 @@ function BulkAddDialog({
               className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
           </label>
+          <label className="col-span-2 block text-sm">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">
+              Price per session (A$, optional)
+            </span>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              inputMode="decimal"
+              value={priceAud}
+              onChange={(e) => setPriceAud(e.target.value)}
+              placeholder="e.g. 60.00 — leave blank to inherit site default"
+              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
         </div>
 
         <div className="mt-4 rounded-md border border-border/60 bg-secondary/20 px-3 py-2 text-xs text-muted-foreground">
