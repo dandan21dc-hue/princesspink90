@@ -284,6 +284,44 @@ function NewContentPage() {
     }
   }
 
+  async function runAutoFill() {
+    if (!coverUrl) {
+      toast.error("Upload a cover image first");
+      return;
+    }
+    setAutoFilling(true);
+    try {
+      const result = await autoFillFn({
+        data: {
+          imageUrl: coverUrl,
+          filename: coverFilenameRef.current || undefined,
+          itemType: "digital",
+        },
+      });
+      if (!result.title && !result.description) {
+        toast.error("AI couldn't draft this listing", {
+          description: "Try a clearer cover image or fill the fields manually.",
+        });
+        return;
+      }
+      if (result.title) setTitle(result.title);
+      if (result.description) setDescription(result.description);
+      if (result.suggested_price > 0 && !subscribersOnly) {
+        setPriceDollars((result.suggested_price / 100).toFixed(2));
+      }
+      setTags(result.tags ?? []);
+      toast.success("Form auto-filled", {
+        description: "Review title, description, price & tags before publishing.",
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      console.error("[AI Auto-Fill] failed:", e);
+      toast.error("AI Auto-Fill failed", { description: message, duration: 10000 });
+    } finally {
+      setAutoFilling(false);
+    }
+  }
+
   return (
     <section className="mx-auto max-w-2xl px-5 py-10">
       <Link to="/content" className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground">
