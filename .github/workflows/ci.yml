@@ -607,9 +607,99 @@ jobs:
             test-results/
           retention-days: 7
 
-      - name: Dump dev server log on failure
-        if: failure()
-        run: tail -n 200 /tmp/dev-server.log || true
+
+
+  # Notification gate: opens (or updates) a single tracking GitHub Issue
+  # when the Supabase security lint or the static regression scan fails
+  # on `main` or on the nightly scheduled run. PR runs are intentionally
+  # excluded — the PR check itself already blocks the merge, no issue
+  # spam needed. When the next scheduled/main run comes back green, the
+  # tracking issue is auto-closed with a follow-up comment.
+  #
+  # `always()` so this evaluates even when an upstream job failed.
+  # No third-party actions — just github-script with the repo GITHUB_TOKEN
+  # (needs `issues: write`), so nothing to install and no extra secrets.
+  security_notify:
+    name: Security / Notify
+    runs-on: ubuntu-latest
+    needs: [supabase_security_lint, supabase_security_config_validate, verify]
+    if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Open or update security tracking issue
+        uses: actions/github-script@v7
+        env:
+          LINT_RESULT: ${{ needs.supabase_security_lint.result }}
+          CONFIG_RESULT: ${{ needs.supabase_security_config_validate.result }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+        with:
+          script: |
+            const TITLE = "🔒 Supabase security scan: new findings detected";
+            const failed = [
+              ["Supabase / Lint", process.env.LINT_RESULT],
+              ["Supabase / Config Validate", process.env.CONFIG_RESULT],
+              ["App / Typecheck & Test (incl. regression scan)", process.env.VERIFY_RESULT],
+            ].filter(([, r]) => r === "failure");
+
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const trigger = context.eventName === "schedule" ? "nightly scheduled run" : `push to ${context.ref}`;
+
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "security-scan",
+              per_page: 5,
+            });
+            const existing = open.find(i => i.title === TITLE);
+
+            if (failed.length === 0) {
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: existing.number,
+                  body: `✅ Security scans are green again on ${trigger}. Auto-closing.\n\nRun: ${runUrl}`,
+                });
+                await github.rest.issues.update({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: existing.number, state: "closed",
+                });
+                core.info(`Closed tracking issue #${existing.number}`);
+              } else {
+                core.info("All security scans green; nothing to notify.");
+              }
+              return;
+            }
+
+            const body = [
+              `Security scan detected failures on **${trigger}**.`,
+              ``,
+              `**Failing jobs:**`,
+              ...failed.map(([name]) => `- ${name}`),
+              ``,
+              `**Run:** ${runUrl}`,
+              ``,
+              `Download the \`supabase-security-lint-report\` artifact from that run for the full linter output and suppression rationales, then either fix the finding or add a reviewed rationale in \`security/lint-baseline.json\` / \`APPROVED_ALLOWLIST\`.`,
+              ``,
+              `_This issue is managed automatically by \`.github/workflows/ci.yml\` (\`security_notify\` job). It will be auto-closed when the next scheduled or main-branch run is green._`,
+            ].join("\n");
+
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body,
+              });
+              core.info(`Appended finding to existing issue #${existing.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title: TITLE, body, labels: ["security-scan"],
+              });
+              core.info(`Opened tracking issue #${created.data.number}`);
+            }
+
 
 
 
