@@ -74,7 +74,21 @@ type Failure = { error: string };
  */
 export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => inputSchema.parse(data))
+  .inputValidator((data) => {
+    // Return the parsed result on success, or throw a controlled Error
+    // (not a raw ZodError). A raw ZodError from the validator escapes as
+    // an unhandled runtime error on the client — blank screen. A regular
+    // Error is caught by the RPC layer and surfaces as a normal rejection
+    // the caller can toast.
+    const result = inputSchema.safeParse(data);
+    if (!result.success) {
+      const first = result.error.issues[0];
+      throw new Error(
+        `Invalid checkout request: ${first?.path.join(".") ?? "input"} — ${first?.message ?? "invalid"}`,
+      );
+    }
+    return result.data;
+  })
   .handler(async ({ data, context }): Promise<Success | Failure> => {
     try {
       const { createInvoice } = await import("@/lib/nowpayments.server");
