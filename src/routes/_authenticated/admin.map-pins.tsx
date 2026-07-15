@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GripVertical, RefreshCw, Search, X } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, RefreshCw, Search, X } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { RoleGuard } from "@/components/RoleGuard";
@@ -183,6 +183,18 @@ function AdminMapPins() {
     setOrder(next);
     setDragId(null);
     setOverId(null);
+    reorder.mutate(next.map((p) => p.id));
+  };
+
+  const moveByStep = (id: string, delta: -1 | 1) => {
+    const from = order.findIndex((p) => p.id === id);
+    if (from < 0) return;
+    const to = from + delta;
+    if (to < 0 || to >= order.length) return;
+    const next = order.slice();
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setOrder(next);
     reorder.mutate(next.map((p) => p.id));
   };
 
@@ -600,7 +612,7 @@ function AdminMapPins() {
               </h2>
               <p className="text-xs text-muted-foreground">
                 {dragEnabled
-                  ? "Drag the handle to reorder. Order controls list & export priority."
+                  ? "Drag the handle or tap ▲/▼ to reorder. Order controls list & export priority."
                   : "Clear search & filter to reorder."}
               </p>
             </div>
@@ -652,6 +664,8 @@ function AdminMapPins() {
             <ul className="divide-y divide-border/60 rounded-2xl border border-border/60 bg-card/40">
               {filtered.map((p) => {
                 const idx = order.findIndex((o) => o.id === p.id);
+                const isFirst = idx === 0;
+                const isLast = idx === order.length - 1;
                 return (
                   <li
                     key={p.id}
@@ -668,11 +682,11 @@ function AdminMapPins() {
                       e.preventDefault();
                       handleDrop(p.id);
                     }}
-                    className={`flex items-center justify-between gap-3 p-3 transition ${
+                    className={`flex items-center justify-between gap-2 p-3 transition sm:gap-3 ${
                       dragId === p.id ? "opacity-50" : ""
                     } ${overId === p.id && dragId && dragId !== p.id ? "bg-primary/10" : ""}`}
                   >
-                    <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
                       <button
                         type="button"
                         draggable={dragEnabled}
@@ -689,15 +703,16 @@ function AdminMapPins() {
                           setDragId(null);
                           setOverId(null);
                         }}
-                        aria-label={dragEnabled ? `Drag ${p.title}` : "Reorder disabled while filtering"}
+                        aria-label={dragEnabled ? `Drag ${p.title} to reorder` : "Reorder disabled while filtering"}
                         disabled={!dragEnabled}
-                        className={`rounded p-1 text-muted-foreground ${
+                        style={{ touchAction: "none" }}
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted-foreground ${
                           dragEnabled
-                            ? "cursor-grab touch-none hover:bg-muted/40 active:cursor-grabbing"
+                            ? "cursor-grab select-none hover:bg-muted/40 active:cursor-grabbing active:bg-primary/10 sm:h-9 sm:w-9"
                             : "cursor-not-allowed opacity-40"
                         }`}
                       >
-                        <GripVertical className="h-4 w-4" />
+                        <GripVertical className="h-5 w-5 sm:h-4 sm:w-4" />
                       </button>
                       <span className="w-6 shrink-0 text-xs tabular-nums text-muted-foreground">
                         {idx + 1}.
@@ -710,16 +725,36 @@ function AdminMapPins() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex shrink-0 items-center gap-1">
+                      <div className="flex flex-col overflow-hidden rounded-md border border-border">
+                        <button
+                          type="button"
+                          onClick={() => moveByStep(p.id, -1)}
+                          disabled={!dragEnabled || isFirst || reorder.isPending}
+                          aria-label={`Move ${p.title} up`}
+                          className="flex h-6 w-9 items-center justify-center text-muted-foreground hover:bg-muted/40 hover:text-foreground disabled:opacity-30 sm:w-8"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveByStep(p.id, 1)}
+                          disabled={!dragEnabled || isLast || reorder.isPending}
+                          aria-label={`Move ${p.title} down`}
+                          className="flex h-6 w-9 items-center justify-center border-t border-border text-muted-foreground hover:bg-muted/40 hover:text-foreground disabled:opacity-30 sm:w-8"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                       <button
                         onClick={() => startEdit(p)}
-                        className="rounded-md border border-border px-3 py-1 text-xs"
+                        className="rounded-md border border-border px-2.5 py-1.5 text-xs sm:px-3 sm:py-1"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => setPendingDelete(p)}
-                        className="rounded-md border border-destructive/60 px-3 py-1 text-xs text-destructive"
+                        className="rounded-md border border-destructive/60 px-2.5 py-1.5 text-xs text-destructive sm:px-3 sm:py-1"
                       >
                         Delete
                       </button>
