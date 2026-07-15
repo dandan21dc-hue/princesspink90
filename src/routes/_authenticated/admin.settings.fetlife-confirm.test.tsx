@@ -330,7 +330,83 @@ describe("admin settings — FetLife confirmation gate", () => {
     // Inline error message from the mutation is shown near the Save button.
     expect(screen.getAllByText(/server exploded/i).length).toBeGreaterThan(0);
   });
+
+  it("retrying after a failed confirmed save persists the new handle and clears the Unsaved changes badge", async () => {
+    // First confirmed save fails; the second (retry) succeeds. This guards
+    // against a regression where the failed attempt leaves the mutation in
+    // a state that blocks retry, or where success fails to refresh the
+    // "saved" snapshot and the Unsaved badge stays stuck.
+    mockUpdateSiteSettings.mockImplementationOnce(async () => {
+      throw new Error("Transient failure");
+    });
+
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle) as HTMLInputElement;
+    fireEvent.change(fetInput, { target: { value: "Retry-Handle" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    // First attempt: confirm the dialog, the server rejects.
+    let dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /yes, update handle/i }),
+    );
+
+    await waitFor(() => {
+      expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledTimes(1);
+    });
+
+    // Badge still says Unsaved changes, input still has the draft value.
+    expect(screen.getAllByText(/unsaved changes/i).length).toBeGreaterThan(0);
+    expect(
+      (screen.getByDisplayValue("Retry-Handle") as HTMLInputElement).value,
+    ).toBe("Retry-Handle");
+    expect(mockToast.success).not.toHaveBeenCalled();
+
+    // Prime the refetch after a successful save to return the new handle so
+    // the "saved" snapshot updates and the Unsaved badge clears.
+    mockGetSiteSettings.mockImplementation(async () => ({
+      ...SAVED,
+      fetlife_handle: "Retry-Handle",
+    }));
+
+    // Retry: click Save again — the draft is still dirty, so the confirm
+    // dialog opens once more. Confirming triggers the second server call.
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+    dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /yes, update handle/i }),
+    );
+
+    await waitFor(() => {
+      expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(2);
+    });
+    const secondCall = mockUpdateSiteSettings.mock.calls[1]![0] as {
+      data: typeof SAVED;
+    };
+    expect(secondCall.data.fetlife_handle).toBe("Retry-Handle");
+
+    // Success toast fires and the Unsaved badge disappears once the refetch
+    // brings the saved snapshot in line with the draft.
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/unsaved changes/i)).toBeNull();
+    });
+    expect(screen.getAllByText(/matches saved/i).length).toBeGreaterThan(0);
+
+    // Input still shows the new handle (now matching the saved snapshot).
+    expect(
+      (screen.getByDisplayValue("Retry-Handle") as HTMLInputElement).value,
+    ).toBe("Retry-Handle");
+  });
 });
+
 
 
 
