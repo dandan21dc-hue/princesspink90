@@ -80,6 +80,7 @@ import { Route as AuthenticatedAdminEmailDeliveryRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminConsentReviewRouteImport } from './routes/_authenticated/admin.consent-review'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
+import { Route as AuthenticatedAdminCommandCenterRouteImport } from './routes/_authenticated/admin.command-center'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
 import { Route as AuthenticatedAdminBookingRejectionsRouteImport } from './routes/_authenticated/admin.booking-rejections'
 import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin.availability'
@@ -496,6 +497,12 @@ const AuthenticatedAdminComplianceAuditRoute =
     path: '/admin/compliance-audit',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminCommandCenterRoute =
+  AuthenticatedAdminCommandCenterRouteImport.update({
+    id: '/admin/command-center',
+    path: '/admin/command-center',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminCohostsRoute =
   AuthenticatedAdminCohostsRouteImport.update({
     id: '/admin/cohosts',
@@ -715,6 +722,7 @@ export interface FileRoutesByFullPath {
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -816,6 +824,7 @@ export interface FileRoutesByTo {
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -920,6 +929,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/_authenticated/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/_authenticated/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -1024,6 +1034,7 @@ export interface FileRouteTypes {
     | '/admin/availability'
     | '/admin/booking-rejections'
     | '/admin/cohosts'
+    | '/admin/command-center'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/consent-review'
@@ -1125,6 +1136,7 @@ export interface FileRouteTypes {
     | '/admin/availability'
     | '/admin/booking-rejections'
     | '/admin/cohosts'
+    | '/admin/command-center'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/consent-review'
@@ -1228,6 +1240,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/availability'
     | '/_authenticated/admin/booking-rejections'
     | '/_authenticated/admin/cohosts'
+    | '/_authenticated/admin/command-center'
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
     | '/_authenticated/admin/consent-review'
@@ -1839,6 +1852,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminComplianceAuditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/command-center': {
+      id: '/_authenticated/admin/command-center'
+      path: '/admin/command-center'
+      fullPath: '/admin/command-center'
+      preLoaderRoute: typeof AuthenticatedAdminCommandCenterRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/cohosts': {
       id: '/_authenticated/admin/cohosts'
       path: '/admin/cohosts'
@@ -2111,6 +2131,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminBookingRejectionsRoute: typeof AuthenticatedAdminBookingRejectionsRoute
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
+  AuthenticatedAdminCommandCenterRoute: typeof AuthenticatedAdminCommandCenterRoute
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
   AuthenticatedAdminConsentReviewRoute: typeof AuthenticatedAdminConsentReviewRoute
@@ -2163,6 +2184,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminBookingRejectionsRoute:
     AuthenticatedAdminBookingRejectionsRoute,
   AuthenticatedAdminCohostsRoute: AuthenticatedAdminCohostsRoute,
+  AuthenticatedAdminCommandCenterRoute: AuthenticatedAdminCommandCenterRoute,
   AuthenticatedAdminComplianceAuditRoute:
     AuthenticatedAdminComplianceAuditRoute,
   AuthenticatedAdminCompliancePolicyRoute:
