@@ -247,7 +247,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           <button
             type="button"
             onClick={() => decide.mutate("approved")}
-            disabled={decide.isPending}
+            disabled={busy}
             className="rounded-full bg-emerald-500/20 border border-emerald-500/60 px-4 py-1.5 text-xs uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50"
           >
             Approve
@@ -257,7 +257,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           <button
             type="button"
             onClick={() => decide.mutate("rejected")}
-            disabled={decide.isPending}
+            disabled={busy}
             className="rounded-full bg-destructive/20 border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/30 disabled:opacity-50"
           >
             Reject
@@ -267,7 +267,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           <button
             type="button"
             onClick={() => decide.mutate("pending")}
-            disabled={decide.isPending}
+            disabled={busy}
             className="rounded-full border border-border/60 px-4 py-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:border-primary/60"
           >
             Send back to pending
