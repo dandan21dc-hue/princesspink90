@@ -200,8 +200,31 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       })
       .eq("payment_id", paymentIdRaw)
       .eq("last_status", statusKey);
+
+    // Raise an admin alert whenever a signature-verified `finished` payment
+    // fails to grant. This is the money-losing failure mode: the buyer paid
+    // but did not get their entitlement. Naturally deduped per (payment_id,
+    // status) by the ledger, so no throttle needed.
+    if (status === "finished" && !outcome.handled) {
+      await raiseAlert(supabaseAdmin, {
+        severity: "critical",
+        kind: "nowpayments_finished_ungranted",
+        detail: {
+          payment_id: paymentIdRaw,
+          order_id: event.order_id ?? null,
+          reason: outcome.reason ?? null,
+          price_amount: event.price_amount ?? null,
+          price_currency: event.price_currency ?? null,
+          pay_amount: event.pay_amount ?? null,
+          pay_currency: event.pay_currency ?? null,
+          count: 1,
+        },
+      });
+    }
+
     return outcome;
   };
+
 
   // Only grant entitlements on a confirmed, settled payment. All other statuses
   // (waiting, confirming, confirmed, sending, partially_paid, failed, refunded, expired)
