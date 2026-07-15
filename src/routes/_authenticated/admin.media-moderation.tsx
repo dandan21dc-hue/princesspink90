@@ -537,8 +537,10 @@ function RecentActivityPanel() {
   const [to, setTo] = useState("");
 
   // Debounce the email input so we don't refetch on every keystroke.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffectDebounce(() => setActorEmail(actorEmailInput.trim()), 300, [actorEmailInput]);
+  useEffect(() => {
+    const t = setTimeout(() => setActorEmail(actorEmailInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [actorEmailInput]);
 
   const filters = {
     limit: 50,
