@@ -843,6 +843,13 @@ function parseOrderId(orderId: string | null | undefined): NpeParsedOrder | null
 }
 
 
+const REVERSAL_REVOKE_STATUSES = ["refunded", "refund", "reversed"] as const;
+const REVERSAL_SUSPEND_STATUSES = ["chargeback", "disputed", "dispute"] as const;
+const REVERSAL_ALL_STATUSES = [
+  ...REVERSAL_REVOKE_STATUSES,
+  ...REVERSAL_SUSPEND_STATUSES,
+] as const;
+
 export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -851,12 +858,14 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         limit?: number;
         status?: string;
         handled?: "all" | "handled" | "unhandled";
+        reversal?: "all" | "any" | "revoked" | "suspended";
         search?: string;
       } = {},
     ) => ({
       limit: Math.min(Math.max(d.limit ?? 100, 1), 500),
       status: d.status?.trim() || undefined,
       handled: d.handled ?? "all",
+      reversal: d.reversal ?? "all",
       search: d.search?.trim() || undefined,
     }),
   )
@@ -875,6 +884,12 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("last_status", data.status);
     if (data.handled === "handled") q = q.eq("handled", true);
     if (data.handled === "unhandled") q = q.eq("handled", false);
+    if (data.reversal === "any")
+      q = q.in("last_status", REVERSAL_ALL_STATUSES as unknown as string[]);
+    if (data.reversal === "revoked")
+      q = q.in("last_status", REVERSAL_REVOKE_STATUSES as unknown as string[]);
+    if (data.reversal === "suspended")
+      q = q.in("last_status", REVERSAL_SUSPEND_STATUSES as unknown as string[]);
     if (data.search) {
       // Search on payment_id or order_id (both text columns).
       q = q.or(`payment_id.ilike.%${data.search}%,order_id.ilike.%${data.search}%`);
