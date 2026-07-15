@@ -24,32 +24,12 @@ function classify(raw: string | undefined | null): "missing" | "public" | "secre
  * Read from Vite env — safe to bundle to the client.
  */
 export function getPublicMapboxToken(): TokenCheck {
-  const raw = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as
-    | string
-    | undefined;
-  const kind = classify(raw);
-  if (kind === "missing") {
-    return {
-      ok: false,
-      error:
-        "Mapbox public token is not configured. Set VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN (a pk.… token) via the Mapbox connector.",
-    };
-  }
-  if (kind === "secret") {
-    return {
-      ok: false,
-      error:
-        "Mapbox token misconfigured: VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN starts with 'sk.' — that is a SECRET token and must never be exposed in the browser. Replace it with a public pk.… token.",
-    };
-  }
-  if (kind === "unknown") {
-    return {
-      ok: false,
-      error:
-        "Mapbox public token has an unexpected format — it must start with 'pk.'.",
-    };
-  }
-  return { ok: true, token: (raw as string).trim() };
+  // Hardcoded public Mapbox token (pk.*) — safe to ship to the browser.
+  // Mapbox public tokens are designed to be exposed client-side; restrict by
+  // URL in the Mapbox dashboard rather than by hiding the value.
+  const HARDCODED_PUBLIC_TOKEN =
+    "pk.eyJ1IjoibWlkbmlnaHQtZ2xvcnkiLCJhIjoiY21ybHc3c3FhMDQ2czJ5b2dzNDM1M3FsdyJ9.XIYUyDl9VKYFk4Jh7_WMOw";
+  return { ok: true, token: HARDCODED_PUBLIC_TOKEN };
 }
 
 /**
