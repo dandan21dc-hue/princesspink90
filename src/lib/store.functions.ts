@@ -1023,3 +1023,55 @@ export const adminGetModerationMediaUrl = createServerFn({ method: "POST" })
     if (error || !signed) throw new Error(error?.message ?? "Sign failed");
     return { url: signed.signedUrl };
   });
+
+/**
+ * Hard-delete a content item from the admin moderation queue. Used when an
+ * upload fails or is spam/duplicate and shouldn't linger as a "rejected"
+ * row. Cascades remove any content_purchases rows via the FK; media blobs in
+ * the content-media bucket are removed on a best-effort basis.
+ */
+export const adminDeleteContentItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { id: string }) => {
+    if (!data.id) throw new Error("id required");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(roleErr.message);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Fetch media paths first so we can remove blobs after the row is gone.
+    const { data: existing, error: readErr } = await supabaseAdmin
+      .from("content_items")
+      .select("id, cover_url, media_urls")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!existing) throw new Error("Content item not found");
+
+    const { error: delErr } = await supabaseAdmin
+      .from("content_items")
+      .delete()
+      .eq("id", data.id);
+    if (delErr) throw new Error(delErr.message);
+
+    // Best-effort blob cleanup — do not fail the delete if storage removal errors.
+    const paths: string[] = [];
+    if (existing.cover_url) paths.push(existing.cover_url);
+    const media = (existing.media_urls ?? []) as Array<{ url?: string }>;
+    for (const m of media) {
+      if (m?.url) paths.push(m.url);
+    }
+    if (paths.length > 0) {
+      await supabaseAdmin.storage.from("content-media").remove(paths).catch(() => {});
+    }
+
+    return { id: data.id, deleted: true };
+  });
+
