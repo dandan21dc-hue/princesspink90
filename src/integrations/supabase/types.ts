@@ -1266,6 +1266,48 @@ export type Database = {
         }
         Relationships: []
       }
+      nowpayments_ipn_events: {
+        Row: {
+          first_seen_at: string
+          first_status: string
+          handled: boolean
+          last_seen_at: string
+          last_status: string
+          order_id: string | null
+          payload: Json
+          payment_id: string
+          processed_at: string | null
+          reason: string | null
+          received_count: number
+        }
+        Insert: {
+          first_seen_at?: string
+          first_status: string
+          handled?: boolean
+          last_seen_at?: string
+          last_status: string
+          order_id?: string | null
+          payload: Json
+          payment_id: string
+          processed_at?: string | null
+          reason?: string | null
+          received_count?: number
+        }
+        Update: {
+          first_seen_at?: string
+          first_status?: string
+          handled?: boolean
+          last_seen_at?: string
+          last_status?: string
+          order_id?: string | null
+          payload?: Json
+          payment_id?: string
+          processed_at?: string | null
+          reason?: string | null
+          received_count?: number
+        }
+        Relationships: []
+      }
       panty_listings: {
         Row: {
           color: string | null
