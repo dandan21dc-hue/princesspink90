@@ -243,6 +243,7 @@ function AdminMapPins() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["admin-map-pins"] });
     qc.invalidateQueries({ queryKey: ["map-pins"] });
+    qc.invalidateQueries({ queryKey: ["dashboard-map-pins"] });
   };
 
   const validate = (): {
