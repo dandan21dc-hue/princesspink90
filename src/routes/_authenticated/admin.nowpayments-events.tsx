@@ -57,9 +57,14 @@ const STATUS_OPTIONS = [
   "partially_paid",
   "failed",
   "refunded",
+  "reversed",
+  "chargeback",
+  "disputed",
   "expired",
   "unknown",
 ];
+
+type ReversalFilter = "all" | "any" | "revoked" | "suspended";
 
 function AdminNowpaymentsEvents() {
   const meFn = useServerFn(amIAdmin);
@@ -71,18 +76,20 @@ function AdminNowpaymentsEvents() {
 
   const [status, setStatus] = useState<string>("all");
   const [handled, setHandled] = useState<"all" | "handled" | "unhandled">("all");
+  const [reversal, setReversal] = useState<ReversalFilter>("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
 
   const list = useQuery({
-    queryKey: ["admin-nowpayments-events", { status, handled, search }],
+    queryKey: ["admin-nowpayments-events", { status, handled, reversal, search }],
     queryFn: () =>
       listFn({
         data: {
           limit: 200,
           status: status === "all" ? undefined : status,
           handled,
+          reversal,
           search: search || undefined,
         },
       }),
@@ -218,6 +225,25 @@ function AdminNowpaymentsEvents() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Reversal
+            </label>
+            <Select
+              value={reversal}
+              onValueChange={(v) => setReversal(v as ReversalFilter)}
+            >
+              <SelectTrigger className="mt-1 w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All events</SelectItem>
+                <SelectItem value="any">Any reversal</SelectItem>
+                <SelectItem value="revoked">Revoked (refund/reversed)</SelectItem>
+                <SelectItem value="suspended">Suspended (chargeback/dispute)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button type="submit">Apply</Button>
           <Button
             type="button"
@@ -239,6 +265,8 @@ function AdminNowpaymentsEvents() {
             <span>Handled: {summary.handled}</span>
             <span>Unhandled: {summary.unhandled}</span>
             <span>Finished: {summary.finished}</span>
+            <span className="text-destructive">Revoked: {summary.revoked}</span>
+            <span className="text-destructive">Suspended: {summary.suspended}</span>
           </div>
         )}
       </Card>
@@ -344,6 +372,14 @@ type EventItem = {
   entitlement:
     | { kind: "membership" | "panty_order" | "booking"; id: string; label: string }
     | null;
+  reversal:
+    | {
+        mode: "revoked" | "suspended";
+        reason: string | null;
+        at: string | null;
+        applied: boolean;
+      }
+    | null;
 };
 
 function EventRow({
@@ -386,6 +422,16 @@ function EventRow({
             {e.parsed_order && (
               <Badge variant="outline" className="text-[10px]">
                 {e.parsed_order.kind} · {e.parsed_order.environment}
+              </Badge>
+            )}
+            {e.reversal && (
+              <Badge
+                variant={e.reversal.applied ? "destructive" : "outline"}
+                className="text-[10px] uppercase"
+                title={e.reversal.reason ?? undefined}
+              >
+                {e.reversal.mode === "revoked" ? "Revoked" : "Suspended"}
+                {e.reversal.applied ? "" : " · not applied"}
               </Badge>
             )}
             {e.received_count > 1 && (
@@ -431,6 +477,18 @@ function EventRow({
               <div className="sm:col-span-2">
                 <span className="text-muted-foreground">processed: </span>
                 {fmt(e.processed_at)}
+              </div>
+            )}
+            {e.reversal && (
+              <div className="sm:col-span-2 text-destructive">
+                <span className="text-muted-foreground">
+                  {e.reversal.mode === "revoked" ? "revoked" : "suspended"}:{" "}
+                </span>
+                {e.reversal.applied
+                  ? `${fmt(e.reversal.at)}${
+                      e.reversal.reason ? ` · ${e.reversal.reason}` : ""
+                    }`
+                  : "no matching entitlement found for this payment_id"}
               </div>
             )}
           </div>

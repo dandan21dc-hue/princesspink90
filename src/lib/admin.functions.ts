@@ -843,6 +843,13 @@ function parseOrderId(orderId: string | null | undefined): NpeParsedOrder | null
 }
 
 
+const REVERSAL_REVOKE_STATUSES = ["refunded", "refund", "reversed"] as const;
+const REVERSAL_SUSPEND_STATUSES = ["chargeback", "disputed", "dispute"] as const;
+const REVERSAL_ALL_STATUSES = [
+  ...REVERSAL_REVOKE_STATUSES,
+  ...REVERSAL_SUSPEND_STATUSES,
+] as const;
+
 export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -851,12 +858,14 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         limit?: number;
         status?: string;
         handled?: "all" | "handled" | "unhandled";
+        reversal?: "all" | "any" | "revoked" | "suspended";
         search?: string;
       } = {},
     ) => ({
       limit: Math.min(Math.max(d.limit ?? 100, 1), 500),
       status: d.status?.trim() || undefined,
       handled: d.handled ?? "all",
+      reversal: d.reversal ?? "all",
       search: d.search?.trim() || undefined,
     }),
   )
@@ -875,6 +884,12 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
     if (data.status) q = q.eq("last_status", data.status);
     if (data.handled === "handled") q = q.eq("handled", true);
     if (data.handled === "unhandled") q = q.eq("handled", false);
+    if (data.reversal === "any")
+      q = q.in("last_status", REVERSAL_ALL_STATUSES as unknown as string[]);
+    if (data.reversal === "revoked")
+      q = q.in("last_status", REVERSAL_REVOKE_STATUSES as unknown as string[]);
+    if (data.reversal === "suspended")
+      q = q.in("last_status", REVERSAL_SUSPEND_STATUSES as unknown as string[]);
     if (data.search) {
       // Search on payment_id or order_id (both text columns).
       q = q.or(`payment_id.ilike.%${data.search}%,order_id.ilike.%${data.search}%`);
@@ -905,19 +920,25 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       paymentRefs.length
         ? supabaseAdmin
             .from("memberships")
-            .select("id, user_id, kind, environment, expires_at, external_payment_reference")
+            .select(
+              "id, user_id, kind, environment, expires_at, external_payment_reference, revoked_at, suspended_at, revocation_reason",
+            )
             .in("external_payment_reference", paymentRefs)
         : Promise.resolve({ data: [] as any[] }),
       paymentRefs.length
         ? supabaseAdmin
             .from("panty_orders")
-            .select("id, user_id, panty_listing_id, status, environment, external_payment_reference")
+            .select(
+              "id, user_id, panty_listing_id, status, environment, external_payment_reference, updated_at",
+            )
             .in("external_payment_reference", paymentRefs)
         : Promise.resolve({ data: [] as any[] }),
       paymentRefs.length
         ? supabaseAdmin
             .from("private_room_bookings")
-            .select("id, user_id, status, starts_at, environment, external_payment_reference")
+            .select(
+              "id, user_id, status, starts_at, environment, external_payment_reference, updated_at",
+            )
             .in("external_payment_reference", paymentRefs)
         : Promise.resolve({ data: [] as any[] }),
     ]);
@@ -983,6 +1004,45 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       const userId = parsed?.userId ?? null;
       const user = userId ? userMap.get(userId) ?? null : null;
 
+      // Compute reversal outcome. Membership carries explicit revoked_at /
+      // suspended_at columns. Panty orders and bookings reflect it in status.
+      const isRevokeStatus = (REVERSAL_REVOKE_STATUSES as readonly string[]).includes(
+        e.last_status,
+      );
+      const isSuspendStatus = (REVERSAL_SUSPEND_STATUSES as readonly string[]).includes(
+        e.last_status,
+      );
+      let reversal:
+        | {
+            mode: "revoked" | "suspended";
+            reason: string | null;
+            at: string | null;
+            applied: boolean;
+          }
+        | null = null;
+      if (isRevokeStatus || isSuspendStatus) {
+        const mode: "revoked" | "suspended" = isRevokeStatus ? "revoked" : "suspended";
+        let at: string | null = null;
+        let reason: string | null = null;
+        let applied = false;
+        if (membership) {
+          const m = membership as any;
+          at = mode === "revoked" ? m.revoked_at ?? null : m.suspended_at ?? null;
+          reason = m.revocation_reason ?? null;
+          applied = at !== null;
+        } else if (panty) {
+          const p = panty as any;
+          applied =
+            mode === "revoked" ? p.status === "refunded" : p.status === "disputed";
+          at = applied ? p.updated_at ?? null : null;
+        } else if (booking) {
+          const b = booking as any;
+          applied = b.status === "cancelled";
+          at = applied ? b.updated_at ?? null : null;
+        }
+        reversal = { mode, reason, at, applied };
+      }
+
       return {
         payment_id: e.payment_id,
         last_status: e.last_status,
@@ -1002,6 +1062,7 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         user_email: user?.email ?? null,
         user_display_name: user?.display_name ?? null,
         entitlement,
+        reversal,
       };
     });
 
@@ -1010,6 +1071,8 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       handled: items.filter((i) => i.handled).length,
       unhandled: items.filter((i) => !i.handled).length,
       finished: items.filter((i) => i.last_status === "finished").length,
+      revoked: items.filter((i) => i.reversal?.mode === "revoked").length,
+      suspended: items.filter((i) => i.reversal?.mode === "suspended").length,
     };
 
     return { items, summary };
