@@ -13,7 +13,15 @@ vi.mock("@/integrations/supabase/client.server", () => {
     let pendingPid: string | null = null;
     const api = {
       insert(row: { payment_id: string }) { pendingInsert = row; return api; },
-      update(_patch: unknown) { return api; },
+      update(patch: Record<string, unknown>) {
+        return {
+          eq: (_col: string, val: string) => {
+            const row = ledger.get(val);
+            if (row) Object.assign(row, patch);
+            return Promise.resolve({ data: null, error: null });
+          },
+        };
+      },
       select(_cols?: string) { return api; },
       eq(_col: string, val: string) { pendingPid = val; return api; },
       maybeSingle: () => {
