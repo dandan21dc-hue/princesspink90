@@ -113,6 +113,40 @@ export function normalizeFetlifeHandle(input: string): string {
   return h;
 }
 
+/**
+ * Build the canonical https://fetlife.com/<handle> URL for a raw handle
+ * input (which may be a handle, `@handle`, or a pasted profile URL).
+ * Returns `""` when the input normalizes to an empty string, matching the
+ * "Save disabled when handle is empty" contract used by the admin form.
+ */
+export function buildFetlifeUrl(rawHandle: string): string {
+  const h = normalizeFetlifeHandle(rawHandle);
+  return h ? `https://fetlife.com/${h}` : "";
+}
+
+/**
+ * Round-trip check used by the admin Settings Save button: given the same
+ * raw handle input, build the preview URL, parse it back, and confirm the
+ * extracted handle equals the normalized input. This proves the URL
+ * rendered in the confirm dialog is exactly what the server will store —
+ * catches drift from whitespace, case, stray path segments, or a future
+ * regression in `normalizeFetlifeHandle`.
+ */
+export function fetlifeUrlRoundTripsToHandle(rawHandle: string): boolean {
+  const normalized = normalizeFetlifeHandle(rawHandle);
+  if (!normalized) return false;
+  const url = buildFetlifeUrl(rawHandle);
+  try {
+    const u = new URL(url);
+    if (u.host.toLowerCase() !== "fetlife.com") return false;
+    const handleFromUrl = u.pathname.replace(/^\/+|\/+$/g, "");
+    return handleFromUrl === normalized;
+  } catch {
+    return false;
+  }
+}
+
+
 export function validateFetlifeHandle(raw: string): string | null {
   const rawStr = raw ?? "";
   if (rawStr.length > FETLIFE_HANDLE_RAW_MAX)
