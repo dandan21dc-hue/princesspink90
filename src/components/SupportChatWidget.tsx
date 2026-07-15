@@ -910,20 +910,23 @@ function SlotPickerCard({
 function ConfirmSlotCard({
   slot,
   busy,
+  timezone,
   onConfirm,
 }: {
   slot: ConciergeSlot;
   busy: boolean;
+  timezone: string;
   onConfirm: (slot: ConciergeSlot) => void;
 }) {
   return (
     <div className="rounded-lg border border-primary/40 bg-primary/[0.06] p-3">
-      <div className="mb-1 text-[10px] uppercase tracking-widest text-primary/80">
-        Confirm booking
+      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-primary/80">
+        <span>Confirm booking</span>
+        <span className="normal-case tracking-normal text-primary/60">{timezone}</span>
       </div>
-      <div className="text-sm font-semibold">{formatDate(slot.startsAt)}</div>
+      <div className="text-sm font-semibold">{formatDate(slot.startsAt, timezone)}</div>
       <div className="mb-2 text-xs text-neutral-300">
-        {formatTime(slot.startsAt)} · {slot.durationMinutes} min · Private Room
+        {formatTime(slot.startsAt, timezone)} · {slot.durationMinutes} min · Private Room
       </div>
       <button
         type="button"
