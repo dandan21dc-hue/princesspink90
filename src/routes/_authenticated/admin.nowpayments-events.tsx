@@ -114,6 +114,7 @@ function AdminNowpaymentsEvents() {
   const [isExporting, setIsExporting] = useState(false);
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
+  const [jumpInput, setJumpInput] = useState("");
 
   // Reset to page 1 whenever filters/search/sort/pageSize change.
   const resetToFirstPage = () => setPage(1);
@@ -215,6 +216,53 @@ function AdminNowpaymentsEvents() {
           <code className="font-mono"> HMAC-SHA512(body, IPN_SECRET)</code> are
           stored, so every row below is signature-verified by construction.
         </div>
+
+        <form
+          className="flex flex-wrap items-end gap-2 rounded-md border border-dashed border-border/60 bg-muted/20 p-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const id = jumpInput.trim();
+            if (!id) return;
+            // Clear filters so the exact match is guaranteed to show,
+            // regardless of what's currently selected.
+            setStatus("all");
+            setHandled("all");
+            setReversal("all");
+            setSort("last_seen_desc");
+            setSearchInput(id);
+            setSearch(id);
+            setPage(1);
+          }}
+        >
+          <div className="min-w-[260px] flex-1">
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Jump to payment_id
+            </label>
+            <Input
+              className="mt-1 font-mono"
+              value={jumpInput}
+              onChange={(e) => setJumpInput(e.target.value)}
+              placeholder="e.g. 5771247473"
+            />
+          </div>
+          <Button type="submit" variant="secondary" disabled={jumpInput.trim() === ""}>
+            Jump
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => {
+              setJumpInput("");
+              setSearchInput("");
+              setSearch("");
+              setPage(1);
+            }}
+            disabled={jumpInput === "" && search === ""}
+          >
+            Clear
+          </Button>
+        </form>
+
 
         <form
           className="flex flex-wrap gap-3 items-end"
