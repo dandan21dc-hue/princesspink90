@@ -286,6 +286,13 @@ function SecurityChangelogView() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => downloadEntryMarkdown(selected)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs hover:bg-muted/40"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download MD
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setEditing(selected)}
                       className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs hover:bg-muted/40"
                     >
