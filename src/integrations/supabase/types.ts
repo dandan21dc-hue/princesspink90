@@ -1960,6 +1960,39 @@ export type Database = {
         }
         Relationships: []
       }
+      rewards_catalog: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          points_cost: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          points_cost: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          points_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rsvps: {
         Row: {
           age_confirmed_at: string | null
@@ -2322,6 +2355,56 @@ export type Database = {
           reason?: string
         }
         Relationships: []
+      }
+      user_rewards: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          id: string
+          points_spent: number
+          reward_id: string
+          reward_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          points_spent: number
+          reward_id: string
+          reward_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          points_spent?: number
+          reward_id?: string
+          reward_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_rewards_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -2765,6 +2848,28 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      redeem_reward: {
+        Args: { _reward_id: string }
+        Returns: {
+          admin_notes: string | null
+          created_at: string
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          id: string
+          points_spent: number
+          reward_id: string
+          reward_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "user_rewards"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       reserve_reward_points: {
         Args: { _order_id: string; _points: number; _user_id: string }
