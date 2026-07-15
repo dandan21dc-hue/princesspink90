@@ -1071,6 +1071,8 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       handled: items.filter((i) => i.handled).length,
       unhandled: items.filter((i) => !i.handled).length,
       finished: items.filter((i) => i.last_status === "finished").length,
+      revoked: items.filter((i) => i.reversal?.mode === "revoked").length,
+      suspended: items.filter((i) => i.reversal?.mode === "suspended").length,
     };
 
     return { items, summary };
