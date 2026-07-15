@@ -5,6 +5,16 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # Nightly scan so newly-published Supabase advisories or drift caused
+  # by dashboard-side changes surface even when nobody has pushed code.
+  # 07:15 UTC picks an off-hour so the run doesn't collide with the
+  # morning PR flurry, and cron.job_run_details from pg_cron won't be
+  # rotating at the same instant.
+  schedule:
+    - cron: "15 7 * * *"
+  # Manual re-run button on the Actions tab — handy after acknowledging
+  # a finding or updating the baseline.
+  workflow_dispatch: {}
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
