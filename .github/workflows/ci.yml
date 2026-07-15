@@ -174,11 +174,32 @@ jobs:
           bun run lint:supabase 2>&1 \
             | tee /tmp/security-lint/lint.log
 
+      # Diff current WARN/ERROR findings against the last snapshot at
+      # security/findings-snapshot.json and prepend a versioned entry
+      # to security/CHANGELOG.md capturing per-`internal_id` status
+      # transitions (added / removed / level changed). Runs whether
+      # the lint step passed or failed so a newly-introduced finding
+      # is recorded in the changelog artifact even when it also blocks
+      # the merge. Soft-skips when secrets are absent (fork PRs).
+      - name: Update security findings changelog
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SECURITY_CHANGELOG_SCAN_ID: "gha-${{ github.run_id }}-${{ github.run_attempt }}"
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/security-lint
+          bun run security:changelog 2>&1 \
+            | tee /tmp/security-lint/changelog.log
+
       - name: Snapshot baseline for artifact
         if: always()
         run: |
           mkdir -p /tmp/security-lint
           cp security/lint-baseline.json /tmp/security-lint/lint-baseline.json 2>/dev/null || true
+          cp security/findings-snapshot.json /tmp/security-lint/findings-snapshot.json 2>/dev/null || true
+          cp security/CHANGELOG.md /tmp/security-lint/CHANGELOG.md 2>/dev/null || true
 
       - name: Cap artifact file sizes
         if: always()
