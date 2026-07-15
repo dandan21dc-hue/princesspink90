@@ -386,13 +386,31 @@ function VenueMapPreview() {
           Manage →
         </Link>
       </div>
-      <MapPinsMap
-        pins={pins.data ?? []}
-        className="h-[320px] w-full rounded-xl overflow-hidden"
-        isLoading={pins.isLoading}
-        isError={pins.isError}
-        errorMessage={errorMessage}
-      />
+      {!pins.isLoading && !pins.isError && count === 0 ? (
+        <div className="flex h-[320px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 bg-background/40 px-6 text-center">
+          <div>
+            <p className="font-display text-sm">No venue pins yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Add your first spot to see it drop on the map here and on the homepage.
+            </p>
+          </div>
+          <Link
+            to="/admin/map-pins"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
+          >
+            + Add venue spot
+          </Link>
+        </div>
+      ) : (
+        <MapPinsMap
+          pins={pins.data ?? []}
+          className="h-[320px] w-full rounded-xl overflow-hidden"
+          isLoading={pins.isLoading}
+          isError={pins.isError}
+          errorMessage={errorMessage}
+        />
+      )}
+
     </div>
   );
 }
