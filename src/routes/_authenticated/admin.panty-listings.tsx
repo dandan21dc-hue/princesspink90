@@ -673,7 +673,7 @@ function EditModal(props: {
             }
             title={
               !(value.description ?? "").trim()
-                ? "Add a description (or use ✨ AI Auto-Describe) before saving"
+                ? "Add a description (or use ✨ AI Auto-Fill Form) before saving"
                 : undefined
             }
             className="rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
