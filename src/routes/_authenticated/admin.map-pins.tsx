@@ -62,10 +62,29 @@ function AdminMapPins() {
   const deleteFn = useServerFn(deleteMapPin);
   const reorderFn = useServerFn(reorderMapPins);
 
-  const { data: pins = [], isLoading } = useQuery({
+  const { data: pins = [], isLoading, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["admin-map-pins"],
     queryFn: () => listFn(),
   });
+
+  const handleRefresh = async () => {
+    const before = pins.length;
+    const res = await refetch();
+    if (res.error) {
+      toast.error(res.error instanceof Error ? res.error.message : "Failed to refresh");
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["map-pins"] });
+    const after = res.data?.length ?? before;
+    const diff = after - before;
+    toast.success(
+      diff === 0
+        ? `Refreshed · ${after} pin${after === 1 ? "" : "s"}`
+        : diff > 0
+          ? `Refreshed · ${diff} new pin${diff === 1 ? "" : "s"}`
+          : `Refreshed · ${Math.abs(diff)} pin${Math.abs(diff) === 1 ? "" : "s"} removed`,
+    );
+  };
 
   // URL-persisted search + status filter.
   const { q, state } = Route.useSearch();
