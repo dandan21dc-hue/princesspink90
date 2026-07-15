@@ -856,6 +856,8 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
     (
       d: {
         limit?: number;
+        page?: number;
+        pageSize?: number;
         status?: string;
         handled?: "all" | "handled" | "unhandled";
         reversal?: "all" | "any" | "revoked" | "suspended";
@@ -866,15 +868,22 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
           | "first_seen_desc"
           | "first_seen_asc";
       } = {},
-    ) => ({
-      limit: Math.min(Math.max(d.limit ?? 100, 1), 500),
-      status: d.status?.trim() || undefined,
-      handled: d.handled ?? "all",
-      reversal: d.reversal ?? "all",
-      search: d.search?.trim() || undefined,
-      sort: d.sort ?? "last_seen_desc",
-    }),
+    ) => {
+      const pageSize = Math.min(Math.max(d.pageSize ?? d.limit ?? 50, 1), 500);
+      const page = Math.max(d.page ?? 1, 1);
+      return {
+        limit: pageSize,
+        page,
+        pageSize,
+        status: d.status?.trim() || undefined,
+        handled: d.handled ?? "all",
+        reversal: d.reversal ?? "all",
+        search: d.search?.trim() || undefined,
+        sort: d.sort ?? "last_seen_desc",
+      };
+    },
   )
+
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
