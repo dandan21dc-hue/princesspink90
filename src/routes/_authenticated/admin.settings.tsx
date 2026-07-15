@@ -161,18 +161,47 @@ function AdminSettings() {
       if (fetlifeError) throw new Error(fetlifeError);
       if (priceError) throw new Error(priceError);
       if (durationError) throw new Error(durationError);
-      return updateFn({
-        data: {
-          email: emailTrimmed,
-          fetlife_handle: fetlifeNormalized,
-          reddit_handle: reddit,
-          glory_holes_enabled: gloryHolesEnabled,
-          session_price_cents: priceCents,
-          session_duration_minutes: sessionDurationMinutes,
-        },
-      });
+      const nextValues = {
+        email: emailTrimmed,
+        fetlife_handle: fetlifeNormalized,
+        reddit_handle: reddit,
+        glory_holes_enabled: gloryHolesEnabled,
+        session_price_cents: priceCents,
+        session_duration_minutes: sessionDurationMinutes,
+      };
+      // Compare against the last-loaded server state so the success toast can
+      // list exactly which fields actually changed.
+      const prev = settings.data;
+      const changes: string[] = [];
+      if (prev) {
+        if (prev.email !== nextValues.email) {
+          changes.push(`Contact email → ${nextValues.email}`);
+        }
+        if (prev.fetlife_handle !== nextValues.fetlife_handle) {
+          changes.push(`FetLife handle → ${nextValues.fetlife_handle}`);
+        }
+        if (prev.reddit_handle !== nextValues.reddit_handle) {
+          changes.push(`Reddit handle → ${nextValues.reddit_handle}`);
+        }
+        if (prev.glory_holes_enabled !== nextValues.glory_holes_enabled) {
+          changes.push(
+            `Glory Holes booking page → ${nextValues.glory_holes_enabled ? "Enabled" : "Disabled"}`,
+          );
+        }
+        if (prev.session_price_cents !== nextValues.session_price_cents) {
+          changes.push(
+            `Session price → A$${(nextValues.session_price_cents / 100).toFixed(2)}`,
+          );
+        }
+        if (prev.session_duration_minutes !== nextValues.session_duration_minutes) {
+          changes.push(
+            `Session duration → ${nextValues.session_duration_minutes} min`,
+          );
+        }
+      }
+      return updateFn({ data: nextValues }).then((res) => ({ res, changes }));
     },
-    onSuccess: () => {
+    onSuccess: ({ changes }) => {
       setSaved(true);
       setServerEmailError(null);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
@@ -180,12 +209,35 @@ function AdminSettings() {
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
       qc.invalidateQueries({ queryKey: ["pricing-audit"] });
       qc.invalidateQueries({ queryKey: ["contact-settings-audit"] });
+      if (changes.length === 0) {
+        toast.success("Settings saved", {
+          description: "No fields changed — everything was already up to date.",
+        });
+      } else {
+        toast.success(
+          `Settings saved — ${changes.length} field${changes.length === 1 ? "" : "s"} updated`,
+          {
+            description: (
+              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs">
+                {changes.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            ),
+            duration: 6000,
+          },
+        );
+      }
       setTimeout(() => setSaved(false), 2500);
     },
     onError: (err) => {
       setServerEmailError(extractEmailValidationMessage(err));
+      toast.error("Couldn't save settings", {
+        description: err instanceof Error ? err.message : "Please try again.",
+      });
     },
   });
+
 
 
 
