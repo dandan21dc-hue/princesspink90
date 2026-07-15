@@ -40,16 +40,62 @@ const inputSchema = z
      *  (e.g. `lifetime_onetime_aud`, `private_room_30min_aud`). */
     priceId: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/).optional(),
     /** A single panty listing to purchase. Amount is derived from the
-     *  listing row server-side. */
-    pantyListingId: z.string().regex(UUID_RE).optional(),
+     *  listing row server-side. Must be the `panty_listings.id` UUID —
+     *  legacy Stripe lookup keys (e.g. `panty_24hr_aud`) are rejected. */
+    pantyListingId: z
+      .string()
+      .regex(UUID_RE, {
+        message:
+          "pantyListingId must be a panty_listings.id UUID (8-4-4-4-12 hex). Legacy Stripe lookup keys like `panty_24hr_aud` are no longer accepted — remove the item from your cart and add the current listing again.",
+      })
+      .optional(),
     /** A single published, priced content item to purchase. Amount is
      *  derived from the `content_items` row server-side. */
-    contentItemId: z.string().regex(UUID_RE).optional(),
+    contentItemId: z
+      .string()
+      .regex(UUID_RE, {
+        message:
+          "contentItemId must be a content_items.id UUID (8-4-4-4-12 hex).",
+      })
+      .optional(),
   })
   .refine(
     (v) => [v.priceId, v.pantyListingId, v.contentItemId].filter(Boolean).length <= 1,
     { message: "Pass at most one of priceId, pantyListingId, or contentItemId" },
   );
+
+/**
+ * Redact a raw invalid identifier for a client-facing error message. Ids
+ * themselves aren't PII (they're either UUIDs or short lookup keys), but
+ * we still cap length and strip control chars so a hostile client can't
+ * echo arbitrary text back through our own error surface.
+ */
+function describeInvalidId(value: unknown): string {
+  if (typeof value !== "string") return `received ${typeof value}`;
+  const cleaned = value.replace(/[\x00-\x1f\x7f]/g, "").slice(0, 64);
+  const suffix = value.length > 64 ? "…" : "";
+  return `received "${cleaned}${suffix}" (${value.length} chars)`;
+}
+
+/**
+ * Turn a Zod issue into a caller-actionable message. UUID failures on
+ * `pantyListingId` / `contentItemId` are the common case — echo which
+ * field, why it failed, and a redacted view of what was received so the
+ * shopper knows exactly which cart line to fix.
+ */
+function formatValidationError(issue: z.ZodIssue, input: unknown): string {
+  const field = issue.path.join(".") || "input";
+  const received = (input && typeof input === "object")
+    ? (input as Record<string, unknown>)[String(issue.path[0])]
+    : undefined;
+  if (
+    (field === "pantyListingId" || field === "contentItemId") &&
+    issue.code === "invalid_string"
+  ) {
+    return `Invalid checkout request: ${field} — ${issue.message} ${describeInvalidId(received)}.`;
+  }
+  return `Invalid checkout request: ${field} — ${issue.message}`;
+}
 
 type Success = { invoiceUrl: string };
 type Failure = { error: string };
@@ -83,9 +129,8 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
     const result = inputSchema.safeParse(data);
     if (!result.success) {
       const first = result.error.issues[0];
-      throw new Error(
-        `Invalid checkout request: ${first?.path.join(".") ?? "input"} — ${first?.message ?? "invalid"}`,
-      );
+      if (!first) throw new Error("Invalid checkout request: input — invalid");
+      throw new Error(formatValidationError(first, data));
     }
     return result.data;
   })
