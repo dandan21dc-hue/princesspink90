@@ -36,7 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy } from "lucide-react";
+import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy, Download } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/nowpayments-events")({
   head: () => ({ meta: [{ title: "NOWPayments IPN Events · Admin" }] }),
