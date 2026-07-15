@@ -116,8 +116,14 @@ function SecondaryRoomSessionsAdmin() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-workspace-slots"] });
 
   const createMut = useMutation({
-    mutationFn: (v: { startTime: string; endTime: string; isBooked: boolean; notes: string }) =>
-      createFn({ data: { ...v, notes: v.notes || null } }),
+    mutationFn: (v: {
+      startTime: string;
+      endTime: string;
+      isBooked: boolean;
+      notes: string;
+      durationMinutes: number | null;
+      priceCents: number | null;
+    }) => createFn({ data: { ...v, notes: v.notes || null } }),
     onSuccess: () => {
       setEditing(null);
       invalidate();
@@ -131,6 +137,8 @@ function SecondaryRoomSessionsAdmin() {
       endTime: string;
       isBooked: boolean;
       notes: string;
+      durationMinutes: number | null;
+      priceCents: number | null;
     }) =>
       updateFn({
         data: {
@@ -139,6 +147,8 @@ function SecondaryRoomSessionsAdmin() {
           endTime: v.endTime,
           isBooked: v.isBooked,
           notes: v.notes || null,
+          durationMinutes: v.durationMinutes,
+          priceCents: v.priceCents,
         },
       }),
     onSuccess: () => {
@@ -153,8 +163,11 @@ function SecondaryRoomSessionsAdmin() {
     onError: (e: Error) => setError(e.message),
   });
   const bulkMut = useMutation({
-    mutationFn: (slots: Array<{ startTime: string; endTime: string }>) =>
-      bulkFn({ data: { slots } }),
+    mutationFn: (v: {
+      slots: Array<{ startTime: string; endTime: string }>;
+      durationMinutes: number | null;
+      priceCents: number | null;
+    }) => bulkFn({ data: v }),
     onSuccess: (res) => {
       setBulkOpen(false);
       invalidate();
