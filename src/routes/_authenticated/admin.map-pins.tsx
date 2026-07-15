@@ -1,9 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Search, X } from "lucide-react";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
   listMapPins,
@@ -15,8 +17,14 @@ import {
 } from "@/lib/map-pins.functions";
 import { MapPinsMap } from "@/components/MapPinsMap";
 
+const searchSchema = z.object({
+  q: fallback(z.string(), "").default(""),
+  state: fallback(z.string(), "all").default("all"),
+});
+
 export const Route = createFileRoute("/_authenticated/admin/map-pins")({
   head: () => ({ meta: [{ title: "Map pins · Admin" }] }),
+  validateSearch: zodValidator(searchSchema),
   component: () => (
     <RoleGuard allowedRoles={["admin"]}>
       <AdminMapPins />
