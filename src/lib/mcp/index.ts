@@ -1,0 +1,24 @@
+import { auth, defineMcp } from "@lovable.dev/mcp-js";
+import listUpcomingEvents from "./tools/list-upcoming-events";
+import listMyRsvps from "./tools/list-my-rsvps";
+import listMyMemberships from "./tools/list-my-memberships";
+
+// The OAuth issuer MUST be the direct Supabase host, not the `.lovable.cloud`
+// proxy that `SUPABASE_URL` resolves to on the published Workers runtime.
+// `VITE_SUPABASE_PROJECT_ID` is inlined by Vite at build time and survives
+// publish unchanged; the sentinel keeps the issuer well-formed during the
+// throwaway manifest-extract eval that runs before env is available.
+const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_ID ?? "project-ref-unset";
+
+export default defineMcp({
+  name: "princess-pink-mcp",
+  title: "Princess Pink",
+  version: "0.1.0",
+  instructions:
+    "Read-only tools for the signed-in Princess Pink member. Use `list_upcoming_events` to discover public events, `list_my_rsvps` to see the user's own RSVPs and entry codes, and `list_my_memberships` to see their active passes.",
+  auth: auth.oauth.issuer({
+    issuer: `https://${projectRef}.supabase.co/auth/v1`,
+    acceptedAudiences: "authenticated",
+  }),
+  tools: [listUpcomingEvents, listMyRsvps, listMyMemberships],
+});
