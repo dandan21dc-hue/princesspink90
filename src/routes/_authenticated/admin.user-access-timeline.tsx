@@ -194,10 +194,6 @@ function AdminUserAccessTimeline() {
   );
 }
 
-type TimelineItem = NonNullable<
-  Awaited<ReturnType<typeof adminGetUserAccessTimeline>>
->["items"][number];
-
 // createServerFn typing helper for the row prop — importing the exported type
 // keeps this row component honest against the shape returned by the server fn.
 import type { UserAccessTimelineEntry } from "@/lib/admin.functions";
