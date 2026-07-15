@@ -43,6 +43,28 @@ function CartCheckoutPage() {
     if (user === null) navigate({ to: "/auth" });
   }, [user, navigate]);
 
+  // If cart hydration pruned any legacy/tampered items (non-UUID ids the
+  // checkout server function would reject), surface a single toast on
+  // mount so the shopper knows why the cart shrank instead of silently
+  // dropping the row. Runs once — `consumePrunedItems` is idempotent.
+  useEffect(() => {
+    const pruned = cartStore.consumePrunedItems();
+    if (pruned.length === 0) return;
+    const titles = pruned.map((it) => it.title).filter(Boolean);
+    toast.error(
+      pruned.length === 1
+        ? "Removed 1 item from your cart"
+        : `Removed ${pruned.length} items from your cart`,
+      {
+        description:
+          (titles.length > 0
+            ? `${titles.join(", ")} — their references are out of date. `
+            : "Their references are out of date. ") +
+          "Add the current listings again to check out.",
+      },
+    );
+  }, []);
+
   // Snapshot the cart at mount so the drawer can't mutate it mid-checkout.
   const [snapshot] = useState(() => cartStore.snapshot());
 
