@@ -159,37 +159,47 @@ function bookingsFrom() {
   };
 }
 
-const ipnLedger = new Map<string, { handled: boolean; reason: string | null; received_count: number }>();
+type IpnLedgerRow = { handled: boolean; reason: string | null; received_count: number };
+const ipnLedger = new Map<string, IpnLedgerRow>();
+const ipnKey = (pid: string, status: string) => `${pid}|${status}`;
 function ipnLedgerFrom() {
-  let pendingInsert: { payment_id: string } | null = null;
-  let pendingPid: string | null = null;
-  const api = {
-    insert(row: { payment_id: string }) { pendingInsert = row; return api; },
-    update(patch: Record<string, unknown>) {
+  return {
+    insert(row: { payment_id: string; last_status: string }) {
+      const k = ipnKey(row.payment_id, row.last_status);
       return {
-        eq: (_c: string, v: string) => {
-          const row = ipnLedger.get(v);
-          if (row) Object.assign(row, patch);
-          return Promise.resolve({ data: null, error: null });
-        },
+        select: (_c?: string) => ({
+          maybeSingle: () => {
+            if (ipnLedger.has(k)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
+            ipnLedger.set(k, { handled: false, reason: null, received_count: 1 });
+            return Promise.resolve({ data: { payment_id: row.payment_id }, error: null });
+          },
+        }),
       };
     },
-    select(_c?: string) { return api; },
-    eq(_c: string, v: string) { pendingPid = v; return api; },
-    maybeSingle: () => {
-      if (pendingInsert) {
-        const pid = pendingInsert.payment_id;
-        if (ipnLedger.has(pid)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
-        ipnLedger.set(pid, { handled: false, reason: null, received_count: 1 });
-        return Promise.resolve({ data: { payment_id: pid }, error: null });
-      }
-      const r = pendingPid ? ipnLedger.get(pendingPid) ?? null : null;
-      return Promise.resolve({ data: r, error: null });
+    select(_c?: string) {
+      const f: Record<string, string> = {};
+      const rd = {
+        eq: (c: string, v: string) => { f[c] = v; return rd; },
+        maybeSingle: () => Promise.resolve({
+          data: ipnLedger.get(ipnKey(f.payment_id, f.last_status)) ?? null,
+          error: null,
+        }),
+      };
+      return rd;
     },
-    then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) =>
-      Promise.resolve({ data: null, error: null }).then(resolve, reject),
+    update(patch: Record<string, unknown>) {
+      const f: Record<string, string> = {};
+      const upd = {
+        eq: (c: string, v: string) => { f[c] = v; return upd; },
+        then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) => {
+          const row = ipnLedger.get(ipnKey(f.payment_id, f.last_status));
+          if (row) Object.assign(row, patch);
+          return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+        },
+      };
+      return upd;
+    },
   };
-  return api;
 }
 
 vi.mock("@/integrations/supabase/client.server", () => ({
