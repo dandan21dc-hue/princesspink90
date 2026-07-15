@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { MessageCircle, X, Send, CalendarClock, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { MessageCircle, X, Send, CalendarClock, Loader2, Globe } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
@@ -73,6 +73,61 @@ const INITIAL_GREETING: ChatMessage = {
 };
 
 const LOCAL_KEY = "concierge:history:v1";
+const TZ_KEY = "concierge:tz:v1";
+
+/**
+ * Curated shortlist of common timezones for the concierge selector. The
+ * user's detected browser zone is always injected first so the default is
+ * one tap away even when it's not on this list.
+ */
+const TIMEZONE_CHOICES: string[] = [
+  "Pacific/Auckland",
+  "Australia/Sydney",
+  "Australia/Melbourne",
+  "Australia/Brisbane",
+  "Australia/Perth",
+  "Asia/Tokyo",
+  "Asia/Singapore",
+  "Asia/Hong_Kong",
+  "Asia/Dubai",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Africa/Johannesburg",
+  "America/Sao_Paulo",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "UTC",
+];
+
+function detectBrowserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+function readStoredTimezone(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(TZ_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredTimezone(tz: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(TZ_KEY, tz);
+  } catch {
+    /* ignore quota */
+  }
+}
+
 
 const TERMINAL_STATUSES = new Set(["confirmed", "cancelled", "failed", "refunded"]);
 
@@ -94,13 +149,15 @@ function statusLabel(status: string): { label: string; tone: "info" | "warn" | "
   }
 }
 
-function statusNarration(status: string, startsAt: string): string {
+function statusNarration(status: string, startsAt: string, timeZone?: string): string {
   const when = new Date(startsAt).toLocaleString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone,
+    timeZoneName: timeZone ? "short" : undefined,
   });
   switch (status) {
     case "confirmed":
@@ -171,6 +228,27 @@ export function SupportChatWidget() {
   const [bookingSlot, setBookingSlot] = useState<string | null>(null); // ISO of slot currently being booked
   const [hydrated, setHydrated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  // Timezone selector — initialize from saved preference, else browser zone.
+  // `useState` initializer is client-safe here because the widget is only
+  // rendered inside the app shell after hydration; guards inside the
+  // helpers keep SSR-friendly if that ever changes.
+  const [timezone, setTimezone] = useState<string>(
+    () => readStoredTimezone() ?? detectBrowserTimezone(),
+  );
+
+  // Merge the browser-detected zone with the curated list, dedupe, keep
+  // detected zone pinned first for quick reset.
+  const browserTz = useMemo(() => detectBrowserTimezone(), []);
+  const timezoneOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const z of [browserTz, timezone, ...TIMEZONE_CHOICES]) {
+      if (!z || seen.has(z)) continue;
+      seen.add(z);
+      out.push(z);
+    }
+    return out;
+  }, [browserTz, timezone]);
 
   const feedRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -293,7 +371,7 @@ export function SupportChatWidget() {
           ...next,
           {
             role: "assistant",
-            parts: [{ type: "text", text: statusNarration(status, startsAt) }],
+            parts: [{ type: "text", text: statusNarration(status, startsAt, timezone) }],
           },
         ];
       }
@@ -639,7 +717,7 @@ export function SupportChatWidget() {
           </div>
 
           {/* Quick actions */}
-          <div className="flex flex-wrap gap-2 border-b border-white/5 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2 border-b border-white/5 px-3 py-2">
             <button
               type="button"
               onClick={() => {
@@ -653,6 +731,29 @@ export function SupportChatWidget() {
               <CalendarClock className="h-3 w-3" aria-hidden />
               Check availability
             </button>
+
+            <label className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2 py-1 text-[11px] font-medium text-neutral-200 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-[#0b0b10]">
+              <Globe className="h-3 w-3 text-neutral-400" aria-hidden />
+              <span className="sr-only">Display times in timezone</span>
+              <select
+                value={timezone}
+                onChange={(e) => {
+                  const tz = e.target.value;
+                  setTimezone(tz);
+                  writeStoredTimezone(tz);
+                  // Re-fetching isn't needed — slot ISOs are absolute, only
+                  // rendering changes — but any open slot cards must re-render.
+                }}
+                aria-label="Display times in timezone"
+                className="bg-transparent pr-1 text-[11px] text-neutral-100 focus:outline-none"
+              >
+                {timezoneOptions.map((tz) => (
+                  <option key={tz} value={tz} className="bg-[#0b0b10] text-neutral-100">
+                    {tz === browserTz ? `${tz} (local)` : tz}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {/* Feed */}
@@ -662,6 +763,7 @@ export function SupportChatWidget() {
                 key={i}
                 message={m}
                 bookingSlot={bookingSlot}
+                timezone={timezone}
                 onSlotPick={proposeSlot}
                 onConfirm={confirmSlot}
               />
@@ -712,11 +814,13 @@ export function SupportChatWidget() {
 function MessageBubble({
   message,
   bookingSlot,
+  timezone,
   onSlotPick,
   onConfirm,
 }: {
   message: ChatMessage;
   bookingSlot: string | null;
+  timezone: string;
   onSlotPick: (slot: ConciergeSlot) => void;
   onConfirm: (slot: ConciergeSlot) => void;
 }) {
@@ -739,13 +843,16 @@ function MessageBubble({
             );
           }
           if (part.type === "slots") {
-            return <SlotPickerCard key={i} slots={part.slots} onPick={onSlotPick} />;
+            return (
+              <SlotPickerCard key={i} slots={part.slots} timezone={timezone} onPick={onSlotPick} />
+            );
           }
           if (part.type === "confirm") {
             return (
               <ConfirmSlotCard
                 key={i}
                 slot={part.slot}
+                timezone={timezone}
                 busy={bookingSlot === part.slot.startsAt}
                 onConfirm={onConfirm}
               />
@@ -757,6 +864,7 @@ function MessageBubble({
               bookingId={part.bookingId}
               startsAt={part.startsAt}
               status={part.status}
+              timezone={timezone}
             />
           );
         })}
@@ -767,15 +875,18 @@ function MessageBubble({
 
 function SlotPickerCard({
   slots,
+  timezone,
   onPick,
 }: {
   slots: ConciergeSlot[];
+  timezone: string;
   onPick: (slot: ConciergeSlot) => void;
 }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-      <div className="mb-2 text-[10px] uppercase tracking-widest text-neutral-500">
-        Available slots
+      <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-neutral-500">
+        <span>Available slots</span>
+        <span className="normal-case tracking-normal text-neutral-500">{timezone}</span>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         {slots.map((s) => (
@@ -785,9 +896,9 @@ function SlotPickerCard({
             onClick={() => onPick(s)}
             className="flex flex-col items-start rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-left text-[11px] text-neutral-100 transition-colors hover:border-primary/50 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-[#0b0b10]"
           >
-            <span className="font-semibold">{formatDate(s.startsAt)}</span>
+            <span className="font-semibold">{formatDate(s.startsAt, timezone)}</span>
             <span className="text-neutral-400">
-              {formatTime(s.startsAt)} · {s.durationMinutes} min
+              {formatTime(s.startsAt, timezone)} · {s.durationMinutes} min
             </span>
           </button>
         ))}
@@ -799,20 +910,23 @@ function SlotPickerCard({
 function ConfirmSlotCard({
   slot,
   busy,
+  timezone,
   onConfirm,
 }: {
   slot: ConciergeSlot;
   busy: boolean;
+  timezone: string;
   onConfirm: (slot: ConciergeSlot) => void;
 }) {
   return (
     <div className="rounded-lg border border-primary/40 bg-primary/[0.06] p-3">
-      <div className="mb-1 text-[10px] uppercase tracking-widest text-primary/80">
-        Confirm booking
+      <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-widest text-primary/80">
+        <span>Confirm booking</span>
+        <span className="normal-case tracking-normal text-primary/60">{timezone}</span>
       </div>
-      <div className="text-sm font-semibold">{formatDate(slot.startsAt)}</div>
+      <div className="text-sm font-semibold">{formatDate(slot.startsAt, timezone)}</div>
       <div className="mb-2 text-xs text-neutral-300">
-        {formatTime(slot.startsAt)} · {slot.durationMinutes} min · Private Room
+        {formatTime(slot.startsAt, timezone)} · {slot.durationMinutes} min · Private Room
       </div>
       <button
         type="button"
@@ -847,18 +961,21 @@ function TypingIndicator() {
   );
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, timeZone?: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone,
   });
 }
 
-function formatTime(iso: string): string {
+function formatTime(iso: string, timeZone?: string): string {
   return new Date(iso).toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
+    timeZone,
+    timeZoneName: timeZone ? "short" : undefined,
   });
 }
 
@@ -866,10 +983,12 @@ function BookingStatusCard({
   bookingId,
   startsAt,
   status,
+  timezone,
 }: {
   bookingId: string;
   startsAt: string;
   status: string;
+  timezone: string;
 }) {
   const { label, tone } = statusLabel(status);
   const toneClass =
@@ -897,8 +1016,12 @@ function BookingStatusCard({
           {label}
         </span>
       </div>
-      <div className="text-sm font-semibold text-neutral-100">{formatDate(startsAt)}</div>
-      <div className="text-xs text-neutral-400">{formatTime(startsAt)} · Private Room</div>
+      <div className="text-sm font-semibold text-neutral-100">
+        {formatDate(startsAt, timezone)}
+      </div>
+      <div className="text-xs text-neutral-400">
+        {formatTime(startsAt, timezone)} · Private Room
+      </div>
     </div>
   );
 }
