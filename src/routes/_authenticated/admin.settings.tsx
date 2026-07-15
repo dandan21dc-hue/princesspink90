@@ -122,18 +122,25 @@ function AdminSettings() {
     emailError = "Enter a valid email address (e.g. name@example.com).";
   }
 
+  const fetlifeNormalized = normalizeFetlifeHandle(fetlife);
+  const fetlifeError = validateFetlifeHandle(fetlife);
+
   const sessionInputsInvalid =
-    priceError !== null || durationError !== null || emailError !== null;
+    priceError !== null ||
+    durationError !== null ||
+    emailError !== null ||
+    fetlifeError !== null;
 
   const save = useMutation({
     mutationFn: () => {
       if (emailError) throw new Error(emailError);
+      if (fetlifeError) throw new Error(fetlifeError);
       if (priceError) throw new Error(priceError);
       if (durationError) throw new Error(durationError);
       return updateFn({
         data: {
           email: emailTrimmed,
-          fetlife_handle: fetlife,
+          fetlife_handle: fetlifeNormalized,
           reddit_handle: reddit,
           glory_holes_enabled: gloryHolesEnabled,
           session_price_cents: priceCents,
