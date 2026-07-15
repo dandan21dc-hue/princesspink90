@@ -226,8 +226,57 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
   };
 
 
+  const paymentRef = `nowpayments:${paymentIdRaw}`;
+
+  // Reversal statuses: revoke or suspend any entitlement previously granted
+  // against this payment reference. NOWPayments crypto flows produce
+  // `refunded`; some processor variants surface `chargeback`/`disputed`.
+  // Refunds fully revoke; disputes suspend pending resolution.
+  const REVOKE_STATUSES = new Set(["refunded", "refund", "reversed"]);
+  const SUSPEND_STATUSES = new Set(["chargeback", "disputed", "dispute"]);
+  if (REVOKE_STATUSES.has(status) || SUSPEND_STATUSES.has(status)) {
+    const mode: "revoked" | "suspended" = REVOKE_STATUSES.has(status) ? "revoked" : "suspended";
+    const { data: revokeResult, error: revokeErr } = await supabaseAdmin.rpc(
+      "revoke_entitlement_by_payment_reference",
+      {
+        _reference: paymentRef,
+        _mode: mode,
+        _reason: `nowpayments_${status}`,
+      },
+    );
+    if (revokeErr) {
+      throw new Error(`revoke_entitlement_by_payment_reference failed: ${revokeErr.message}`);
+    }
+    const affectedCount =
+      (revokeResult as { affected_count?: number } | null)?.affected_count ?? 0;
+
+    // Always alert admins on a reversal — even when no rows matched (which
+    // usually means the payment never granted, but staff should still see it).
+    await raiseAlert(supabaseAdmin, {
+      severity: mode === "revoked" ? "warning" : "critical",
+      kind: `nowpayments_${mode}`,
+      detail: {
+        payment_id: paymentIdRaw,
+        order_id: event.order_id ?? null,
+        status,
+        mode,
+        affected_count: affectedCount,
+        affected: (revokeResult as { affected?: unknown } | null)?.affected ?? [],
+        price_amount: event.price_amount ?? null,
+        price_currency: event.price_currency ?? null,
+      },
+    });
+
+    return finalize({
+      handled: affectedCount > 0,
+      reason: affectedCount > 0
+        ? `${mode}:${affectedCount}_entitlement(s)`
+        : `${mode}:no_matching_entitlement`,
+    });
+  }
+
   // Only grant entitlements on a confirmed, settled payment. All other statuses
-  // (waiting, confirming, confirmed, sending, partially_paid, failed, refunded, expired)
+  // (waiting, confirming, confirmed, sending, partially_paid, failed, expired)
   // are acknowledged with 200 so NOWPayments stops retrying, but grant nothing.
   if (status !== "finished") {
     return finalize({ handled: false, reason: `ignored_status:${status || "missing"}` });
@@ -237,8 +286,6 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
   if (!order) {
     return finalize({ handled: false, reason: "unrecognised_order_id" });
   }
-
-  const paymentRef = `nowpayments:${paymentIdRaw}`;
 
   if (order.kind === "aap30d") {
     const { error } = await supabaseAdmin.rpc("grant_all_access_pass_30d", {
