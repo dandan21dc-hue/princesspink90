@@ -105,6 +105,21 @@ function Auth() {
     try {
       if (mode === "signup") {
         const trimmedRef = referralCode.trim().toUpperCase();
+        if (trimmedRef) {
+          const res = await runValidate({ data: { code: trimmedRef, email } });
+          if (!res.exists) {
+            setRefStatus({ state: "invalid", message: "That referral code doesn't exist." });
+            toast.error("That referral code doesn't exist.");
+            setLoading(false);
+            return;
+          }
+          if (res.is_self) {
+            setRefStatus({ state: "self", message: "You can't use your own referral code." });
+            toast.error("You can't use your own referral code.");
+            setLoading(false);
+            return;
+          }
+        }
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
