@@ -566,21 +566,27 @@ describe("admin settings — FetLife confirmation gate", () => {
       expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
     });
 
-    // Confirm button: label swaps to "Saving…", is disabled, marked aria-busy,
+    // Confirm button: label swaps to "Saving…", is aria-disabled + aria-busy,
     // and renders the Loader2 spinner (identified by lucide's class marker).
+    // We use aria-disabled (not the HTML `disabled` attribute) so the button
+    // stays in the tab order and Radix's FocusScope keeps focus inside the
+    // dialog while the mutation runs.
     const savingBtn = await within(dialog).findByRole("button", {
       name: /saving…/i,
     }) as HTMLButtonElement;
-    expect(savingBtn.disabled).toBe(true);
+    expect(savingBtn.getAttribute("aria-disabled")).toBe("true");
     expect(savingBtn.getAttribute("aria-busy")).toBe("true");
     expect(savingBtn.querySelector(".lucide-loader-circle")).not.toBeNull();
 
-    // Cancel button: disabled so the admin can't abandon a live request.
+    // Cancel button: aria-disabled so the admin can't abandon a live request
+    // (also inert via pointer-events-none; onClick guard is the last line).
     const cancelBtn = within(dialog).getByRole("button", {
       name: /keep current handle/i,
     }) as HTMLButtonElement;
-    expect(cancelBtn.disabled).toBe(true);
-    // Clicking the disabled Cancel is a no-op — the dialog must remain open.
+    expect(cancelBtn.getAttribute("aria-disabled")).toBe("true");
+    // Clicking the aria-disabled Cancel is a no-op — the dialog must remain
+    // open. Radix's AlertDialogCancel does its own dispatch, so we assert
+    // via the onClick guard's observable effect: no state change.
     fireEvent.click(cancelBtn);
     expect(screen.queryByRole("alertdialog")).not.toBeNull();
 
