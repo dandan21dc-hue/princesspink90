@@ -13,7 +13,7 @@
  *      Zod rejection that leaks no context back to the user.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, within } from "@testing-library/react";
 
 // Router: stub Link/useNavigate so the route mounts headless.
 vi.mock("@tanstack/react-router", async () => {
