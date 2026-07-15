@@ -66,10 +66,6 @@ type ChatMessage = {
   parts: MessagePart[];
 };
 
-type ConciergeReply = {
-  reply: string;
-  tool?: { name: "show_slots"; args?: { horizonDays?: number; limit?: number } } | { name: "none" };
-};
 
 const INITIAL_GREETING: ChatMessage = {
   role: "assistant",
