@@ -63,7 +63,14 @@ function fakeGrantAllAccessPass30d(args: {
 
 // The webhook loads supabaseAdmin via dynamic import — vi.mock hoisting handles this.
 vi.mock("@/integrations/supabase/client.server", () => {
-  type Row = { handled: boolean; reason: string | null; received_count: number };
+  type Row = {
+    payment_id: string;
+    last_status: string;
+    handled: boolean;
+    reason: string | null;
+    received_count: number;
+    processed_at: string | null;
+  };
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
@@ -75,20 +82,34 @@ vi.mock("@/integrations/supabase/client.server", () => {
           select: (_c?: string) => ({
             maybeSingle: () => {
               if (ledger.has(k)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
-              ledger.set(k, { handled: false, reason: null, received_count: 1 });
+              ledger.set(k, {
+                payment_id: row.payment_id,
+                last_status: row.last_status,
+                handled: false,
+                reason: null,
+                received_count: 1,
+                processed_at: null,
+              });
               return Promise.resolve({ data: { payment_id: row.payment_id }, error: null });
             },
           }),
         };
       },
       select(_c?: string) {
-        const f: Record<string, string> = {};
+        const eqs: Record<string, string> = {};
+        const neqs: Record<string, string> = {};
+        const matches = () =>
+          Array.from(ledger.values()).filter(
+            (r) =>
+              Object.entries(eqs).every(([c, v]) => (r as unknown as Record<string, unknown>)[c] === v) &&
+              Object.entries(neqs).every(([c, v]) => (r as unknown as Record<string, unknown>)[c] !== v),
+          );
         const rd = {
-          eq: (c: string, v: string) => { f[c] = v; return rd; },
-          maybeSingle: () => Promise.resolve({
-            data: ledger.get(keyOf(f.payment_id, f.last_status)) ?? null,
-            error: null,
-          }),
+          eq: (c: string, v: string) => { eqs[c] = v; return rd; },
+          neq: (c: string, v: string) => { neqs[c] = v; return rd; },
+          maybeSingle: () => Promise.resolve({ data: matches()[0] ?? null, error: null }),
+          then: (resolve: (v: { data: Row[]; error: null }) => unknown, reject?: (e: unknown) => unknown) =>
+            Promise.resolve({ data: matches(), error: null }).then(resolve, reject),
         };
         return rd;
       },
