@@ -244,7 +244,9 @@ function HomeView({ isAdmin }: { isAdmin: boolean }) {
           <AdminCommandCenter />
         </div>
       )}
+      {isAdmin && <PendingVerificationsCard />}
       <PerksWidget />
+
       <SubscriberDiscountPanel />
 
       <VenueMapPreview />
