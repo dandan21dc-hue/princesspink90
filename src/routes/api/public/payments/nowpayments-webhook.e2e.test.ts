@@ -493,3 +493,117 @@ describe("NOWPayments webhook — duplicate delivery across different order IDs"
     expect(state.rows).toHaveLength(1);
   });
 });
+
+// ---- reversal idempotency and out-of-order handling ----------------------
+
+describe("NOWPayments webhook — reversal idempotency & out-of-order", () => {
+  async function deliverFinished(payment_id = 5001) {
+    await handleWebhookRequest(
+      signedRequest({ payment_id, payment_status: "finished", order_id: ORDER_ID, price_amount: 10 }),
+    );
+  }
+
+  it("a second `refunded`-alias delivery is a no-op and does not re-report affected rows", async () => {
+    await deliverFinished(6001);
+    expect(passIsActive(USER, "sandbox")).toBe(true);
+
+    // First reversal: refunded — revokes the membership.
+    const first = await handleWebhookRequest(
+      signedRequest({ payment_id: 6001, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+    const firstJson = (await first.json()) as { handled: boolean; reason?: string };
+    expect(firstJson.handled).toBe(true);
+    expect(firstJson.reason).toMatch(/^revoked:1_entitlement/);
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+
+    // Alias delivery: `reversed` for the SAME payment_id — different ledger row,
+    // but the guard must short-circuit rather than re-run the revoke RPC.
+    const second = await handleWebhookRequest(
+      signedRequest({ payment_id: 6001, payment_status: "reversed", order_id: ORDER_ID }),
+    );
+    const secondJson = (await second.json()) as { handled: boolean; reason?: string };
+    expect(secondJson.handled).toBe(true);
+    expect(secondJson.reason).toBe("duplicate_revoked:refunded");
+
+    // Membership stays revoked with the ORIGINAL revoke timestamp (not overwritten).
+    const m = state.rows.find((r) => r.external_payment_reference === "nowpayments:6001")!;
+    expect(m.revoked_at).not.toBeNull();
+  });
+
+  it("a stray `chargeback` arriving after `refunded` does NOT downgrade the revoke to suspended", async () => {
+    await deliverFinished(6002);
+
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 6002, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+    const m = state.rows.find((r) => r.external_payment_reference === "nowpayments:6002")!;
+    expect(m.revoked_at).not.toBeNull();
+    expect(m.suspended_at).toBeNull();
+
+    const late = await handleWebhookRequest(
+      signedRequest({ payment_id: 6002, payment_status: "chargeback", order_id: ORDER_ID }),
+    );
+    const lateJson = (await late.json()) as { handled: boolean; reason?: string };
+    expect(lateJson.handled).toBe(true);
+    expect(lateJson.reason).toBe("ignored_suspend_after_revoke:refunded");
+    // No suspended_at write, no re-activation.
+    expect(m.suspended_at).toBeNull();
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+  });
+
+  it("`refunded` arriving after `chargeback` upgrades to full revoke", async () => {
+    await deliverFinished(6003);
+
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 6003, payment_status: "chargeback", order_id: ORDER_ID }),
+    );
+    const m = state.rows.find((r) => r.external_payment_reference === "nowpayments:6003")!;
+    expect(m.suspended_at).not.toBeNull();
+    expect(m.revoked_at).toBeNull();
+
+    const upgrade = await handleWebhookRequest(
+      signedRequest({ payment_id: 6003, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+    const upgradeJson = (await upgrade.json()) as { handled: boolean; reason?: string };
+    expect(upgradeJson.handled).toBe(true);
+    expect(upgradeJson.reason).toMatch(/^revoked:1_entitlement/);
+    expect(m.revoked_at).not.toBeNull();
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+  });
+
+  it("a late `finished` arriving AFTER a reversal is refused and does NOT re-activate the pass", async () => {
+    // Reversal recorded first — could happen from processor's own out-of-order redelivery.
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 6004, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+
+    // Late-arriving `finished` for the same payment_id must be refused.
+    const late = await handleWebhookRequest(
+      signedRequest({ payment_id: 6004, payment_status: "finished", order_id: ORDER_ID, price_amount: 10 }),
+    );
+    const lateJson = (await late.json()) as { handled: boolean; reason?: string };
+    expect(lateJson.handled).toBe(false);
+    expect(lateJson.reason).toBe("refused_finished_after_reversal:refunded");
+    // No membership row was created by the late finished.
+    expect(state.rows.filter((r) => r.external_payment_reference === "nowpayments:6004")).toHaveLength(0);
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+  });
+
+  it("repeated redeliveries of the same reversal status remain the standard duplicate short-circuit", async () => {
+    await deliverFinished(6005);
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 6005, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+
+    // Exact-status replay — hits the (payment_id, status) ledger dedupe path.
+    for (let i = 0; i < 3; i++) {
+      const res = await handleWebhookRequest(
+        signedRequest({ payment_id: 6005, payment_status: "refunded", order_id: ORDER_ID }),
+      );
+      const json = (await res.json()) as { handled: boolean; reason?: string };
+      expect(json.handled).toBe(true);
+      // Prior outcome was `revoked:1_entitlement(s)`; duplicate returns the same reason string.
+      expect(json.reason).toMatch(/^revoked:1_entitlement/);
+    }
+  });
+});
