@@ -127,29 +127,33 @@ vi.mock("@/lib/nowpayments.server", async (importOriginal) => {
 // body without spinning up a live Supabase session.
 const UPGRADER = "77777777-7777-7777-7777-777777777777";
 
-vi.mock("@tanstack/react-start", () => ({
-  createServerFn: () => {
-    const chain = {
-      _validator: (d: unknown) => d,
-      _handler: null as null | ((c: { data: unknown; context: { userId: string } }) => unknown),
-      middleware() {
-        return chain;
-      },
-      inputValidator(fn: (d: unknown) => unknown) {
-        chain._validator = fn;
-        return chain;
-      },
-      handler(fn: (c: { data: unknown; context: { userId: string } }) => unknown) {
-        chain._handler = fn;
-        return async ({ data }: { data: unknown }) => {
-          const validated = chain._validator(data);
-          return chain._handler!({ data: validated, context: { userId: UPGRADER } });
-        };
-      },
-    };
-    return chain;
-  },
-}));
+vi.mock("@tanstack/react-start", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-start")>();
+  return {
+    ...actual,
+    createServerFn: () => {
+      const chain = {
+        _validator: (d: unknown) => d,
+        _handler: null as null | ((c: { data: unknown; context: { userId: string } }) => unknown),
+        middleware() {
+          return chain;
+        },
+        inputValidator(fn: (d: unknown) => unknown) {
+          chain._validator = fn;
+          return chain;
+        },
+        handler(fn: (c: { data: unknown; context: { userId: string } }) => unknown) {
+          chain._handler = fn;
+          return async ({ data }: { data: unknown }) => {
+            const validated = chain._validator(data);
+            return chain._handler!({ data: validated, context: { userId: UPGRADER } });
+          };
+        },
+      };
+      return chain;
+    },
+  };
+});
 
 // These imports must come AFTER the mocks so they pick up the fakes.
 import { createNowpaymentsInvoice } from "@/lib/nowpayments.functions";
