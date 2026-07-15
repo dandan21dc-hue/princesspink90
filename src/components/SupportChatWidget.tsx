@@ -875,15 +875,18 @@ function MessageBubble({
 
 function SlotPickerCard({
   slots,
+  timezone,
   onPick,
 }: {
   slots: ConciergeSlot[];
+  timezone: string;
   onPick: (slot: ConciergeSlot) => void;
 }) {
   return (
     <div className="rounded-lg border border-white/10 bg-black/30 p-2">
-      <div className="mb-2 text-[10px] uppercase tracking-widest text-neutral-500">
-        Available slots
+      <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-neutral-500">
+        <span>Available slots</span>
+        <span className="normal-case tracking-normal text-neutral-500">{timezone}</span>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
         {slots.map((s) => (
@@ -893,9 +896,9 @@ function SlotPickerCard({
             onClick={() => onPick(s)}
             className="flex flex-col items-start rounded-md border border-white/10 bg-white/[0.04] px-2 py-1.5 text-left text-[11px] text-neutral-100 transition-colors hover:border-primary/50 hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-[#0b0b10]"
           >
-            <span className="font-semibold">{formatDate(s.startsAt)}</span>
+            <span className="font-semibold">{formatDate(s.startsAt, timezone)}</span>
             <span className="text-neutral-400">
-              {formatTime(s.startsAt)} · {s.durationMinutes} min
+              {formatTime(s.startsAt, timezone)} · {s.durationMinutes} min
             </span>
           </button>
         ))}
