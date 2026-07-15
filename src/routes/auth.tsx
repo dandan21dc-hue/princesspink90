@@ -252,7 +252,7 @@ function Auth() {
             </label>
           )}
           <button
-            type="submit" disabled={loading || (mode === "signup" && !agreedToTerms)}
+            type="submit" disabled={loading || (mode === "signup" && (!agreedToTerms || refStatus.state === "invalid" || refStatus.state === "self" || refStatus.state === "checking"))}
             className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
