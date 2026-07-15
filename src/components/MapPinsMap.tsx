@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import type { MapPin } from "@/lib/map-pins.functions";
 import { getPublicMapboxToken } from "@/lib/mapbox-token";
 
