@@ -61,14 +61,31 @@ function read(): CartItem[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
+    const cleaned = parsed.filter(
       (it) =>
-        it && (it.kind === "content" || it.kind === "panty") && typeof it.id === "string",
+        it &&
+        (it.kind === "content" || it.kind === "panty") &&
+        typeof it.id === "string" &&
+        // Drop legacy panty entries whose id was a Stripe lookup key
+        // (e.g. "panty_24hr_aud") — the checkout server function rejects
+        // anything that isn't a `panty_listings.id` UUID.
+        UUID_RE.test(it.id),
     ) as CartItem[];
+    // If we pruned anything, persist the cleaned list so we don't re-check
+    // on every mount and so other tabs see the same state.
+    if (cleaned.length !== parsed.length) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      } catch {
+        // ignore — next write() will re-serialize
+      }
+    }
+    return cleaned;
   } catch {
     return [];
   }
 }
+
 
 function write(items: CartItem[]) {
   if (typeof window === "undefined") return;
