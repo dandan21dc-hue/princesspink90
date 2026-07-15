@@ -47,6 +47,13 @@ type ParsedOrder =
       userId: string;
       environment: "sandbox" | "live";
       amountCents: number;
+    }
+  | {
+      kind: "booking";
+      bookingId: string;
+      userId: string;
+      environment: "sandbox" | "live";
+      amountCents: number;
     };
 
 function parseEnv(v: string): "sandbox" | "live" | null {
@@ -75,16 +82,19 @@ export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
     return { kind: kind as "aap30d" | "lifetime", userId, environment, amountCents };
   }
 
-  // panty — 5 parts: panty:<listingId>:<userId>:<env>:<amountCents>
+  // panty / booking — 5 parts: <kind>:<uuid>:<userId>:<env>:<amountCents>
   if (parts.length === 5) {
-    const [kind, pantyListingId, userId, envRaw, amountRaw] = parts;
-    if (kind !== "panty") return null;
-    if (!UUID_RE.test(pantyListingId) || !UUID_RE.test(userId)) return null;
+    const [kind, entityId, userId, envRaw, amountRaw] = parts;
+    if (kind !== "panty" && kind !== "booking") return null;
+    if (!UUID_RE.test(entityId) || !UUID_RE.test(userId)) return null;
     const environment = parseEnv(envRaw);
     if (!environment) return null;
     const amountCents = parseAmount(amountRaw);
     if (amountCents == null) return null;
-    return { kind: "panty", pantyListingId, userId, environment, amountCents };
+    if (kind === "panty") {
+      return { kind: "panty", pantyListingId: entityId, userId, environment, amountCents };
+    }
+    return { kind: "booking", bookingId: entityId, userId, environment, amountCents };
   }
 
   return null;
