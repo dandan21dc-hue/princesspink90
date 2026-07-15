@@ -186,6 +186,18 @@ function AdminMapPins() {
     reorder.mutate(next.map((p) => p.id));
   };
 
+  const moveByStep = (id: string, delta: -1 | 1) => {
+    const from = order.findIndex((p) => p.id === id);
+    if (from < 0) return;
+    const to = from + delta;
+    if (to < 0 || to >= order.length) return;
+    const next = order.slice();
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setOrder(next);
+    reorder.mutate(next.map((p) => p.id));
+  };
+
   const [form, setForm] = useState<FormState>(empty);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState | "_form", string>>>({});
   const editing = Boolean(form.id);
