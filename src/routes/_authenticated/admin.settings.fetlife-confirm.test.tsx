@@ -329,7 +329,10 @@ describe("admin settings — FetLife confirmation gate", () => {
 
     // Inline error message from the mutation is shown near the Save button.
     expect(screen.getAllByText(/server exploded/i).length).toBeGreaterThan(0);
+  });
 });
+
+
 
 describe("admin settings — FetLife confirmation dialog updates live", () => {
   // The dialog previews both the currently-live URL (from server data) and
