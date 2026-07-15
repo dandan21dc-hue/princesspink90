@@ -359,6 +359,13 @@ function VenueMapPreview() {
     refetchOnWindowFocus: true,
   });
 
+  const errorMessage = pins.isError
+    ? pins.error instanceof Error
+      ? pins.error.message
+      : "Failed to load pins"
+    : null;
+  const count = pins.data?.length ?? 0;
+
   return (
     <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -367,7 +374,9 @@ function VenueMapPreview() {
           <p className="text-xs text-muted-foreground">
             {pins.isLoading
               ? "Loading latest pins…"
-              : `${pins.data?.length ?? 0} pin${pins.data?.length === 1 ? "" : "s"} · updates every 30s`}
+              : pins.isError
+                ? `Error: ${errorMessage}`
+                : `${count} pin${count === 1 ? "" : "s"} · updates every 30s`}
           </p>
         </div>
         <Link
@@ -377,16 +386,17 @@ function VenueMapPreview() {
           Manage →
         </Link>
       </div>
-      {pins.data && pins.data.length > 0 ? (
-        <MapPinsMap pins={pins.data} className="h-[320px] w-full rounded-xl overflow-hidden" />
-      ) : (
-        <div className="flex h-[320px] items-center justify-center rounded-xl border border-dashed border-border/60 text-sm text-muted-foreground">
-          {pins.isLoading ? "Loading map…" : "No venue pins yet — add one to see it here."}
-        </div>
-      )}
+      <MapPinsMap
+        pins={pins.data ?? []}
+        className="h-[320px] w-full rounded-xl overflow-hidden"
+        isLoading={pins.isLoading}
+        isError={pins.isError}
+        errorMessage={errorMessage}
+      />
     </div>
   );
 }
+
 
 type ComplianceItemStatus = "ok" | "missing" | "expired" | "expiring" | "unconfirmed";
 type ComplianceEvent = {
