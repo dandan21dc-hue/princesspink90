@@ -1156,7 +1156,20 @@ export type ModerationAuditEntry = {
  */
 export const adminListModerationAudit = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { contentItemId?: string; limit?: number } | undefined) => data ?? {})
+  .inputValidator(
+    (
+      data:
+        | {
+            contentItemId?: string;
+            limit?: number;
+            actorEmail?: string;
+            action?: "approved" | "rejected" | "pending" | "deleted";
+            from?: string; // ISO datetime, inclusive
+            to?: string; // ISO datetime, inclusive
+          }
+        | undefined,
+    ) => data ?? {},
+  )
   .handler(async ({ data, context }): Promise<ModerationAuditEntry[]> => {
     const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
       _user_id: context.userId,
@@ -1175,6 +1188,13 @@ export const adminListModerationAudit = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(limit);
     if (data.contentItemId) q = q.eq("content_item_id", data.contentItemId);
+    if (data.action) q = q.eq("action", data.action);
+    if (data.actorEmail && data.actorEmail.trim()) {
+      const pattern = `%${data.actorEmail.trim().replace(/[%_]/g, "\\$&")}%`;
+      q = q.ilike("actor_email", pattern);
+    }
+    if (data.from) q = q.gte("created_at", data.from);
+    if (data.to) q = q.lte("created_at", data.to);
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);
     return (rows ?? []) as ModerationAuditEntry[];
