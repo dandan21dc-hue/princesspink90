@@ -2,40 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { EXPECTED_PLAN_PRICES } from "@/lib/planPriceValidation.server";
+import { getPlanPriceSpec, getDefaultAap30dSpec } from "@/lib/planPriceValidation.server";
 import { resolveAppOrigin } from "@/lib/app-origin.server";
 import { assertAccountNotRestricted } from "@/lib/account-restriction";
 import { assertNotInMaintenance } from "@/lib/maintenance.functions";
-
-
-
-// Fallback price when no priceId is supplied: the 30-day All-Access Pass.
-const AAP30D_PRICE_CENTS = 1000; // A$10.00
-const AAP30D_KEY = "aap30d";
-
-/**
- * Human-readable descriptions per priceId. Kept alongside the price map so
- * NOWPayments' hosted invoice shows something meaningful to the buyer.
- */
-const PRICE_DESCRIPTIONS: Record<string, string> = {
-  lifetime_onetime_aud: "Lifetime Membership (Midnight Glory)",
-  aap_90d_aud: "All-Access Pass — 3 months (Midnight Glory)",
-  aap_180d_aud: "All-Access Pass — 6 months (Midnight Glory)",
-  aap_365d_aud: "All-Access Pass — 12 months (Midnight Glory)",
-};
-
-/**
- * Map a priceId to the short `kind` prefix encoded in the NOWPayments
- * `order_id`. The IPN webhook parses this prefix to decide which grant
- * RPC to call. Keep prefixes stable — they're persisted in NOWPayments'
- * invoice records.
- */
-const PRICE_KIND: Record<string, string> = {
-  lifetime_onetime_aud: "lifetime",
-  aap_90d_aud: "aap90d",
-  aap_180d_aud: "aap180d",
-  aap_365d_aud: "aap365d",
-};
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
