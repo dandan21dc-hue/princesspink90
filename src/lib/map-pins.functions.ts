@@ -60,22 +60,37 @@ export const listMapPins = createServerFn({ method: "GET" }).handler(async (): P
 
 export const createMapPin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { title: string; description?: string | null; latitude: number; longitude: number; sort_order?: number }) => {
+  .inputValidator((data: { title: string; description?: string | null; address?: string | null; latitude?: number; longitude?: number; sort_order?: number }) => {
     if (!data.title?.trim()) throw new Error("Title is required");
-    if (typeof data.latitude !== "number" || data.latitude < -90 || data.latitude > 90) throw new Error("Invalid latitude");
-    if (typeof data.longitude !== "number" || data.longitude < -180 || data.longitude > 180) throw new Error("Invalid longitude");
+    const hasCoords = typeof data.latitude === "number" && typeof data.longitude === "number";
+    const hasAddress = typeof data.address === "string" && data.address.trim().length > 0;
+    if (!hasCoords && !hasAddress) throw new Error("Provide either an address or latitude/longitude");
+    if (hasCoords) {
+      if (data.latitude! < -90 || data.latitude! > 90) throw new Error("Invalid latitude");
+      if (data.longitude! < -180 || data.longitude! > 180) throw new Error("Invalid longitude");
+    }
     return data;
   })
   .handler(async ({ data, context }) => {
     const { data: role } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (!role) throw new Error("Forbidden");
+    let latitude = data.latitude as number | undefined;
+    let longitude = data.longitude as number | undefined;
+    if (data.address && data.address.trim()) {
+      const geo = await geocodeAddress(data.address);
+      latitude = geo.latitude;
+      longitude = geo.longitude;
+    }
+    if (typeof latitude !== "number" || typeof longitude !== "number") {
+      throw new Error("Failed to resolve pin coordinates");
+    }
     const { data: row, error } = await context.supabase
       .from("map_pins")
       .insert({
         title: data.title.trim(),
         description: data.description?.trim() || null,
-        latitude: data.latitude,
-        longitude: data.longitude,
+        latitude,
+        longitude,
         sort_order: data.sort_order ?? 0,
         created_by: context.userId,
       })
