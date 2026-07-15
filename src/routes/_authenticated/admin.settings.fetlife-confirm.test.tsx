@@ -112,9 +112,12 @@ vi.mock("@/components/RoleGuard", () => ({
   RoleGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// sonner: no-op so the test doesn't depend on toast rendering.
+// sonner: capture toast calls so we can assert on cancel-notifications.
+const { mockToast } = vi.hoisted(() => ({
+  mockToast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
+}));
 vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: mockToast,
 }));
 
 import { AdminSettings } from "./admin.settings";
@@ -141,6 +144,9 @@ async function waitForFormLoaded() {
 
 beforeEach(() => {
   mockUpdateSiteSettings.mockClear();
+  mockToast.mockClear();
+  mockToast.success.mockClear();
+  mockToast.error.mockClear();
 });
 afterEach(() => cleanup());
 
@@ -188,7 +194,7 @@ describe("admin settings — FetLife confirmation gate", () => {
     expect(mockUpdateSiteSettings).not.toHaveBeenCalled();
   });
 
-  it("cancelling the dialog does not persist the change", async () => {
+  it("cancelling the dialog does not persist the change and toasts the admin", async () => {
     renderPage();
     await waitForFormLoaded();
 
@@ -205,6 +211,15 @@ describe("admin settings — FetLife confirmation gate", () => {
       expect(screen.queryByRole("alertdialog")).toBeNull();
     });
     expect(mockUpdateSiteSettings).not.toHaveBeenCalled();
+
+    // Toast confirms the admin that nothing was saved, and echoes the
+    // current handle so they know what the public link still points to.
+    expect(mockToast).toHaveBeenCalledTimes(1);
+    const [message, opts] = mockToast.mock.calls[0]!;
+    expect(String(message)).toMatch(/not saved/i);
+    expect(String((opts as { description?: string }).description)).toContain(
+      SAVED.fetlife_handle,
+    );
   });
 
   it("confirming the dialog persists the new normalized handle", async () => {
@@ -233,5 +248,7 @@ describe("admin settings — FetLife confirmation gate", () => {
       data: typeof SAVED;
     };
     expect(call.data.fetlife_handle).toBe("Brand-New-Handle");
+    // Confirming must NOT trigger the "not saved" cancel toast.
+    expect(mockToast).not.toHaveBeenCalled();
   });
 });

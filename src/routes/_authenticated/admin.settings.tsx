@@ -3,7 +3,7 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -253,6 +253,10 @@ export function AdminSettings() {
   // the public profile link, a typo is user-visible — we require the admin
   // to explicitly confirm the old → new change before the save actually runs.
   const [pendingFetlifeConfirm, setPendingFetlifeConfirm] = useState(false);
+  // Distinguishes an intentional confirm/cancel button click from a dialog
+  // dismissal (Esc / overlay). We only toast on the latter two — confirming
+  // proceeds to the save toast instead.
+  const fetlifeDismissIntentRef = useRef<"confirm" | "cancel" | null>(null);
   const fetlifeChanged =
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
 
@@ -486,7 +490,18 @@ export function AdminSettings() {
       <AlertDialog
         open={pendingFetlifeConfirm}
         onOpenChange={(open) => {
-          if (!open) setPendingFetlifeConfirm(false);
+          if (open) return;
+          const intent = fetlifeDismissIntentRef.current;
+          fetlifeDismissIntentRef.current = null;
+          setPendingFetlifeConfirm(false);
+          if (intent !== "confirm") {
+            // Dialog dismissed without confirming (Cancel button, Esc, or
+            // overlay click) — surface a toast so the admin isn't left
+            // wondering whether the FetLife change went through.
+            toast("FetLife handle change not saved", {
+              description: `Kept current handle: ${settings.data?.fetlife_handle ?? "(none)"}`,
+            });
+          }
         }}
       >
         <AlertDialogContent>
@@ -516,10 +531,16 @@ export function AdminSettings() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep current handle</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                fetlifeDismissIntentRef.current = "cancel";
+              }}
+            >
+              Keep current handle
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                setPendingFetlifeConfirm(false);
+                fetlifeDismissIntentRef.current = "confirm";
                 save.mutate();
               }}
             >
