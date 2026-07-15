@@ -983,10 +983,12 @@ function BookingStatusCard({
   bookingId,
   startsAt,
   status,
+  timezone,
 }: {
   bookingId: string;
   startsAt: string;
   status: string;
+  timezone: string;
 }) {
   const { label, tone } = statusLabel(status);
   const toneClass =
@@ -1014,8 +1016,12 @@ function BookingStatusCard({
           {label}
         </span>
       </div>
-      <div className="text-sm font-semibold text-neutral-100">{formatDate(startsAt)}</div>
-      <div className="text-xs text-neutral-400">{formatTime(startsAt)} · Private Room</div>
+      <div className="text-sm font-semibold text-neutral-100">
+        {formatDate(startsAt, timezone)}
+      </div>
+      <div className="text-xs text-neutral-400">
+        {formatTime(startsAt, timezone)} · Private Room
+      </div>
     </div>
   );
 }
