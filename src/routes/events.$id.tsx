@@ -34,11 +34,11 @@ export const Route = createFileRoute("/events/$id")({
     }
     return {
       meta: [
-        { title: `${loaderData.title} · AFTERDARK` },
+        { title: `${loaderData.title} · Midnight Glory` },
         { name: "description", content: loaderData.tagline ?? loaderData.description ?? "" },
         { property: "og:title", content: loaderData.title },
         { property: "og:description", content: loaderData.tagline ?? "" },
-        { property: "og:type", content: "event" },
+        { property: "og:type", content: "website" },
         { property: "og:url", content: url },
         ...(loaderData.cover_image_url
           ? [

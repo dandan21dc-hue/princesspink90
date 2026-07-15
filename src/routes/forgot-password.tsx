@@ -6,8 +6,19 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({
     meta: [
-      { title: "Reset password · AFTERDARK" },
-      { name: "description", content: "Request a secure password reset link." },
+      { title: "Reset password · Midnight Glory" },
+      {
+        name: "description",
+        content:
+          "Request a secure password reset link for your Midnight Glory account. We'll email you a one-time link to set a new password.",
+      },
+      { property: "og:title", content: "Reset password · Midnight Glory" },
+      {
+        property: "og:description",
+        content:
+          "Request a secure password reset link for your Midnight Glory account.",
+      },
+      { name: "robots", content: "noindex,follow" },
     ],
   }),
   component: ForgotPassword,
