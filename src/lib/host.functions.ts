@@ -507,6 +507,28 @@ export const recordPolicyAgreement = createServerFn({ method: "POST" })
       pv.version,
       data.event_id ?? null,
     );
+
+    // Look up the persisted agreement row so we can archive a signed PDF of it.
+    // Fire-and-forget: archiving must never break the acceptance flow.
+    const { data: savedAgreement } = await context.supabase
+      .from("compliance_policy_agreements")
+      .select("id")
+      .eq("accepted_by_user_id", context.userId)
+      .eq("policy_version_id", pv.id)
+      .order("accepted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (savedAgreement?.id) {
+      try {
+        const { archiveComplianceAgreement } = await import(
+          "@/lib/compliance-archive.functions"
+        );
+        await archiveComplianceAgreement(savedAgreement.id as string);
+      } catch (err) {
+        console.warn("recordPolicyAgreement: archive step failed", err);
+      }
+    }
+
     return { ok: true, policy_version_id: pv.id, policy_version_label: pv.version, accepted_at: new Date().toISOString() };
   });
 
