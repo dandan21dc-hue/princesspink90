@@ -164,6 +164,10 @@ function AdminAllAccess() {
             </div>
           </Card>
 
+          <EntitlementSummary memberships={memberships} />
+
+
+
           <div>
             <h2 className="text-sm uppercase tracking-widest text-muted-foreground mb-3">
               All-Access memberships ({memberships.length})
