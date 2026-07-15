@@ -69,7 +69,7 @@ describe("/account/orders — empty account", () => {
     // Summary cards render zeros for every bucket.
     const summarySection = screen.getByText("Total").closest("section")!;
     for (const label of ["Total", "Active", "Granted", "Pending", "Expired / revoked"]) {
-      const card = within(summarySection).getByText(label).closest("div")!;
+      const card = within(summarySection).getByText(label).parentElement!;
       expect(within(card).getByText("0")).toBeTruthy();
     }
 
