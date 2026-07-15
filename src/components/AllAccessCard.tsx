@@ -258,49 +258,7 @@ export function AllAccessCard() {
               : "Everything in the library."}
           </div>
         </div>
-        {currentPlan && <ManageBillingButton />}
       </div>
     </TooltipProvider>
-  );
-}
-
-function ManageBillingButton() {
-  const openPortal = useServerFn(createBillingPortalSession);
-  const [pending, setPending] = useState(false);
-  const onClick = async () => {
-    if (pending) return;
-    setPending(true);
-    try {
-      track("billing_portal_open_click", {});
-      const returnUrl = typeof window !== "undefined" ? `${window.location.origin}/store` : undefined;
-      const res = await openPortal({
-        data: { environment: getStripeEnvironment(), returnUrl },
-      });
-      if ("error" in res) {
-        toast.error(res.error);
-        return;
-      }
-      window.open(res.url, "_blank", "noopener,noreferrer");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't open billing portal");
-    } finally {
-      setPending(false);
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={pending}
-      className="group rounded-2xl border border-primary/50 bg-background/40 p-4 text-left hover:border-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Billing</div>
-      <div className="mt-1 font-display text-lg font-bold">
-        {pending ? "Opening…" : "Manage subscription & payment method"}
-      </div>
-      <div className="mt-1 text-xs text-muted-foreground">
-        Opens your billing overview.
-      </div>
-    </button>
   );
 }
