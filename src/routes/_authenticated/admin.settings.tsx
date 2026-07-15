@@ -840,7 +840,9 @@ export function AdminSettings() {
                           <CopyUrlButton
                             value={newFetlifeUrl}
                             label="Copy new FetLife URL"
+                            kindLabel="new FetLife URL"
                           />
+
                         </>
                       ) : (
                         <span className="text-destructive">(empty)</span>
