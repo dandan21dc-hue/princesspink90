@@ -45,6 +45,30 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: AdminSettingsGuarded,
 });
 
+// Pull the server's contact-email validation message out of a rejected save.
+// Zod-in-serverFn errors serialize as an Error whose .message is a JSON string
+// of issues (each { path, message }); some other server errors are plain
+// strings. We show the first message whose path targets "email", or fall back
+// to a plain-string message that mentions the email field.
+function extractEmailValidationMessage(err: unknown): string | null {
+  const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    const issues = Array.isArray(parsed) ? parsed : parsed?.issues;
+    if (Array.isArray(issues)) {
+      const hit = issues.find(
+        (i) => Array.isArray(i?.path) && i.path.includes("email") && typeof i.message === "string",
+      );
+      if (hit) return hit.message;
+    }
+  } catch {
+    // not JSON — fall through to string heuristic
+  }
+  return /\bemail\b/i.test(raw) ? raw : null;
+}
+
+
 const routeApi = getRouteApi("/_authenticated/admin/settings");
 
 function AdminSettingsGuarded() {
@@ -75,6 +99,10 @@ function AdminSettings() {
   const [sessionPriceDollars, setSessionPriceDollars] = useState("275");
   const [sessionDurationMinutes, setSessionDurationMinutes] = useState(60);
   const [saved, setSaved] = useState(false);
+  // Server-side validation error extracted for the contact-email field.
+  // Populated in the mutation's onError when the server rejects the email;
+  // cleared as the admin edits the field or a save succeeds.
+  const [serverEmailError, setServerEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings.data) {
@@ -146,6 +174,7 @@ function AdminSettings() {
     },
     onSuccess: () => {
       setSaved(true);
+      setServerEmailError(null);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
@@ -153,7 +182,11 @@ function AdminSettings() {
       qc.invalidateQueries({ queryKey: ["contact-settings-audit"] });
       setTimeout(() => setSaved(false), 2500);
     },
+    onError: (err) => {
+      setServerEmailError(extractEmailValidationMessage(err));
+    },
   });
+
 
 
   if (me.isLoading) return <Shell><p className="text-muted-foreground">Loading…</p></Shell>;
@@ -186,16 +219,25 @@ function AdminSettings() {
             required
             maxLength={255}
             value={email}
-            aria-invalid={emailError !== null}
-            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={emailError !== null || serverEmailError !== null}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              // Editing dismisses any prior server-side rejection for this field.
+              if (serverEmailError) setServerEmailError(null);
+            }}
             className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
-              emailError ? "border-destructive" : "border-border"
+              emailError || serverEmailError ? "border-destructive" : "border-border"
             }`}
           />
-          {emailError && (
+          {emailError ? (
             <div className="mt-1 text-[11px] text-destructive">{emailError}</div>
-          )}
+          ) : serverEmailError ? (
+            <div className="mt-1 text-[11px] text-destructive">
+              Server rejected this email: {serverEmailError}
+            </div>
+          ) : null}
         </Field>
+
         <Field
           label="FetLife handle"
           hint="3-20 characters: letters, digits, underscore, or hyphen. Pasting a full profile URL is fine — it will be normalized."
