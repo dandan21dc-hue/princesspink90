@@ -193,19 +193,32 @@ function AdminMapPins() {
         return;
       }
       setReorderAnnouncement(announcement);
+      const mySeq = ++reorderSeqRef.current;
+      const runUndo = () => {
+        setOrder(vars.prevOrder);
+        reorder.mutate({
+          ids: vars.prevIds,
+          prevIds: vars.ids,
+          prevOrder: [...vars.prevOrder],
+          isUndo: true,
+        });
+      };
       toast.success("Order saved", {
         description,
         duration: 6000,
         action: {
           label: "Undo",
           onClick: () => {
-            setOrder(vars.prevOrder);
-            reorder.mutate({
-              ids: vars.prevIds,
-              prevIds: vars.ids,
-              prevOrder: [...vars.prevOrder],
-              isUndo: true,
-            });
+            // If newer reorders happened since this toast, confirm first.
+            if (reorderSeqRef.current !== mySeq) {
+              setPendingUndo({
+                run: runUndo,
+                description,
+                sinceCount: reorderSeqRef.current - mySeq,
+              });
+            } else {
+              runUndo();
+            }
           },
         },
       });
