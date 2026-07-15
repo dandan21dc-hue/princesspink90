@@ -133,6 +133,115 @@ async function raiseAlert(
   }
 }
 
+const MEMBERSHIP_LABELS: Record<string, string> = {
+  term_pass_all_access_30d: "30-day All-Access Pass",
+  term_pass_3: "3-month All-Access Pass",
+  term_pass_6: "6-month All-Access Pass",
+  term_pass_12: "12-month All-Access Pass",
+  lifetime: "Lifetime All-Access Pass",
+};
+
+function membershipLabel(kind: string | null | undefined): string {
+  if (!kind) return "All-Access Pass";
+  return MEMBERSHIP_LABELS[kind] ?? "All-Access Pass";
+}
+
+function reasonLabel(status: string): string {
+  if (status === "chargeback") return "Payment dispute (chargeback)";
+  if (status === "disputed" || status === "dispute") return "Payment dispute";
+  if (status === "reversed") return "Payment reversed";
+  return "Payment refunded";
+}
+
+/**
+ * Notify each end-user whose All-Access membership was revoked/suspended by a
+ * NOWPayments reversal callback: writes an in-app notification and enqueues an
+ * email. Best-effort — failures are logged but never rethrown so the webhook
+ * itself always finalizes.
+ */
+async function notifyAffectedMembers(
+  supabaseAdmin: any,
+  args: {
+    affected: Array<Record<string, unknown>>;
+    mode: "revoked" | "suspended";
+    status: string;
+    paymentId: string;
+  },
+): Promise<void> {
+  const memberships = args.affected.filter(
+    (a) => a?.kind === "membership" && typeof a.user_id === "string",
+  );
+  if (memberships.length === 0) return;
+
+  const { enqueueTemplateEmail } = await import("@/lib/email/enqueue.server");
+  const origin =
+    process.env.PUBLIC_SITE_URL ??
+    process.env.VITE_PUBLIC_SITE_URL ??
+    "https://princesspink90.com";
+  const reason = reasonLabel(args.status);
+  const effective = new Date().toISOString().slice(0, 10);
+  const title =
+    args.mode === "revoked"
+      ? "All-Access Pass revoked"
+      : "All-Access Pass suspended";
+
+  for (const m of memberships) {
+    const userId = m.user_id as string;
+    const label = membershipLabel(m.membership_kind as string | undefined);
+    const body =
+      args.mode === "revoked"
+        ? `Your ${label} has been revoked (${reason.toLowerCase()}).`
+        : `Your ${label} has been suspended pending resolution of a payment dispute.`;
+
+    try {
+      await supabaseAdmin.from("notifications").insert({
+        user_id: userId,
+        kind: `all_access_${args.mode}`,
+        title,
+        body,
+        link_url: "/account",
+        metadata: {
+          payment_id: args.paymentId,
+          status: args.status,
+          mode: args.mode,
+          membership_id: m.id ?? null,
+          membership_kind: m.membership_kind ?? null,
+        },
+      });
+    } catch (e) {
+      console.warn("notifyAffectedMembers: notification insert failed", e);
+    }
+
+    try {
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+      const email = userData?.user?.email as string | undefined;
+      if (!email) continue;
+      const displayName =
+        (userData?.user?.user_metadata as { name?: string; full_name?: string } | undefined)
+          ?.name ??
+        (userData?.user?.user_metadata as { full_name?: string } | undefined)?.full_name ??
+        undefined;
+      await enqueueTemplateEmail({
+        templateName: "all-access-revoked",
+        recipientEmail: email,
+        idempotencyKey: `aap-${args.mode}-${args.paymentId}-${m.id ?? userId}`,
+        templateData: {
+          name: displayName,
+          mode: args.mode,
+          reasonLabel: reason,
+          membershipLabel: label,
+          effectiveDateLabel: effective,
+          supportUrl: `mailto:support@princesspink90.com`,
+          dashboardUrl: `${origin}/account`,
+        },
+      });
+    } catch (e) {
+      console.warn("notifyAffectedMembers: email enqueue failed", e);
+    }
+  }
+}
+
+
 export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: boolean; reason?: string; duplicate?: boolean }> {
   const status = String(event.payment_status ?? "").toLowerCase();
   const paymentIdRaw = event.payment_id != null ? String(event.payment_id) : null;
