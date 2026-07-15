@@ -430,8 +430,9 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       target: { value: "https://fetlife.com/" },
     });
     await waitFor(() => {
-      // The "(empty)" marker sits where the new-URL link used to be.
-      expect(within(dialog).getByText(/\(empty\)/i)).toBeTruthy();
+      // "(empty)" appears twice when the handle strips to nothing — once
+      // on the Handle line and once where the new-URL link used to sit.
+      expect(within(dialog).getAllByText(/^\(empty\)$/i).length).toBeGreaterThanOrEqual(1);
     });
     // Only the "Currently live" link remains — the new-URL link is gone.
     const savedUrl = `https://fetlife.com/${SAVED.fetlife_handle}`;
