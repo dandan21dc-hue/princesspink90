@@ -730,8 +730,38 @@ function AdminAuditPage() {
               Severity → see integrity alerts above
             </span>
           )}
-          <button
-            onClick={async () => {
+          {(() => {
+            const MAX_ROWS = 10_000;
+            const EXPORT_PAGE = 200;
+            const fetchAll = async () => {
+              const all: typeof rows = [];
+              let totalCount = 0;
+              for (let p = 1; ; p++) {
+                const res = await listFn({
+                  data: { ...listArgs, page: p, pageSize: EXPORT_PAGE },
+                });
+                const batch = Array.isArray(res) ? [] : res.rows;
+                all.push(...batch);
+                totalCount = Array.isArray(res) ? 0 : res.total;
+                if (
+                  batch.length < EXPORT_PAGE ||
+                  all.length >= totalCount ||
+                  all.length >= MAX_ROWS
+                ) {
+                  break;
+                }
+              }
+              return { all: all.slice(0, MAX_ROWS), totalCount, truncated: all.length >= MAX_ROWS && all.length < totalCount };
+            };
+            const rangeSuffix =
+              applied.from || applied.to
+                ? `_${applied.from || "start"}_to_${applied.to || "now"}`
+                : "";
+            const dateStamp = new Date().toISOString().slice(0, 10);
+            const truncationMsg = (n: number) =>
+              `Export capped at ${MAX_ROWS.toLocaleString()} rows (${n.toLocaleString()} matched). Narrow the date range to export the rest.`;
+
+            const doCsv = async () => {
               if (exporting) return;
               setExportError(null);
               setExporting(true);
@@ -748,74 +778,152 @@ function AdminAuditPage() {
                   const s = v === null || v === undefined ? "" : String(v);
                   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
                 };
-                const MAX_ROWS = 10_000;
-                const EXPORT_PAGE = 200;
-                const all: typeof rows = [];
-                for (let p = 1; ; p++) {
-                  const res = await listFn({
-                    data: { ...listArgs, page: p, pageSize: EXPORT_PAGE },
-                  });
-                  const batch = Array.isArray(res) ? [] : res.rows;
-                  all.push(...batch);
-                  const totalCount = Array.isArray(res) ? 0 : res.total;
-                  if (
-                    batch.length < EXPORT_PAGE ||
-                    all.length >= totalCount ||
-                    all.length >= MAX_ROWS
-                  ) {
-                    break;
-                  }
-                }
-                const truncated = all.length >= MAX_ROWS && all.length < total;
+                const { all, totalCount, truncated } = await fetchAll();
                 const lines = [
                   header.join(","),
-                  ...all
-                    .slice(0, MAX_ROWS)
-                    .map((r) =>
-                      [
-                        r.created_at,
-                        r.actor_id,
-                        r.actor_display_name ?? "",
-                        r.action,
-                        r.resource,
-                        JSON.stringify(r.metadata ?? {}),
-                      ]
-                        .map(escape)
-                        .join(","),
-                    ),
+                  ...all.map((r) =>
+                    [
+                      r.created_at,
+                      r.actor_id,
+                      r.actor_display_name ?? "",
+                      r.action,
+                      r.resource,
+                      JSON.stringify(r.metadata ?? {}),
+                    ]
+                      .map(escape)
+                      .join(","),
+                  ),
                 ];
                 const blob = new Blob(["\ufeff" + lines.join("\n")], {
                   type: "text/csv;charset=utf-8",
                 });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
-                const rangeSuffix =
-                  applied.from || applied.to
-                    ? `_${applied.from || "start"}_to_${applied.to || "now"}`
-                    : "";
                 a.href = url;
-                a.download = `admin-activity-audit${rangeSuffix}_${new Date().toISOString().slice(0, 10)}.csv`;
+                a.download = `admin-activity-audit${rangeSuffix}_${dateStamp}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                if (truncated) {
-                  setExportError(
-                    `Export capped at ${MAX_ROWS.toLocaleString()} rows. Narrow the date range to export the rest.`,
-                  );
-                }
+                if (truncated) setExportError(truncationMsg(totalCount));
               } catch (e) {
                 setExportError(e instanceof Error ? e.message : "Export failed");
               } finally {
                 setExporting(false);
               }
-            }}
-            disabled={exporting || total === 0}
-            className="ml-auto rounded-md border border-border px-3 py-2 text-xs font-medium uppercase tracking-widest disabled:opacity-50"
-          >
-            {exporting ? "Exporting…" : `Export CSV (${total.toLocaleString()})`}
-          </button>
+            };
+
+            const doPdf = async () => {
+              if (exporting) return;
+              setExportError(null);
+              setExporting(true);
+              try {
+                const { all, totalCount, truncated } = await fetchAll();
+                const esc = (s: unknown) =>
+                  String(s ?? "").replace(/[&<>"']/g, (c) =>
+                    c === "&"
+                      ? "&amp;"
+                      : c === "<"
+                        ? "&lt;"
+                        : c === ">"
+                          ? "&gt;"
+                          : c === '"'
+                            ? "&quot;"
+                            : "&#39;",
+                  );
+                const filterBits: string[] = [];
+                if (applied.from || applied.to)
+                  filterBits.push(`Range: ${applied.from || "start"} → ${applied.to || "now"}`);
+                if (applied.action) filterBits.push(`Action ${applied.action_match}: ${applied.action}`);
+                if (applied.resource) filterBits.push(`Resource ${applied.resource_match}: ${applied.resource}`);
+                if (applied.actor_id) filterBits.push(`Actor ID: ${applied.actor_id}`);
+                if (applied.actor_name) filterBits.push(`Actor name: ${applied.actor_name}`);
+                if (applied.q) filterBits.push(`Search: ${applied.q}`);
+                if (applied.trust !== "all") filterBits.push(`Trust: ${applied.trust}`);
+                const html = `<!doctype html><html><head><meta charset="utf-8"><title>Admin activity audit — ${dateStamp}</title>
+<style>
+  @page { size: A4 landscape; margin: 14mm; }
+  body { font: 10px/1.35 -apple-system, Segoe UI, Roboto, sans-serif; color: #111; margin: 0; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  .meta { color: #555; font-size: 10px; margin-bottom: 10px; }
+  .meta div { margin: 1px 0; }
+  .warn { color: #92400e; background: #fef3c7; padding: 6px 8px; border-radius: 4px; margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th, td { border: 1px solid #d4d4d8; padding: 4px 6px; vertical-align: top; word-wrap: break-word; overflow-wrap: anywhere; }
+  th { background: #f4f4f5; text-align: left; font-weight: 600; }
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  code { font: 9px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
+  col.c-ts { width: 13%; } col.c-actor { width: 18%; } col.c-name { width: 12%; }
+  col.c-act { width: 12%; } col.c-res { width: 15%; } col.c-meta { width: 30%; }
+  .footer { position: fixed; bottom: 4mm; left: 14mm; right: 14mm; font-size: 8px; color: #666; display: flex; justify-content: space-between; }
+</style></head><body>
+<h1>Admin activity audit — compliance export</h1>
+<div class="meta">
+  <div>Generated: ${esc(new Date().toISOString())}</div>
+  <div>Rows in export: ${all.length.toLocaleString()} of ${totalCount.toLocaleString()} matching</div>
+  ${filterBits.length ? `<div>Filters: ${filterBits.map(esc).join(" · ")}</div>` : "<div>Filters: none (all entries)</div>"}
+</div>
+${truncated ? `<div class="warn">${esc(truncationMsg(totalCount))}</div>` : ""}
+<table>
+  <colgroup><col class="c-ts"><col class="c-actor"><col class="c-name"><col class="c-act"><col class="c-res"><col class="c-meta"></colgroup>
+  <thead><tr><th>Timestamp (UTC)</th><th>Actor ID</th><th>Actor name</th><th>Action</th><th>Resource</th><th>Metadata</th></tr></thead>
+  <tbody>
+    ${all
+      .map(
+        (r) => `<tr>
+      <td>${esc(r.created_at)}</td>
+      <td><code>${esc(r.actor_id)}</code></td>
+      <td>${esc(r.actor_display_name ?? "")}</td>
+      <td>${esc(r.action)}</td>
+      <td>${esc(r.resource)}</td>
+      <td><code>${esc(JSON.stringify(r.metadata ?? {}))}</code></td>
+    </tr>`,
+      )
+      .join("")}
+  </tbody>
+</table>
+<div class="footer"><span>Admin activity audit — confidential</span><span>${esc(dateStamp)}</span></div>
+<script>window.addEventListener("load",()=>{setTimeout(()=>{window.focus();window.print();},250);});</script>
+</body></html>`;
+                const w = window.open("", "_blank");
+                if (!w) {
+                  setExportError("Pop-up blocked. Allow pop-ups to export PDF, then try again.");
+                  return;
+                }
+                w.document.open();
+                w.document.write(html);
+                w.document.close();
+                if (truncated) setExportError(truncationMsg(totalCount));
+              } catch (e) {
+                setExportError(e instanceof Error ? e.message : "Export failed");
+              } finally {
+                setExporting(false);
+              }
+            };
+
+            return (
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={doCsv}
+                  disabled={exporting || total === 0}
+                  className="rounded-md border border-border px-3 py-2 text-xs font-medium uppercase tracking-widest disabled:opacity-50"
+                >
+                  {exporting ? "Exporting…" : `Export CSV (${total.toLocaleString()})`}
+                </button>
+                <button
+                  onClick={doPdf}
+                  disabled={exporting || total === 0}
+                  title="Opens a print-ready page — choose 'Save as PDF' in the browser print dialog"
+                  className="rounded-md border border-border px-3 py-2 text-xs font-medium uppercase tracking-widest disabled:opacity-50"
+                >
+                  {exporting ? "Exporting…" : `Export PDF (${total.toLocaleString()})`}
+                </button>
+              </div>
+            );
+          })()}
         </div>
+
         {exportError && (
           <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
             {exportError}
