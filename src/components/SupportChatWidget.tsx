@@ -257,6 +257,111 @@ export function SupportChatWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, hydrated, userId]);
 
+  /**
+   * Fold a fresh status into any booking cards in the feed and, if it's a
+   * transition (not our initial "pending"), append a narrated status line.
+   * Idempotent — no-op when nothing changed.
+   */
+  const applyBookingStatus = (bookingId: string, status: BookingStatus) => {
+    setMessages((prev) => {
+      let announced = false;
+      let changed = false;
+      const next = prev.map((m) => {
+        const parts = m.parts.map((p) => {
+          if (p.type !== "booking" || p.bookingId !== bookingId) return p;
+          if (p.status === status) return p;
+          changed = true;
+          if (!announced) announced = true;
+          return { ...p, status };
+        });
+        return parts === m.parts ? m : { ...m, parts };
+      });
+      if (!changed) return prev;
+      // Find the tracker's startsAt for the narration.
+      let startsAt: string | null = null;
+      for (const m of next) {
+        for (const p of m.parts) {
+          if (p.type === "booking" && p.bookingId === bookingId) {
+            startsAt = p.startsAt;
+            break;
+          }
+        }
+        if (startsAt) break;
+      }
+      if (announced && startsAt) {
+        return [
+          ...next,
+          {
+            role: "assistant",
+            parts: [{ type: "text", text: statusNarration(status, startsAt) }],
+          },
+        ];
+      }
+      return next;
+    });
+  };
+
+  // Reconcile tracked bookings with the DB on hydrate. Catches the
+  // "returned from NOWPayments checkout while chat was closed" case.
+  useEffect(() => {
+    if (!hydrated || !userId) return;
+    const tracked: { bookingId: string; status: BookingStatus }[] = [];
+    for (const m of messagesRef.current) {
+      for (const p of m.parts) {
+        if (p.type === "booking") tracked.push({ bookingId: p.bookingId, status: p.status });
+      }
+    }
+    if (tracked.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchBookingStatuses({
+          data: { bookingIds: tracked.map((t) => t.bookingId) },
+        });
+        if (cancelled) return;
+        for (const row of rows) applyBookingStatus(row.id, row.status);
+      } catch {
+        /* silent — realtime will still cover live updates */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, userId]);
+
+  // Live status updates via realtime while the user is signed in.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`concierge-booking-status:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "private_room_bookings",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const row = payload.new as { id?: string; status?: string } | null;
+          if (!row?.id || !row.status) return;
+          const tracked = messagesRef.current.some((m) =>
+            m.parts.some((p) => p.type === "booking" && p.bookingId === row.id),
+          );
+          if (!tracked) return;
+          applyBookingStatus(row.id, row.status);
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+
+
 
 
   // Auto-scroll to newest content.
