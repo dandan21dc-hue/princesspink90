@@ -257,6 +257,12 @@ export function AdminSettings() {
   // dismissal (Esc / overlay). We only toast on the latter two — confirming
   // proceeds to the save toast instead.
   const fetlifeDismissIntentRef = useRef<"confirm" | "cancel" | null>(null);
+  // The Save button opens the confirm dialog programmatically. Radix only
+  // auto-restores focus to its own <Trigger>, so we hold a ref to Save and
+  // return focus there after the dialog closes — otherwise keyboard users
+  // land back at document.body.
+  const saveButtonRef = useRef<HTMLButtonElement | null>(null);
+  const fetlifeConfirmDialogId = "fetlife-confirm-dialog";
   const fetlifeChanged =
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
 
@@ -436,9 +442,15 @@ export function AdminSettings() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
+            ref={saveButtonRef}
             type="submit"
             disabled={save.isPending || settings.isLoading || sessionInputsInvalid}
-            className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+            aria-haspopup={fetlifeChanged && !fetlifeError ? "dialog" : undefined}
+            aria-expanded={fetlifeChanged && !fetlifeError ? pendingFetlifeConfirm : undefined}
+            aria-controls={
+              fetlifeChanged && !fetlifeError ? fetlifeConfirmDialogId : undefined
+            }
+            className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
           >
             {save.isPending ? "Saving…" : "Save"}
           </button>
@@ -502,13 +514,43 @@ export function AdminSettings() {
               description: `Kept current handle: ${settings.data?.fetlife_handle ?? "(none)"}`,
             });
           }
+          // Return keyboard focus to the Save button that opened the dialog.
+          // Radix only auto-restores focus to its own <Trigger>, and we open
+          // this dialog programmatically. Defer to the next frame so Radix
+          // has finished tearing down its focus scope first.
+          requestAnimationFrame(() => {
+            saveButtonRef.current?.focus();
+          });
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          id={fetlifeConfirmDialogId}
+          aria-describedby={`${fetlifeConfirmDialogId}-desc`}
+          onOpenAutoFocus={(event) => {
+            // AlertDialog's default is to focus the Cancel button, which is
+            // the safer choice for a destructive-adjacent action. Explicitly
+            // preserve that behaviour and make it inspectable.
+            event.preventDefault();
+            const root = event.currentTarget as HTMLElement | null;
+            const cancelBtn = root?.querySelector<HTMLButtonElement>("[data-cancel]");
+            cancelBtn?.focus();
+          }}
+          onKeyDown={(event) => {
+            // Ctrl/Cmd+Enter = power-user shortcut to confirm without moving
+            // focus onto the destructive action first. Plain Enter still
+            // activates whichever button currently has focus (Radix default).
+            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+              event.preventDefault();
+              fetlifeDismissIntentRef.current = "confirm";
+              save.mutate();
+              setPendingFetlifeConfirm(false);
+            }
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm FetLife handle change</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm">
+              <div id={`${fetlifeConfirmDialogId}-desc`} className="space-y-2 text-sm">
                 <p>
                   This updates the public profile link on the homepage. A typo
                   here sends visitors to the wrong (or a missing) FetLife
@@ -526,12 +568,16 @@ export function AdminSettings() {
                   <div className="mt-1 break-all text-muted-foreground">
                     https://fetlife.com/{fetlifeNormalized}
                   </div>
+                  <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                    Tip: press Esc to cancel, or Ctrl/⌘+Enter to confirm.
+                  </div>
                 </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
+              data-cancel
               onClick={() => {
                 fetlifeDismissIntentRef.current = "cancel";
               }}
