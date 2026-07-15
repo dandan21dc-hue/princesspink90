@@ -145,8 +145,29 @@ function AdminNowpaymentsEvents() {
   const [sort, setSort] = useState<SortMode>(initialSort);
   const [searchInput, setSearchInput] = useState(urlSearch.q);
   const [search, setSearch] = useState(urlSearch.q);
+  const [quickSearch, setQuickSearch] = useState<string>(urlSearch.q);
   const [page, setPage] = useState<number>(urlSearch.page);
   const [pageSize, setPageSize] = useState<number>(urlSearch.pageSize);
+
+  // Debounce the quick-search input into the applied `search` (which is what
+  // the query key + server fn see). Also keeps the full Search form input
+  // (`searchInput`) in lockstep so switching between the two feels seamless.
+  useEffect(() => {
+    const next = quickSearch.trim();
+    if (next === search) return;
+    const t = setTimeout(() => {
+      setSearch(next);
+      setSearchInput(quickSearch);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [quickSearch, search]);
+
+  // Reflect external `search` changes (chip clears, presets, jump form) back
+  // into the quick-search input so it never shows a stale value.
+  useEffect(() => {
+    setQuickSearch((prev) => (prev.trim() === search ? prev : search));
+  }, [search]);
   const [autoRefresh, setAutoRefresh] = useState<number>(0); // seconds; 0 = off
   const [exportScope, setExportScope] = useState<"page" | "all">("page");
   const [isExporting, setIsExporting] = useState(false);
@@ -595,6 +616,36 @@ function AdminNowpaymentsEvents() {
               Save
             </Button>
           </form>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label
+            htmlFor="quick-search-input"
+            className="text-xs uppercase tracking-widest text-muted-foreground mr-1"
+          >
+            Quick search
+          </label>
+          <div className="relative min-w-[280px] flex-1 max-w-md">
+            <Input
+              id="quick-search-input"
+              type="search"
+              value={quickSearch}
+              onChange={(e) => setQuickSearch(e.target.value)}
+              placeholder="Filter by order id, payer email, or transaction id…"
+              aria-label="Quick search by order id, payer email, or transaction id"
+              className="pr-8"
+            />
+            {quickSearch && (
+              <button
+                type="button"
+                onClick={() => setQuickSearch("")}
+                aria-label="Clear quick search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            )}
+          </div>
         </div>
 
 
