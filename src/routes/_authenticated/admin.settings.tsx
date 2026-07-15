@@ -90,7 +90,7 @@ function AdminSettingsGuarded() {
   );
 }
 
-function AdminSettings() {
+export function AdminSettings() {
   const meFn = useServerFn(amIAdmin);
   const getFn = useServerFn(getSiteSettings);
   const updateFn = useServerFn(updateSiteSettings);
