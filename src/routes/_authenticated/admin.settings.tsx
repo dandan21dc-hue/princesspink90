@@ -802,7 +802,9 @@ export function AdminSettings() {
                           <CopyUrlButton
                             value={`https://fetlife.com/${settings.data.fetlife_handle}`}
                             label="Copy current FetLife URL"
+                            kindLabel="current FetLife URL"
                           />
+
                         </>
                       ) : (
                         <span className="text-muted-foreground">(none)</span>
