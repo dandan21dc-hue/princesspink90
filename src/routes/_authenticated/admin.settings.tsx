@@ -803,7 +803,9 @@ export function AdminSettings() {
                             value={`https://fetlife.com/${settings.data.fetlife_handle}`}
                             label="Copy current FetLife URL"
                             kindLabel="current FetLife URL"
+                            disabled={save.isPending}
                           />
+
 
                         </>
                       ) : (
