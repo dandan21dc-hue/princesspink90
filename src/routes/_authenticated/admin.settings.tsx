@@ -843,7 +843,9 @@ export function AdminSettings() {
                             value={newFetlifeUrl}
                             label="Copy new FetLife URL"
                             kindLabel="new FetLife URL"
+                            disabled={save.isPending}
                           />
+
 
                         </>
                       ) : (
