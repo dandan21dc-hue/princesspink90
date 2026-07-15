@@ -164,8 +164,12 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
   });
 
   const busy = decide.isPending || removeItem.isPending;
+  const pendingDecision = decide.isPending
+    ? (decide.variables as "approved" | "rejected" | "pending" | undefined)
+    : undefined;
 
   const confirmDelete = () => {
+    if (busy) return;
     if (
       window.confirm(
         `Permanently delete "${row.title}"? This removes the item, its media, and any purchase records. This cannot be undone.`,
@@ -279,9 +283,10 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
             type="button"
             onClick={() => decide.mutate("approved")}
             disabled={busy}
-            className="rounded-full bg-emerald-500/20 border border-emerald-500/60 px-4 py-1.5 text-xs uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50"
+            aria-busy={pendingDecision === "approved"}
+            className="rounded-full bg-emerald-500/20 border border-emerald-500/60 px-4 py-1.5 text-xs uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Approve
+            {pendingDecision === "approved" ? "Approving…" : "Approve"}
           </button>
         )}
         {status !== "rejected" && (
@@ -289,9 +294,10 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
             type="button"
             onClick={() => decide.mutate("rejected")}
             disabled={busy}
-            className="rounded-full bg-destructive/20 border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/30 disabled:opacity-50"
+            aria-busy={pendingDecision === "rejected"}
+            className="rounded-full bg-destructive/20 border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Reject
+            {pendingDecision === "rejected" ? "Rejecting…" : "Reject"}
           </button>
         )}
         {status !== "pending" && (
@@ -299,16 +305,17 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
             type="button"
             onClick={() => decide.mutate("pending")}
             disabled={busy}
-            className="rounded-full border border-border/60 px-4 py-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:border-primary/60"
+            aria-busy={pendingDecision === "pending"}
+            className="rounded-full border border-border/60 px-4 py-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:border-primary/60 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Send back to pending
+            {pendingDecision === "pending" ? "Sending back…" : "Send back to pending"}
           </button>
         )}
         <button
           type="button"
           onClick={() => setHistoryOpen((v) => !v)}
           disabled={busy}
-          className="rounded-full border border-border/60 px-4 py-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:border-primary/60"
+          className="rounded-full border border-border/60 px-4 py-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:border-primary/60 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-expanded={historyOpen}
           aria-controls={`moderation-history-${row.id}`}
         >
@@ -318,7 +325,8 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           type="button"
           onClick={confirmDelete}
           disabled={busy}
-          className="ml-auto rounded-full border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          aria-busy={removeItem.isPending}
+          className="ml-auto rounded-full border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed"
           title="Permanently remove this item and its media"
         >
           {removeItem.isPending ? "Deleting…" : "Delete"}
