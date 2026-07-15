@@ -263,6 +263,7 @@ export function AdminSettings() {
     onSuccess: ({ changes }) => {
       setSaved(true);
       setServerEmailError(null);
+      setServerFetlifeError(null);
       qc.invalidateQueries({ queryKey: ["site-settings"] });
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
