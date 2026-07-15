@@ -13,6 +13,16 @@ import {
   type ModerationAuditEntry,
 } from "@/lib/store.functions";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type StatusFilter = "pending" | "approved" | "rejected" | "all";
 
