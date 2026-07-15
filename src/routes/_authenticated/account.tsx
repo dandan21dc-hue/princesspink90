@@ -9,6 +9,8 @@ import {
 } from "@/lib/account.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { PerksWidget } from "@/components/PerksWidget";
+import { VerificationStatusCard } from "@/components/VerificationStatusCard";
+
 
 export const Route = createFileRoute("/_authenticated/account")({
   component: AccountLayout,
