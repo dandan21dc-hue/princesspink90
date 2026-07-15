@@ -753,11 +753,9 @@ export function AdminSettings() {
             // activates whichever button currently has focus (Radix default).
             if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
               event.preventDefault();
-              if (save.isPending || fetlifeConfirmBlocked) return;
+              if (save.isPending || saveInFlightRef.current || fetlifeConfirmBlocked) return;
               fetlifeDismissIntentRef.current = "confirm";
-              save.mutate(undefined, {
-                onSettled: () => setPendingFetlifeConfirm(false),
-              });
+              startSave(() => setPendingFetlifeConfirm(false));
             }
           }}
         >
