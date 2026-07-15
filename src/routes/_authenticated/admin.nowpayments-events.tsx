@@ -87,6 +87,7 @@ function AdminNowpaymentsEvents() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
+  const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
   const list = useQuery({
     queryKey: ["admin-nowpayments-events", { status, handled, reversal, search }],
