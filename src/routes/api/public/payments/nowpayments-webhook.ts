@@ -433,6 +433,20 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       },
     });
 
+    // Notify each affected end-user (in-app + email). Idempotency key on the
+    // email side ensures a redelivery — should one ever bypass the ledger
+    // guard — doesn't spam the buyer twice.
+    const affectedList = ((revokeResult as { affected?: unknown } | null)?.affected ?? []) as Array<
+      Record<string, unknown>
+    >;
+    await notifyAffectedMembers(supabaseAdmin, {
+      affected: affectedList,
+      mode,
+      status,
+      paymentId: paymentIdRaw,
+    });
+
+
     return finalize({
       handled: affectedCount > 0,
       reason: affectedCount > 0
