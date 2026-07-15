@@ -144,6 +144,9 @@ async function waitForFormLoaded() {
 
 beforeEach(() => {
   mockUpdateSiteSettings.mockClear();
+  mockToast.mockClear();
+  mockToast.success.mockClear();
+  mockToast.error.mockClear();
 });
 afterEach(() => cleanup());
 
