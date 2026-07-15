@@ -96,7 +96,7 @@ function Home() {
             </div>
           </div>
           <span className="shrink-0 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground">
-            Enter →
+            Enter the boutique →
           </span>
         </Link>
       </section>
