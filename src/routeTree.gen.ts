@@ -64,6 +64,7 @@ import { Route as AuthenticatedAdminUserAccessTimelineRouteImport } from './rout
 import { Route as AuthenticatedAdminSystemLogsRouteImport } from './routes/_authenticated/admin.system-logs'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
+import { Route as AuthenticatedAdminSecurityChangelogRouteImport } from './routes/_authenticated/admin.security-changelog'
 import { Route as AuthenticatedAdminSecondaryRoomSessionsRouteImport } from './routes/_authenticated/admin.secondary-room-sessions'
 import { Route as AuthenticatedAdminSafetyIncidentsRouteImport } from './routes/_authenticated/admin.safety-incidents'
 import { Route as AuthenticatedAdminRewardsRouteImport } from './routes/_authenticated/admin.rewards'
@@ -408,6 +409,12 @@ const AuthenticatedAdminSettingsRoute =
   AuthenticatedAdminSettingsRouteImport.update({
     id: '/admin/settings',
     path: '/admin/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminSecurityChangelogRoute =
+  AuthenticatedAdminSecurityChangelogRouteImport.update({
+    id: '/admin/security-changelog',
+    path: '/admin/security-changelog',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminSecondaryRoomSessionsRoute =
@@ -826,6 +833,7 @@ export interface FileRoutesByFullPath {
   '/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
+  '/admin/security-changelog': typeof AuthenticatedAdminSecurityChangelogRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
@@ -938,6 +946,7 @@ export interface FileRoutesByTo {
   '/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
+  '/admin/security-changelog': typeof AuthenticatedAdminSecurityChangelogRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
@@ -1054,6 +1063,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/rewards': typeof AuthenticatedAdminRewardsRoute
   '/_authenticated/admin/safety-incidents': typeof AuthenticatedAdminSafetyIncidentsRoute
   '/_authenticated/admin/secondary-room-sessions': typeof AuthenticatedAdminSecondaryRoomSessionsRoute
+  '/_authenticated/admin/security-changelog': typeof AuthenticatedAdminSecurityChangelogRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
@@ -1170,6 +1180,7 @@ export interface FileRouteTypes {
     | '/admin/rewards'
     | '/admin/safety-incidents'
     | '/admin/secondary-room-sessions'
+    | '/admin/security-changelog'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/system-logs'
@@ -1282,6 +1293,7 @@ export interface FileRouteTypes {
     | '/admin/rewards'
     | '/admin/safety-incidents'
     | '/admin/secondary-room-sessions'
+    | '/admin/security-changelog'
     | '/admin/settings'
     | '/admin/support'
     | '/admin/system-logs'
@@ -1397,6 +1409,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/rewards'
     | '/_authenticated/admin/safety-incidents'
     | '/_authenticated/admin/secondary-room-sessions'
+    | '/_authenticated/admin/security-changelog'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/system-logs'
@@ -1881,6 +1894,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/settings'
       fullPath: '/admin/settings'
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/security-changelog': {
+      id: '/_authenticated/admin/security-changelog'
+      path: '/admin/security-changelog'
+      fullPath: '/admin/security-changelog'
+      preLoaderRoute: typeof AuthenticatedAdminSecurityChangelogRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/secondary-room-sessions': {
@@ -2395,6 +2415,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRewardsRoute: typeof AuthenticatedAdminRewardsRoute
   AuthenticatedAdminSafetyIncidentsRoute: typeof AuthenticatedAdminSafetyIncidentsRoute
   AuthenticatedAdminSecondaryRoomSessionsRoute: typeof AuthenticatedAdminSecondaryRoomSessionsRoute
+  AuthenticatedAdminSecurityChangelogRoute: typeof AuthenticatedAdminSecurityChangelogRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminSystemLogsRoute: typeof AuthenticatedAdminSystemLogsRoute
@@ -2462,6 +2483,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminSafetyIncidentsRoute,
   AuthenticatedAdminSecondaryRoomSessionsRoute:
     AuthenticatedAdminSecondaryRoomSessionsRoute,
+  AuthenticatedAdminSecurityChangelogRoute:
+    AuthenticatedAdminSecurityChangelogRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
   AuthenticatedAdminSystemLogsRoute: AuthenticatedAdminSystemLogsRoute,
