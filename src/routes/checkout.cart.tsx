@@ -254,10 +254,99 @@ function CartCheckoutPage() {
         })}
       </ul>
 
+      <section
+        aria-labelledby="rewards-heading"
+        className="mt-8 rounded-2xl border border-border/60 bg-card p-5"
+      >
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="rewards-heading" className="font-display text-lg font-semibold">
+            Redeem Reward Points
+          </h2>
+          <div className="text-xs text-muted-foreground">
+            Balance:{" "}
+            <span className="font-semibold tabular-nums text-foreground">
+              {rewardPoints ?? "…"} pts
+            </span>
+          </div>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          10 points = $1.00 off. Points are deducted from your balance only after
+          your payment settles. Applies to the next boutique item you check out.
+        </p>
+
+        {appliedPoints > 0 ? (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+            <span>
+              <strong className="font-semibold">{appliedPoints} pts</strong> applied —{" "}
+              <span className="tabular-nums">
+                {formatMoney(discountCents, currency)}
+              </span>{" "}
+              off your next payment
+            </span>
+            <button
+              type="button"
+              onClick={handleClearPoints}
+              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-end gap-2">
+            <label className="flex-1">
+              <span className="sr-only">Points to apply</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={maxRedeemable || undefined}
+                step={10}
+                value={pointsInput}
+                onChange={(e) => setPointsInput(e.target.value)}
+                placeholder={
+                  maxRedeemable > 0 ? `Up to ${maxRedeemable} pts` : "0"
+                }
+                disabled={maxRedeemable === 0}
+                className="w-full rounded-md border border-border/60 bg-background px-3 py-2 text-sm tabular-nums disabled:opacity-60"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleApplyPoints}
+              disabled={maxRedeemable === 0 || !pointsInput}
+              className="shrink-0 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-60"
+            >
+              Apply Points
+            </button>
+          </div>
+        )}
+        {rewardPoints === 0 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Invite friends with your referral code to start earning points.
+          </p>
+        )}
+      </section>
+
       <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4 text-sm">
-        <span className="text-muted-foreground">Cart total</span>
+        <span className="text-muted-foreground">Cart subtotal</span>
         <span className="font-semibold tabular-nums">{formatMoney(subtotalCents, currency)}</span>
       </div>
+      {appliedPoints > 0 && (
+        <div className="mt-1 flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Reward discount (next payment)</span>
+          <span className="font-semibold tabular-nums text-primary">
+            −{formatMoney(discountCents, currency)}
+          </span>
+        </div>
+      )}
+      {appliedPoints > 0 && (
+        <div className="mt-1 flex items-center justify-between border-t border-border/60 pt-2 text-sm">
+          <span className="text-muted-foreground">Estimated total after discount</span>
+          <span className="font-semibold tabular-nums">
+            {formatMoney(Math.max(0, subtotalCents - discountCents), currency)}
+          </span>
+        </div>
+      )}
 
       {checkoutElement}
     </section>
