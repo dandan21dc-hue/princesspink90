@@ -62,16 +62,44 @@ function fakeGrantAllAccessPass30d(args: {
 }
 
 // The webhook loads supabaseAdmin via dynamic import — vi.mock hoisting handles this.
-vi.mock("@/integrations/supabase/client.server", () => ({
-  supabaseAdmin: {
-    rpc: (name: string, args: Parameters<typeof fakeGrantAllAccessPass30d>[0]) => {
-      if (name !== "grant_all_access_pass_30d") {
-        return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
-      }
-      return Promise.resolve(fakeGrantAllAccessPass30d(args));
+vi.mock("@/integrations/supabase/client.server", () => {
+  const ledger = new Map<string, { handled: boolean; reason: string | null; received_count: number }>();
+  const from = (table: string) => {
+    if (table !== "nowpayments_ipn_events") throw new Error(`unexpected table: ${table}`);
+    let pendingInsert: { payment_id: string } | null = null;
+    let pendingPid: string | null = null;
+    const api = {
+      insert(row: { payment_id: string }) { pendingInsert = row; return api; },
+      update(_p: unknown) { return api; },
+      select(_c?: string) { return api; },
+      eq(_c: string, v: string) { pendingPid = v; return api; },
+      maybeSingle: () => {
+        if (pendingInsert) {
+          const pid = pendingInsert.payment_id;
+          if (ledger.has(pid)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
+          ledger.set(pid, { handled: false, reason: null, received_count: 1 });
+          return Promise.resolve({ data: { payment_id: pid }, error: null });
+        }
+        const r = pendingPid ? ledger.get(pendingPid) ?? null : null;
+        return Promise.resolve({ data: r, error: null });
+      },
+      then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) =>
+        Promise.resolve({ data: null, error: null }).then(resolve, reject),
+    };
+    return api;
+  };
+  return {
+    supabaseAdmin: {
+      rpc: (name: string, args: Parameters<typeof fakeGrantAllAccessPass30d>[0]) => {
+        if (name !== "grant_all_access_pass_30d") {
+          return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
+        }
+        return Promise.resolve(fakeGrantAllAccessPass30d(args));
+      },
+      from,
     },
-  },
-}));
+  };
+});
 
 import { handleWebhookRequest } from "./nowpayments-webhook";
 
