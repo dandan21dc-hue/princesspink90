@@ -2969,6 +2969,43 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      grant_all_access_pass_term: {
+        Args: {
+          _amount_cents: number
+          _days: number
+          _environment: string
+          _external_payment_reference: string
+          _user_id: string
+        }
+        Returns: {
+          amount_cents: number | null
+          created_at: string
+          environment: string
+          event_ticket_event_id: string | null
+          event_ticket_used_at: string | null
+          expires_at: string | null
+          external_payment_reference: string | null
+          id: string
+          kind: string
+          private_session_bundle_granted_at: string | null
+          private_session_bundle_id: string | null
+          private_session_duration_minutes: number
+          private_session_fulfilled_at: string | null
+          private_session_requested_at: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          suspended_at: string | null
+          term_months: number | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "memberships"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       grant_lifetime_membership: {
         Args: {
           _amount_cents: number

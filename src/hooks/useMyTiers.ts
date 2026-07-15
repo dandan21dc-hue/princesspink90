@@ -10,7 +10,19 @@ import { getStripeEnvironment } from "@/lib/stripe";
  *   term_pass_all_access_30d → 30-day pass  (`all_access_30d_aud`)
  *   lifetime                 → lifetime pass (`lifetime_onetime_aud`)
  */
-export type PlanId = "all_access_30d_aud" | "lifetime_onetime_aud";
+export type PlanId =
+  | "all_access_30d_aud"
+  | "all_access_90d_aud"
+  | "all_access_180d_aud"
+  | "all_access_365d_aud"
+  | "lifetime_onetime_aud";
+
+const TERM_KIND_BY_PLAN: Record<string, string> = {
+  all_access_30d_aud: "term_pass_all_access_30d",
+  all_access_90d_aud: "term_pass_all_access_90d",
+  all_access_180d_aud: "term_pass_all_access_180d",
+  all_access_365d_aud: "term_pass_all_access_365d",
+};
 
 export interface MyTiersState {
   loading: boolean;
@@ -33,6 +45,9 @@ type TiersData = Omit<MyTiersState, "refresh">;
 
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
   all_access_30d_aud: false,
+  all_access_90d_aud: false,
+  all_access_180d_aud: false,
+  all_access_365d_aud: false,
   lifetime_onetime_aud: false,
 };
 
@@ -78,41 +93,46 @@ export function useMyTiers(): MyTiersState {
       const nowIso = new Date().toISOString();
       const lifetime = mems.find((r: any) => r.kind === "lifetime");
 
-      // Pick the currently active 30-day pass (latest non-expired row).
-      // Passes are one-time NOWPayments purchases so `expires_at` is the
-      // source of truth for "still active".
-      let active30d: { starts: string | null; expires: string | null } | null = null;
-      for (const row of mems) {
-        if (String((row as any).kind ?? "") !== "term_pass_all_access_30d") continue;
-        const expiresAt = (row as any).expires_at as string | null;
-        if (!expiresAt || expiresAt <= nowIso) continue;
-        if (!active30d || (active30d.expires ?? "") < expiresAt) {
-          active30d = {
-            starts: ((row as any).created_at as string | null) ?? null,
-            expires: expiresAt,
-          };
+      // Pick the currently active term pass per plan (latest non-expired row).
+      const activeTerms: Partial<Record<PlanId, { starts: string | null; expires: string | null }>> = {};
+      for (const [planId, kind] of Object.entries(TERM_KIND_BY_PLAN) as Array<[PlanId, string]>) {
+        for (const row of mems) {
+          if (String((row as any).kind ?? "") !== kind) continue;
+          const expiresAt = (row as any).expires_at as string | null;
+          if (!expiresAt || expiresAt <= nowIso) continue;
+          const prev = activeTerms[planId];
+          if (!prev || (prev.expires ?? "") < expiresAt) {
+            activeTerms[planId] = {
+              starts: ((row as any).created_at as string | null) ?? null,
+              expires: expiresAt,
+            };
+          }
         }
       }
+
+      const activeMap: Record<PlanId, boolean> = { ...EMPTY_ACTIVE };
+      const expiresMap: Partial<Record<PlanId, string | null>> = {};
+      const startsMap: Partial<Record<PlanId, string | null>> = {};
+      const cancelMap: Partial<Record<PlanId, boolean>> = {};
+      for (const [planId, term] of Object.entries(activeTerms) as Array<[PlanId, { starts: string | null; expires: string | null }]>) {
+        activeMap[planId] = true;
+        expiresMap[planId] = term.expires;
+        startsMap[planId] = term.starts;
+        cancelMap[planId] = false;
+      }
+      activeMap.lifetime_onetime_aud = !!lifetime;
+      startsMap.lifetime_onetime_aud = (lifetime as any)?.created_at ?? null;
 
       setState({
         loading: false,
         signedIn: true,
-        active: {
-          all_access_30d_aud: !!active30d,
-          lifetime_onetime_aud: !!lifetime,
-        },
-        expires: {
-          all_access_30d_aud: active30d?.expires ?? null,
-        },
-        starts: {
-          all_access_30d_aud: active30d?.starts ?? null,
-          lifetime_onetime_aud: lifetime?.created_at ?? null,
-        },
-        cancelAtPeriodEnd: {
-          all_access_30d_aud: false,
-        },
+        active: activeMap,
+        expires: expiresMap,
+        starts: startsMap,
+        cancelAtPeriodEnd: cancelMap,
       });
     }
+
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let currentUid: string | null = null;

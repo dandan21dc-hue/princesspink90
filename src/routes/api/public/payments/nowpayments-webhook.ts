@@ -40,6 +40,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 type ParsedOrder =
   | { kind: "aap30d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "aap90d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "aap180d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
+  | { kind: "aap365d"; userId: string; environment: "sandbox" | "live"; amountCents: number }
   | { kind: "lifetime"; userId: string; environment: "sandbox" | "live"; amountCents: number }
   | {
       kind: "panty";
@@ -56,6 +59,8 @@ type ParsedOrder =
       environment: "sandbox" | "live";
       amountCents: number;
     };
+
+const TIME_PASS_KINDS = new Set(["aap30d", "aap90d", "aap180d", "aap365d", "lifetime"]);
 
 function parseEnv(v: string): "sandbox" | "live" | null {
   return v === "sandbox" || v === "live" ? v : null;
@@ -82,13 +87,13 @@ export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
   // aap30d / lifetime — 4 parts: <kind>:<userId>:<env>:<amountCents>
   if (parts.length === 4) {
     const [kind, userId, envRaw, amountRaw] = parts;
-    if (kind !== "aap30d" && kind !== "lifetime") return null;
+    if (!TIME_PASS_KINDS.has(kind)) return null;
     if (!UUID_RE.test(userId)) return null;
     const environment = parseEnv(envRaw);
     if (!environment) return null;
     const amountCents = parseAmount(amountRaw);
     if (amountCents == null) return null;
-    return { kind: kind as "aap30d" | "lifetime", userId, environment, amountCents };
+    return { kind: kind as "aap30d" | "aap90d" | "aap180d" | "aap365d" | "lifetime", userId, environment, amountCents };
   }
 
   // panty / booking — 5 parts: <kind>:<uuid>:<userId>:<env>:<amountCents>
@@ -523,6 +528,19 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_all_access_pass_30d failed: ${error.message}`);
+    return finalize({ handled: true });
+  }
+
+  if (order.kind === "aap90d" || order.kind === "aap180d" || order.kind === "aap365d") {
+    const days = order.kind === "aap90d" ? 90 : order.kind === "aap180d" ? 180 : 365;
+    const { error } = await supabaseAdmin.rpc("grant_all_access_pass_term" as any, {
+      _user_id: order.userId,
+      _environment: order.environment,
+      _amount_cents: order.amountCents,
+      _external_payment_reference: paymentRef,
+      _days: days,
+    });
+    if (error) throw new Error(`grant_all_access_pass_term failed: ${error.message}`);
     return finalize({ handled: true });
   }
 

@@ -19,6 +19,9 @@ const AAP30D_KEY = "aap30d";
  */
 const PRICE_DESCRIPTIONS: Record<string, string> = {
   lifetime_onetime_aud: "Lifetime Membership (Midnight Glory)",
+  aap_90d_aud: "All-Access Pass — 3 months (Midnight Glory)",
+  aap_180d_aud: "All-Access Pass — 6 months (Midnight Glory)",
+  aap_365d_aud: "All-Access Pass — 12 months (Midnight Glory)",
 };
 
 /**
@@ -29,8 +32,9 @@ const PRICE_DESCRIPTIONS: Record<string, string> = {
  */
 const PRICE_KIND: Record<string, string> = {
   lifetime_onetime_aud: "lifetime",
-  // All-access recurring priceIds fall through to their raw priceId as kind
-  // (webhook currently ignores them — recurring flow is not live).
+  aap_90d_aud: "aap90d",
+  aap_180d_aud: "aap180d",
+  aap_365d_aud: "aap365d",
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

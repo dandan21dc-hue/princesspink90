@@ -38,6 +38,30 @@ export function AllAccessCard() {
       plan: "all_access_30d_aud",
     },
     {
+      label: "3-Month Pass",
+      price: "A$27",
+      cadence: "one-time",
+      perk: "90 days of full library access · pay in crypto",
+      plan: "all_access_90d_aud",
+      priceId: "aap_90d_aud",
+    },
+    {
+      label: "6-Month Pass",
+      price: "A$50",
+      cadence: "one-time",
+      perk: "180 days of full library access · pay in crypto",
+      plan: "all_access_180d_aud",
+      priceId: "aap_180d_aud",
+    },
+    {
+      label: "12-Month Pass",
+      price: "A$90",
+      cadence: "one-time",
+      perk: "365 days of full library access · pay in crypto",
+      plan: "all_access_365d_aud",
+      priceId: "aap_365d_aud",
+    },
+    {
       label: "Lifetime",
       price: "A$600",
       cadence: "one-time",
@@ -51,9 +75,15 @@ export function AllAccessCard() {
   const hasLifetime = tiers.active.lifetime_onetime_aud;
   const currentPlan: PlanId | null = hasLifetime
     ? "lifetime_onetime_aud"
-    : tiers.active.all_access_30d_aud
-      ? "all_access_30d_aud"
-      : null;
+    : tiers.active.all_access_365d_aud
+      ? "all_access_365d_aud"
+      : tiers.active.all_access_180d_aud
+        ? "all_access_180d_aud"
+        : tiers.active.all_access_90d_aud
+          ? "all_access_90d_aud"
+          : tiers.active.all_access_30d_aud
+            ? "all_access_30d_aud"
+            : null;
   const currentLabel = currentPlan
     ? passes.find((p) => p.plan === currentPlan)?.label ?? null
     : null;

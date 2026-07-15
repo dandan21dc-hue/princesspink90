@@ -13,6 +13,10 @@ export type PlanPriceSpec = {
 export const EXPECTED_PLAN_PRICES: Record<string, PlanPriceSpec> = {
   // Lifetime — grants `lifetime` membership when the webhook settles.
   lifetime_onetime_aud: { unit_amount: 50000, currency: "aud" },
+  // Multi-month All-Access Passes — grant term_pass_all_access_<N>d when settled.
+  aap_90d_aud: { unit_amount: 2700, currency: "aud" },
+  aap_180d_aud: { unit_amount: 5000, currency: "aud" },
+  aap_365d_aud: { unit_amount: 9000, currency: "aud" },
   // Note: the 30-day All-Access Pass is minted server-side without a
   // priceId (falls through to the AAP30D default in createNowpaymentsInvoice).
 };
