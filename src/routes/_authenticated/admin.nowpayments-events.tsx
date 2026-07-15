@@ -72,6 +72,18 @@ const STATUS_OPTIONS = [
 ];
 
 type ReversalFilter = "all" | "any" | "revoked" | "suspended";
+type SortMode =
+  | "last_seen_desc"
+  | "last_seen_asc"
+  | "first_seen_desc"
+  | "first_seen_asc";
+
+const SORT_LABELS: Record<SortMode, string> = {
+  last_seen_desc: "Last seen · newest",
+  last_seen_asc: "Last seen · oldest",
+  first_seen_desc: "First seen · newest",
+  first_seen_asc: "First seen · oldest",
+};
 
 function AdminNowpaymentsEvents() {
   const meFn = useServerFn(amIAdmin);
@@ -84,13 +96,14 @@ function AdminNowpaymentsEvents() {
   const [status, setStatus] = useState<string>("all");
   const [handled, setHandled] = useState<"all" | "handled" | "unhandled">("all");
   const [reversal, setReversal] = useState<ReversalFilter>("all");
+  const [sort, setSort] = useState<SortMode>("last_seen_desc");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
   const list = useQuery({
-    queryKey: ["admin-nowpayments-events", { status, handled, reversal, search }],
+    queryKey: ["admin-nowpayments-events", { status, handled, reversal, sort, search }],
     queryFn: () =>
       listFn({
         data: {
@@ -98,6 +111,7 @@ function AdminNowpaymentsEvents() {
           status: status === "all" ? undefined : status,
           handled,
           reversal,
+          sort,
           search: search || undefined,
         },
       }),
@@ -187,16 +201,22 @@ function AdminNowpaymentsEvents() {
             setSearch(searchInput.trim());
           }}
         >
-          <div className="min-w-[200px] flex-1">
+          <div className="min-w-[240px] flex-1">
             <label className="text-xs uppercase tracking-widest text-muted-foreground">
-              Search (payment_id or order_id)
+              Search
             </label>
             <Input
               className="mt-1"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="e.g. 5077125051 or aap30d:…"
+              placeholder="payment_id, order_id, buyer@email, or membership/order/booking UUID"
             />
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Auto-detected: an <code className="font-mono">@</code> is treated as a buyer email
+              (resolves to their entitlement payments); a UUID matches a membership,
+              panty order or booking id; anything else is an ilike match on
+              <code className="font-mono"> payment_id</code>/<code className="font-mono">order_id</code>.
+            </p>
           </div>
           <div>
             <label className="text-xs uppercase tracking-widest text-muted-foreground">
@@ -249,6 +269,23 @@ function AdminNowpaymentsEvents() {
                 <SelectItem value="any">Any reversal</SelectItem>
                 <SelectItem value="revoked">Revoked (refund/reversed)</SelectItem>
                 <SelectItem value="suspended">Suspended (chargeback/dispute)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Sort
+            </label>
+            <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+              <SelectTrigger className="mt-1 w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABELS) as SortMode[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {SORT_LABELS[k]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

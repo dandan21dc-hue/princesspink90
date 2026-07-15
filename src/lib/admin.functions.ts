@@ -860,6 +860,11 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         handled?: "all" | "handled" | "unhandled";
         reversal?: "all" | "any" | "revoked" | "suspended";
         search?: string;
+        sort?:
+          | "last_seen_desc"
+          | "last_seen_asc"
+          | "first_seen_desc"
+          | "first_seen_asc";
       } = {},
     ) => ({
       limit: Math.min(Math.max(d.limit ?? 100, 1), 500),
@@ -867,18 +872,106 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       handled: d.handled ?? "all",
       reversal: d.reversal ?? "all",
       search: d.search?.trim() || undefined,
+      sort: d.sort ?? "last_seen_desc",
     }),
   )
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    const sortColumn =
+      data.sort === "first_seen_desc" || data.sort === "first_seen_asc"
+        ? "first_seen_at"
+        : "last_seen_at";
+    const sortAscending =
+      data.sort === "last_seen_asc" || data.sort === "first_seen_asc";
+
+    // Pre-resolve smart search into a set of matching payment_ids and/or
+    // order_ids so we can combine it with the other filters via a single
+    // .or(...) below. Search modes (auto-detected):
+    //   • contains "@" → treat as buyer email; resolve to user_ids and
+    //     find every payment_ref for their memberships / panty_orders /
+    //     bookings.
+    //   • looks like a UUID → treat as entitlement id (membership /
+    //     panty_order / booking) and resolve to that row's
+    //     external_payment_reference.
+    //   • otherwise → ilike match on payment_id and order_id (previous
+    //     behavior).
+    const UUID_RE =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let extraPaymentIds: string[] | null = null;
+    if (data.search) {
+      const s = data.search;
+      if (s.includes("@")) {
+        const { data: users } = await supabaseAdmin.rpc(
+          "admin_find_user_ids_by_email",
+          { _email_pattern: s },
+        );
+        const matchedUserIds = (users ?? []).map((u: any) => u.user_id as string);
+        if (matchedUserIds.length === 0) {
+          extraPaymentIds = [];
+        } else {
+          const [{ data: mrows }, { data: prows }, { data: brows }] = await Promise.all([
+            supabaseAdmin
+              .from("memberships")
+              .select("external_payment_reference")
+              .in("user_id", matchedUserIds)
+              .not("external_payment_reference", "is", null),
+            supabaseAdmin
+              .from("panty_orders")
+              .select("external_payment_reference")
+              .in("user_id", matchedUserIds)
+              .not("external_payment_reference", "is", null),
+            supabaseAdmin
+              .from("private_room_bookings")
+              .select("external_payment_reference")
+              .in("user_id", matchedUserIds)
+              .not("external_payment_reference", "is", null),
+          ]);
+          const refs = new Set<string>();
+          for (const r of [...(mrows ?? []), ...(prows ?? []), ...(brows ?? [])]) {
+            const ref = (r as any).external_payment_reference as string | null;
+            if (ref?.startsWith("nowpayments:")) {
+              refs.add(ref.slice("nowpayments:".length));
+            }
+          }
+          extraPaymentIds = Array.from(refs);
+        }
+      } else if (UUID_RE.test(s)) {
+        const [{ data: mrow }, { data: prow }, { data: brow }] = await Promise.all([
+          supabaseAdmin
+            .from("memberships")
+            .select("external_payment_reference")
+            .eq("id", s)
+            .maybeSingle(),
+          supabaseAdmin
+            .from("panty_orders")
+            .select("external_payment_reference")
+            .eq("id", s)
+            .maybeSingle(),
+          supabaseAdmin
+            .from("private_room_bookings")
+            .select("external_payment_reference")
+            .eq("id", s)
+            .maybeSingle(),
+        ]);
+        const refs = new Set<string>();
+        for (const r of [mrow, prow, brow]) {
+          const ref = (r as any)?.external_payment_reference as string | null;
+          if (ref?.startsWith("nowpayments:")) {
+            refs.add(ref.slice("nowpayments:".length));
+          }
+        }
+        extraPaymentIds = Array.from(refs);
+      }
+    }
+
     let q = supabaseAdmin
       .from("nowpayments_ipn_events")
       .select(
         "payment_id, last_status, order_id, handled, reason, payload, received_count, first_seen_at, last_seen_at, processed_at",
       )
-      .order("last_seen_at", { ascending: false })
+      .order(sortColumn, { ascending: sortAscending })
       .limit(data.limit);
 
     if (data.status) q = q.eq("last_status", data.status);
@@ -890,10 +983,31 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       q = q.in("last_status", REVERSAL_REVOKE_STATUSES as unknown as string[]);
     if (data.reversal === "suspended")
       q = q.in("last_status", REVERSAL_SUSPEND_STATUSES as unknown as string[]);
+
     if (data.search) {
-      // Search on payment_id or order_id (both text columns).
-      q = q.or(`payment_id.ilike.%${data.search}%,order_id.ilike.%${data.search}%`);
+      const s = data.search;
+      const clauses: string[] = [];
+      // Only apply text ilike when the search isn't clearly a UUID or email
+      // (those modes are resolved to payment_ids above; adding an ilike would
+      // silently widen results).
+      const isUuid = UUID_RE.test(s);
+      const isEmail = s.includes("@");
+      if (!isUuid && !isEmail) {
+        clauses.push(`payment_id.ilike.%${s}%`);
+        clauses.push(`order_id.ilike.%${s}%`);
+      }
+      if (extraPaymentIds && extraPaymentIds.length > 0) {
+        // PostgREST `in` operator inside `.or(...)` expects (a,b,c).
+        clauses.push(`payment_id.in.(${extraPaymentIds.join(",")})`);
+      }
+      if (clauses.length === 0) {
+        // Search yielded no candidates — short-circuit to an empty result set
+        // instead of returning everything.
+        return { items: [], summary: { total: 0, handled: 0, unhandled: 0, finished: 0, revoked: 0, suspended: 0 } };
+      }
+      q = q.or(clauses.join(","));
     }
+
 
     const { data: rows, error } = await q;
     if (error) throw new Error(error.message);

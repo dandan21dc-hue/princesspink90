@@ -2413,6 +2413,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_find_user_ids_by_email: {
+        Args: { _email_pattern: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       apply_payment_integrity_schedule: { Args: never; Returns: string }
       cron_health_snapshot: { Args: never; Returns: Json }
       delete_email: {
