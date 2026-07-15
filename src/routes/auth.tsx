@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
+import { validateReferralCode } from "@/lib/referral-validate.functions";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: z.object({ next: z.string().optional(), ref: z.string().optional() }),
