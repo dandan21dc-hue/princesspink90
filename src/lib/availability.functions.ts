@@ -59,7 +59,7 @@ export const listUpcomingSessionSlots = createServerFn({ method: "GET" })
     const nowIso = new Date().toISOString();
     const { data, error } = await context.supabase
       .from("private_session_slots")
-      .select("id,start_time,end_time,is_booked,notes,created_at,updated_at")
+      .select(SLOT_COLS)
       .gte("end_time", nowIso)
       .order("start_time", { ascending: true });
     if (error) throw new Error(error.message);
@@ -75,11 +75,19 @@ export const createSessionSlot = createServerFn({ method: "POST" })
       endTime: string;
       isBooked?: boolean;
       notes?: string | null;
+      durationMinutes?: number | null;
+      priceCents?: number | null;
     }) => {
       if (!validIso(data.startTime)) throw new Error("Invalid startTime");
       if (!validIso(data.endTime)) throw new Error("Invalid endTime");
       if (new Date(data.endTime).getTime() <= new Date(data.startTime).getTime()) {
         throw new Error("End time must be after start time");
+      }
+      if (!validDurationMinutes(data.durationMinutes)) {
+        throw new Error("Invalid durationMinutes");
+      }
+      if (!validPriceCents(data.priceCents)) {
+        throw new Error("Invalid priceCents");
       }
       return data;
     },
@@ -93,14 +101,17 @@ export const createSessionSlot = createServerFn({ method: "POST" })
         end_time: data.endTime,
         is_booked: data.isBooked ?? false,
         notes: data.notes ?? null,
+        duration_minutes:
+          data.durationMinutes ?? derivedDurationMinutes(data.startTime, data.endTime),
+        price_cents: data.priceCents ?? null,
       })
-      .select("id,start_time,end_time,is_booked,notes,created_at,updated_at")
+      .select(SLOT_COLS)
       .single();
     if (error) throw new Error(error.message);
     return row as PrivateSessionSlot;
   });
 
-/** Admin: update a slot (times, booked/available, notes). */
+/** Admin: update a slot (times, booked/available, notes, duration, price). */
 export const updateSessionSlot = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
@@ -110,6 +121,8 @@ export const updateSessionSlot = createServerFn({ method: "POST" })
       endTime?: string;
       isBooked?: boolean;
       notes?: string | null;
+      durationMinutes?: number | null;
+      priceCents?: number | null;
     }) => {
       if (!UUID.test(data.id)) throw new Error("Invalid id");
       if (data.startTime !== undefined && !validIso(data.startTime))
@@ -123,6 +136,12 @@ export const updateSessionSlot = createServerFn({ method: "POST" })
       ) {
         throw new Error("End time must be after start time");
       }
+      if (data.durationMinutes !== undefined && !validDurationMinutes(data.durationMinutes)) {
+        throw new Error("Invalid durationMinutes");
+      }
+      if (data.priceCents !== undefined && !validPriceCents(data.priceCents)) {
+        throw new Error("Invalid priceCents");
+      }
       return data;
     },
   )
@@ -133,20 +152,25 @@ export const updateSessionSlot = createServerFn({ method: "POST" })
       end_time?: string;
       is_booked?: boolean;
       notes?: string | null;
+      duration_minutes?: number | null;
+      price_cents?: number | null;
     } = {};
     if (data.startTime !== undefined) patch.start_time = data.startTime;
     if (data.endTime !== undefined) patch.end_time = data.endTime;
     if (data.isBooked !== undefined) patch.is_booked = data.isBooked;
     if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.durationMinutes !== undefined) patch.duration_minutes = data.durationMinutes;
+    if (data.priceCents !== undefined) patch.price_cents = data.priceCents;
     const { data: row, error } = await context.supabase
       .from("private_session_slots")
       .update(patch)
       .eq("id", data.id)
-      .select("id,start_time,end_time,is_booked,notes,created_at,updated_at")
+      .select(SLOT_COLS)
       .single();
     if (error) throw new Error(error.message);
     return row as PrivateSessionSlot;
   });
+
 
 /** Admin: delete a slot. */
 export const deleteSessionSlot = createServerFn({ method: "POST" })
