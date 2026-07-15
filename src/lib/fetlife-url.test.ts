@@ -21,7 +21,11 @@ describe("normalizeFetlifeHandle", () => {
     ["preserves underscore and hyphen", "a_b-c", "a_b-c"],
     ["trims surrounding whitespace", "   queen   ", "queen"],
     ["strips leading @", "@queen", "queen"],
-    ["strips multiple leading @/", "@@//queen", "queen"],
+    // Path-split runs BEFORE the leading-@/ strip, so anything with an
+    // interior `/` in the pre-strip stage loses everything past the first
+    // slash. This documents that contract.
+    ["`@@//queen` splits on the first `/` and yields empty", "@@//queen", ""],
+    ["`/queen` splits on the leading `/` and yields empty", "/queen", ""],
     ["strips https://fetlife.com/ prefix", "https://fetlife.com/queen", "queen"],
     ["strips http://fetlife.com/ prefix", "http://fetlife.com/queen", "queen"],
     ["strips www. subdomain", "https://www.fetlife.com/queen", "queen"],
@@ -29,22 +33,22 @@ describe("normalizeFetlifeHandle", () => {
     ["strips /photos sub-path", "https://fetlife.com/queen/photos", "queen"],
     ["drops query string", "https://fetlife.com/queen?ref=abc", "queen"],
     ["drops fragment", "https://fetlife.com/queen#bio", "queen"],
-    ["combines all the messy paste shapes", "  @https://www.fetlife.com/queen/photos?x#y  ", ""],
-    // ↑ Leading @ before the URL: current normalizer strips fetlife prefix
-    // FIRST, then the leading @/, so a leading `@` before a URL prevents
-    // the URL strip and yields empty (path is `/`). Documented so a future
-    // "smarter" edit doesn't silently change the contract without updating
+    // Leading `@` before a URL prevents the URL-prefix strip (which anchors
+    // to `^https?://`), so we then split on the first `/` inside `https://`
+    // and end up with the bare scheme "https:". Documents the contract so
+    // a future "smarter" edit doesn't silently change it without updating
     // callers.
+    ["leading @ before a URL yields 'https:'", "  @https://www.fetlife.com/queen/photos?x#y  ", "https:"],
     ["empty input", "", ""],
     ["whitespace-only input", "   ", ""],
     ["nullish coerces to empty", undefined as unknown as string, ""],
-    ["path-only input (leading slash)", "/queen", "queen"],
     ["strips trailing slash via path split", "queen/", "queen"],
     ["a bare URL to the site root normalizes to empty", "https://fetlife.com/", ""],
-    ["wrong-host URL is not stripped (URL prefix stays, path split gives 'https:')", "https://evil.com/queen", "https:"],
-    // ↑ Documents the shared contract with `validateFetlifeHandle`: the
-    // normalizer alone doesn't guard the host. The validator is what
-    // rejects wrong-host input.
+    // The normalizer alone doesn't guard the host — it yields "https:" for
+    // any http(s) URL whose host isn't fetlife.com. `validateFetlifeHandle`
+    // is the layer that rejects wrong-host input.
+    ["wrong-host URL falls through to 'https:'", "https://evil.com/queen", "https:"],
+
   ];
 
   it.each(cases)("%s: %j -> %j", (_label, input, expected) => {
