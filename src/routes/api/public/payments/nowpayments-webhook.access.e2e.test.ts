@@ -165,7 +165,15 @@ function ipnLedgerFrom() {
   let pendingPid: string | null = null;
   const api = {
     insert(row: { payment_id: string }) { pendingInsert = row; return api; },
-    update(_p: unknown) { return api; },
+    update(patch: Record<string, unknown>) {
+      return {
+        eq: (_c: string, v: string) => {
+          const row = ipnLedger.get(v);
+          if (row) Object.assign(row, patch);
+          return Promise.resolve({ data: null, error: null });
+        },
+      };
+    },
     select(_c?: string) { return api; },
     eq(_c: string, v: string) { pendingPid = v; return api; },
     maybeSingle: () => {
