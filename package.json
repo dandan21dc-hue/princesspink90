@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:checkout": "vitest run src/lib/stripeCheckoutFlow.test.ts src/routes/store.subscribe.test.ts src/routes/api/public/payments/webhook.test.ts",
+    "test:checkout": "vitest run src/routes/store.subscribe.test.ts src/routes/api/public/payments/nowpayments-webhook.test.ts",
     "test:e2e": "playwright test",
     "verify:checkout": "node scripts/verify-multi-currency-checkout.mjs",
     "lint:usd": "bun scripts/scan-usd.mjs",
