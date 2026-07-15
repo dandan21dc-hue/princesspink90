@@ -47,6 +47,13 @@ type ParsedOrder =
       userId: string;
       environment: "sandbox" | "live";
       amountCents: number;
+    }
+  | {
+      kind: "booking";
+      bookingId: string;
+      userId: string;
+      environment: "sandbox" | "live";
+      amountCents: number;
     };
 
 function parseEnv(v: string): "sandbox" | "live" | null {
@@ -75,16 +82,19 @@ export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
     return { kind: kind as "aap30d" | "lifetime", userId, environment, amountCents };
   }
 
-  // panty — 5 parts: panty:<listingId>:<userId>:<env>:<amountCents>
+  // panty / booking — 5 parts: <kind>:<uuid>:<userId>:<env>:<amountCents>
   if (parts.length === 5) {
-    const [kind, pantyListingId, userId, envRaw, amountRaw] = parts;
-    if (kind !== "panty") return null;
-    if (!UUID_RE.test(pantyListingId) || !UUID_RE.test(userId)) return null;
+    const [kind, entityId, userId, envRaw, amountRaw] = parts;
+    if (kind !== "panty" && kind !== "booking") return null;
+    if (!UUID_RE.test(entityId) || !UUID_RE.test(userId)) return null;
     const environment = parseEnv(envRaw);
     if (!environment) return null;
     const amountCents = parseAmount(amountRaw);
     if (amountCents == null) return null;
-    return { kind: "panty", pantyListingId, userId, environment, amountCents };
+    if (kind === "panty") {
+      return { kind: "panty", pantyListingId: entityId, userId, environment, amountCents };
+    }
+    return { kind: "booking", bookingId: entityId, userId, environment, amountCents };
   }
 
   return null;
@@ -143,6 +153,39 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_panty_listing_order failed: ${error.message}`);
+    return { handled: true };
+  }
+
+  if (order.kind === "booking") {
+    // Idempotent: external_payment_reference is UNIQUE on
+    // private_room_bookings. If this payment ref already claimed the row
+    // (or another) the update returns 0 rows and we no-op.
+    const { data: existing, error: fetchErr } = await supabaseAdmin
+      .from("private_room_bookings")
+      .select("id, status, external_payment_reference, amount_cents, environment, user_id")
+      .eq("id", order.bookingId)
+      .maybeSingle();
+    if (fetchErr) throw new Error(`booking lookup failed: ${fetchErr.message}`);
+    if (!existing) return { handled: false, reason: "booking_not_found" };
+    if (existing.user_id !== order.userId) {
+      return { handled: false, reason: "booking_user_mismatch" };
+    }
+    if (existing.external_payment_reference && existing.external_payment_reference !== paymentRef) {
+      return { handled: false, reason: "booking_already_paid" };
+    }
+    if (existing.status === "confirmed" && existing.external_payment_reference === paymentRef) {
+      return { handled: true }; // already processed
+    }
+    const { error } = await supabaseAdmin
+      .from("private_room_bookings")
+      .update({
+        status: "confirmed",
+        external_payment_reference: paymentRef,
+        amount_cents: order.amountCents,
+        environment: order.environment,
+      })
+      .eq("id", order.bookingId);
+    if (error) throw new Error(`confirm booking failed: ${error.message}`);
     return { handled: true };
   }
 
