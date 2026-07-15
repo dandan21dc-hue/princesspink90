@@ -234,8 +234,63 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
   // Refunds fully revoke; disputes suspend pending resolution.
   const REVOKE_STATUSES = new Set(["refunded", "refund", "reversed"]);
   const SUSPEND_STATUSES = new Set(["chargeback", "disputed", "dispute"]);
-  if (REVOKE_STATUSES.has(status) || SUSPEND_STATUSES.has(status)) {
-    const mode: "revoked" | "suspended" = REVOKE_STATUSES.has(status) ? "revoked" : "suspended";
+  const isRevoke = REVOKE_STATUSES.has(status);
+  const isSuspend = SUSPEND_STATUSES.has(status);
+
+  // Load the ledger history for this payment (all statuses OTHER than the row
+  // we just inserted). We use this to enforce out-of-order rules deterministically
+  // regardless of delivery order — the ledger, not wall-clock ordering, is the
+  // source of truth.
+  const { data: historyRows } = await supabaseAdmin
+    .from("nowpayments_ipn_events")
+    .select("last_status, handled, processed_at")
+    .eq("payment_id", paymentIdRaw)
+    .neq("last_status", statusKey);
+  const history = (historyRows ?? []) as Array<{
+    last_status: string;
+    handled: boolean | null;
+    processed_at: string | null;
+  }>;
+  const priorRevoke = history.find((h) => REVOKE_STATUSES.has(h.last_status));
+  const priorSuspend = history.find((h) => SUSPEND_STATUSES.has(h.last_status));
+  const priorFinished = history.find((h) => h.last_status === "finished");
+
+  if (isRevoke || isSuspend) {
+    const mode: "revoked" | "suspended" = isRevoke ? "revoked" : "suspended";
+
+    // Out-of-order guard: once fully revoked, do NOT downgrade to suspended if
+    // a stray chargeback/dispute callback arrives later. The refund is a
+    // stronger, terminal action; suspending back would look like re-activation
+    // to any UI that only reads `suspended_at`.
+    if (mode === "suspended" && priorRevoke) {
+      await raiseAlert(supabaseAdmin, {
+        severity: "warning",
+        kind: "nowpayments_suspend_after_revoke_ignored",
+        detail: {
+          payment_id: paymentIdRaw,
+          order_id: event.order_id ?? null,
+          incoming_status: status,
+          prior_revoke_status: priorRevoke.last_status,
+        },
+      });
+      return finalize({
+        handled: true,
+        reason: `ignored_suspend_after_revoke:${priorRevoke.last_status}`,
+      });
+    }
+
+    // Idempotency guard: another reversal-alias of the SAME mode was already
+    // applied (e.g. `refunded` then `reversed`). Re-running the RPC is safe
+    // (revoked_at uses COALESCE, panty/booking updates carry status guards)
+    // but reporting "affected" a second time is misleading. Short-circuit.
+    const priorSameMode = mode === "revoked" ? priorRevoke : priorSuspend;
+    if (priorSameMode) {
+      return finalize({
+        handled: true,
+        reason: `duplicate_${mode}:${priorSameMode.last_status}`,
+      });
+    }
+
     const { data: revokeResult, error: revokeErr } = await supabaseAdmin.rpc(
       "revoke_entitlement_by_payment_reference",
       {
@@ -262,6 +317,8 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
         mode,
         affected_count: affectedCount,
         affected: (revokeResult as { affected?: unknown } | null)?.affected ?? [],
+        prior_finished: Boolean(priorFinished),
+        upgraded_from_suspend: mode === "revoked" && Boolean(priorSuspend),
         price_amount: event.price_amount ?? null,
         price_currency: event.price_currency ?? null,
       },
@@ -280,6 +337,30 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
   // are acknowledged with 200 so NOWPayments stops retrying, but grant nothing.
   if (status !== "finished") {
     return finalize({ handled: false, reason: `ignored_status:${status || "missing"}` });
+  }
+
+  // Out-of-order guard: a `finished` arriving AFTER a reversal must NOT
+  // re-grant or re-activate access. This is the critical case for bookings,
+  // whose grant path unconditionally sets status='confirmed' (the memberships
+  // and panty-order RPCs already short-circuit on external_payment_reference
+  // returning the existing revoked row, but the defence-in-depth check makes
+  // the intent explicit and audits the refusal).
+  const priorReversal = priorRevoke ?? priorSuspend;
+  if (priorReversal) {
+    await raiseAlert(supabaseAdmin, {
+      severity: "critical",
+      kind: "nowpayments_finished_after_reversal_refused",
+      detail: {
+        payment_id: paymentIdRaw,
+        order_id: event.order_id ?? null,
+        prior_reversal_status: priorReversal.last_status,
+        prior_processed_at: priorReversal.processed_at,
+      },
+    });
+    return finalize({
+      handled: false,
+      reason: `refused_finished_after_reversal:${priorReversal.last_status}`,
+    });
   }
 
   const order = parseOrderId(event.order_id);
@@ -337,6 +418,13 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
     }
     if (existing.external_payment_reference && existing.external_payment_reference !== paymentRef) {
       return finalize({ handled: false, reason: "booking_already_paid" });
+    }
+    // Terminal-state guard: a cancelled booking claimed by this same payment
+    // ref was revoked by a prior reversal callback. Do NOT re-confirm it —
+    // the priorReversal check above already refuses this path, but keep the
+    // guard local to the booking write for defence-in-depth.
+    if (existing.status === "cancelled" && existing.external_payment_reference === paymentRef) {
+      return finalize({ handled: false, reason: "booking_cancelled_after_reversal" });
     }
     if (existing.status === "confirmed" && existing.external_payment_reference === paymentRef) {
       return finalize({ handled: true }); // already processed
