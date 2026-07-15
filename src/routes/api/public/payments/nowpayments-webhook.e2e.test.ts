@@ -205,7 +205,12 @@ function signedRequest(body: unknown, opts: { badSig?: boolean; noSig?: boolean 
 /** Mirrors `user_can_access_content`'s pass-window check. */
 function passIsActive(userId: string, env: "sandbox" | "live") {
   return state.rows.some(
-    (r) => r.user_id === userId && r.environment === env && r.expires_at.getTime() > state.nowMs,
+    (r) =>
+      r.user_id === userId &&
+      r.environment === env &&
+      r.expires_at.getTime() > state.nowMs &&
+      r.revoked_at === null &&
+      r.suspended_at === null,
   );
 }
 
