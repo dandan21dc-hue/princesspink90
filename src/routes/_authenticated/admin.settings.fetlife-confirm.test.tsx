@@ -248,5 +248,7 @@ describe("admin settings — FetLife confirmation gate", () => {
       data: typeof SAVED;
     };
     expect(call.data.fetlife_handle).toBe("Brand-New-Handle");
+    // Confirming must NOT trigger the "not saved" cancel toast.
+    expect(mockToast).not.toHaveBeenCalled();
   });
 });
