@@ -83,9 +83,47 @@ export const SESSION_PRICE_MAX_CENTS = 10_000_00; // A$10,000.00
 export const SESSION_DURATION_MIN_MINUTES = 5;
 export const SESSION_DURATION_MAX_MINUTES = 480; // 8 hours
 
+// Shared FetLife handle rules — used by client form and server validator so
+// the saved value always produces a working https://fetlife.com/<handle> URL.
+// FetLife handles are 3-20 chars of letters/digits/underscore/hyphen. We
+// accept common paste shapes (leading @, /, or a full profile URL) and
+// normalize them to the bare handle.
+export const FETLIFE_HANDLE_MAX = 20;
+export const FETLIFE_HANDLE_MIN = 3;
+const FETLIFE_HANDLE_RE = /^[A-Za-z0-9_-]{3,20}$/;
+
+export function normalizeFetlifeHandle(input: string): string {
+  let h = (input ?? "").trim();
+  // Strip a full profile URL if pasted.
+  h = h.replace(/^https?:\/\/(?:www\.)?fetlife\.com\/+/i, "");
+  // Drop any lingering path segments (users/foo, foo/photos, etc.).
+  h = h.split(/[/?#]/, 1)[0] ?? "";
+  // Strip leading @ or / decorations.
+  h = h.replace(/^[@/]+/, "");
+  return h;
+}
+
+export function validateFetlifeHandle(raw: string): string | null {
+  const h = normalizeFetlifeHandle(raw);
+  if (!h) return "FetLife handle is required.";
+  if (h.length < FETLIFE_HANDLE_MIN)
+    return `FetLife handle must be at least ${FETLIFE_HANDLE_MIN} characters.`;
+  if (h.length > FETLIFE_HANDLE_MAX)
+    return `FetLife handle must be ${FETLIFE_HANDLE_MAX} characters or fewer.`;
+  if (!FETLIFE_HANDLE_RE.test(h))
+    return "FetLife handle can only contain letters, digits, underscore, and hyphen.";
+  return null;
+}
+
 const updateSchema = z.object({
   email: z.string().trim().email().max(255),
-  fetlife_handle: z.string().trim().min(1).max(100),
+  fetlife_handle: z
+    .string()
+    .transform((v) => normalizeFetlifeHandle(v))
+    .refine((v) => FETLIFE_HANDLE_RE.test(v), {
+      message:
+        "FetLife handle must be 3-20 characters of letters, digits, underscore, or hyphen.",
+    }),
   reddit_handle: z.string().trim().min(1).max(100),
   glory_holes_enabled: z.boolean(),
   session_price_cents: z

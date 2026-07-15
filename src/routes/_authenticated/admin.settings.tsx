@@ -18,6 +18,8 @@ import {
   SESSION_DURATION_MAX_MINUTES,
   SESSION_PRICE_DEFAULT_CENTS,
   SESSION_DURATION_DEFAULT_MINUTES,
+  normalizeFetlifeHandle,
+  validateFetlifeHandle,
 } from "@/lib/settings.functions";
 import {
   getReminderJobConfig,
@@ -120,18 +122,25 @@ function AdminSettings() {
     emailError = "Enter a valid email address (e.g. name@example.com).";
   }
 
+  const fetlifeNormalized = normalizeFetlifeHandle(fetlife);
+  const fetlifeError = validateFetlifeHandle(fetlife);
+
   const sessionInputsInvalid =
-    priceError !== null || durationError !== null || emailError !== null;
+    priceError !== null ||
+    durationError !== null ||
+    emailError !== null ||
+    fetlifeError !== null;
 
   const save = useMutation({
     mutationFn: () => {
       if (emailError) throw new Error(emailError);
+      if (fetlifeError) throw new Error(fetlifeError);
       if (priceError) throw new Error(priceError);
       if (durationError) throw new Error(durationError);
       return updateFn({
         data: {
           email: emailTrimmed,
-          fetlife_handle: fetlife,
+          fetlife_handle: fetlifeNormalized,
           reddit_handle: reddit,
           glory_holes_enabled: gloryHolesEnabled,
           session_price_cents: priceCents,
@@ -190,14 +199,30 @@ function AdminSettings() {
             <div className="mt-1 text-[11px] text-destructive">{emailError}</div>
           )}
         </Field>
-        <Field label="FetLife handle" hint="Without leading slash, e.g. pink_princess90">
+        <Field
+          label="FetLife handle"
+          hint="3-20 characters: letters, digits, underscore, or hyphen. Pasting a full profile URL is fine — it will be normalized."
+        >
           <input
             required
             maxLength={100}
             value={fetlife}
+            aria-invalid={fetlifeError !== null}
             onChange={(e) => setFetlife(e.target.value)}
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            onBlur={() => setFetlife((v) => normalizeFetlifeHandle(v))}
+            className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
+              fetlifeError ? "border-destructive" : "border-border"
+            }`}
           />
+          {fetlifeError ? (
+            <div className="mt-1 text-[11px] text-destructive">{fetlifeError}</div>
+          ) : (
+            fetlifeNormalized && (
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                Profile URL: https://fetlife.com/{fetlifeNormalized}
+              </div>
+            )
+          )}
         </Field>
         <Field label="Reddit handle" hint="Without u/ prefix, e.g. 19pink-princess90">
           <input
