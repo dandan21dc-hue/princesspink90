@@ -17,6 +17,7 @@
     "verify:checkout": "node scripts/verify-multi-currency-checkout.mjs",
     "lint:usd": "bun scripts/scan-usd.mjs",
     "lint:supabase": "node scripts/supabase-security-lint.mjs",
+    "lint:security-regression": "node scripts/security-regression-scan.mjs",
     "validate:security-config": "node scripts/validate-security-config.mjs",
     "security:baseline:update": "bash scripts/update-security-baseline.sh",
     "security:gate:local": "bash scripts/reproduce-security-gate.sh",
