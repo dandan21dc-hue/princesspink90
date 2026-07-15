@@ -304,7 +304,7 @@ function ManageBillingButton() {
         {pending ? "Opening…" : "Manage subscription & payment method"}
       </div>
       <div className="mt-1 text-xs text-muted-foreground">
-        Opens the secure Stripe billing portal in a new tab.
+        Opens your billing overview.
       </div>
     </button>
   );

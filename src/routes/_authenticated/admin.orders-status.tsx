@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/admin/orders-status")({
       {
         name: "description",
         content:
-          "Every order, subscription, purchase and booking with its current payment status, last webhook event, and entitlement state.",
+          "Every order, purchase and booking with its current payment status and entitlement state.",
       },
     ],
   }),
@@ -85,9 +85,9 @@ function AdminOrdersStatusPage() {
           Order payment status
         </h1>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-          Cross-checks every order, subscription, one-time purchase and room
-          booking against its most recent Stripe webhook event. Use it to verify
-          that pending payments stay non-entitled until Stripe confirms them.
+          Every order, one-time purchase and room booking with its current
+          payment status. Pending rows stay non-entitled until NOWPayments
+          confirms the invoice.
         </p>
       </header>
 
@@ -275,7 +275,7 @@ function AdminOrdersStatusPage() {
                               </div>
                               <div>
                                 <div className="uppercase tracking-widest text-muted-foreground/70">
-                                  Stripe reference
+                                  Payment reference
                                 </div>
                                 <div className="font-mono text-foreground/80">
                                   {r.reference_id ?? "—"}
