@@ -175,9 +175,10 @@ function CohostBlock() {
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link
             to="/cohost-apply"
+            aria-label="Apply to co-host Midnight Glory events"
             className="rounded-md bg-neon px-6 py-3 text-sm font-semibold uppercase tracking-widest text-background shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
           >
-            Apply to co-host →
+            Apply to co-host events →
           </Link>
           <Link
             to="/verify"
