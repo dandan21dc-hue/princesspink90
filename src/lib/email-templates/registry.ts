@@ -32,4 +32,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'booking-rescheduled': bookingRescheduled,
   'audit-alert': auditAlert,
   'all-access-revoked': allAccessRevoked,
+  'admin-reward-redeemed': adminRewardRedeemed,
 }
