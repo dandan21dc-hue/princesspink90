@@ -127,14 +127,18 @@ export const createBookingInvoice = createServerFn({ method: "POST" })
       const description = `${ROOM_LABEL[data.roomType]} · ${duration} min · ${humanTime} UTC (Midnight Glory)`;
 
       try {
+        // Ignore any client-supplied `returnOrigin`; always build URLs from
+        // the server-verified app origin so an attacker can't redirect a
+        // paying customer or divert the IPN webhook.
+        const appOrigin = resolveAppOrigin(getRequest());
         const invoice = await createInvoice({
           priceAmount: priceCents / 100,
           priceCurrency: "aud",
           orderId,
           orderDescription: description,
-          ipnCallbackUrl: `${data.returnOrigin}/api/public/payments/nowpayments-webhook`,
-          successUrl: `${data.returnOrigin}/checkout/return?provider=nowpayments&status=success&next=%2Fdashboard`,
-          cancelUrl: `${data.returnOrigin}/checkout/return?provider=nowpayments&status=cancel`,
+          ipnCallbackUrl: `${appOrigin}/api/public/payments/nowpayments-webhook`,
+          successUrl: `${appOrigin}/checkout/return?provider=nowpayments&status=success&next=%2Fdashboard`,
+          cancelUrl: `${appOrigin}/checkout/return?provider=nowpayments&status=cancel`,
         });
         return { invoiceUrl: invoice.invoice_url, bookingId: booking.id };
       } catch (e) {
