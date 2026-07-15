@@ -718,6 +718,88 @@ function EntitlementLink({
   );
 }
 
+function Pagination({
+  page,
+  pageSize,
+  totalCount,
+  showing,
+  onPrev,
+  onNext,
+  onJump,
+  loading,
+}: {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  showing: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onJump: (p: number) => void;
+  loading: boolean;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const from = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = totalCount === 0 ? 0 : (page - 1) * pageSize + showing;
+  const [jump, setJump] = useState("");
+  const canPrev = page > 1;
+  const canNext = page < totalPages;
+
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+      <div>
+        Showing <span className="text-foreground font-medium">{from}</span>–
+        <span className="text-foreground font-medium">{to}</span> of{" "}
+        <span className="text-foreground font-medium">{totalCount}</span> event
+        {totalCount === 1 ? "" : "s"} · page {page} of {totalPages}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onPrev}
+          disabled={!canPrev || loading}
+        >
+          ← Prev
+        </Button>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const n = Number(jump);
+            if (Number.isFinite(n) && n >= 1 && n <= totalPages) {
+              onJump(Math.floor(n));
+              setJump("");
+            }
+          }}
+          className="flex items-center gap-1"
+        >
+          <Input
+            className="h-8 w-16 text-center"
+            placeholder={String(page)}
+            value={jump}
+            onChange={(e) => setJump(e.target.value.replace(/[^\d]/g, ""))}
+            aria-label="Jump to page"
+          />
+          <Button type="submit" size="sm" variant="ghost" disabled={loading || !jump}>
+            Go
+          </Button>
+        </form>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onNext}
+          disabled={!canNext || loading}
+        >
+          Next →
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
+
 function Shell({ children }: { children: React.ReactNode }) {
   return <section className="mx-auto max-w-5xl px-5 py-12">{children}</section>;
 }
