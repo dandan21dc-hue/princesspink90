@@ -803,7 +803,9 @@ export function AdminSettings() {
                             value={`https://fetlife.com/${settings.data.fetlife_handle}`}
                             label="Copy current FetLife URL"
                             kindLabel="current FetLife URL"
+                            disabled={save.isPending}
                           />
+
 
                         </>
                       ) : (
@@ -841,7 +843,9 @@ export function AdminSettings() {
                             value={newFetlifeUrl}
                             label="Copy new FetLife URL"
                             kindLabel="new FetLife URL"
+                            disabled={save.isPending}
                           />
+
 
                         </>
                       ) : (
@@ -971,6 +975,7 @@ function CopyUrlButton({
   value,
   label,
   kindLabel,
+  disabled = false,
 }: {
   value: string;
   label: string;
@@ -981,7 +986,14 @@ function CopyUrlButton({
    * so screen readers hear the result inline.
    */
   kindLabel: string;
+  /**
+   * Disable the button while the FetLife handle save is in-flight. Prevents
+   * rapid repeated clicks from firing while the underlying URL value may be
+   * about to change (current becomes stale, new becomes current).
+   */
+  disabled?: boolean;
 }) {
+
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<null | { kind: "ok" | "err"; message: string }>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1029,9 +1041,12 @@ function CopyUrlButton({
         type="button"
         onClick={onCopy}
         aria-label={label}
-        title={label}
-        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+        title={disabled ? "Saving FetLife handle change…" : label}
+        disabled={disabled}
+        aria-disabled={disabled || undefined}
+        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
       >
+
         {copied ? (
           <Check className="h-3 w-3" aria-hidden />
         ) : (
