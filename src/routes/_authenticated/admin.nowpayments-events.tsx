@@ -424,6 +424,16 @@ function EventRow({
                 {e.parsed_order.kind} · {e.parsed_order.environment}
               </Badge>
             )}
+            {e.reversal && (
+              <Badge
+                variant={e.reversal.applied ? "destructive" : "outline"}
+                className="text-[10px] uppercase"
+                title={e.reversal.reason ?? undefined}
+              >
+                {e.reversal.mode === "revoked" ? "Revoked" : "Suspended"}
+                {e.reversal.applied ? "" : " · not applied"}
+              </Badge>
+            )}
             {e.received_count > 1 && (
               <Badge variant="secondary" className="text-[10px]">
                 ×{e.received_count} deliveries
