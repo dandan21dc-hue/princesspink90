@@ -191,8 +191,23 @@ describe("admin media moderation — action toasts", () => {
         expect(mockModerate).toHaveBeenCalledTimes(1);
         expect(mockToast.success).toHaveBeenCalled();
       });
-      const first = mockToast.success.mock.calls[0]![0] as string;
-      expect(first).toMatch(match);
+      const [msg, opts] = mockToast.success.mock.calls[0]! as [
+        string,
+        { action?: { label: string; onClick: () => void } },
+      ];
+      expect(msg).toMatch(match);
+      // Toast must expose a "View in <status>" jump button (default filter is
+      // "pending", so approve/reject send the item to a different tab).
+      const expectedStatus =
+        button.toString().includes("approve") ? "approved"
+        : button.toString().includes("reject") ? "rejected"
+        : "pending";
+      if (expectedStatus !== "pending" || switchTo) {
+        expect(opts.action).toBeDefined();
+        expect(opts.action!.label).toMatch(
+          new RegExp(`view in ${expectedStatus}`, "i"),
+        );
+      }
       expect(mockToast.error).not.toHaveBeenCalled();
     },
   );
