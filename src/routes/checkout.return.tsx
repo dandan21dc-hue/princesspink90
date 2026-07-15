@@ -1,438 +1,94 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
-import {
-  getCheckoutSession,
-  getMyPrivateRoomBookingBySession,
-  cancelMyPrivateRoomBooking,
-} from "@/lib/store.functions";
-import { useServerFn } from "@tanstack/react-start";
-import { sendBookingConfirmationEmail } from "@/lib/booking-email.functions";
-import { getStripeEnvironment } from "@/lib/stripe";
-import { cart as cartStore } from "@/lib/cart";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
+import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { track } from "@/lib/track";
-import {
-  buildPantyReturnEvent,
-  buildPantyReturnErrorEvents,
-} from "@/lib/pantyCheckoutEvents";
-import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
-import { format } from "date-fns";
-import { buildIcs, downloadIcs } from "@/lib/ics";
-import { buildBookingReceiptPdf, downloadPdf } from "@/lib/booking-receipt";
-
 
 /**
- * Landing page for Stripe's `return_url`. Stripe substitutes
- * `{CHECKOUT_SESSION_ID}` in the URL server-side before redirecting the
- * browser here, so `session_id` should always be a real `cs_...` id — not
- * the literal template string.
+ * Landing page for NOWPayments' `success_url` / `cancel_url`. The hosted
+ * invoice redirects the buyer back here after payment; entitlements are
+ * granted asynchronously by the IPN webhook once payment settles, so this
+ * page is purely informational.
  *
- * The route:
- *  1. Validates `session_id` (and optional `next` destination) in search.
- *  2. Fetches the session server-side via `getCheckoutSession` to confirm
- *     status/metadata before granting UI access.
- *  3. Routes the user to the appropriate destination based on what they
- *     bought (membership → /library, booking → /dashboard, or the caller's
- *     explicit `next=` override).
+ * Search params:
+ *  - `provider` — always "nowpayments" for redirects we mint.
+ *  - `status`   — "success" | "cancel".
+ *  - `next`     — optional destination once entitlements are ready.
  */
 
-const ALLOWED_NEXT: readonly string[] = [
-  "/library",
-  "/dashboard",
-  "/store",
-];
+const ALLOWED_NEXT: readonly string[] = ["/library", "/dashboard", "/store"];
 
-function normalizeNext(next: string | undefined, metadata: { booking?: string | null } | null) {
+function normalizeNext(next: string | undefined) {
   if (next && ALLOWED_NEXT.includes(next)) return next;
-  if (metadata?.booking === "private_room") return "/dashboard";
   return "/library";
 }
 
 export const Route = createFileRoute("/checkout/return")({
+  ssr: false,
   validateSearch: (search: Record<string, unknown>) => ({
-    session_id: typeof search.session_id === "string" ? search.session_id : undefined,
+    provider: typeof search.provider === "string" ? search.provider : undefined,
+    status: typeof search.status === "string" ? search.status : undefined,
     next: typeof search.next === "string" ? search.next : undefined,
   }),
-  component: CheckoutReturn,
   head: () => ({
     meta: [
       { title: "Finalizing your purchase" },
       { name: "robots", content: "noindex" },
     ],
   }),
+  component: CheckoutReturn,
 });
 
 function CheckoutReturn() {
-  const { session_id: sessionId, next } = Route.useSearch();
-  const navigate = useNavigate();
+  const { provider, status, next } = Route.useSearch();
+  const destination = normalizeNext(next);
+  const cancelled = status === "cancel";
+  const succeeded = status === "success";
 
-  // Guard: `{CHECKOUT_SESSION_ID}` means Stripe never substituted the
-  // template — the return_url shipped with the braces percent-encoded, or
-  // was overridden somewhere. Treat as an error rather than calling the
-  // API with a garbage id.
-  const templateNotSubstituted =
-    !sessionId || sessionId === "{CHECKOUT_SESSION_ID}" || sessionId.includes("%7B");
-
-  const query = useQuery({
-    queryKey: ["checkout-session", sessionId],
-    enabled: !templateNotSubstituted,
-    retry: 2,
-    queryFn: async () => {
-      const result = await getCheckoutSession({
-        data: { sessionId: sessionId!, environment: getStripeEnvironment() },
-      });
-      if ("error" in result) throw new Error(result.error);
-      return result;
-    },
-  });
-
-  const session = query.data;
-  const isComplete = session?.status === "complete";
-  const destination = normalizeNext(next, session?.metadata ?? null);
-
-  // Fire tracking events for panty checkouts as the return-page state resolves.
-  // De-duplicated so re-renders (and the redirect delay) don't double-fire.
-  const trackedRef = useRef<string | null>(null);
+  const trackedRef = useRef(false);
   useEffect(() => {
-    if (!sessionId || !session) return;
-    const event = buildPantyReturnEvent(session, sessionId);
-    if (!event) return;
-    const key = `${sessionId}:${event.name}`;
-    if (trackedRef.current === key) return;
-    trackedRef.current = key;
-    track(event.name, event.payload);
-  }, [sessionId, session]);
-
-  // Track return-page load failures (session retrieve errored, or Stripe
-  // shipped a placeholder session_id back). Separate ref so it can't clash
-  // with the panty status event above.
-  const errorTrackedRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (templateNotSubstituted) {
-      if (errorTrackedRef.current === "template") return;
-      errorTrackedRef.current = "template";
-      for (const e of buildPantyReturnErrorEvents({
-        templateNotSubstituted: true,
-        sessionId,
-      })) {
-        track(e.name, e.payload);
-      }
-      return;
-    }
-    if (!query.isError || !sessionId) return;
-    const key = `error:${sessionId}`;
-    if (errorTrackedRef.current === key) return;
-    errorTrackedRef.current = key;
-    for (const e of buildPantyReturnErrorEvents({
-      templateNotSubstituted: false,
-      sessionId,
-      errorMessage: (query.error as Error)?.message,
-    })) {
-      track(e.name, e.payload);
-    }
-  }, [templateNotSubstituted, query.isError, query.error, sessionId]);
-
-  // Attribution: fire once per completed checkout with the tier the user
-  // originally clicked, so subscription / lifetime / term-pass purchases can
-  // be traced back to the boutique card that drove them. Deduplicated by
-  // sessionId so re-renders and the redirect delay don't double-count.
-  const attributionRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!sessionId || !session || !isComplete) return;
-    if (attributionRef.current === sessionId) return;
-    const md = session.metadata ?? {};
-    // Derive the PlanId / tier the user bought from the checkout metadata.
-    // - subscription: metadata.subscription is the price lookup_key (== PlanId).
-    // - lifetime: fixed PlanId "lifetime_onetime_aud".
-    // - term_pass: map term_months back to the corresponding PlanId.
-    // - panty / cart / booking / other: report the raw kind so downstream
-    //   analytics can still attribute the conversion, without inventing a
-    //   plan_id we don't have.
-    let planId: PlanId | null = null;
-    let tierKind:
-      | "subscription"
-      | "lifetime"
-      | "term_pass"
-      | "panty"
-      | "cart"
-      | "private_room"
-      | "other" = "other";
-    if (md.subscription) {
-      planId = md.subscription as PlanId;
-      tierKind = "subscription";
-    } else if (md.membership === "lifetime") {
-      planId = "lifetime_onetime_aud";
-      tierKind = "lifetime";
-    } else if (md.membership === "term_pass") {
-      tierKind = "term_pass";
-      const months = md.term_months ? Number(md.term_months) : null;
-      planId =
-        months === 3
-          ? "all_access_3mo_monthly_aud"
-          : months === 6
-            ? "all_access_6mo_monthly_aud"
-            : months === 12
-              ? "all_access_12mo_monthly_aud"
-              : null;
-    } else if (md.panty_order) {
-      tierKind = "panty";
-    } else if (md.cart_mode === "1") {
-      tierKind = "cart";
-    } else if (md.booking === "private_room") {
-      tierKind = "private_room";
-    }
-    attributionRef.current = sessionId;
-    track("checkout_completed", {
-      session_id: sessionId,
-      tier_kind: tierKind,
-      plan_id: planId ?? undefined,
-      price_id: (md.subscription as string | undefined) ?? (md.panty_order as string | undefined) ?? undefined,
-      term_months: md.term_months ? Number(md.term_months) : undefined,
-      amount_total_cents: session.amount_total ?? undefined,
-      currency: session.currency ?? undefined,
-      payment_intent_id: session.payment_intent_id ?? undefined,
-      cart_mode: md.cart_mode === "1",
-      booking: md.booking ?? undefined,
+    if (trackedRef.current) return;
+    trackedRef.current = true;
+    track("nowpayments_return_page", {
+      provider: provider ?? "unknown",
+      status: status ?? "unknown",
     });
-  }, [sessionId, session, isComplete]);
-
-
-  // Auto-redirect only for panty/cart checkouts — subscription and lifetime
-  // buyers see a confirmation summary with dates and click through manually.
-  const isMembershipPurchase =
-    session?.metadata?.membership === "lifetime" ||
-    session?.metadata?.membership === "term_pass" ||
-    !!session?.metadata?.subscription;
-  const isPrivateRoomPurchase = session?.metadata?.booking === "private_room";
-  useEffect(() => {
-    if (!isComplete || isMembershipPurchase || isPrivateRoomPurchase) return;
-    // Cart mode: successful payment → wipe the local cart so the shopping bag
-    // in the header resets and the user isn't offered a re-purchase.
-    if (session?.metadata?.cart_mode === "1") {
-      cartStore.clear();
-      try {
-        sessionStorage.removeItem("pp_cart_client_order_ref");
-      } catch {
-        // ignore
-      }
-    }
-    const t = setTimeout(() => {
-      navigate({ to: destination });
-    }, 1500);
-    return () => clearTimeout(t);
-  }, [isComplete, destination, navigate, session?.metadata?.cart_mode, isMembershipPurchase, isPrivateRoomPurchase]);
+  }, [provider, status]);
 
   return (
     <section className="mx-auto max-w-md px-5 py-24 text-center">
-      {templateNotSubstituted ? (
+      {cancelled ? (
         <>
-          <h1 className="text-2xl font-medium">Missing session</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            We couldn't identify your Stripe checkout session. If you completed
-            payment, it will still be processed — please check your library in a
-            minute.
-          </p>
-          <Link to="/library" className="mt-6 inline-block underline">
-            Go to your library
-          </Link>
-        </>
-      ) : query.isLoading ? (
-        <>
-          <h1 className="text-2xl font-medium">Finalizing…</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Confirming your payment with Stripe.
+          <XCircle className="mx-auto h-12 w-12 text-destructive" aria-hidden />
+          <h1 className="mt-4 font-display text-2xl font-bold">Payment cancelled</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            No charge was made. You can restart checkout whenever you're ready.
           </p>
         </>
-      ) : query.isError ? (
+      ) : succeeded ? (
         <>
-          <h1 className="text-2xl font-medium">Something went wrong</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            {(query.error as Error).message}
+          <CheckCircle2 className="mx-auto h-12 w-12 text-primary" aria-hidden />
+          <h1 className="mt-4 font-display text-2xl font-bold">Payment received</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Thanks — your crypto payment is confirmed. We're finalising your access now;
+            it usually appears within a minute or two.
           </p>
-          <Link to="/library" className="mt-6 inline-block underline">
-            Go to your library
-          </Link>
-        </>
-      ) : isComplete && isMembershipPurchase ? (
-        <MembershipConfirmation
-          metadata={session!.metadata ?? {}}
-          destination={destination}
-        />
-      ) : isPrivateRoomPurchase ? (
-        <PrivateRoomConfirmation
-          sessionId={sessionId!}
-          sessionStatus={session?.status ?? null}
-          sessionComplete={isComplete}
-        />
-
-      ) : isComplete ? (
-        <>
-          <h1 className="text-2xl font-medium">Thank you! 🎉</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Payment confirmed. Redirecting you now…
-          </p>
-          <Link to={destination as "/library"} className="mt-6 inline-block underline">
-            Continue
-          </Link>
         </>
       ) : (
         <>
-          <h1 className="text-2xl font-medium">Payment pending</h1>
-          <p className="mt-3 text-sm text-muted-foreground">
-            Stripe is still processing this payment (status:{" "}
-            {session?.status ?? "unknown"}). You'll get access as soon as it
-            completes.
+          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" aria-hidden />
+          <h1 className="mt-4 font-display text-2xl font-bold">Finalising your purchase</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Hang tight while we confirm your payment.
           </p>
-          <Link to="/library" className="mt-6 inline-block underline">
-            Go to your library
-          </Link>
         </>
       )}
-    </section>
-  );
-}
 
-/**
- * Post-checkout summary for subscription and lifetime purchases: tells the
- * user which tier they bought, when access begins, and when the next
- * renewal / expiration date is. Reads live state from useMyTiers so the
- * dates come from what the webhook actually wrote — if the webhook hasn't
- * landed yet, shows a "finalising access" state that resolves via realtime.
- */
-function MembershipConfirmation({
-  metadata,
-  destination,
-}: {
-  metadata: Record<string, string>;
-  destination: string;
-}) {
-  const tiers = useMyTiers();
-
-  const isLifetime = metadata.membership === "lifetime";
-  const termMonths = metadata.term_months ? Number(metadata.term_months) : null;
-
-  // Determine which plan row to read from useMyTiers.
-  const planId: PlanId | null = isLifetime
-    ? "lifetime_onetime_aud"
-    : tiers.active.all_access_12mo_monthly_aud
-      ? "all_access_12mo_monthly_aud"
-      : tiers.active.all_access_6mo_monthly_aud
-        ? "all_access_6mo_monthly_aud"
-        : tiers.active.all_access_3mo_monthly_aud
-          ? "all_access_3mo_monthly_aud"
-          : tiers.active.all_access_monthly_aud
-            ? "all_access_monthly_aud"
-            : null;
-
-  const planLabel = isLifetime
-    ? "Lifetime Membership"
-    : planId === "all_access_12mo_monthly_aud"
-      ? "12-Month Plan"
-      : planId === "all_access_6mo_monthly_aud"
-        ? "6-Month Plan"
-        : planId === "all_access_3mo_monthly_aud"
-          ? "3-Month Plan"
-          : planId === "all_access_monthly_aud"
-            ? "Monthly Plan"
-            : termMonths
-              ? `${termMonths}-Month Pass`
-              : "All-Access Pass";
-
-  const fmt = (iso?: string | null) => {
-    if (!iso) return null;
-    try {
-      return new Date(iso).toLocaleDateString(undefined, {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    } catch {
-      return null;
-    }
-  };
-
-  const start = planId ? fmt(tiers.starts[planId]) : null;
-  const expires = planId && !isLifetime ? fmt(tiers.expires[planId]) : null;
-
-  // Access hasn't hit the tables yet — show a friendly waiting state and
-  // let realtime bring the row in.
-  const stillWaiting =
-    (isLifetime && !tiers.active.lifetime_onetime_aud && !tiers.loading) ||
-    (!isLifetime && !planId && !tiers.loading);
-
-  // Poll as a safety net for the ~30s after payment: realtime should deliver
-  // the update the instant the webhook lands, but if it's slow or the
-  // websocket dropped, keep asking every 2s until the tier appears.
-  useEffect(() => {
-    if (!stillWaiting) return;
-    const id = window.setInterval(() => tiers.refresh(), 2000);
-    const stop = window.setTimeout(() => window.clearInterval(id), 30_000);
-    return () => {
-      window.clearInterval(id);
-      window.clearTimeout(stop);
-    };
-  }, [stillWaiting, tiers]);
-
-  return (
-    <>
-      <h1 className="text-2xl font-medium">Thank you! 🎉</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Payment confirmed. Here's what you unlocked:
-      </p>
-
-      <div className="mt-6 rounded-2xl border border-primary/40 bg-primary/5 p-6 text-left shadow-[var(--shadow-glow-pink)]">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
-          Your plan
-        </div>
-        <div className="mt-1 font-display text-2xl font-extrabold">{planLabel}</div>
-
-        <dl className="mt-5 space-y-3 text-sm">
-          <div className="flex justify-between gap-3">
-            <dt className="text-muted-foreground">Access begins</dt>
-            <dd className="font-medium">
-              {tiers.loading ? "…" : start ?? "Today"}
-            </dd>
-          </div>
-          {isLifetime ? (
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">Expires</dt>
-              <dd className="font-medium">Never — Lifetime</dd>
-            </div>
-          ) : (
-            <div className="flex justify-between gap-3">
-              <dt className="text-muted-foreground">Next renewal / ends</dt>
-              <dd className="font-medium">
-                {tiers.loading ? "…" : expires ?? "Finalising…"}
-              </dd>
-            </div>
-          )}
-        </dl>
-
-        {(isLifetime || planId === "all_access_12mo_monthly_aud") && (
-          <div className="mt-5 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-primary/90">
-            <div className="font-semibold uppercase tracking-widest">Perks unlocked</div>
-            <ul className="mt-2 space-y-1 text-left">
-              <li>· 1 free event entry</li>
-              {isLifetime && <li>· 1 free 30-min private-room session</li>}
-            </ul>
-          </div>
-        )}
-
-        {stillWaiting && (
-          <p className="mt-4 text-[11px] text-muted-foreground">
-            Finalising your access — this refreshes automatically as soon as
-            Stripe confirms with our server.
-          </p>
-        )}
-      </div>
-
-      <div className="mt-6 flex flex-col gap-2">
+      <div className="mt-8 flex flex-col items-stretch gap-3">
         <Link
-          to={destination as "/library"}
-          className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
+          to={destination}
+          className="rounded-md bg-primary px-5 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground"
         >
-          Enter the library
+          Continue
         </Link>
         <Link
           to="/store"
@@ -441,406 +97,6 @@ function MembershipConfirmation({
           Back to store
         </Link>
       </div>
-    </>
+    </section>
   );
 }
-
-/**
- * Post-checkout summary for private-room bookings. Reads the booking row
- * (RLS-scoped to the current user) that the checkout flow held before
- * payment. Shows date, time, duration, party size, notes, and amount —
- * with a friendly "finalising" state while the webhook flips the row from
- * `pending` to `confirmed`.
- */
-function PrivateRoomConfirmation({
-  sessionId,
-  sessionStatus,
-  sessionComplete,
-}: {
-  sessionId: string;
-  sessionStatus: string | null;
-  sessionComplete: boolean;
-}) {
-  const q = useQuery({
-    queryKey: ["private-room-booking", sessionId],
-    retry: 3,
-    refetchInterval: (query) => {
-      const data = query.state.data as { status?: string } | null | undefined;
-      if (!data) return 3000;
-      // Stop polling once the row reaches a terminal state.
-      if (["confirmed", "cancelled", "refunded"].includes(data.status ?? "")) return false;
-      return 3000;
-    },
-    queryFn: () => getMyPrivateRoomBookingBySession({ data: { sessionId } }),
-  });
-
-
-  const b = q.data;
-  const starts = b ? new Date(b.starts_at) : null;
-  const ends = b && starts ? new Date(starts.getTime() + b.duration_minutes * 60_000) : null;
-  const amount =
-    b?.amount_cents != null
-      ? new Intl.NumberFormat(undefined, {
-          style: "currency",
-          currency: (b.currency ?? "aud").toUpperCase(),
-        }).format(b.amount_cents / 100)
-      : null;
-
-  // Fire the booking-confirmation email once the booking flips to confirmed.
-  // Deduped by booking id via useRef + idempotency key on the server side, so
-  // a page refresh or re-render can't produce duplicate sends.
-  const emailSentRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!b || b.status !== "confirmed") return;
-    if (emailSentRef.current === b.id) return;
-    emailSentRef.current = b.id;
-    sendBookingConfirmationEmail({
-      data: {
-        bookingId: b.id,
-        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      },
-    }).catch((err) => {
-      // Non-fatal — the confirmation UI + dashboard both show the booking.
-      console.warn("booking confirmation email send failed", err);
-      emailSentRef.current = null;
-    });
-  }, [b]);
-
-  // Categorize the booking outcome so header, description, badge, and CTAs
-  // all stay in sync. `sessionComplete=false` (Stripe session still open or
-  // expired) is a "requires action" case even if the booking row is still
-  // pending, because no webhook is ever going to flip it.
-  type Outcome = "confirmed" | "cancelled" | "refunded" | "requires_action" | "finalising";
-  const bookingStatus = b?.status ?? null;
-  const outcome: Outcome = !sessionComplete
-    ? sessionStatus === "expired"
-      ? "requires_action"
-      : "requires_action"
-    : bookingStatus === "confirmed"
-      ? "confirmed"
-      : bookingStatus === "cancelled"
-        ? "cancelled"
-        : bookingStatus === "refunded"
-          ? "refunded"
-          : "finalising";
-
-  const isTerminalFailure =
-    outcome === "cancelled" || outcome === "refunded" || outcome === "requires_action";
-
-  const header =
-    outcome === "confirmed"
-      ? "You're booked in! 🎉"
-      : outcome === "cancelled"
-        ? "Booking cancelled"
-        : outcome === "refunded"
-          ? "Booking refunded"
-          : outcome === "requires_action"
-            ? "Payment didn't complete"
-            : "Finalising your booking…";
-
-  const subhead =
-    outcome === "confirmed"
-      ? "Payment confirmed. A calendar invite and receipt are on their way."
-      : outcome === "cancelled"
-        ? "This booking was cancelled and the time slot has been released. You can pick a new slot below."
-        : outcome === "refunded"
-          ? "This booking was refunded. If this was unexpected, get in touch — otherwise pick a new slot below."
-          : outcome === "requires_action"
-            ? sessionStatus === "expired"
-              ? "The Stripe checkout session expired before payment finished. Nothing was charged — start a fresh booking to try again."
-              : `Stripe hasn't confirmed this payment (status: ${sessionStatus ?? "unknown"}). Nothing has been charged. Start a fresh booking to try again.`
-            : "Hang tight — we're waiting on Stripe to confirm payment. This refreshes automatically.";
-
-  const statusBadge = (
-    <span
-      className={
-        outcome === "confirmed"
-          ? "rounded-full bg-primary/20 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-primary"
-          : outcome === "cancelled" || outcome === "refunded" || outcome === "requires_action"
-            ? "rounded-full bg-destructive/15 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-destructive"
-            : "rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground"
-      }
-    >
-      {outcome === "confirmed"
-        ? "Confirmed"
-        : outcome === "cancelled"
-          ? "Cancelled"
-          : outcome === "refunded"
-            ? "Refunded"
-            : outcome === "requires_action"
-              ? "Action required"
-              : "Finalising…"}
-    </span>
-  );
-
-  const cardBorder =
-    outcome === "confirmed"
-      ? "border-primary/40 bg-primary/5 shadow-[var(--shadow-glow-pink)]"
-      : isTerminalFailure
-        ? "border-destructive/40 bg-destructive/5"
-        : "border-border/60 bg-muted/10";
-
-  const showDownloads = outcome === "confirmed" && !!b && !!starts && !!ends;
-
-  return (
-    <>
-      <h1 className="text-2xl font-medium">{header}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{subhead}</p>
-
-      {q.isLoading ? (
-        <p className="mt-6 text-sm text-muted-foreground">Loading booking details…</p>
-      ) : (q.isError || !b) && outcome !== "requires_action" ? (
-        <p className="mt-6 text-sm text-muted-foreground">
-          We couldn't load your booking details. Check your dashboard shortly — it
-          will appear as soon as our server finishes processing.
-        </p>
-      ) : b ? (
-        <div className={`mt-6 rounded-2xl border ${cardBorder} p-6 text-left`}>
-          <div className="text-[10px] uppercase tracking-[0.3em] text-primary">
-            Your private room booking
-          </div>
-          <div className="mt-1 font-display text-2xl font-extrabold">
-            {b.duration_minutes === 30 ? "30-minute session" : "1-hour session"}
-          </div>
-
-          <dl className="mt-5 space-y-3 text-sm">
-            <ConfRow label="Date">
-              {starts ? format(starts, "EEEE, d MMMM yyyy") : "—"}
-            </ConfRow>
-            <ConfRow label="Time">
-              {starts && ends
-                ? `${format(starts, "h:mm a")} – ${format(ends, "h:mm a")}`
-                : "—"}
-            </ConfRow>
-            <ConfRow label="Duration">
-              {b.duration_minutes === 60
-                ? "1 hour"
-                : b.duration_minutes === 30
-                  ? "30 minutes"
-                  : `${b.duration_minutes} minutes`}
-            </ConfRow>
-            <ConfRow label="Party size">
-              {b.party_size ?? 1} {(b.party_size ?? 1) === 1 ? "guest" : "guests"}
-            </ConfRow>
-            {amount && <ConfRow label="Amount paid">{amount}</ConfRow>}
-            <ConfRow label="Status">{statusBadge}</ConfRow>
-            <ConfRow label="Booking ID">
-              <span className="font-mono text-[11px]">{b.id.slice(0, 8)}</span>
-            </ConfRow>
-          </dl>
-
-          {b.notes && (
-            <div className="mt-5">
-              <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                Your notes
-              </div>
-              <div className="mt-1 whitespace-pre-wrap rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm">
-                {b.notes}
-              </div>
-            </div>
-          )}
-        </div>
-      ) : null}
-
-      <div className="mt-6 flex flex-col gap-2">
-        {showDownloads && b && starts && ends && (
-          <button
-            type="button"
-            onClick={() => {
-              const ics = buildIcs({
-                uid: `booking-${b.id}@princesspink90`,
-                title: `Midnight Glory · Private room (${b.duration_minutes} min)`,
-                description: [
-                  `Party size: ${b.party_size ?? 1}`,
-                  b.notes ? `Notes: ${b.notes}` : null,
-                  `Booking ID: ${b.id}`,
-                ]
-                  .filter(Boolean)
-                  .join("\n"),
-                start: starts,
-                end: ends,
-                url: typeof window !== "undefined" ? window.location.origin + "/dashboard" : undefined,
-              });
-              downloadIcs(`midnight-glory-booking-${b.id.slice(0, 8)}.ics`, ics);
-            }}
-            className="rounded-md border border-primary/50 bg-background px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
-          >
-            Add to calendar (.ics)
-          </button>
-        )}
-        {showDownloads && b && starts && ends && (
-          <button
-            type="button"
-            onClick={async () => {
-              const bytes = await buildBookingReceiptPdf({
-                bookingId: b.id,
-                status: b.status,
-                starts,
-                ends,
-                durationMinutes: b.duration_minutes,
-                partySize: b.party_size ?? 1,
-                amountFormatted: amount,
-                notes: b.notes,
-              });
-              downloadPdf(`midnight-glory-receipt-${b.id.slice(0, 8)}.pdf`, bytes);
-            }}
-            className="rounded-md border border-primary/50 bg-background px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
-          >
-            Download receipt (PDF)
-          </button>
-        )}
-
-        {isTerminalFailure ? (
-          <>
-            <Link
-              to="/private-room"
-              className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-            >
-              Try booking again
-            </Link>
-            <Link
-              to="/dashboard"
-              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-            >
-              Go to your dashboard
-            </Link>
-          </>
-        ) : outcome === "confirmed" && b && starts ? (
-          <ConfirmedBookingActions
-            bookingId={b.id}
-            startsAt={starts}
-            onCancelled={() => q.refetch()}
-          />
-        ) : (
-          <>
-            <Link
-              to="/dashboard"
-              className="rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-            >
-              Go to your dashboard
-            </Link>
-            <Link
-              to="/private-room"
-              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-            >
-              Book another session
-            </Link>
-          </>
-        )}
-      </div>
-    </>
-  );
-}
-
-
-function ConfRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium text-right">{children}</dd>
-    </div>
-  );
-}
-
-/**
- * Quick-change CTAs for a confirmed booking, shown directly on the
- * confirmation page: jump to reschedule in /bookings, or cancel inline
- * (with a confirm step) when the booking is >2h away. Mirrors the cancel
- * rules used on the /bookings management page.
- */
-function ConfirmedBookingActions({
-  bookingId,
-  startsAt,
-  onCancelled,
-}: {
-  bookingId: string;
-  startsAt: Date;
-  onCancelled: () => void;
-}) {
-  const [confirming, setConfirming] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const cancelFn = useServerFn(cancelMyPrivateRoomBooking);
-  const qc = useQueryClient();
-  const canCancel = startsAt.getTime() - Date.now() > 2 * 60 * 60 * 1000;
-
-  const cancelMutation = useMutation({
-    mutationFn: () => cancelFn({ data: { id: bookingId } }),
-    onSuccess: async () => {
-      setConfirming(false);
-      await qc.invalidateQueries({ queryKey: ["private-room-booking"] });
-      onCancelled();
-    },
-    onError: (e: unknown) => {
-      setError(e instanceof Error ? e.message : "Couldn't cancel — try again.");
-    },
-  });
-
-  if (confirming) {
-    return (
-      <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-left">
-        <p className="text-sm">Cancel this booking? This can't be undone.</p>
-        {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            disabled={cancelMutation.isPending}
-            onClick={() => cancelMutation.mutate()}
-            className="rounded-md bg-destructive px-4 py-2 text-xs font-semibold uppercase tracking-widest text-destructive-foreground disabled:opacity-60"
-          >
-            {cancelMutation.isPending ? "Cancelling…" : "Yes, cancel booking"}
-          </button>
-          <button
-            type="button"
-            disabled={cancelMutation.isPending}
-            onClick={() => {
-              setError(null);
-              setConfirming(false);
-            }}
-            className="rounded-md border border-border px-4 py-2 text-xs font-semibold uppercase tracking-widest hover:bg-muted/30"
-          >
-            Keep booking
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <Link
-        to="/bookings"
-        className="rounded-md border border-primary/50 bg-background px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-primary hover:bg-primary/10"
-      >
-        Reschedule
-      </Link>
-      <button
-        type="button"
-        onClick={() => setConfirming(true)}
-        disabled={!canCancel}
-        title={canCancel ? "" : "Bookings must be cancelled at least 2 hours ahead"}
-        className="rounded-md border border-destructive/40 bg-destructive/5 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-destructive hover:bg-destructive/15 disabled:opacity-40"
-      >
-        Cancel booking
-      </button>
-      {!canCancel && (
-        <span className="text-center text-[11px] text-muted-foreground">
-          Within 2 hours of your session — contact support to make changes.
-        </span>
-      )}
-      <Link
-        to="/dashboard"
-        className="rounded-md bg-primary px-4 py-2.5 text-center text-xs font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110"
-      >
-        Go to your dashboard
-      </Link>
-      <Link
-        to="/private-room"
-        className="text-center text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-      >
-        Book another session
-      </Link>
-    </>
-  );
-}
-
-
