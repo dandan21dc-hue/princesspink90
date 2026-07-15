@@ -99,15 +99,21 @@ function AdminNowpaymentsEvents() {
   const [sort, setSort] = useState<SortMode>("last_seen_desc");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
+  // Reset to page 1 whenever filters/search/sort/pageSize change.
+  const resetToFirstPage = () => setPage(1);
+
   const list = useQuery({
-    queryKey: ["admin-nowpayments-events", { status, handled, reversal, sort, search }],
+    queryKey: ["admin-nowpayments-events", { status, handled, reversal, sort, search, page, pageSize }],
     queryFn: () =>
       listFn({
         data: {
-          limit: 200,
+          page,
+          pageSize,
           status: status === "all" ? undefined : status,
           handled,
           reversal,
@@ -117,6 +123,7 @@ function AdminNowpaymentsEvents() {
       }),
     enabled: me.data?.isAdmin === true,
   });
+
 
   const retry = useMutation({
     mutationFn: (paymentId: string) => retryFn({ data: { paymentId } }),
@@ -162,6 +169,8 @@ function AdminNowpaymentsEvents() {
 
   const items = list.data?.items ?? [];
   const summary = list.data?.summary;
+  const totalCount = list.data?.totalCount ?? 0;
+
 
   return (
     <Shell>
@@ -198,6 +207,7 @@ function AdminNowpaymentsEvents() {
           className="flex flex-wrap gap-3 items-end"
           onSubmit={(e) => {
             e.preventDefault();
+            resetToFirstPage();
             setSearch(searchInput.trim());
           }}
         >
@@ -222,7 +232,7 @@ function AdminNowpaymentsEvents() {
             <label className="text-xs uppercase tracking-widest text-muted-foreground">
               Status
             </label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(v) => { resetToFirstPage(); setStatus(v); }}>
               <SelectTrigger className="mt-1 w-[160px]">
                 <SelectValue />
               </SelectTrigger>
@@ -241,7 +251,7 @@ function AdminNowpaymentsEvents() {
             </label>
             <Select
               value={handled}
-              onValueChange={(v) => setHandled(v as typeof handled)}
+              onValueChange={(v) => { resetToFirstPage(); setHandled(v as typeof handled); }}
             >
               <SelectTrigger className="mt-1 w-[140px]">
                 <SelectValue />
@@ -259,7 +269,7 @@ function AdminNowpaymentsEvents() {
             </label>
             <Select
               value={reversal}
-              onValueChange={(v) => setReversal(v as ReversalFilter)}
+              onValueChange={(v) => { resetToFirstPage(); setReversal(v as ReversalFilter); }}
             >
               <SelectTrigger className="mt-1 w-[180px]">
                 <SelectValue />
@@ -276,7 +286,7 @@ function AdminNowpaymentsEvents() {
             <label className="text-xs uppercase tracking-widest text-muted-foreground">
               Sort
             </label>
-            <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+            <Select value={sort} onValueChange={(v) => { resetToFirstPage(); setSort(v as SortMode); }}>
               <SelectTrigger className="mt-1 w-[200px]">
                 <SelectValue />
               </SelectTrigger>
@@ -289,6 +299,27 @@ function AdminNowpaymentsEvents() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Per page
+            </label>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => { resetToFirstPage(); setPageSize(Number(v)); }}
+            >
+              <SelectTrigger className="mt-1 w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[25, 50, 100, 200, 500].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Button type="submit">Apply</Button>
           <Button
             type="button"
@@ -319,7 +350,8 @@ function AdminNowpaymentsEvents() {
 
         {summary && (
           <div className="text-xs text-muted-foreground flex flex-wrap gap-4">
-            <span>Total: {summary.total}</span>
+            <span>Matching total: {totalCount}</span>
+            <span>On this page: {summary.total}</span>
             <span>Handled: {summary.handled}</span>
             <span>Unhandled: {summary.unhandled}</span>
             <span>Finished: {summary.finished}</span>
@@ -348,6 +380,18 @@ function AdminNowpaymentsEvents() {
           ))
         )}
       </div>
+
+      <Pagination
+        page={page}
+        pageSize={pageSize}
+        totalCount={totalCount}
+        showing={items.length}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => p + 1)}
+        onJump={(p: number) => setPage(p)}
+        loading={list.isFetching}
+      />
+
 
       <AlertDialog
         open={pendingRetry !== null}
@@ -673,6 +717,88 @@ function EntitlementLink({
     </div>
   );
 }
+
+function Pagination({
+  page,
+  pageSize,
+  totalCount,
+  showing,
+  onPrev,
+  onNext,
+  onJump,
+  loading,
+}: {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  showing: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onJump: (p: number) => void;
+  loading: boolean;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const from = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = totalCount === 0 ? 0 : (page - 1) * pageSize + showing;
+  const [jump, setJump] = useState("");
+  const canPrev = page > 1;
+  const canNext = page < totalPages;
+
+  return (
+    <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+      <div>
+        Showing <span className="text-foreground font-medium">{from}</span>–
+        <span className="text-foreground font-medium">{to}</span> of{" "}
+        <span className="text-foreground font-medium">{totalCount}</span> event
+        {totalCount === 1 ? "" : "s"} · page {page} of {totalPages}
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onPrev}
+          disabled={!canPrev || loading}
+        >
+          ← Prev
+        </Button>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const n = Number(jump);
+            if (Number.isFinite(n) && n >= 1 && n <= totalPages) {
+              onJump(Math.floor(n));
+              setJump("");
+            }
+          }}
+          className="flex items-center gap-1"
+        >
+          <Input
+            className="h-8 w-16 text-center"
+            placeholder={String(page)}
+            value={jump}
+            onChange={(e) => setJump(e.target.value.replace(/[^\d]/g, ""))}
+            aria-label="Jump to page"
+          />
+          <Button type="submit" size="sm" variant="ghost" disabled={loading || !jump}>
+            Go
+          </Button>
+        </form>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onNext}
+          disabled={!canNext || loading}
+        >
+          Next →
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+
 
 function Shell({ children }: { children: React.ReactNode }) {
   return <section className="mx-auto max-w-5xl px-5 py-12">{children}</section>;
