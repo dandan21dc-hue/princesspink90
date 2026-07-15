@@ -660,8 +660,12 @@ export function SupportChatWidget() {
   /**
    * Confirm card → start the Create Booking workflow (invoice + pending
    * `private_room_bookings` row) and hand off to checkout.
+   *
+   * Gated on lead details (name/email/phone). If we don't have them yet,
+   * we drop a `lead` form into the feed and wait for `onLeadSubmit` to
+   * resume this flow with the collected contact.
    */
-  const confirmSlot = async (slot: ConciergeSlot) => {
+  const confirmSlot = async (slot: ConciergeSlot, overrideLead?: LeadDetails) => {
     if (bookingSlot) return;
     const { data: session } = await supabase.auth.getSession();
     if (!session.session) {
@@ -670,6 +674,21 @@ export function SupportChatWidget() {
       });
       return;
     }
+
+    const lead = overrideLead ?? leadDraft;
+    if (!hasLead(lead)) {
+      // Avoid stacking duplicate forms if the user hammers "Confirm & pay".
+      const alreadyOpen = messagesRef.current.some((m) =>
+        m.parts.some(
+          (p) => p.type === "lead" && p.slot.startsAt === slot.startsAt && !p.submitted,
+        ),
+      );
+      if (!alreadyOpen) {
+        appendMessage({ role: "assistant", parts: [{ type: "lead", slot }] });
+      }
+      return;
+    }
+
     setBookingSlot(slot.startsAt);
     try {
       const result = await startBooking({
@@ -681,6 +700,9 @@ export function SupportChatWidget() {
           roomType: "private_room",
           bookingStartsAt: slot.startsAt,
           bookingPartySize: 1,
+          customerName: lead.name.trim(),
+          customerEmail: lead.email.trim(),
+          customerPhone: lead.phone.trim(),
         },
       });
       if ("error" in result) {
@@ -723,6 +745,49 @@ export function SupportChatWidget() {
       void refreshSlotCards();
     }
   };
+
+  /**
+   * Lead form submit → persist contact per-browser, freeze the form card
+   * into a summary, then resume the booking flow for the slot the form
+   * was raised against.
+   */
+  const onLeadSubmit = async (slot: ConciergeSlot, lead: LeadDetails) => {
+    const err = validateLead(lead);
+    if (err) {
+      toast.error(err);
+      return;
+    }
+    const cleaned: LeadDetails = {
+      name: lead.name.trim(),
+      email: lead.email.trim(),
+      phone: lead.phone.trim(),
+    };
+    writeStoredLead(cleaned);
+    setLeadDraft(cleaned);
+    // Freeze this specific lead card into a submitted summary.
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (!m.parts.some((p) => p.type === "lead" && p.slot.startsAt === slot.startsAt)) {
+          return m;
+        }
+        return {
+          ...m,
+          parts: m.parts.map((p) =>
+            p.type === "lead" && p.slot.startsAt === slot.startsAt
+              ? { ...p, submitted: cleaned }
+              : p,
+          ),
+        };
+      }),
+    );
+    setPendingLeadSlot(slot.startsAt);
+    try {
+      await confirmSlot(slot, cleaned);
+    } finally {
+      setPendingLeadSlot(null);
+    }
+  };
+
 
   const onSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
