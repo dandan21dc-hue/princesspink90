@@ -20,8 +20,14 @@ export type CartItem =
     }
   | {
       kind: "panty";
-      /** Stripe lookup_key, e.g. "panty_24hr_aud" */
-      id: "panty_24hr_aud" | "panty_48hr_aud" | "panty_72hr_aud";
+      /**
+       * `panty_listings.id` — a real database UUID. The checkout server
+       * function (`createNowpaymentsInvoice`) looks up the listing row by
+       * this id to derive amount + currency, so it MUST be a UUID, not a
+       * SKU / Stripe lookup key. Legacy carts that stored lookup keys
+       * like `panty_24hr_aud` are dropped by `read()`.
+       */
+      id: string;
       title: string;
       unit_amount_cents: number;
       currency: string;
@@ -29,6 +35,16 @@ export type CartItem =
       quantity: number;
       size?: string;
     };
+
+/** Standard UUID v1-5 shape — must match the server-side `pantyListingId` schema. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isCartItemIdValid(it: Pick<CartItem, "kind" | "id">): boolean {
+  // Content and panty lines both reference database UUIDs on the server.
+  // A non-UUID here means the entry is stale/legacy and cannot check out.
+  return typeof it.id === "string" && UUID_RE.test(it.id);
+}
+
 
 /** Stable per-line identity: same product in different sizes = separate lines. */
 export function cartLineKey(it: Pick<CartItem, "kind" | "id" | "size">): string {
@@ -45,14 +61,31 @@ function read(): CartItem[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
+    const cleaned = parsed.filter(
       (it) =>
-        it && (it.kind === "content" || it.kind === "panty") && typeof it.id === "string",
+        it &&
+        (it.kind === "content" || it.kind === "panty") &&
+        typeof it.id === "string" &&
+        // Drop legacy panty entries whose id was a Stripe lookup key
+        // (e.g. "panty_24hr_aud") — the checkout server function rejects
+        // anything that isn't a `panty_listings.id` UUID.
+        UUID_RE.test(it.id),
     ) as CartItem[];
+    // If we pruned anything, persist the cleaned list so we don't re-check
+    // on every mount and so other tabs see the same state.
+    if (cleaned.length !== parsed.length) {
+      try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      } catch {
+        // ignore — next write() will re-serialize
+      }
+    }
+    return cleaned;
   } catch {
     return [];
   }
 }
+
 
 function write(items: CartItem[]) {
   if (typeof window === "undefined") return;
