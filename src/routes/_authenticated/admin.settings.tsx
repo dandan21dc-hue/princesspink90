@@ -1614,6 +1614,62 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
+/**
+ * Dedicated screen-reader announcer for FetLife handle validation errors.
+ *
+ * The visible error message under the input is a static describedby target
+ * (not itself a live region), so screen readers describe the field's error
+ * on focus without also chattering on every keystroke. This component
+ * renders a visually-hidden polite live region that only updates when the
+ * invalid state transitions:
+ *
+ * - valid → invalid: announces "FetLife handle is invalid: <message>"
+ * - invalid → invalid with a new message: re-announces the new message
+ * - invalid → valid: announces "FetLife handle is valid"
+ * - valid → valid: silent (no update, so no announcement)
+ *
+ * Client-side errors take precedence over server-side ones so the admin
+ * hears the actionable message first.
+ */
+function FetlifeErrorAnnouncer({
+  clientError,
+  serverError,
+}: {
+  clientError: string | null;
+  serverError: string | null;
+}) {
+  const [message, setMessage] = useState("");
+  const prevInvalidRef = useRef(false);
+  const prevTextRef = useRef<string | null>(null);
+  const activeError = clientError ?? serverError;
+  const isInvalid = activeError !== null;
+  useEffect(() => {
+    if (isInvalid) {
+      const text = clientError
+        ? `FetLife handle is invalid: ${clientError}`
+        : `Server rejected FetLife handle: ${serverError}`;
+      if (!prevInvalidRef.current || prevTextRef.current !== text) {
+        setMessage(text);
+        prevTextRef.current = text;
+      }
+    } else if (prevInvalidRef.current) {
+      setMessage("FetLife handle is valid.");
+      prevTextRef.current = null;
+    }
+    prevInvalidRef.current = isInvalid;
+  }, [isInvalid, clientError, serverError]);
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="sr-only"
+    >
+      {message}
+    </div>
+  );
+}
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="mx-auto max-w-2xl px-5 py-16">
