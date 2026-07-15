@@ -314,12 +314,11 @@ describe("admin settings — FetLife confirmation gate", () => {
 
     // The saved-state snapshot the UI reads from must still be the OLD handle:
     // no refetch of getSiteSettings was triggered (query wasn't invalidated),
-    // and the "Live public link preview" still points at the original URL.
+    // and the "Live public link preview" still flags the draft as unsaved.
     expect(mockGetSiteSettings.mock.calls.length).toBe(initialFetchCount);
-    const previewLinks = screen.getAllByRole("link", {
-      name: new RegExp(`fetlife\\.com/${SAVED.fetlife_handle}`, "i"),
-    });
-    expect(previewLinks.length).toBeGreaterThan(0);
+    expect(screen.getByText(/unsaved changes/i)).toBeTruthy();
+    expect(screen.queryByText(/^matches saved$/i)).toBeNull();
+
 
     // The draft input keeps what the admin typed so they can fix + retry.
     expect(
