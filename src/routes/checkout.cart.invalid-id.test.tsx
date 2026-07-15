@@ -13,7 +13,7 @@
  *      Zod rejection that leaks no context back to the user.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, fireEvent } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, within } from "@testing-library/react";
 
 // Router: stub Link/useNavigate so the route mounts headless.
 vi.mock("@tanstack/react-router", async () => {
@@ -54,7 +54,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 // Cart: reuse the REAL `isCartItemIdValid` (that's the code under test) but
 // stub `useCart` / `cartStore.snapshot` so we can inject a bad-id line that
 // the localStorage read filter would otherwise strip on load.
-const { BAD_PANTY_ITEM } = vi.hoisted(() => ({
+const { BAD_PANTY_ITEM, GOOD_PANTY_ITEM } = vi.hoisted(() => ({
   BAD_PANTY_ITEM: {
     kind: "panty" as const,
     id: "panty_24hr_aud", // legacy Stripe lookup key, NOT a UUID
@@ -64,16 +64,26 @@ const { BAD_PANTY_ITEM } = vi.hoisted(() => ({
     quantity: 1,
     size: "M",
   },
+  GOOD_PANTY_ITEM: {
+    kind: "panty" as const,
+    id: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    title: "Silk noir",
+    unit_amount_cents: 8500,
+    currency: "aud",
+    quantity: 1,
+    size: "S",
+  },
 }));
 vi.mock("@/lib/cart", async () => {
   const actual = await vi.importActual<typeof import("@/lib/cart")>("@/lib/cart");
-  const items = [BAD_PANTY_ITEM];
+  const items = [BAD_PANTY_ITEM, GOOD_PANTY_ITEM];
   return {
     ...actual,
     useCart: () => ({
       items,
-      count: 1,
-      subtotalCents: BAD_PANTY_ITEM.unit_amount_cents,
+      count: items.length,
+      subtotalCents:
+        BAD_PANTY_ITEM.unit_amount_cents + GOOD_PANTY_ITEM.unit_amount_cents,
       hasPanty: true,
       currency: BAD_PANTY_ITEM.currency,
       ...actual.cart,
@@ -121,40 +131,68 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("CartCheckoutPage — non-UUID pantyListingId guard", () => {
-  it("blocks checkout and surfaces the toast without calling the Edge Function", async () => {
+  it("shows an inline error badge, disables ONLY the invalid line's Pay button, and still lets the valid line check out", async () => {
     render(<CartCheckoutPage />);
 
-    // The bad-id panty line renders (bypasses the localStorage read filter
-    // via the mocked snapshot) so its Pay button is clickable.
-    const payBtn = await screen.findByRole("button", {
-      name: /pay with crypto/i,
+    // Both lines render.
+    const badRow = (await screen.findByText(BAD_PANTY_ITEM.title)).closest(
+      "li",
+    ) as HTMLLIElement;
+    const goodRow = screen.getByText(GOOD_PANTY_ITEM.title).closest(
+      "li",
+    ) as HTMLLIElement;
+    expect(badRow).not.toBeNull();
+    expect(goodRow).not.toBeNull();
+
+    // Inline error badge is rendered next to the invalid title, and the row
+    // is flagged via data-invalid-id so styling/analytics can target it.
+    const badge = within(badRow).getByRole("status", {
+      name: new RegExp(`${BAD_PANTY_ITEM.title}.*can't be checked out`, "i"),
     });
-    fireEvent.click(payBtn);
+    expect(badge.textContent).toMatch(/can't check out/i);
+    expect(badRow.getAttribute("data-invalid-id")).toBe("true");
+    expect(goodRow.getAttribute("data-invalid-id")).toBeNull();
 
-    // Guard fires the FetLife-style targeted error toast — title + the
-    // remediation description that tells the admin exactly what to do.
-    expect(mockToast.error).toHaveBeenCalledTimes(1);
-    const [title, opts] = mockToast.error.mock.calls[0]!;
-    expect(String(title)).toMatch(/this item can't be checked out/i);
-    const desc = String((opts as { description?: string }).description);
-    expect(desc).toMatch(/reference is out of date/i);
-    expect(desc).toMatch(/remove it from the cart/i);
+    // Per-line remediation copy is visible under the invalid row so the
+    // shopper understands why Pay is disabled.
+    expect(
+      within(badRow).getByText(/reference is out of date/i),
+    ).toBeTruthy();
 
-    // Critical: the NOWPayments checkout Edge Function is NEVER invoked
-    // with the bad id — the guard short-circuits before openCheckout.
+    // The invalid line's Pay button is disabled (both HTML + ARIA), the
+    // valid line's is not.
+    const badPay = within(badRow).getByRole("button", {
+      name: /pay with crypto/i,
+    }) as HTMLButtonElement;
+    const goodPay = within(goodRow).getByRole("button", {
+      name: /pay with crypto/i,
+    }) as HTMLButtonElement;
+    expect(badPay.disabled).toBe(true);
+    expect(badPay.getAttribute("aria-disabled")).toBe("true");
+    expect(goodPay.disabled).toBe(false);
+    expect(goodPay.getAttribute("aria-disabled")).toBe("false");
+
+    // Clicking the disabled invalid-line button is a no-op — the browser
+    // suppresses onClick on `disabled` buttons, so neither the guard toast
+    // nor the invalid-id analytics event fires from a user click.
+    fireEvent.click(badPay);
+    expect(mockToast.error).not.toHaveBeenCalled();
     expect(mockOpenCheckout).not.toHaveBeenCalled();
-
-    // A dedicated analytics event fires so recurring bad-id checkouts are
-    // observable outside a single admin's session.
-    expect(mockTrack).toHaveBeenCalledWith(
-      "cart_checkout_invalid_id",
-      expect.objectContaining({ kind: "panty", id: BAD_PANTY_ITEM.id }),
-    );
-    // And the normal click-intent event MUST NOT fire — that would double-
-    // count and imply a successful checkout attempt reached the provider.
     expect(mockTrack).not.toHaveBeenCalledWith(
-      "nowpayments_cart_checkout_click",
+      "cart_checkout_invalid_id",
       expect.anything(),
+    );
+
+    // The valid line's Pay button still reaches the checkout provider with
+    // its UUID id — proving the disable is scoped to the invalid row only.
+    fireEvent.click(goodPay);
+    expect(mockOpenCheckout).toHaveBeenCalledTimes(1);
+    expect(mockOpenCheckout).toHaveBeenCalledWith({
+      pantyListingId: GOOD_PANTY_ITEM.id,
+    });
+    expect(mockTrack).toHaveBeenCalledWith(
+      "nowpayments_cart_checkout_click",
+      expect.objectContaining({ kind: "panty", id: GOOD_PANTY_ITEM.id }),
     );
   });
 });

@@ -125,28 +125,55 @@ function CartCheckoutPage() {
       </p>
 
       <ul className="mt-8 space-y-3">
-        {snapshot.map((it) => (
-          <li
-            key={cartLineKey(it)}
-            className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card p-4"
-          >
-            <div className="min-w-0">
-              <div className="truncate font-medium">{it.title}</div>
-              <div className="text-xs text-muted-foreground">
-                {it.size ? <>Size {it.size} · </> : null}Qty {it.quantity} ·{" "}
-                {formatMoney(it.unit_amount_cents * it.quantity, it.currency)}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => payItem(it)}
-              disabled={isOpen}
-              className="shrink-0 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-60"
+        {snapshot.map((it) => {
+          // Per-line guard: a bad id here is a mid-session race (cross-tab
+          // write, tampered storage) since mount-time hydration already
+          // pruned the persisted list. Flag it inline instead of silently
+          // showing a Pay button that will 400 at the server.
+          const invalidId = !isCartItemIdValid(it);
+          const payDisabled = isOpen || invalidId;
+          return (
+            <li
+              key={cartLineKey(it)}
+              className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card p-4"
+              data-invalid-id={invalidId ? "true" : undefined}
             >
-              {isOpen ? "Redirecting…" : "Pay with crypto"}
-            </button>
-          </li>
-        ))}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="truncate font-medium">{it.title}</div>
+                  {invalidId && (
+                    <span
+                      role="status"
+                      aria-label={`${it.title} can't be checked out`}
+                      className="shrink-0 rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-destructive"
+                    >
+                      Can't check out
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {it.size ? <>Size {it.size} · </> : null}Qty {it.quantity} ·{" "}
+                  {formatMoney(it.unit_amount_cents * it.quantity, it.currency)}
+                </div>
+                {invalidId && (
+                  <div className="mt-1 text-[11px] text-destructive">
+                    Reference is out of date — remove this item and add the current listing again.
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => payItem(it)}
+                disabled={payDisabled}
+                aria-disabled={payDisabled}
+                title={invalidId ? "This item's reference is out of date" : undefined}
+                className="shrink-0 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-60"
+              >
+                {isOpen ? "Redirecting…" : "Pay with crypto"}
+              </button>
+            </li>
+          );
+        })}
       </ul>
 
       <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4 text-sm">
