@@ -322,7 +322,6 @@ function Shell({ children }: { children: React.ReactNode }) {
   return <section className="mx-auto max-w-5xl px-5 py-12">{children}</section>;
 }
 
-// Silence unused warning for the placeholder icon import.
+// Silence unused warnings for icon imports kept for future variants.
 void Circle;
 void ShieldCheck;
-void TimelineItem;
