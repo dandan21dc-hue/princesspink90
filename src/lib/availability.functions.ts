@@ -223,7 +223,11 @@ export const listPrivateRoomAvailable = createServerFn({ method: "GET" })
 export const bulkCreateSessionSlots = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { slots: Array<{ startTime: string; endTime: string }> }) => {
+    (data: {
+      slots: Array<{ startTime: string; endTime: string }>;
+      durationMinutes?: number | null;
+      priceCents?: number | null;
+    }) => {
       if (!Array.isArray(data?.slots) || data.slots.length === 0) {
         throw new Error("No slots to create");
       }
@@ -235,6 +239,12 @@ export const bulkCreateSessionSlots = createServerFn({ method: "POST" })
         if (new Date(s.endTime).getTime() <= new Date(s.startTime).getTime()) {
           throw new Error("End time must be after start time");
         }
+      }
+      if (!validDurationMinutes(data.durationMinutes)) {
+        throw new Error("Invalid durationMinutes");
+      }
+      if (!validPriceCents(data.priceCents)) {
+        throw new Error("Invalid priceCents");
       }
       return data;
     },
@@ -265,7 +275,13 @@ export const bulkCreateSessionSlots = createServerFn({ method: "POST" })
       end: new Date(r.end_time).getTime(),
     }));
 
-    const toInsert: Array<{ start_time: string; end_time: string; is_booked: boolean }> = [];
+    const toInsert: Array<{
+      start_time: string;
+      end_time: string;
+      is_booked: boolean;
+      duration_minutes: number;
+      price_cents: number | null;
+    }> = [];
     let skipped = 0;
     const accepted: Array<{ start: number; end: number }> = [];
     const overlaps = (
@@ -282,7 +298,14 @@ export const bulkCreateSessionSlots = createServerFn({ method: "POST" })
         continue;
       }
       accepted.push({ start: p.start, end: p.end });
-      toInsert.push({ start_time: p.startIso, end_time: p.endIso, is_booked: false });
+      toInsert.push({
+        start_time: p.startIso,
+        end_time: p.endIso,
+        is_booked: false,
+        duration_minutes:
+          data.durationMinutes ?? derivedDurationMinutes(p.startIso, p.endIso),
+        price_cents: data.priceCents ?? null,
+      });
     }
 
     let created = 0;
