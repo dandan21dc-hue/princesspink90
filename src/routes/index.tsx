@@ -63,6 +63,7 @@ function Home() {
       <section className="mx-auto max-w-6xl px-5 pb-16">
         <Link
           to="/store"
+          aria-label="Enter the Midnight Glory boutique to buy pictures and videos"
           className="group flex items-center justify-between gap-4 rounded-3xl border border-primary/40 bg-gradient-to-r from-primary/20 via-primary/5 to-transparent p-6 shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
         >
           <div>
