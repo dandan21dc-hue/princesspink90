@@ -78,7 +78,10 @@ export function AccountIndex() {
       </div>
 
 
+      <VerificationStatusCard />
+
       <PerksWidget />
+
 
       <section className="rounded-lg border border-border p-5">
         <h2 className="font-display text-lg">Billing</h2>
