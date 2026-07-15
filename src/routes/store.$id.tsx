@@ -292,11 +292,17 @@ function ItemPage() {
 
 
               <div className="mt-8 space-y-3">
+                {maintenanceGate && (
+                  <div className="rounded-md border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-xs text-amber-100">
+                    {MAINTENANCE_MESSAGE}
+                  </div>
+                )}
                 {canBuyOneTime && (
                   <div className="grid gap-2 sm:grid-cols-2">
                     <button
                       onClick={buyThis}
-                      disabled={busy}
+                      disabled={buyDisabled}
+                      title={maintenanceGate ? MAINTENANCE_MESSAGE : undefined}
                       className="min-h-11 rounded-md bg-primary px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {pending === "buy"
@@ -305,7 +311,7 @@ function ItemPage() {
                     </button>
                     <button
                       onClick={() => {
-                        if (busy) return;
+                        if (buyDisabled) return;
                         setPending("cart");
                         try {
                           cart.add({
@@ -324,13 +330,15 @@ function ItemPage() {
                           setTimeout(() => setPending(null), 600);
                         }
                       }}
-                      disabled={busy}
+                      disabled={buyDisabled}
+                      title={maintenanceGate ? MAINTENANCE_MESSAGE : undefined}
                       className="min-h-11 rounded-md border border-primary/60 px-5 py-3 text-sm font-semibold uppercase tracking-widest text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                       {pending === "cart" ? "Adding…" : "Add to cart"}
                     </button>
                   </div>
                 )}
+
                 <button
                   onClick={subscribe}
                   disabled={busy}
