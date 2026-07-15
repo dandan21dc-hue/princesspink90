@@ -159,6 +159,49 @@ function bookingsFrom() {
   };
 }
 
+type IpnLedgerRow = { handled: boolean; reason: string | null; received_count: number };
+const ipnLedger = new Map<string, IpnLedgerRow>();
+const ipnKey = (pid: string, status: string) => `${pid}|${status}`;
+function ipnLedgerFrom() {
+  return {
+    insert(row: { payment_id: string; last_status: string }) {
+      const k = ipnKey(row.payment_id, row.last_status);
+      return {
+        select: (_c?: string) => ({
+          maybeSingle: () => {
+            if (ipnLedger.has(k)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
+            ipnLedger.set(k, { handled: false, reason: null, received_count: 1 });
+            return Promise.resolve({ data: { payment_id: row.payment_id }, error: null });
+          },
+        }),
+      };
+    },
+    select(_c?: string) {
+      const f: Record<string, string> = {};
+      const rd = {
+        eq: (c: string, v: string) => { f[c] = v; return rd; },
+        maybeSingle: () => Promise.resolve({
+          data: ipnLedger.get(ipnKey(f.payment_id, f.last_status)) ?? null,
+          error: null,
+        }),
+      };
+      return rd;
+    },
+    update(patch: Record<string, unknown>) {
+      const f: Record<string, string> = {};
+      const upd = {
+        eq: (c: string, v: string) => { f[c] = v; return upd; },
+        then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) => {
+          const row = ipnLedger.get(ipnKey(f.payment_id, f.last_status));
+          if (row) Object.assign(row, patch);
+          return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+        },
+      };
+      return upd;
+    },
+  };
+}
+
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     rpc: (name: string, args: Record<string, unknown>) => {
@@ -179,6 +222,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
     },
     from: (table: string) => {
       if (table === "private_room_bookings") return bookingsFrom();
+      if (table === "nowpayments_ipn_events") return ipnLedgerFrom();
       throw new Error(`unexpected from(${table})`);
     },
   },

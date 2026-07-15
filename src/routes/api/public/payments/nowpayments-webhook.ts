@@ -100,27 +100,88 @@ export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
   return null;
 }
 
-export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: boolean; reason?: string }> {
+export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: boolean; reason?: string; duplicate?: boolean }> {
   const status = String(event.payment_status ?? "").toLowerCase();
+  const paymentIdRaw = event.payment_id != null ? String(event.payment_id) : null;
+
+  if (!paymentIdRaw) {
+    return { handled: false, reason: "missing_payment_id" };
+  }
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const statusKey = status || "unknown";
+
+  // Ledger-first idempotency: composite PK (payment_id, last_status) records
+  // every distinct status transition once. A redelivery of the SAME status
+  // returns the original outcome without re-invoking any grant path; a new
+  // status for the same payment (waiting → confirming → finished) is a fresh
+  // row and processes normally. This defeats concurrent retries racing past
+  // the per-RPC external_payment_reference check.
+  const { data: inserted, error: insertErr } = await supabaseAdmin
+    .from("nowpayments_ipn_events")
+    .insert({
+      payment_id: paymentIdRaw,
+      last_status: statusKey,
+      order_id: event.order_id ?? null,
+      payload: event as unknown as never,
+    })
+    .select("payment_id")
+    .maybeSingle();
+
+  const duplicateCode = insertErr && (insertErr as { code?: string }).code === "23505";
+  if (!inserted || duplicateCode) {
+    if (insertErr && !duplicateCode) {
+      throw new Error(`ipn ledger insert failed: ${insertErr.message}`);
+    }
+    // Same (payment_id, status) already recorded — return prior outcome.
+    const { data: prior } = await supabaseAdmin
+      .from("nowpayments_ipn_events")
+      .select("handled, reason, received_count")
+      .eq("payment_id", paymentIdRaw)
+      .eq("last_status", statusKey)
+      .maybeSingle();
+    await supabaseAdmin
+      .from("nowpayments_ipn_events")
+      .update({
+        last_seen_at: new Date().toISOString(),
+        received_count: (prior?.received_count ?? 1) + 1,
+      })
+      .eq("payment_id", paymentIdRaw)
+      .eq("last_status", statusKey);
+    return {
+      handled: Boolean(prior?.handled),
+      reason: prior?.reason ?? "duplicate_ipn",
+      duplicate: true,
+    };
+  }
+
+  const finalize = async (outcome: { handled: boolean; reason?: string }) => {
+    await supabaseAdmin
+      .from("nowpayments_ipn_events")
+      .update({
+        handled: outcome.handled,
+        reason: outcome.reason ?? null,
+        processed_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+      })
+      .eq("payment_id", paymentIdRaw)
+      .eq("last_status", statusKey);
+    return outcome;
+  };
 
   // Only grant entitlements on a confirmed, settled payment. All other statuses
   // (waiting, confirming, confirmed, sending, partially_paid, failed, refunded, expired)
   // are acknowledged with 200 so NOWPayments stops retrying, but grant nothing.
   if (status !== "finished") {
-    return { handled: false, reason: `ignored_status:${status || "missing"}` };
+    return finalize({ handled: false, reason: `ignored_status:${status || "missing"}` });
   }
 
   const order = parseOrderId(event.order_id);
   if (!order) {
-    return { handled: false, reason: "unrecognised_order_id" };
+    return finalize({ handled: false, reason: "unrecognised_order_id" });
   }
 
-  const paymentRef = event.payment_id != null ? `nowpayments:${String(event.payment_id)}` : null;
-  if (!paymentRef) {
-    return { handled: false, reason: "missing_payment_id" };
-  }
-
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const paymentRef = `nowpayments:${paymentIdRaw}`;
 
   if (order.kind === "aap30d") {
     const { error } = await supabaseAdmin.rpc("grant_all_access_pass_30d", {
@@ -130,7 +191,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_all_access_pass_30d failed: ${error.message}`);
-    return { handled: true };
+    return finalize({ handled: true });
   }
 
   if (order.kind === "lifetime") {
@@ -141,7 +202,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_lifetime_membership failed: ${error.message}`);
-    return { handled: true };
+    return finalize({ handled: true });
   }
 
   if (order.kind === "panty") {
@@ -153,7 +214,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_panty_listing_order failed: ${error.message}`);
-    return { handled: true };
+    return finalize({ handled: true });
   }
 
   if (order.kind === "booking") {
@@ -166,15 +227,15 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       .eq("id", order.bookingId)
       .maybeSingle();
     if (fetchErr) throw new Error(`booking lookup failed: ${fetchErr.message}`);
-    if (!existing) return { handled: false, reason: "booking_not_found" };
+    if (!existing) return finalize({ handled: false, reason: "booking_not_found" });
     if (existing.user_id !== order.userId) {
-      return { handled: false, reason: "booking_user_mismatch" };
+      return finalize({ handled: false, reason: "booking_user_mismatch" });
     }
     if (existing.external_payment_reference && existing.external_payment_reference !== paymentRef) {
-      return { handled: false, reason: "booking_already_paid" };
+      return finalize({ handled: false, reason: "booking_already_paid" });
     }
     if (existing.status === "confirmed" && existing.external_payment_reference === paymentRef) {
-      return { handled: true }; // already processed
+      return finalize({ handled: true }); // already processed
     }
     const { error } = await supabaseAdmin
       .from("private_room_bookings")
@@ -186,10 +247,10 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       })
       .eq("id", order.bookingId);
     if (error) throw new Error(`confirm booking failed: ${error.message}`);
-    return { handled: true };
+    return finalize({ handled: true });
   }
 
-  return { handled: false, reason: "unhandled_kind" };
+  return finalize({ handled: false, reason: "unhandled_kind" });
 }
 
 export async function handleWebhookRequest(request: Request): Promise<Response> {

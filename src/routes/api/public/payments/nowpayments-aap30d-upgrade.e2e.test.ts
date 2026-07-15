@@ -76,19 +76,60 @@ function fakeGrantAllAccessPass30d(args: {
   return { data: row, error: null };
 }
 
-vi.mock("@/integrations/supabase/client.server", () => ({
-  supabaseAdmin: {
-    rpc: (name: string, args: Parameters<typeof fakeGrantAllAccessPass30d>[0]) => {
-      if (name === "grant_all_access_pass_30d") {
-        return Promise.resolve(fakeGrantAllAccessPass30d(args));
-      }
-      return Promise.resolve({
-        data: null,
-        error: { message: `unexpected rpc: ${name}` },
-      });
+vi.mock("@/integrations/supabase/client.server", () => {
+  type Row = { handled: boolean; reason: string | null; received_count: number };
+  const ledger = new Map<string, Row>();
+  const keyOf = (pid: string, status: string) => `${pid}|${status}`;
+  const from = (table: string) => {
+    if (table !== "nowpayments_ipn_events") throw new Error(`unexpected table: ${table}`);
+    return {
+      insert(row: { payment_id: string; last_status: string }) {
+        const k = keyOf(row.payment_id, row.last_status);
+        return {
+          select: (_c?: string) => ({
+            maybeSingle: () => {
+              if (ledger.has(k)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
+              ledger.set(k, { handled: false, reason: null, received_count: 1 });
+              return Promise.resolve({ data: { payment_id: row.payment_id }, error: null });
+            },
+          }),
+        };
+      },
+      select(_c?: string) {
+        const f: Record<string, string> = {};
+        const rd = {
+          eq: (c: string, v: string) => { f[c] = v; return rd; },
+          maybeSingle: () => Promise.resolve({
+            data: ledger.get(keyOf(f.payment_id, f.last_status)) ?? null,
+            error: null,
+          }),
+        };
+        return rd;
+      },
+      update(patch: Record<string, unknown>) {
+        const f: Record<string, string> = {};
+        const upd = {
+          eq: (c: string, v: string) => { f[c] = v; return upd; },
+          then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) => {
+            const row = ledger.get(keyOf(f.payment_id, f.last_status));
+            if (row) Object.assign(row, patch);
+            return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+          },
+        };
+        return upd;
+      },
+    };
+  };
+  return {
+    supabaseAdmin: {
+      rpc: (name: string, args: Parameters<typeof fakeGrantAllAccessPass30d>[0]) => {
+        if (name === "grant_all_access_pass_30d") return Promise.resolve(fakeGrantAllAccessPass30d(args));
+        return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
+      },
+      from,
     },
-  },
-}));
+  };
+});
 
 // ---- fake NOWPayments hosted-invoice API -----------------------------------
 
