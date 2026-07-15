@@ -302,6 +302,19 @@ function AdminNowpaymentsEvents() {
               <RefreshCw className="h-4 w-4" />
             )}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => exportEventsCsv(items, { status, handled, reversal, sort, search })}
+            disabled={items.length === 0}
+            title={
+              items.length === 0
+                ? "No rows to export"
+                : `Download ${items.length} filtered event(s) as CSV`
+            }
+          >
+            <Download className="h-4 w-4 mr-1" /> Export CSV
+          </Button>
         </form>
 
         {summary && (
