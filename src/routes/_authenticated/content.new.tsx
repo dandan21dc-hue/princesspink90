@@ -67,6 +67,7 @@ function validateFile(file: File, type: "image" | "video"): string | null {
 
 function NewContentPage() {
   const createFn = useServerFn(createContentItem);
+  const autoFillFn = useServerFn(describePantyPhoto);
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -78,6 +79,9 @@ function NewContentPage() {
   const [subscribersOnly, setSubscribersOnly] = useState(false);
   const [media, setMedia] = useState<MediaRow[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [autoFilling, setAutoFilling] = useState(false);
+  const coverFilenameRef = useRef<string>("");
 
   // Track active XHRs so retry/cancel can abort them.
   const xhrs = useRef<Map<string, XMLHttpRequest>>(new Map());
