@@ -169,6 +169,7 @@ function RootComponent() {
       </div>
       <AgeGate />
       <Toaster />
+      <SupportChatWidget />
     </QueryClientProvider>
   );
 }
