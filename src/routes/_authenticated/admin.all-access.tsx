@@ -235,8 +235,15 @@ function AdminAllAccess() {
               </div>
             )}
           </div>
+
+          <AuditLogPanel
+            title={`Recent grant/revoke history for ${user.email ?? user.id}`}
+            entries={audit.data?.entries ?? []}
+            isLoading={audit.isLoading}
+          />
         </div>
       )}
+
     </Shell>
   );
 }
