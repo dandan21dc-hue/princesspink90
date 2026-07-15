@@ -479,6 +479,18 @@ function EventRow({
                 {fmt(e.processed_at)}
               </div>
             )}
+            {e.reversal && (
+              <div className="sm:col-span-2 text-destructive">
+                <span className="text-muted-foreground">
+                  {e.reversal.mode === "revoked" ? "revoked" : "suspended"}:{" "}
+                </span>
+                {e.reversal.applied
+                  ? `${fmt(e.reversal.at)}${
+                      e.reversal.reason ? ` · ${e.reversal.reason}` : ""
+                    }`
+                  : "no matching entitlement found for this payment_id"}
+              </div>
+            )}
           </div>
         </div>
 
