@@ -48,6 +48,7 @@ export function AdminAssistantChat({
     Record<string, "confirmed" | "cancelled">
   >({});
   const [input, setInput] = useState("");
+  const [assetId, setAssetId] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -123,6 +124,15 @@ export function AdminAssistantChat({
     await sendMessage({ text });
   }
 
+  async function sendQuick(text: string) {
+    if (busy) return;
+    await sendMessage({ text });
+  }
+
+  const uuidRe =
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+  const assetIdValid = uuidRe.test(assetId.trim());
+
   return (
     <Card className="flex h-[75vh] flex-col overflow-hidden">
       <header className="flex items-center gap-2 border-b bg-muted/40 px-4 py-3">
@@ -137,6 +147,76 @@ export function AdminAssistantChat({
           <ShieldAlert className="h-3 w-3" /> Admin
         </Badge>
       </header>
+
+      <div className="flex flex-wrap items-center gap-2 border-b bg-muted/10 px-4 py-2">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Quick actions
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() => sendQuick("List all pending assets awaiting moderation.")}
+        >
+          List pending assets
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={busy}
+          onClick={() =>
+            sendQuick("Show the 10 most recent private-room bookings with their status.")
+          }
+        >
+          Recent bookings
+        </Button>
+        <div className="ml-auto flex items-center gap-1.5">
+          <input
+            type="text"
+            value={assetId}
+            onChange={(e) => setAssetId(e.target.value)}
+            placeholder="Asset UUID"
+            aria-label="Selected asset UUID"
+            className="h-8 w-56 rounded-md border border-input bg-background px-2 font-mono text-[11px]"
+            disabled={busy}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy || !assetIdValid}
+            title={
+              assetIdValid
+                ? "Ask the assistant to propose approving this asset — you confirm before it runs"
+                : "Enter a valid asset UUID first"
+            }
+            onClick={() =>
+              sendQuick(
+                `Please approve asset ${assetId.trim()} — propose the action so I can confirm before it runs.`,
+              )
+            }
+          >
+            <Check className="mr-1 h-3.5 w-3.5" /> Approve selected
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy || !assetIdValid}
+            onClick={() =>
+              sendQuick(
+                `Please reject asset ${assetId.trim()} (reason: fails moderation guidelines) — propose the action so I can confirm before it runs.`,
+              )
+            }
+          >
+            <X className="mr-1 h-3.5 w-3.5" /> Reject selected
+          </Button>
+        </div>
+      </div>
+
+
 
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 && (
