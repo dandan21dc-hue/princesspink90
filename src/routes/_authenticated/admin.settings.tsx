@@ -555,10 +555,14 @@ export function AdminSettings() {
           setPendingFetlifeConfirm(false);
           if (intent !== "confirm") {
             // Dialog dismissed without confirming (Cancel button, Esc, or
-            // overlay click) — surface a toast so the admin isn't left
-            // wondering whether the FetLife change went through.
+            // overlay click) — revert the input to the last saved value so
+            // the visible draft matches what's actually live, and surface a
+            // toast so the admin isn't left wondering whether the FetLife
+            // change went through.
+            const savedHandle = settings.data?.fetlife_handle ?? "";
+            setFetlife(savedHandle);
             toast("FetLife handle change not saved", {
-              description: `Kept current handle: ${settings.data?.fetlife_handle ?? "(none)"}`,
+              description: `Kept current handle: ${savedHandle || "(none)"}`,
             });
           }
           // Return keyboard focus to the Save button that opened the dialog.
