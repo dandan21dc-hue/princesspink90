@@ -35,6 +35,10 @@ function fmt(iso: string) {
     hour: "2-digit",
     minute: "2-digit",
   });
+
+function fmtAud(cents: number | null | undefined) {
+  if (cents == null) return "—";
+  return `A$${(cents / 100).toFixed(2)}`;
 }
 
 type ConflictPair = { a: WorkspaceSlot; b: WorkspaceSlot };
