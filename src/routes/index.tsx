@@ -100,6 +100,26 @@ function Home() {
           </span>
         </Link>
       </section>
+      <section className="mx-auto max-w-6xl px-5 pb-16">
+        <Link
+          to="/guide/what-to-wear-to-a-kink-party"
+          aria-label="Read the first-timer's guide to kink party dress codes and etiquette"
+          className="group flex items-center justify-between gap-4 rounded-3xl border border-neon/40 bg-gradient-to-r from-neon/20 via-neon/5 to-transparent p-6 shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition"
+        >
+          <div>
+            <div className="text-[10px] uppercase tracking-[0.3em] text-neon">First timer · Guide</div>
+            <div className="mt-1 font-display text-2xl font-bold sm:text-3xl">
+              What to wear to a kink party
+            </div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              Dress codes, etiquette, and what actually happens on the night — written for people heading to their first Midnight Glory event.
+            </div>
+          </div>
+          <span className="shrink-0 rounded-md bg-neon px-4 py-2 text-xs font-semibold uppercase tracking-widest text-background">
+            Read →
+          </span>
+        </Link>
+      </section>
       <HostBlock />
       <CohostBlock />
       <section id="partnerships" className="mx-auto max-w-3xl px-5 pb-24">
