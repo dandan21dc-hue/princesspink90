@@ -181,8 +181,8 @@ export function AdminSettings() {
       return false;
     }
   })();
-  const confirmDisabled =
-    save.isPending || fetlifeError !== null || !fetlifeUrlMatchesHandle;
+  const fetlifeConfirmBlocked =
+    fetlifeError !== null || !fetlifeUrlMatchesHandle;
 
   const sessionInputsInvalid =
     priceError !== null ||
