@@ -430,19 +430,28 @@ export function AdminSettings() {
           hint="3-20 characters: letters, digits, underscore, or hyphen. Pasting a full profile URL is fine — it will be normalized."
         >
           <input
+            ref={fetlifeInputRef}
             required
             maxLength={100}
             value={fetlife}
             aria-invalid={fetlifeError !== null}
+            aria-errormessage={fetlifeError ? "fetlife-handle-error" : undefined}
             onChange={(e) => setFetlife(e.target.value)}
             onBlur={() => setFetlife((v) => normalizeFetlifeHandle(v))}
             className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
               fetlifeError ? "border-destructive" : "border-border"
             }`}
           />
-          {fetlifeError && (
-            <div className="mt-1 text-[11px] text-destructive">{fetlifeError}</div>
-          )}
+          {/* role="alert" + aria-live announce the error the moment it appears
+              (typed input, or after a server rejection focuses the field). */}
+          <div
+            id="fetlife-handle-error"
+            role="alert"
+            aria-live="polite"
+            className="mt-1 text-[11px] text-destructive"
+          >
+            {fetlifeError ?? ""}
+          </div>
         </Field>
         <ContactLinkPreview
           draftEmail={emailError ? null : emailTrimmed}
