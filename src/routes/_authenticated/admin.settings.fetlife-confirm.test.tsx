@@ -182,7 +182,7 @@ describe("admin settings — FetLife confirmation gate", () => {
     // The dialog opens…
     const dialog = await screen.findByRole("alertdialog");
     expect(within(dialog).getByText(/confirm fetlife handle/i)).toBeTruthy();
-    expect(within(dialog).getByText(/New-Handle-99/)).toBeTruthy();
+    expect(within(dialog).getAllByText(/New-Handle-99/)[0]).toBeTruthy();
 
     // …and update MUST NOT have been called yet.
     expect(mockUpdateSiteSettings).not.toHaveBeenCalled();
@@ -220,7 +220,7 @@ describe("admin settings — FetLife confirmation gate", () => {
 
     const dialog = await screen.findByRole("alertdialog");
     // Preview should show the normalized handle, not the raw URL.
-    expect(within(dialog).getByText(/Brand-New-Handle/)).toBeTruthy();
+    expect(within(dialog).getAllByText(/Brand-New-Handle/)[0]).toBeTruthy();
 
     fireEvent.click(
       within(dialog).getByRole("button", { name: /yes, update handle/i }),
