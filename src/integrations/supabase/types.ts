@@ -2189,6 +2189,39 @@ export type Database = {
         }
         Relationships: []
       }
+      security_changelog: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          published_at: string
+          summary: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string
+          summary: string
+          title: string
+          updated_at?: string
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           email: string
