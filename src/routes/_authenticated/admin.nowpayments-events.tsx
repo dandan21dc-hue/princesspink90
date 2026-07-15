@@ -101,6 +101,7 @@ function AdminNowpaymentsEvents() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [autoRefresh, setAutoRefresh] = useState<number>(0); // seconds; 0 = off
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
@@ -122,6 +123,8 @@ function AdminNowpaymentsEvents() {
         },
       }),
     enabled: me.data?.isAdmin === true,
+    refetchInterval: autoRefresh > 0 ? autoRefresh * 1000 : false,
+    refetchIntervalInBackground: false,
   });
 
 
