@@ -151,13 +151,12 @@ describe("/account/orders — populated account", () => {
 
     // Summary counts reflect the mixed states.
     const summarySection = screen.getByText("Total").closest("section")!;
-    expect(within(within(summarySection).getByText("Total").closest("div")!).getByText("4")).toBeTruthy();
-    expect(within(within(summarySection).getByText("Active").closest("div")!).getByText("2")).toBeTruthy();
-    expect(within(within(summarySection).getByText("Pending").closest("div")!).getByText("1")).toBeTruthy();
+    const cardFor = (label: string) => within(summarySection).getByText(label).parentElement!;
+    expect(within(cardFor("Total")).getByText("4")).toBeTruthy();
+    expect(within(cardFor("Active")).getByText("2")).toBeTruthy();
+    expect(within(cardFor("Pending")).getByText("1")).toBeTruthy();
     // Expired / revoked = 0 + 1
-    expect(
-      within(within(summarySection).getByText("Expired / revoked").closest("div")!).getByText("1"),
-    ).toBeTruthy();
+    expect(within(cardFor("Expired / revoked")).getByText("1")).toBeTruthy();
 
     // One data row per order (plus the header row).
     const bodyRows = within(table).getAllByRole("row").slice(1);
