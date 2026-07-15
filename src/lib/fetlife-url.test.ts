@@ -105,12 +105,18 @@ describe("fetlifeUrlRoundTripsToHandle", () => {
     }
   });
 
-  it("returns false when a wrong-host URL survives normalization as 'https:'", () => {
-    // The normalizer yields "https:" for a wrong-host URL. That value can't
-    // round-trip through `new URL('https://fetlife.com/https:')` and match
-    // itself, so Save stays blocked. This test locks that in.
-    expect(fetlifeUrlRoundTripsToHandle("https://evil.com/queen")).toBe(false);
+  it("wrong-host URL round-trips to 'https:' — Save must be blocked by validateFetlifeHandle, NOT this helper", () => {
+    // Contract note: the normalizer yields "https:" for a wrong-host URL,
+    // and "https:" happens to round-trip through
+    // `new URL('https://fetlife.com/https:')` back to itself, so this
+    // helper alone returns true. That's fine because
+    // `validateFetlifeHandle` rejects wrong-host input (see
+    // settings.validation.test.ts). If someone ever removes that
+    // validator check thinking this helper is sufficient, this test
+    // spells out why it isn't.
+    expect(fetlifeUrlRoundTripsToHandle("https://evil.com/queen")).toBe(true);
   });
+
 
   it("is deterministic: identical input always yields the same result", () => {
     const raw = "https://www.fetlife.com/queen/photos?ref=x#bio";
