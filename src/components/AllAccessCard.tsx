@@ -112,6 +112,10 @@ export function AllAccessCard() {
           )}
         </div>
 
+        {tiersQuery.isLoading && passes.length === 0 && (
+          <p className="mt-3 text-[11px] text-muted-foreground">Loading pricing…</p>
+        )}
+
         <ul className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2">
           {passes.map((p) => {
             const owned = tiers.active[p.plan];
