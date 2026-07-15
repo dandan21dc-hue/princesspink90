@@ -245,6 +245,7 @@ function AdminAllAccess() {
           />
         </div>
       )}
+      <BulkPanel />
 
     </Shell>
   );
