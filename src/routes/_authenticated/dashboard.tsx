@@ -81,6 +81,8 @@ const GROUPS: NavGroup[] = [
     items: [
       { label: "Command Center (AI)", to: "/admin/command-center", icon: Wand2, adminOnly: true },
       { label: "User Management", to: "/admin/user-management", icon: UserCog, adminOnly: true },
+      { label: "CRM", to: "/admin/crm", icon: UserCog, adminOnly: true },
+
       { label: "Co-Hosts", to: "/admin/cohosts", icon: UsersRound, adminOnly: true },
       { label: "Verifications", to: "/admin/verifications", icon: BadgeCheck, adminOnly: true },
       { label: "Admin", to: "/admin/lifetime", icon: Crown, adminOnly: true },
