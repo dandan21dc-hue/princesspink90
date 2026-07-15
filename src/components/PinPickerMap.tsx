@@ -92,9 +92,9 @@ export function PinPickerMap({ latitude, longitude, onChange, className }: Props
   if (!PUBLIC_TOKEN) {
     return (
       <div
-        className={`flex items-center justify-center rounded-lg border border-border bg-card/40 p-4 text-xs text-muted-foreground ${className ?? ""}`}
+        className={`flex items-center justify-center rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-xs text-destructive ${className ?? ""}`}
       >
-        Map preview unavailable — Mapbox public token is not configured.
+        Map preview unavailable — {TOKEN_CHECK.ok ? "Mapbox token error." : TOKEN_CHECK.error}
       </div>
     );
   }
