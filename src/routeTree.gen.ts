@@ -81,6 +81,7 @@ import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminBookingRejectionsRouteImport } from './routes/_authenticated/admin.booking-rejections'
 import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin.availability'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
+import { Route as AuthenticatedAdminAllAccessRouteImport } from './routes/_authenticated/admin.all-access'
 import { Route as AuthenticatedAdminActivityAuditRouteImport } from './routes/_authenticated/admin.activity-audit'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
@@ -498,6 +499,12 @@ const AuthenticatedAdminAnalyticsRoute =
     path: '/admin/analytics',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAllAccessRoute =
+  AuthenticatedAdminAllAccessRouteImport.update({
+    id: '/admin/all-access',
+    path: '/admin/all-access',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminActivityAuditRoute =
   AuthenticatedAdminActivityAuditRouteImport.update({
     id: '/admin/activity-audit',
@@ -676,6 +683,7 @@ export interface FileRoutesByFullPath {
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
+  '/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
@@ -772,6 +780,7 @@ export interface FileRoutesByTo {
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
+  '/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
@@ -871,6 +880,7 @@ export interface FileRoutesById {
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
   '/_authenticated/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
+  '/_authenticated/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
@@ -970,6 +980,7 @@ export interface FileRouteTypes {
     | '/store/subscribe'
     | '/account/billing'
     | '/admin/activity-audit'
+    | '/admin/all-access'
     | '/admin/analytics'
     | '/admin/availability'
     | '/admin/booking-rejections'
@@ -1066,6 +1077,7 @@ export interface FileRouteTypes {
     | '/store/subscribe'
     | '/account/billing'
     | '/admin/activity-audit'
+    | '/admin/all-access'
     | '/admin/analytics'
     | '/admin/availability'
     | '/admin/booking-rejections'
@@ -1164,6 +1176,7 @@ export interface FileRouteTypes {
     | '/store/subscribe'
     | '/_authenticated/account/billing'
     | '/_authenticated/admin/activity-audit'
+    | '/_authenticated/admin/all-access'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/availability'
     | '/_authenticated/admin/booking-rejections'
@@ -1780,6 +1793,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/all-access': {
+      id: '/_authenticated/admin/all-access'
+      path: '/admin/all-access'
+      fullPath: '/admin/all-access'
+      preLoaderRoute: typeof AuthenticatedAdminAllAccessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/activity-audit': {
       id: '/_authenticated/admin/activity-audit'
       path: '/admin/activity-audit'
@@ -2003,6 +2023,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedAdminActivityAuditRoute: typeof AuthenticatedAdminActivityAuditRoute
+  AuthenticatedAdminAllAccessRoute: typeof AuthenticatedAdminAllAccessRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminBookingRejectionsRoute: typeof AuthenticatedAdminBookingRejectionsRoute
@@ -2051,6 +2072,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedAdminActivityAuditRoute: AuthenticatedAdminActivityAuditRoute,
+  AuthenticatedAdminAllAccessRoute: AuthenticatedAdminAllAccessRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminAvailabilityRoute: AuthenticatedAdminAvailabilityRoute,
   AuthenticatedAdminBookingRejectionsRoute:
