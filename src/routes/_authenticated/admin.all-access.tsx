@@ -16,7 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Trash2, InfinityIcon, Calendar, History, Upload } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Trash2, InfinityIcon, Calendar, History, Upload, ShieldCheck } from "lucide-react";
 
 
 export const Route = createFileRoute("/_authenticated/admin/all-access")({
@@ -73,14 +83,32 @@ function AdminAllAccess() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [pendingRevoke, setPendingRevoke] = useState<{
+    id: string;
+    kind: string;
+    environment: string;
+    expires_at: string | null;
+  } | null>(null);
+  const [lastVerified, setLastVerified] = useState<{ id: string; kind: string } | null>(null);
+
   const revoke = useMutation({
     mutationFn: (membershipId: string) => revokeFn({ data: { membershipId } }),
-    onSuccess: () => {
-      toast.success("Membership revoked");
+    onSuccess: (res) => {
+      const kind = res.deleted?.kind ?? "membership";
+      if (res.verified) {
+        setLastVerified({ id: res.deleted?.id ?? "", kind });
+        toast.success(`Revoked and verified: ${kind} row removed from database`);
+      } else {
+        toast.warning(`Delete returned OK but verification could not confirm removal`);
+      }
+      setPendingRevoke(null);
       qc.invalidateQueries({ queryKey: ["admin-all-access-lookup"] });
       qc.invalidateQueries({ queryKey: ["admin-all-access-audit"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setPendingRevoke(null);
+      toast.error(e.message);
+    },
   });
 
 
@@ -218,18 +246,28 @@ function AdminAllAccess() {
                             </div>
                           )}
                         </div>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            if (confirm(`Revoke ${m.kind}? This deletes the membership row.`)) {
-                              revoke.mutate(m.id);
+                        <div className="flex flex-col items-end gap-2">
+                          {lastVerified?.id === m.id && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <ShieldCheck className="h-3 w-3" /> Verified removed
+                            </Badge>
+                          )}
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              setPendingRevoke({
+                                id: m.id,
+                                kind: m.kind,
+                                environment: m.environment,
+                                expires_at: m.expires_at,
+                              })
                             }
-                          }}
-                          disabled={revoke.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" /> Revoke
-                        </Button>
+                            disabled={revoke.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Revoke
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   );
@@ -246,6 +284,76 @@ function AdminAllAccess() {
         </div>
       )}
       <BulkPanel />
+
+      <AlertDialog
+        open={pendingRevoke !== null}
+        onOpenChange={(open) => {
+          if (!open && !revoke.isPending) setPendingRevoke(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke All-Access membership?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>
+                  This permanently deletes the membership row. After deletion the
+                  server re-reads the row by id to confirm removal, and the result
+                  is written to the audit log.
+                </div>
+                {pendingRevoke && (
+                  <div className="rounded-md border border-border/40 bg-muted/30 p-3 text-xs space-y-1">
+                    <div>
+                      Kind:{" "}
+                      <span className="font-mono text-foreground">
+                        {pendingRevoke.kind}
+                      </span>
+                    </div>
+                    <div>
+                      Environment:{" "}
+                      <span className="font-mono text-foreground">
+                        {pendingRevoke.environment}
+                      </span>
+                    </div>
+                    {pendingRevoke.expires_at && (
+                      <div>
+                        Expires:{" "}
+                        <span className="text-foreground">
+                          {fmt(pendingRevoke.expires_at)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="font-mono text-[10px] text-muted-foreground/70 truncate">
+                      id: {pendingRevoke.id}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revoke.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={revoke.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingRevoke) revoke.mutate(pendingRevoke.id);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {revoke.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Revoking…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" /> Revoke &amp; verify
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </Shell>
   );
