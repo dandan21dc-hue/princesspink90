@@ -115,8 +115,24 @@ export function validateFetlifeHandle(raw: string): string | null {
   return null;
 }
 
-const updateSchema = z.object({
-  email: z.string().trim().email().max(255),
+// Shared contact-email rules — mirrored on client so the form catches bad
+// addresses before we hit the RPC. The server still re-validates via
+// `contactSettingsUpdateSchema` below.
+export const CONTACT_EMAIL_MAX = 255;
+const CONTACT_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function validateContactEmail(raw: string): string | null {
+  const e = (raw ?? "").trim();
+  if (e === "") return "Contact email is required.";
+  if (e.length > CONTACT_EMAIL_MAX)
+    return `Contact email must be ${CONTACT_EMAIL_MAX} characters or fewer.`;
+  if (!CONTACT_EMAIL_RE.test(e))
+    return "Enter a valid email address (e.g. name@example.com).";
+  return null;
+}
+
+export const contactSettingsUpdateSchema = z.object({
+  email: z.string().trim().email().max(CONTACT_EMAIL_MAX),
   fetlife_handle: z
     .string()
     .transform((v) => normalizeFetlifeHandle(v))
@@ -144,7 +160,10 @@ const updateSchema = z.object({
     .max(SESSION_DURATION_MAX_MINUTES, {
       message: `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`,
     }),
-  });
+});
+
+const updateSchema = contactSettingsUpdateSchema;
+
 
 export type PricingAuditEntry = {
   id: string;
