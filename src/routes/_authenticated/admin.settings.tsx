@@ -257,6 +257,12 @@ export function AdminSettings() {
   // dismissal (Esc / overlay). We only toast on the latter two — confirming
   // proceeds to the save toast instead.
   const fetlifeDismissIntentRef = useRef<"confirm" | "cancel" | null>(null);
+  // The Save button opens the confirm dialog programmatically. Radix only
+  // auto-restores focus to its own <Trigger>, so we hold a ref to Save and
+  // return focus there after the dialog closes — otherwise keyboard users
+  // land back at document.body.
+  const saveButtonRef = useRef<HTMLButtonElement | null>(null);
+  const fetlifeConfirmDialogId = "fetlife-confirm-dialog";
   const fetlifeChanged =
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
 
