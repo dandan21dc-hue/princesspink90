@@ -109,18 +109,19 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
   }
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const statusKey = status || "unknown";
 
-  // Ledger-first idempotency: record the IPN before doing any work. If a row
-  // for this payment_id already exists, this is a redelivery — bump the
-  // counter and short-circuit with the original outcome instead of re-running
-  // the grant path. This protects against concurrent retries that would
-  // otherwise race past the per-RPC external_payment_reference check.
+  // Ledger-first idempotency: composite PK (payment_id, last_status) records
+  // every distinct status transition once. A redelivery of the SAME status
+  // returns the original outcome without re-invoking any grant path; a new
+  // status for the same payment (waiting → confirming → finished) is a fresh
+  // row and processes normally. This defeats concurrent retries racing past
+  // the per-RPC external_payment_reference check.
   const { data: inserted, error: insertErr } = await supabaseAdmin
     .from("nowpayments_ipn_events")
     .insert({
       payment_id: paymentIdRaw,
-      first_status: status || "unknown",
-      last_status: status || "unknown",
+      last_status: statusKey,
       order_id: event.order_id ?? null,
       payload: event as unknown as never,
     })
@@ -132,20 +133,21 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
     if (insertErr && !duplicateCode) {
       throw new Error(`ipn ledger insert failed: ${insertErr.message}`);
     }
-    // Redelivery: bump seen counters + latest status, return original outcome.
+    // Same (payment_id, status) already recorded — return prior outcome.
     const { data: prior } = await supabaseAdmin
       .from("nowpayments_ipn_events")
       .select("handled, reason, received_count")
       .eq("payment_id", paymentIdRaw)
+      .eq("last_status", statusKey)
       .maybeSingle();
     await supabaseAdmin
       .from("nowpayments_ipn_events")
       .update({
-        last_status: status || "unknown",
         last_seen_at: new Date().toISOString(),
         received_count: (prior?.received_count ?? 1) + 1,
       })
-      .eq("payment_id", paymentIdRaw);
+      .eq("payment_id", paymentIdRaw)
+      .eq("last_status", statusKey);
     return {
       handled: Boolean(prior?.handled),
       reason: prior?.reason ?? "duplicate_ipn",
@@ -160,10 +162,10 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
         handled: outcome.handled,
         reason: outcome.reason ?? null,
         processed_at: new Date().toISOString(),
-        last_status: status || "unknown",
         last_seen_at: new Date().toISOString(),
       })
-      .eq("payment_id", paymentIdRaw);
+      .eq("payment_id", paymentIdRaw)
+      .eq("last_status", statusKey);
     return outcome;
   };
 
