@@ -143,7 +143,7 @@ async function downloadEntryMarkdown(entry: Entry) {
     `- Published: ${publishedISO}\n` +
     `- Generated: ${new Date().toISOString()}\n\n` +
     `---\n\n${entry.summary}\n`;
-  const bytes = new TextEncoder().encode(md);
+  const bytes = new TextEncoder().encode(md).buffer as ArrayBuffer;
   const filename = buildArtifactFilename(entry, "md", buildStamp());
   await saveWithChecksum(bytes, filename, "text/markdown;charset=utf-8");
 }
