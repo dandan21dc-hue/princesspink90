@@ -411,12 +411,7 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       "https://fetlife.com/Kinky-Pasted-Handle?ref=x",
     ];
     for (const raw of rawPastes) {
-      fireEvent.change(fetInput, { target: { value: "Reset-Handle-XY" } });
-      // eslint-disable-next-line no-console
-      console.log("after reset input value =", (fetInput as HTMLInputElement).value);
-      fireEvent.change(fetInput, { target: { value: raw } });
-      // eslint-disable-next-line no-console
-      console.log("raw=", JSON.stringify(raw), "input value =", (fetInput as HTMLInputElement).value);
+      fireEvent.input(fetInput, { target: { value: raw } });
       await waitFor(() => assertDialogUrls(dialog, "Kinky-Pasted-Handle"));
     }
   });
