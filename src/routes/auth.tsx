@@ -41,6 +41,46 @@ function Auth() {
   );
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [refStatus, setRefStatus] = useState<
+    { state: "idle" | "checking" | "ok" | "invalid" | "self"; message: string }
+  >({ state: "idle", message: "" });
+  const runValidate = useServerFn(validateReferralCode);
+
+  useEffect(() => {
+    if (mode !== "signup") {
+      setRefStatus({ state: "idle", message: "" });
+      return;
+    }
+    const code = referralCode.trim().toUpperCase();
+    if (!code) {
+      setRefStatus({ state: "idle", message: "" });
+      return;
+    }
+    let cancelled = false;
+    setRefStatus({ state: "checking", message: "Checking code…" });
+    const t = setTimeout(async () => {
+      try {
+        const res = await runValidate({ data: { code, email } });
+        if (cancelled) return;
+        if (!res.exists) {
+          setRefStatus({ state: "invalid", message: "That referral code doesn't exist." });
+        } else if (res.is_self) {
+          setRefStatus({
+            state: "self",
+            message: "You can't use your own referral code.",
+          });
+        } else {
+          setRefStatus({ state: "ok", message: "Referral code applied." });
+        }
+      } catch {
+        if (!cancelled) setRefStatus({ state: "idle", message: "" });
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [referralCode, email, mode, runValidate]);
 
   // Only accept same-origin relative paths for `next` so OAuth consent returns work
   // without opening an open-redirect.
