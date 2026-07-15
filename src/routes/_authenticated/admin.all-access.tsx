@@ -137,12 +137,20 @@ function AdminAllAccess() {
             Grant or revoke All-Access entitlements without going through billing.
           </p>
         </div>
-        <Link
-          to="/dashboard"
-          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-        >
-          ← Dashboard
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/admin/all-access-pricing"
+            className="text-xs uppercase tracking-widest text-primary hover:underline"
+          >
+            Edit pricing →
+          </Link>
+          <Link
+            to="/dashboard"
+            className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+          >
+            ← Dashboard
+          </Link>
+        </div>
       </div>
 
       <Card className="mt-8 p-5">

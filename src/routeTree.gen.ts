@@ -97,6 +97,7 @@ import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminBookingRejectionsRouteImport } from './routes/_authenticated/admin.booking-rejections'
 import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin.availability'
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
+import { Route as AuthenticatedAdminAllAccessPricingRouteImport } from './routes/_authenticated/admin.all-access-pricing'
 import { Route as AuthenticatedAdminAllAccessRouteImport } from './routes/_authenticated/admin.all-access'
 import { Route as AuthenticatedAdminActivityAuditRouteImport } from './routes/_authenticated/admin.activity-audit'
 import { Route as AuthenticatedAccountRewardsRouteImport } from './routes/_authenticated/account.rewards'
@@ -613,6 +614,12 @@ const AuthenticatedAdminAnalyticsRoute =
     path: '/admin/analytics',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminAllAccessPricingRoute =
+  AuthenticatedAdminAllAccessPricingRouteImport.update({
+    id: '/admin/all-access-pricing',
+    path: '/admin/all-access-pricing',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAllAccessRoute =
   AuthenticatedAdminAllAccessRouteImport.update({
     id: '/admin/all-access',
@@ -849,6 +856,7 @@ export interface FileRoutesByFullPath {
   '/account/rewards': typeof AuthenticatedAccountRewardsRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
+  '/admin/all-access-pricing': typeof AuthenticatedAdminAllAccessPricingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
@@ -969,6 +977,7 @@ export interface FileRoutesByTo {
   '/account/rewards': typeof AuthenticatedAccountRewardsRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
+  '/admin/all-access-pricing': typeof AuthenticatedAdminAllAccessPricingRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
@@ -1091,6 +1100,7 @@ export interface FileRoutesById {
   '/_authenticated/account/rewards': typeof AuthenticatedAccountRewardsRoute
   '/_authenticated/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/_authenticated/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
+  '/_authenticated/admin/all-access-pricing': typeof AuthenticatedAdminAllAccessPricingRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
   '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
@@ -1214,6 +1224,7 @@ export interface FileRouteTypes {
     | '/account/rewards'
     | '/admin/activity-audit'
     | '/admin/all-access'
+    | '/admin/all-access-pricing'
     | '/admin/analytics'
     | '/admin/availability'
     | '/admin/booking-rejections'
@@ -1334,6 +1345,7 @@ export interface FileRouteTypes {
     | '/account/rewards'
     | '/admin/activity-audit'
     | '/admin/all-access'
+    | '/admin/all-access-pricing'
     | '/admin/analytics'
     | '/admin/availability'
     | '/admin/booking-rejections'
@@ -1455,6 +1467,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account/rewards'
     | '/_authenticated/admin/activity-audit'
     | '/_authenticated/admin/all-access'
+    | '/_authenticated/admin/all-access-pricing'
     | '/_authenticated/admin/analytics'
     | '/_authenticated/admin/availability'
     | '/_authenticated/admin/booking-rejections'
@@ -2207,6 +2220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminAnalyticsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/all-access-pricing': {
+      id: '/_authenticated/admin/all-access-pricing'
+      path: '/admin/all-access-pricing'
+      fullPath: '/admin/all-access-pricing'
+      preLoaderRoute: typeof AuthenticatedAdminAllAccessPricingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/all-access': {
       id: '/_authenticated/admin/all-access'
       path: '/admin/all-access'
@@ -2510,6 +2530,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedVerifyRoute: typeof AuthenticatedVerifyRoute
   AuthenticatedAdminActivityAuditRoute: typeof AuthenticatedAdminActivityAuditRoute
   AuthenticatedAdminAllAccessRoute: typeof AuthenticatedAdminAllAccessRoute
+  AuthenticatedAdminAllAccessPricingRoute: typeof AuthenticatedAdminAllAccessPricingRoute
   AuthenticatedAdminAnalyticsRoute: typeof AuthenticatedAdminAnalyticsRoute
   AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminBookingRejectionsRoute: typeof AuthenticatedAdminBookingRejectionsRoute
@@ -2568,6 +2589,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedVerifyRoute: AuthenticatedVerifyRoute,
   AuthenticatedAdminActivityAuditRoute: AuthenticatedAdminActivityAuditRoute,
   AuthenticatedAdminAllAccessRoute: AuthenticatedAdminAllAccessRoute,
+  AuthenticatedAdminAllAccessPricingRoute:
+    AuthenticatedAdminAllAccessPricingRoute,
   AuthenticatedAdminAnalyticsRoute: AuthenticatedAdminAnalyticsRoute,
   AuthenticatedAdminAvailabilityRoute: AuthenticatedAdminAvailabilityRoute,
   AuthenticatedAdminBookingRejectionsRoute:

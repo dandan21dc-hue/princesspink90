@@ -306,6 +306,60 @@ export type Database = {
         }
         Relationships: []
       }
+      all_access_pass_tiers: {
+        Row: {
+          cadence: string
+          created_at: string
+          currency: string
+          id: string
+          invoice_description: string
+          is_active: boolean
+          kind: string
+          label: string
+          perk: string | null
+          plan_id: string
+          price_cents: number
+          price_display: string
+          price_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          cadence?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_description: string
+          is_active?: boolean
+          kind: string
+          label: string
+          perk?: string | null
+          plan_id: string
+          price_cents: number
+          price_display: string
+          price_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          cadence?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_description?: string
+          is_active?: boolean
+          kind?: string
+          label?: string
+          perk?: string | null
+          plan_id?: string
+          price_cents?: number
+          price_display?: string
+          price_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       analytics_events: {
         Row: {
           action: string | null
