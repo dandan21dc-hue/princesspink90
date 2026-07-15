@@ -73,6 +73,61 @@ const INITIAL_GREETING: ChatMessage = {
 };
 
 const LOCAL_KEY = "concierge:history:v1";
+const TZ_KEY = "concierge:tz:v1";
+
+/**
+ * Curated shortlist of common timezones for the concierge selector. The
+ * user's detected browser zone is always injected first so the default is
+ * one tap away even when it's not on this list.
+ */
+const TIMEZONE_CHOICES: string[] = [
+  "Pacific/Auckland",
+  "Australia/Sydney",
+  "Australia/Melbourne",
+  "Australia/Brisbane",
+  "Australia/Perth",
+  "Asia/Tokyo",
+  "Asia/Singapore",
+  "Asia/Hong_Kong",
+  "Asia/Dubai",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Africa/Johannesburg",
+  "America/Sao_Paulo",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "UTC",
+];
+
+function detectBrowserTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+function readStoredTimezone(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(TZ_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredTimezone(tz: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(TZ_KEY, tz);
+  } catch {
+    /* ignore quota */
+  }
+}
+
 
 const TERMINAL_STATUSES = new Set(["confirmed", "cancelled", "failed", "refunded"]);
 
