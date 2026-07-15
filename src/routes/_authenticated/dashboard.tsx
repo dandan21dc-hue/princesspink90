@@ -117,6 +117,7 @@ const GROUPS: NavGroup[] = [
     adminOnly: true,
     items: [
       { label: "Audit Log", to: "/admin/compliance-audit", icon: ScrollText, adminOnly: true },
+      { label: "Activity Audit", to: "/admin/activity-audit", icon: ScrollText, adminOnly: true },
       { label: "Purge Log", to: "/admin/health-purge", icon: Trash2, adminOnly: true },
       { label: "Incident Log", to: "/admin/safety-incidents", icon: AlertTriangle, adminOnly: true },
       { label: "Webhook Events", to: "/admin/webhook-events", icon: Webhook, adminOnly: true },
