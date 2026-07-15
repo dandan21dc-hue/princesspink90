@@ -1286,7 +1286,15 @@ export const adminBulkUpdateNowpaymentsEvents = createServerFn({ method: "POST" 
     const failed: Array<{ paymentId: string; lastStatus: string; error: string }> = [];
 
     for (const k of data.keys) {
-      const patch: Record<string, unknown> = {};
+      const patch: {
+        handled?: boolean;
+        reason?: string | null;
+        handled_updated_at?: string;
+        handled_updated_by?: string;
+        admin_note?: string | null;
+        admin_note_updated_at?: string;
+        admin_note_updated_by?: string;
+      } = {};
       if (data.action === "mark_handled") {
         patch.handled = true;
         patch.reason = null;
@@ -1297,7 +1305,7 @@ export const adminBulkUpdateNowpaymentsEvents = createServerFn({ method: "POST" 
         patch.handled_updated_at = now;
         patch.handled_updated_by = context.userId;
       } else {
-        patch.admin_note = (data.note ?? "").trim() === "" ? null : data.note;
+        patch.admin_note = (data.note ?? "").trim() === "" ? null : data.note ?? null;
         patch.admin_note_updated_at = now;
         patch.admin_note_updated_by = context.userId;
       }
@@ -1306,6 +1314,7 @@ export const adminBulkUpdateNowpaymentsEvents = createServerFn({ method: "POST" 
         .update(patch)
         .eq("payment_id", k.paymentId)
         .eq("last_status", k.lastStatus);
+
       if (error) {
         failed.push({ paymentId: k.paymentId, lastStatus: k.lastStatus, error: error.message });
       } else {
