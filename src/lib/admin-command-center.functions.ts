@@ -34,9 +34,9 @@ export type AdminChatMessage = {
 };
 export type AdminToolCall = {
   name: string;
-  args: Record<string, unknown>;
+  args: Record<string, string | number | boolean | null>;
   ok: boolean;
-  result: unknown;
+  result: unknown | null;
 };
 export type AdminChatResponse = {
   reply: string;
