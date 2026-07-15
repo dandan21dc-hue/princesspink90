@@ -997,9 +997,10 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
     let q = supabaseAdmin
       .from("nowpayments_ipn_events")
       .select(
-        "payment_id, last_status, order_id, handled, reason, payload, received_count, first_seen_at, last_seen_at, processed_at",
+        "payment_id, last_status, order_id, handled, reason, payload, received_count, first_seen_at, last_seen_at, processed_at, admin_note, admin_note_updated_at, handled_updated_at",
         { count: "exact" },
       )
+
       .order(sortColumn, { ascending: sortAscending })
       // Stable tiebreaker on the composite pkey so pagination is deterministic
       // when the sort column has duplicate values (e.g. many rows share
