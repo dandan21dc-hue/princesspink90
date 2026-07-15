@@ -124,6 +124,8 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
   const signFn = useServerFn(adminGetModerationMediaUrl);
   const [notes, setNotes] = useState(row.moderation_notes ?? "");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [confirmReject, setConfirmReject] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const decide = useMutation({
     mutationFn: (decision: "approved" | "rejected" | "pending") =>
