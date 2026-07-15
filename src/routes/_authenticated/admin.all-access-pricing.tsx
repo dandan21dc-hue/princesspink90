@@ -19,7 +19,7 @@ import {
 export const Route = createFileRoute("/_authenticated/admin/all-access-pricing")({
   head: () => ({ meta: [{ title: "All-Access Pricing · Admin" }] }),
   component: () => (
-    <RoleGuard role="admin">
+    <RoleGuard allowedRoles={["admin"]}>
       <AdminAllAccessPricing />
     </RoleGuard>
   ),
