@@ -519,11 +519,11 @@ function EditModal(props: {
               />
               <button
                 type="button"
-                onClick={() => autoDescribe(value.cover_url ?? "")}
+                onClick={() => autoFill(value.cover_url ?? "")}
                 disabled={!value.cover_url || uploading || describing}
                 title={
                   value.cover_url
-                    ? "Use AI to draft the title & description from the cover photo"
+                    ? "Use AI to auto-fill title, description, price & tags from the cover photo"
                     : "Upload a cover photo first"
                 }
                 className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
@@ -531,16 +531,28 @@ function EditModal(props: {
                 {describing ? (
                   <>
                     <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary/40 border-t-primary" />
-                    Describing…
+                    Auto-filling…
                   </>
                 ) : (
-                  <>✨ AI Auto-Describe</>
+                  <>✨ AI Auto-Fill Form</>
                 )}
               </button>
             </div>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              AI drafts fill only empty fields — your edits are never overwritten. Review before saving.
+              AI drafts title, description, suggested price (AUD cents) & tags from the cover photo. Review before saving.
             </p>
+            {tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {tags.map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 text-[10px] uppercase tracking-widest text-primary"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
