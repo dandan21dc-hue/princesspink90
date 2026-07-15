@@ -920,7 +920,7 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
     const confirmBtn = within(dialog).getByRole("button", {
       name: /yes, update handle/i,
     }) as HTMLButtonElement;
-    expect(confirmBtn.disabled).toBe(true);
+    expect(confirmBtn.getAttribute("aria-disabled")).toBe("true");
 
     // Typing a valid handle back in re-enables Save and restores the link.
     fireEvent.change(fetInput, { target: { value: "Recovered-Handle" } });
@@ -928,8 +928,8 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
     expect(
       (within(dialog).getByRole("button", {
         name: /yes, update handle/i,
-      }) as HTMLButtonElement).disabled,
-    ).toBe(false);
+      }) as HTMLButtonElement).getAttribute("aria-disabled"),
+    ).not.toBe("true");
   });
 });
 
