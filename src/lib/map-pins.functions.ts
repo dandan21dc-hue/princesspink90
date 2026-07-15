@@ -12,6 +12,26 @@ export type MapPin = {
   sort_order: number;
 };
 
+async function geocodeAddress(address: string): Promise<{ latitude: number; longitude: number }> {
+  const token = process.env.MAPBOX_TOKEN;
+  if (!token) throw new Error("MAPBOX_TOKEN is not configured");
+  const q = encodeURIComponent(address.trim());
+  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${q}.json?limit=1&access_token=${token}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Mapbox geocoding failed [${res.status}]: ${body}`);
+  }
+  const json = (await res.json()) as { features?: Array<{ center?: [number, number] }> };
+  const center = json.features?.[0]?.center;
+  if (!center || center.length !== 2) throw new Error(`No geocoding result for "${address}"`);
+  const [longitude, latitude] = center;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+    throw new Error("Geocoder returned out-of-range coordinates");
+  }
+  return { latitude, longitude };
+}
+
 function publicClient() {
   const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
   return createClient<Database>(process.env.SUPABASE_URL!, key, {
