@@ -84,7 +84,7 @@ describe("server-side schema (contactSettingsUpdateSchema)", () => {
   const cases: Array<[string, Record<string, unknown>]> = [
     ["blank email", { email: "" }],
     ["malformed email", { email: "not-an-email" }],
-    ["email over 255 chars", { email: "a".repeat(250) + "@b.co" }],
+    ["email over 255 chars", { email: "a".repeat(260) + "@b.co" }],
     ["blank fetlife handle", { fetlife_handle: "" }],
     ["fetlife handle too short", { fetlife_handle: "ab" }],
     ["fetlife handle too long", { fetlife_handle: "a".repeat(FETLIFE_HANDLE_MAX + 1) }],
