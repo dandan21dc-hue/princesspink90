@@ -900,7 +900,22 @@ export function AdminSettings() {
                       ) : (
                         <span className="text-destructive">(empty)</span>
                       )}
+                      {fetlifeNormalized
+                        ? (() => {
+                            const warn = validateFetlifeUrl(newFetlifeUrl);
+                            return warn ? (
+                              <div
+                                role="alert"
+                                data-fetlife-url-warning="new"
+                                className="mt-1 rounded border border-amber-500/40 bg-amber-500/10 p-1.5 font-sans text-[11px] text-amber-600 dark:text-amber-400"
+                              >
+                                Warning: new URL looks malformed — {warn}
+                              </div>
+                            ) : null;
+                          })()
+                        : null}
                     </div>
+
                   </div>
                   {fetlifeConfirmBlocked && (
                     <div
