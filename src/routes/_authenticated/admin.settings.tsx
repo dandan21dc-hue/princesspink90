@@ -749,13 +749,14 @@ export function AdminSettings() {
               Keep current handle
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={save.isPending}
+              disabled={save.isPending || fetlifeConfirmBlocked}
               aria-busy={save.isPending || undefined}
+              aria-disabled={save.isPending || fetlifeConfirmBlocked || undefined}
               onClick={(event) => {
                 // Prevent Radix's default close-on-click so the dialog stays
                 // open with a loading state until the mutation settles.
                 event.preventDefault();
-                if (save.isPending) return;
+                if (save.isPending || fetlifeConfirmBlocked) return;
                 fetlifeDismissIntentRef.current = "confirm";
                 save.mutate(undefined, {
                   onSettled: () => setPendingFetlifeConfirm(false),
