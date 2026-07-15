@@ -45,7 +45,7 @@ function fmtDate(iso: string | null) {
   return new Date(iso).toLocaleString();
 }
 
-function MyOrdersPage() {
+export function MyOrdersPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const fn = useServerFn(listMyOrders);
   const query = useQuery({
