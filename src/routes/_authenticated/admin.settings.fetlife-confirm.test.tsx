@@ -393,7 +393,7 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
   });
 
   it("normalizes pasted formats live and keeps the old URL pinned to the saved handle", async () => {
-    const { dialog, fetInput } = await openDialogWithEdit("Placeholder-1");
+    const { dialog } = await openDialogWithEdit("Placeholder-1");
     assertDialogUrls(dialog, "Placeholder-1");
 
     // Each of these raw pastes should normalize to the same handle,
@@ -411,7 +411,11 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       "https://fetlife.com/Kinky-Pasted-Handle?ref=x",
     ];
     for (const raw of rawPastes) {
-      fireEvent.change(fetInput, { target: { value: raw } });
+      // Refetch the input on each iteration — after the first paste sets
+      // the value away from SAVED, the field is still there but we want
+      // to grab it by its stable label rather than a stale reference.
+      const input = screen.getByLabelText(/fetlife handle/i) as HTMLInputElement;
+      fireEvent.change(input, { target: { value: raw } });
       await waitFor(() => assertDialogUrls(dialog, "Kinky-Pasted-Handle"));
     }
   });
