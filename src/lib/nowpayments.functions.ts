@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { EXPECTED_PLAN_PRICES } from "@/lib/planPriceValidation.server";
+import { resolveAppOrigin } from "@/lib/app-origin.server";
 
 // Fallback price when no priceId is supplied: the 30-day All-Access Pass.
 const AAP30D_PRICE_CENTS = 1000; // A$10.00
@@ -35,7 +37,9 @@ const PRIVATE_ROOM_PRICE_RE = /^private_room_(30|60)min_aud$/;
 const inputSchema = z
   .object({
     environment: z.enum(["sandbox", "live"]),
-    returnOrigin: z.string().url(),
+    // Ignored server-side (kept optional for backwards compatibility) — the
+    // effective origin is derived from the incoming request via `resolveAppOrigin`.
+    returnOrigin: z.string().url().optional(),
     /** Lookup key from EXPECTED_PLAN_PRICES or a dynamic pattern below
      *  (e.g. `lifetime_onetime_aud`, `private_room_30min_aud`). */
     priceId: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/).optional(),
@@ -221,14 +225,18 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
         orderId = `${AAP30D_KEY}:${context.userId}:${data.environment}:${amountCents}`;
       }
 
+      // Ignore any client-supplied `returnOrigin`; always build URLs from
+      // the server-verified app origin so an attacker can't redirect a
+      // paying customer or divert the IPN webhook to a domain they control.
+      const appOrigin = resolveAppOrigin(getRequest());
       const invoice = await createInvoice({
         priceAmount: amountCents / 100,
         priceCurrency: currency,
         orderId,
         orderDescription: description,
-        ipnCallbackUrl: `${data.returnOrigin}/api/public/payments/nowpayments-webhook`,
-        successUrl: `${data.returnOrigin}/checkout/return?provider=nowpayments&status=success`,
-        cancelUrl: `${data.returnOrigin}/checkout/return?provider=nowpayments&status=cancel`,
+        ipnCallbackUrl: `${appOrigin}/api/public/payments/nowpayments-webhook`,
+        successUrl: `${appOrigin}/checkout/return?provider=nowpayments&status=success`,
+        cancelUrl: `${appOrigin}/checkout/return?provider=nowpayments&status=cancel`,
       });
       return { invoiceUrl: invoice.invoice_url };
     } catch (e) {

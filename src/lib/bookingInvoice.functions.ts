@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { resolveAppOrigin } from "@/lib/app-origin.server";
 
 /**
  * Booking checkout for private-room and glory-holes.
@@ -18,7 +20,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  */
 const inputSchema = z.object({
   environment: z.enum(["sandbox", "live"]),
-  returnOrigin: z.string().url(),
+  // `returnOrigin` is accepted for backwards compatibility with older
+  // clients but is deliberately ignored — success/cancel/IPN URLs are
+  // built from the server-verified app origin (see `resolveAppOrigin`).
+  returnOrigin: z.string().url().optional(),
   roomType: z.enum(["private_room", "glory_hole"]),
   bookingStartsAt: z.string().datetime(),
   bookingNotes: z.string().max(1000).optional(),
@@ -122,14 +127,18 @@ export const createBookingInvoice = createServerFn({ method: "POST" })
       const description = `${ROOM_LABEL[data.roomType]} · ${duration} min · ${humanTime} UTC (Midnight Glory)`;
 
       try {
+        // Ignore any client-supplied `returnOrigin`; always build URLs from
+        // the server-verified app origin so an attacker can't redirect a
+        // paying customer or divert the IPN webhook.
+        const appOrigin = resolveAppOrigin(getRequest());
         const invoice = await createInvoice({
           priceAmount: priceCents / 100,
           priceCurrency: "aud",
           orderId,
           orderDescription: description,
-          ipnCallbackUrl: `${data.returnOrigin}/api/public/payments/nowpayments-webhook`,
-          successUrl: `${data.returnOrigin}/checkout/return?provider=nowpayments&status=success&next=%2Fdashboard`,
-          cancelUrl: `${data.returnOrigin}/checkout/return?provider=nowpayments&status=cancel`,
+          ipnCallbackUrl: `${appOrigin}/api/public/payments/nowpayments-webhook`,
+          successUrl: `${appOrigin}/checkout/return?provider=nowpayments&status=success&next=%2Fdashboard`,
+          cancelUrl: `${appOrigin}/checkout/return?provider=nowpayments&status=cancel`,
         });
         return { invoiceUrl: invoice.invoice_url, bookingId: booking.id };
       } catch (e) {
