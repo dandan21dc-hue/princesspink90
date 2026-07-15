@@ -3,7 +3,11 @@ import { MessageCircle, X, Send, CalendarClock, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
-import { listConciergeSlots, type ConciergeSlot } from "@/lib/concierge.functions";
+import {
+  listConciergeSlots,
+  getConciergeBookingStatuses,
+  type ConciergeSlot,
+} from "@/lib/concierge.functions";
 import { createBookingInvoice } from "@/lib/bookingInvoice.functions";
 import {
   loadConciergeHistory,
@@ -27,10 +31,25 @@ import { supabase } from "@/integrations/supabase/client";
 
 type ChatRole = "user" | "assistant" | "system";
 
+type BookingStatus =
+  | "pending"
+  | "awaiting_payment"
+  | "confirmed"
+  | "cancelled"
+  | "failed"
+  | "refunded"
+  | string;
+
 type MessagePart =
   | { type: "text"; text: string }
   | { type: "slots"; slots: ConciergeSlot[] }
-  | { type: "confirm"; slot: ConciergeSlot };
+  | { type: "confirm"; slot: ConciergeSlot }
+  | {
+      type: "booking";
+      bookingId: string;
+      startsAt: string;
+      status: BookingStatus;
+    };
 
 type ChatMessage = {
   role: ChatRole;
@@ -54,6 +73,50 @@ const INITIAL_GREETING: ChatMessage = {
 };
 
 const LOCAL_KEY = "concierge:history:v1";
+
+const TERMINAL_STATUSES = new Set(["confirmed", "cancelled", "failed", "refunded"]);
+
+function statusLabel(status: string): { label: string; tone: "info" | "warn" | "ok" | "err" } {
+  switch (status) {
+    case "pending":
+    case "awaiting_payment":
+      return { label: "Pending payment", tone: "warn" };
+    case "confirmed":
+      return { label: "Confirmed", tone: "ok" };
+    case "cancelled":
+      return { label: "Cancelled", tone: "err" };
+    case "failed":
+      return { label: "Payment failed", tone: "err" };
+    case "refunded":
+      return { label: "Refunded", tone: "info" };
+    default:
+      return { label: status.replace(/_/g, " "), tone: "info" };
+  }
+}
+
+function statusNarration(status: string, startsAt: string): string {
+  const when = new Date(startsAt).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  switch (status) {
+    case "confirmed":
+      return `✅ Booking confirmed for ${when}. You'll get an email receipt shortly.`;
+    case "cancelled":
+      return `❌ Booking for ${when} was cancelled.`;
+    case "failed":
+      return `⚠️ Payment failed for the ${when} booking. Try again or pick another slot.`;
+    case "refunded":
+      return `↩️ Your ${when} booking was refunded.`;
+    case "awaiting_payment":
+      return `⏳ Still waiting on payment confirmation for ${when}.`;
+    default:
+      return `Booking for ${when}: ${status}.`;
+  }
+}
 
 function readLocal(): ChatMessage[] {
   if (typeof window === "undefined") return [];
@@ -118,6 +181,7 @@ export function SupportChatWidget() {
   const startBooking = useServerFn(createBookingInvoice);
   const loadHistory = useServerFn(loadConciergeHistory);
   const saveHistory = useServerFn(saveConciergeHistory);
+  const fetchBookingStatuses = useServerFn(getConciergeBookingStatuses);
 
   // --- Persistence -----------------------------------------------------
   // Signed-in → server row. Guest → localStorage. If a guest builds up
@@ -192,6 +256,111 @@ export function SupportChatWidget() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, hydrated, userId]);
+
+  /**
+   * Fold a fresh status into any booking cards in the feed and, if it's a
+   * transition (not our initial "pending"), append a narrated status line.
+   * Idempotent — no-op when nothing changed.
+   */
+  const applyBookingStatus = (bookingId: string, status: BookingStatus) => {
+    setMessages((prev) => {
+      let announced = false;
+      let changed = false;
+      const next = prev.map((m) => {
+        const parts = m.parts.map((p) => {
+          if (p.type !== "booking" || p.bookingId !== bookingId) return p;
+          if (p.status === status) return p;
+          changed = true;
+          if (!announced) announced = true;
+          return { ...p, status };
+        });
+        return parts === m.parts ? m : { ...m, parts };
+      });
+      if (!changed) return prev;
+      // Find the tracker's startsAt for the narration.
+      let startsAt: string | null = null;
+      for (const m of next) {
+        for (const p of m.parts) {
+          if (p.type === "booking" && p.bookingId === bookingId) {
+            startsAt = p.startsAt;
+            break;
+          }
+        }
+        if (startsAt) break;
+      }
+      if (announced && startsAt) {
+        return [
+          ...next,
+          {
+            role: "assistant",
+            parts: [{ type: "text", text: statusNarration(status, startsAt) }],
+          },
+        ];
+      }
+      return next;
+    });
+  };
+
+  // Reconcile tracked bookings with the DB on hydrate. Catches the
+  // "returned from NOWPayments checkout while chat was closed" case.
+  useEffect(() => {
+    if (!hydrated || !userId) return;
+    const tracked: { bookingId: string; status: BookingStatus }[] = [];
+    for (const m of messagesRef.current) {
+      for (const p of m.parts) {
+        if (p.type === "booking") tracked.push({ bookingId: p.bookingId, status: p.status });
+      }
+    }
+    if (tracked.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const rows = await fetchBookingStatuses({
+          data: { bookingIds: tracked.map((t) => t.bookingId) },
+        });
+        if (cancelled) return;
+        for (const row of rows) applyBookingStatus(row.id, row.status);
+      } catch {
+        /* silent — realtime will still cover live updates */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, userId]);
+
+  // Live status updates via realtime while the user is signed in.
+  useEffect(() => {
+    if (!userId) return;
+    const channel = supabase
+      .channel(`concierge-booking-status:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "private_room_bookings",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const row = payload.new as { id?: string; status?: string } | null;
+          if (!row?.id || !row.status) return;
+          const tracked = messagesRef.current.some((m) =>
+            m.parts.some((p) => p.type === "booking" && p.bookingId === row.id),
+          );
+          if (!tracked) return;
+          applyBookingStatus(row.id, row.status);
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+
 
 
 
@@ -390,7 +559,13 @@ export function SupportChatWidget() {
         parts: [
           {
             type: "text",
-            text: "Sending you to secure checkout — the slot is held for 15 minutes.",
+            text: "Booking created — sending you to secure checkout. The slot is held for 15 minutes.",
+          },
+          {
+            type: "booking",
+            bookingId: result.bookingId,
+            startsAt: slot.startsAt,
+            status: "pending",
           },
         ],
       });
@@ -566,12 +741,22 @@ function MessageBubble({
           if (part.type === "slots") {
             return <SlotPickerCard key={i} slots={part.slots} onPick={onSlotPick} />;
           }
+          if (part.type === "confirm") {
+            return (
+              <ConfirmSlotCard
+                key={i}
+                slot={part.slot}
+                busy={bookingSlot === part.slot.startsAt}
+                onConfirm={onConfirm}
+              />
+            );
+          }
           return (
-            <ConfirmSlotCard
+            <BookingStatusCard
               key={i}
-              slot={part.slot}
-              busy={bookingSlot === part.slot.startsAt}
-              onConfirm={onConfirm}
+              bookingId={part.bookingId}
+              startsAt={part.startsAt}
+              status={part.status}
             />
           );
         })}
@@ -676,3 +861,45 @@ function formatTime(iso: string): string {
     minute: "2-digit",
   });
 }
+
+function BookingStatusCard({
+  bookingId,
+  startsAt,
+  status,
+}: {
+  bookingId: string;
+  startsAt: string;
+  status: string;
+}) {
+  const { label, tone } = statusLabel(status);
+  const toneClass =
+    tone === "ok"
+      ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-200"
+      : tone === "warn"
+        ? "border-amber-400/40 bg-amber-400/10 text-amber-200"
+        : tone === "err"
+          ? "border-rose-400/40 bg-rose-400/10 text-rose-200"
+          : "border-white/15 bg-white/[0.04] text-neutral-200";
+  const live = !TERMINAL_STATUSES.has(status);
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/30 p-3">
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="text-[10px] uppercase tracking-widest text-neutral-500">
+          Booking · {bookingId.slice(0, 8)}
+        </div>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${toneClass}`}
+          aria-live="polite"
+        >
+          {live && (
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" aria-hidden />
+          )}
+          {label}
+        </span>
+      </div>
+      <div className="text-sm font-semibold text-neutral-100">{formatDate(startsAt)}</div>
+      <div className="text-xs text-neutral-400">{formatTime(startsAt)} · Private Room</div>
+    </div>
+  );
+}
+
