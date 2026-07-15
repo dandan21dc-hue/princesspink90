@@ -89,6 +89,7 @@ import { Route as AuthenticatedAdminAllAccessRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminActivityAuditRouteImport } from './routes/_authenticated/admin.activity-audit'
 import { Route as AuthenticatedAccountOrdersRouteImport } from './routes/_authenticated/account.orders'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
+import { Route as AuthenticatedAdminCommandCenterIndexRouteImport } from './routes/_authenticated/admin.command-center.index'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
@@ -109,6 +110,7 @@ import { Route as AuthenticatedEventsIdWaiversRouteImport } from './routes/_auth
 import { Route as AuthenticatedEventsIdEditRouteImport } from './routes/_authenticated/events.$id.edit'
 import { Route as AuthenticatedEventsIdCheckinRouteImport } from './routes/_authenticated/events.$id.checkin'
 import { Route as AuthenticatedAdminPartnershipsIdRouteImport } from './routes/_authenticated/admin.partnerships.$id'
+import { Route as AuthenticatedAdminCommandCenterThreadIdRouteImport } from './routes/_authenticated/admin.command-center.$threadId'
 import { Route as ApiPublicBookingsIdIcsRouteImport } from './routes/api/public/bookings.$id.ics'
 import { Route as AuthenticatedEventsIdCheckinPrintRouteImport } from './routes/_authenticated/events.$id.checkin.print'
 
@@ -551,6 +553,12 @@ const AuthenticatedAccountBillingRoute =
     path: '/billing',
     getParentRoute: () => AuthenticatedAccountRoute,
   } as any)
+const AuthenticatedAdminCommandCenterIndexRoute =
+  AuthenticatedAdminCommandCenterIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedAdminCommandCenterRoute,
+  } as any)
 const LovableEmailTransactionalSendRoute =
   LovableEmailTransactionalSendRouteImport.update({
     id: '/lovable/email/transactional/send',
@@ -669,6 +677,12 @@ const AuthenticatedAdminPartnershipsIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedAdminPartnershipsRoute,
   } as any)
+const AuthenticatedAdminCommandCenterThreadIdRoute =
+  AuthenticatedAdminCommandCenterThreadIdRouteImport.update({
+    id: '/$threadId',
+    path: '/$threadId',
+    getParentRoute: () => AuthenticatedAdminCommandCenterRoute,
+  } as any)
 const ApiPublicBookingsIdIcsRoute = ApiPublicBookingsIdIcsRouteImport.update({
   id: '/api/public/bookings/$id/ics',
   path: '/api/public/bookings/$id/ics',
@@ -722,7 +736,7 @@ export interface FileRoutesByFullPath {
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
-  '/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
+  '/admin/command-center': typeof AuthenticatedAdminCommandCenterRouteWithChildren
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -761,6 +775,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account/': typeof AuthenticatedAccountIndexRoute
   '/content/': typeof AuthenticatedContentIndexRoute
+  '/admin/command-center/$threadId': typeof AuthenticatedAdminCommandCenterThreadIdRoute
   '/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -781,6 +796,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/command-center/': typeof AuthenticatedAdminCommandCenterIndexRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
   '/api/public/bookings/$id/ics': typeof ApiPublicBookingsIdIcsRoute
 }
@@ -824,7 +840,6 @@ export interface FileRoutesByTo {
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
-  '/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -863,6 +878,7 @@ export interface FileRoutesByTo {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/account': typeof AuthenticatedAccountIndexRoute
   '/content': typeof AuthenticatedContentIndexRoute
+  '/admin/command-center/$threadId': typeof AuthenticatedAdminCommandCenterThreadIdRoute
   '/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -883,6 +899,7 @@ export interface FileRoutesByTo {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/admin/command-center': typeof AuthenticatedAdminCommandCenterIndexRoute
   '/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
   '/api/public/bookings/$id/ics': typeof ApiPublicBookingsIdIcsRoute
 }
@@ -929,7 +946,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
-  '/_authenticated/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
+  '/_authenticated/admin/command-center': typeof AuthenticatedAdminCommandCenterRouteWithChildren
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/_authenticated/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -968,6 +985,7 @@ export interface FileRoutesById {
   '/lovable/email/suppression': typeof LovableEmailSuppressionRoute
   '/_authenticated/account/': typeof AuthenticatedAccountIndexRoute
   '/_authenticated/content/': typeof AuthenticatedContentIndexRoute
+  '/_authenticated/admin/command-center/$threadId': typeof AuthenticatedAdminCommandCenterThreadIdRoute
   '/_authenticated/admin/partnerships/$id': typeof AuthenticatedAdminPartnershipsIdRoute
   '/_authenticated/events/$id/checkin': typeof AuthenticatedEventsIdCheckinRouteWithChildren
   '/_authenticated/events/$id/edit': typeof AuthenticatedEventsIdEditRoute
@@ -988,6 +1006,7 @@ export interface FileRoutesById {
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
   '/lovable/email/transactional/send': typeof LovableEmailTransactionalSendRoute
+  '/_authenticated/admin/command-center/': typeof AuthenticatedAdminCommandCenterIndexRoute
   '/_authenticated/events/$id/checkin/print': typeof AuthenticatedEventsIdCheckinPrintRoute
   '/api/public/bookings/$id/ics': typeof ApiPublicBookingsIdIcsRoute
 }
@@ -1073,6 +1092,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/account/'
     | '/content/'
+    | '/admin/command-center/$threadId'
     | '/admin/partnerships/$id'
     | '/events/$id/checkin'
     | '/events/$id/edit'
@@ -1093,6 +1113,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/command-center/'
     | '/events/$id/checkin/print'
     | '/api/public/bookings/$id/ics'
   fileRoutesByTo: FileRoutesByTo
@@ -1136,7 +1157,6 @@ export interface FileRouteTypes {
     | '/admin/availability'
     | '/admin/booking-rejections'
     | '/admin/cohosts'
-    | '/admin/command-center'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/consent-review'
@@ -1175,6 +1195,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/account'
     | '/content'
+    | '/admin/command-center/$threadId'
     | '/admin/partnerships/$id'
     | '/events/$id/checkin'
     | '/events/$id/edit'
@@ -1195,6 +1216,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/admin/command-center'
     | '/events/$id/checkin/print'
     | '/api/public/bookings/$id/ics'
   id:
@@ -1279,6 +1301,7 @@ export interface FileRouteTypes {
     | '/lovable/email/suppression'
     | '/_authenticated/account/'
     | '/_authenticated/content/'
+    | '/_authenticated/admin/command-center/$threadId'
     | '/_authenticated/admin/partnerships/$id'
     | '/_authenticated/events/$id/checkin'
     | '/_authenticated/events/$id/edit'
@@ -1299,6 +1322,7 @@ export interface FileRouteTypes {
     | '/lovable/email/queue/process'
     | '/lovable/email/transactional/preview'
     | '/lovable/email/transactional/send'
+    | '/_authenticated/admin/command-center/'
     | '/_authenticated/events/$id/checkin/print'
     | '/api/public/bookings/$id/ics'
   fileRoutesById: FileRoutesById
@@ -1915,6 +1939,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccountBillingRouteImport
       parentRoute: typeof AuthenticatedAccountRoute
     }
+    '/_authenticated/admin/command-center/': {
+      id: '/_authenticated/admin/command-center/'
+      path: '/'
+      fullPath: '/admin/command-center/'
+      preLoaderRoute: typeof AuthenticatedAdminCommandCenterIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminCommandCenterRoute
+    }
     '/lovable/email/transactional/send': {
       id: '/lovable/email/transactional/send'
       path: '/lovable/email/transactional/send'
@@ -2055,6 +2086,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPartnershipsIdRouteImport
       parentRoute: typeof AuthenticatedAdminPartnershipsRoute
     }
+    '/_authenticated/admin/command-center/$threadId': {
+      id: '/_authenticated/admin/command-center/$threadId'
+      path: '/$threadId'
+      fullPath: '/admin/command-center/$threadId'
+      preLoaderRoute: typeof AuthenticatedAdminCommandCenterThreadIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCommandCenterRoute
+    }
     '/api/public/bookings/$id/ics': {
       id: '/api/public/bookings/$id/ics'
       path: '/api/public/bookings/$id/ics'
@@ -2086,6 +2124,24 @@ const AuthenticatedAccountRouteChildren: AuthenticatedAccountRouteChildren = {
 
 const AuthenticatedAccountRouteWithChildren =
   AuthenticatedAccountRoute._addFileChildren(AuthenticatedAccountRouteChildren)
+
+interface AuthenticatedAdminCommandCenterRouteChildren {
+  AuthenticatedAdminCommandCenterThreadIdRoute: typeof AuthenticatedAdminCommandCenterThreadIdRoute
+  AuthenticatedAdminCommandCenterIndexRoute: typeof AuthenticatedAdminCommandCenterIndexRoute
+}
+
+const AuthenticatedAdminCommandCenterRouteChildren: AuthenticatedAdminCommandCenterRouteChildren =
+  {
+    AuthenticatedAdminCommandCenterThreadIdRoute:
+      AuthenticatedAdminCommandCenterThreadIdRoute,
+    AuthenticatedAdminCommandCenterIndexRoute:
+      AuthenticatedAdminCommandCenterIndexRoute,
+  }
+
+const AuthenticatedAdminCommandCenterRouteWithChildren =
+  AuthenticatedAdminCommandCenterRoute._addFileChildren(
+    AuthenticatedAdminCommandCenterRouteChildren,
+  )
 
 interface AuthenticatedAdminPartnershipsRouteChildren {
   AuthenticatedAdminPartnershipsIdRoute: typeof AuthenticatedAdminPartnershipsIdRoute
@@ -2131,7 +2187,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminBookingRejectionsRoute: typeof AuthenticatedAdminBookingRejectionsRoute
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
-  AuthenticatedAdminCommandCenterRoute: typeof AuthenticatedAdminCommandCenterRoute
+  AuthenticatedAdminCommandCenterRoute: typeof AuthenticatedAdminCommandCenterRouteWithChildren
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
   AuthenticatedAdminConsentReviewRoute: typeof AuthenticatedAdminConsentReviewRoute
@@ -2184,7 +2240,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminBookingRejectionsRoute:
     AuthenticatedAdminBookingRejectionsRoute,
   AuthenticatedAdminCohostsRoute: AuthenticatedAdminCohostsRoute,
-  AuthenticatedAdminCommandCenterRoute: AuthenticatedAdminCommandCenterRoute,
+  AuthenticatedAdminCommandCenterRoute:
+    AuthenticatedAdminCommandCenterRouteWithChildren,
   AuthenticatedAdminComplianceAuditRoute:
     AuthenticatedAdminComplianceAuditRoute,
   AuthenticatedAdminCompliancePolicyRoute:
