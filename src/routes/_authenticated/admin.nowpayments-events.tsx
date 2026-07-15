@@ -205,6 +205,7 @@ function AdminNowpaymentsEvents() {
           className="flex flex-wrap gap-3 items-end"
           onSubmit={(e) => {
             e.preventDefault();
+            resetToFirstPage();
             setSearch(searchInput.trim());
           }}
         >
@@ -229,7 +230,7 @@ function AdminNowpaymentsEvents() {
             <label className="text-xs uppercase tracking-widest text-muted-foreground">
               Status
             </label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select value={status} onValueChange={(v) => { resetToFirstPage(); setStatus(v); }}>
               <SelectTrigger className="mt-1 w-[160px]">
                 <SelectValue />
               </SelectTrigger>
@@ -248,7 +249,7 @@ function AdminNowpaymentsEvents() {
             </label>
             <Select
               value={handled}
-              onValueChange={(v) => setHandled(v as typeof handled)}
+              onValueChange={(v) => { resetToFirstPage(); setHandled(v as typeof handled); }}
             >
               <SelectTrigger className="mt-1 w-[140px]">
                 <SelectValue />
@@ -266,7 +267,7 @@ function AdminNowpaymentsEvents() {
             </label>
             <Select
               value={reversal}
-              onValueChange={(v) => setReversal(v as ReversalFilter)}
+              onValueChange={(v) => { resetToFirstPage(); setReversal(v as ReversalFilter); }}
             >
               <SelectTrigger className="mt-1 w-[180px]">
                 <SelectValue />
@@ -283,7 +284,7 @@ function AdminNowpaymentsEvents() {
             <label className="text-xs uppercase tracking-widest text-muted-foreground">
               Sort
             </label>
-            <Select value={sort} onValueChange={(v) => setSort(v as SortMode)}>
+            <Select value={sort} onValueChange={(v) => { resetToFirstPage(); setSort(v as SortMode); }}>
               <SelectTrigger className="mt-1 w-[200px]">
                 <SelectValue />
               </SelectTrigger>
@@ -296,6 +297,27 @@ function AdminNowpaymentsEvents() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Per page
+            </label>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => { resetToFirstPage(); setPageSize(Number(v)); }}
+            >
+              <SelectTrigger className="mt-1 w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[25, 50, 100, 200, 500].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Button type="submit">Apply</Button>
           <Button
             type="button"
