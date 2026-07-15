@@ -240,7 +240,7 @@ export function AllAccessCard() {
                         </Tooltip>
                       </TooltipProvider>
                     )}
-
+                    {owned && isLifetime && start && (
                       <p className="mt-2 text-[10px] text-muted-foreground">
                         Started {start} · never expires
                       </p>
