@@ -285,6 +285,76 @@ function AdminAllAccess() {
       )}
       <BulkPanel />
 
+      <AlertDialog
+        open={pendingRevoke !== null}
+        onOpenChange={(open) => {
+          if (!open && !revoke.isPending) setPendingRevoke(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke All-Access membership?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>
+                  This permanently deletes the membership row. After deletion the
+                  server re-reads the row by id to confirm removal, and the result
+                  is written to the audit log.
+                </div>
+                {pendingRevoke && (
+                  <div className="rounded-md border border-border/40 bg-muted/30 p-3 text-xs space-y-1">
+                    <div>
+                      Kind:{" "}
+                      <span className="font-mono text-foreground">
+                        {pendingRevoke.kind}
+                      </span>
+                    </div>
+                    <div>
+                      Environment:{" "}
+                      <span className="font-mono text-foreground">
+                        {pendingRevoke.environment}
+                      </span>
+                    </div>
+                    {pendingRevoke.expires_at && (
+                      <div>
+                        Expires:{" "}
+                        <span className="text-foreground">
+                          {fmt(pendingRevoke.expires_at)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="font-mono text-[10px] text-muted-foreground/70 truncate">
+                      id: {pendingRevoke.id}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revoke.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={revoke.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingRevoke) revoke.mutate(pendingRevoke.id);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {revoke.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Revoking…
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" /> Revoke &amp; verify
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Shell>
   );
 }
