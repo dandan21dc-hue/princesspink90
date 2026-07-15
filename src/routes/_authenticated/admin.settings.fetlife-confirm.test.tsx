@@ -604,6 +604,100 @@ describe("admin settings — FetLife confirmation gate", () => {
       expect(screen.queryByRole("alertdialog")).toBeNull();
     });
   });
+
+  it.each([
+    {
+      outcome: "success" as const,
+      settle: (
+        resolve: (v: { ok: true }) => void,
+        _reject: (e: Error) => void,
+      ) => resolve({ ok: true }),
+    },
+    {
+      outcome: "failure" as const,
+      settle: (
+        _resolve: (v: { ok: true }) => void,
+        reject: (e: Error) => void,
+      ) => reject(new Error("Transient upstream error")),
+    },
+  ])(
+    "re-enables the form Save button and clears the Loader2 spinner after a $outcome",
+    async ({ settle }) => {
+      // Regression guard: onSettled must fire on BOTH paths — otherwise the
+      // in-flight ref stays stuck and the whole Save surface remains
+      // disabled/spinning even after the request has resolved.
+      let resolveSave: ((value: { ok: true }) => void) | null = null;
+      let rejectSave: ((err: Error) => void) | null = null;
+      mockUpdateSiteSettings.mockImplementationOnce(
+        () =>
+          new Promise<{ ok: true }>((resolve, reject) => {
+            resolveSave = resolve;
+            rejectSave = reject;
+          }),
+      );
+
+      renderPage();
+      await waitForFormLoaded();
+
+      const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle) as HTMLInputElement;
+      fireEvent.change(fetInput, { target: { value: "Settle-Test-Handle" } });
+      fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+      const dialog = await screen.findByRole("alertdialog");
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: /yes, update handle/i }),
+      );
+
+      // Mid-flight: confirm shows the disabled "Saving…" state.
+      const savingBtn = await within(dialog).findByRole("button", {
+        name: /saving…/i,
+      }) as HTMLButtonElement;
+      expect(savingBtn.disabled).toBe(true);
+      expect(savingBtn.querySelector(".lucide-loader-circle")).not.toBeNull();
+
+      // Settle the mutation.
+      settle(
+        resolveSave as unknown as (v: { ok: true }) => void,
+        rejectSave as unknown as (e: Error) => void,
+      );
+
+      // Dialog closes on both success and error (onSettled clears
+      // pendingFetlifeConfirm), so confirm/cancel unmount cleanly.
+      await waitFor(() => {
+        expect(screen.queryByRole("alertdialog")).toBeNull();
+      });
+
+      // No lingering "Saving…" button and no Loader2 spinner anywhere on
+      // the page — the loading indicator has fully cleared.
+      expect(screen.queryByRole("button", { name: /saving…/i })).toBeNull();
+      expect(document.querySelector(".lucide-loader-circle")).toBeNull();
+
+      // The form Save button is back to its idle state: label "Save" and
+      // not disabled, so the admin can immediately retry or edit further.
+      const formSave = screen.getAllByRole(
+        "button",
+        { name: /^save$/i },
+      )[0]! as HTMLButtonElement;
+      expect(formSave.disabled).toBe(false);
+      expect(formSave.textContent?.trim()).toBe("Save");
+
+      // Re-opening the confirm dialog (still-dirty draft) must show
+      // fully-enabled confirm and cancel buttons with no spinner —
+      // proving `saveInFlightRef` / `save.isPending` both cleared.
+      fireEvent.click(formSave);
+      const reopened = await screen.findByRole("alertdialog");
+      const reopenedConfirm = within(reopened).getByRole("button", {
+        name: /yes, update handle/i,
+      }) as HTMLButtonElement;
+      const reopenedCancel = within(reopened).getByRole("button", {
+        name: /keep current handle/i,
+      }) as HTMLButtonElement;
+      expect(reopenedConfirm.disabled).toBe(false);
+      expect(reopenedConfirm.getAttribute("aria-busy")).not.toBe("true");
+      expect(reopenedConfirm.querySelector(".lucide-loader-circle")).toBeNull();
+      expect(reopenedCancel.disabled).toBe(false);
+    },
+  );
 });
 
 describe("admin settings — FetLife handle client-side normalization + validation", () => {
