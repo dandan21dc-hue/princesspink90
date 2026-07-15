@@ -116,7 +116,7 @@ function Home() {
             </div>
           </div>
           <span className="shrink-0 rounded-md bg-neon px-4 py-2 text-xs font-semibold uppercase tracking-widest text-background">
-            Read →
+            Read the dress code guide →
           </span>
         </Link>
       </section>
