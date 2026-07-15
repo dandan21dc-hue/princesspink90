@@ -8,12 +8,14 @@ import {
   adminLookupUserAllAccess,
   adminGrantAllAccess,
   adminRevokeAllAccess,
+  adminListAllAccessAudit,
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2, InfinityIcon, Calendar } from "lucide-react";
+import { Loader2, Trash2, InfinityIcon, Calendar, History } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/admin/all-access")({
   head: () => ({ meta: [{ title: "Manual All-Access · Admin" }] }),
