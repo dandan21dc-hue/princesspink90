@@ -27,7 +27,9 @@ import {
   Terminal,
   BellRing,
   BarChart3,
+  MapPin,
   ChevronDown,
+
 } from "lucide-react";
 import { listMyEvents, getMyEventsCompliance } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
@@ -87,7 +89,9 @@ const GROUPS: NavGroup[] = [
       { label: "Availability Manager", to: "/admin/availability", icon: CalendarDays, adminOnly: true },
       { label: "Secondary Room Sessions", to: "/admin/secondary-room-sessions", icon: CalendarDays, adminOnly: true },
       { label: "Free-Entry Perks", to: "/admin/perks", icon: Gift, adminOnly: true },
+      { label: "Map Pins / Venues", to: "/admin/map-pins", icon: MapPin, adminOnly: true },
       { label: "Host an Event", to: "/events/new", icon: PartyPopper },
+
     ],
   },
   {
