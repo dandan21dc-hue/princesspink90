@@ -19,12 +19,18 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props
     onPinClickRef.current = onPinClick;
   }, [onPinClick]);
 
+  // Always render in sort_order (ascending), with a stable tie-break on id so
+  // callers don't need to pre-sort. Matches the admin drag-and-drop order.
+  const sortedPins = [...pins].sort(
+    (a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id),
+  );
+
   useEffect(() => {
     if (!containerRef.current || !PUBLIC_TOKEN) return;
     mapboxgl.accessToken = PUBLIC_TOKEN;
 
-    const initialCenter: [number, number] = pins.length
-      ? [pins[0].longitude, pins[0].latitude]
+    const initialCenter: [number, number] = sortedPins.length
+      ? [sortedPins[0].longitude, sortedPins[0].latitude]
       : [151.2093, -33.8688]; // Sydney fallback
 
     const map = new mapboxgl.Map({
