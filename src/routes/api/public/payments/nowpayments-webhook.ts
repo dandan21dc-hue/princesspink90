@@ -87,13 +87,13 @@ export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
   // aap30d / lifetime — 4 parts: <kind>:<userId>:<env>:<amountCents>
   if (parts.length === 4) {
     const [kind, userId, envRaw, amountRaw] = parts;
-    if (kind !== "aap30d" && kind !== "lifetime") return null;
+    if (!TIME_PASS_KINDS.has(kind)) return null;
     if (!UUID_RE.test(userId)) return null;
     const environment = parseEnv(envRaw);
     if (!environment) return null;
     const amountCents = parseAmount(amountRaw);
     if (amountCents == null) return null;
-    return { kind: kind as "aap30d" | "lifetime", userId, environment, amountCents };
+    return { kind: kind as "aap30d" | "aap90d" | "aap180d" | "aap365d" | "lifetime", userId, environment, amountCents };
   }
 
   // panty / booking — 5 parts: <kind>:<uuid>:<userId>:<env>:<amountCents>
