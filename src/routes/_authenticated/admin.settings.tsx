@@ -839,13 +839,28 @@ export function AdminSettings() {
                             kindLabel="current FetLife URL"
                             disabled={save.isPending}
                           />
-
-
                         </>
                       ) : (
                         <span className="text-muted-foreground">(none)</span>
                       )}
+                      {settings.data?.fetlife_handle
+                        ? (() => {
+                            const warn = validateFetlifeUrl(
+                              `https://fetlife.com/${settings.data.fetlife_handle}`,
+                            );
+                            return warn ? (
+                              <div
+                                role="alert"
+                                data-fetlife-url-warning="current"
+                                className="mt-1 rounded border border-amber-500/40 bg-amber-500/10 p-1.5 font-sans text-[11px] text-amber-600 dark:text-amber-400"
+                              >
+                                Warning: currently-live URL looks malformed — {warn}
+                              </div>
+                            ) : null;
+                          })()
+                        : null}
                     </div>
+
                   </div>
                   <div className="border-t border-border/60 pt-2">
                     <div className="text-[10px] uppercase tracking-widest text-primary">
