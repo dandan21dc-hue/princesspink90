@@ -9,6 +9,7 @@ import { template as bookingRescheduled } from './booking-rescheduled'
 import { template as auditAlert } from './audit-alert'
 import { template as allAccessRevoked } from './all-access-revoked'
 import { template as adminRewardRedeemed } from './admin-reward-redeemed'
+import { template as orderReceipt } from './order-receipt'
 
 export interface TemplateEntry {
   component: ComponentType<any>
