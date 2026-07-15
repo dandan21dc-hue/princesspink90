@@ -59,7 +59,7 @@ export const listUpcomingWorkspaceSlots = createServerFn({ method: "GET" })
     const nowIso = new Date().toISOString();
     const { data, error } = await context.supabase
       .from(TABLE)
-      .select("id,start_time,end_time,is_booked,notes,created_at,updated_at")
+      .select(SLOT_COLS)
       .gte("end_time", nowIso)
       .order("start_time", { ascending: true });
     if (error) throw new Error(error.message);
@@ -75,11 +75,19 @@ export const createWorkspaceSlot = createServerFn({ method: "POST" })
       endTime: string;
       isBooked?: boolean;
       notes?: string | null;
+      durationMinutes?: number | null;
+      priceCents?: number | null;
     }) => {
       if (!validIso(data.startTime)) throw new Error("Invalid startTime");
       if (!validIso(data.endTime)) throw new Error("Invalid endTime");
       if (new Date(data.endTime).getTime() <= new Date(data.startTime).getTime()) {
         throw new Error("End time must be after start time");
+      }
+      if (!validDurationMinutes(data.durationMinutes)) {
+        throw new Error("Invalid durationMinutes");
+      }
+      if (!validPriceCents(data.priceCents)) {
+        throw new Error("Invalid priceCents");
       }
       return data;
     },
@@ -93,8 +101,11 @@ export const createWorkspaceSlot = createServerFn({ method: "POST" })
         end_time: data.endTime,
         is_booked: data.isBooked ?? false,
         notes: data.notes ?? null,
+        duration_minutes:
+          data.durationMinutes ?? derivedDurationMinutes(data.startTime, data.endTime),
+        price_cents: data.priceCents ?? null,
       })
-      .select("id,start_time,end_time,is_booked,notes,created_at,updated_at")
+      .select(SLOT_COLS)
       .single();
     if (error) throw new Error(error.message);
     return row as WorkspaceSlot;
@@ -110,6 +121,8 @@ export const updateWorkspaceSlot = createServerFn({ method: "POST" })
       endTime?: string;
       isBooked?: boolean;
       notes?: string | null;
+      durationMinutes?: number | null;
+      priceCents?: number | null;
     }) => {
       if (!UUID.test(data.id)) throw new Error("Invalid id");
       if (data.startTime !== undefined && !validIso(data.startTime))
@@ -123,6 +136,12 @@ export const updateWorkspaceSlot = createServerFn({ method: "POST" })
       ) {
         throw new Error("End time must be after start time");
       }
+      if (data.durationMinutes !== undefined && !validDurationMinutes(data.durationMinutes)) {
+        throw new Error("Invalid durationMinutes");
+      }
+      if (data.priceCents !== undefined && !validPriceCents(data.priceCents)) {
+        throw new Error("Invalid priceCents");
+      }
       return data;
     },
   )
@@ -133,16 +152,20 @@ export const updateWorkspaceSlot = createServerFn({ method: "POST" })
       end_time?: string;
       is_booked?: boolean;
       notes?: string | null;
+      duration_minutes?: number | null;
+      price_cents?: number | null;
     } = {};
     if (data.startTime !== undefined) patch.start_time = data.startTime;
     if (data.endTime !== undefined) patch.end_time = data.endTime;
     if (data.isBooked !== undefined) patch.is_booked = data.isBooked;
     if (data.notes !== undefined) patch.notes = data.notes;
+    if (data.durationMinutes !== undefined) patch.duration_minutes = data.durationMinutes;
+    if (data.priceCents !== undefined) patch.price_cents = data.priceCents;
     const { data: row, error } = await context.supabase
       .from(TABLE)
       .update(patch)
       .eq("id", data.id)
-      .select("id,start_time,end_time,is_booked,notes,created_at,updated_at")
+      .select(SLOT_COLS)
       .single();
     if (error) throw new Error(error.message);
     return row as WorkspaceSlot;
@@ -166,7 +189,11 @@ export const deleteWorkspaceSlot = createServerFn({ method: "POST" })
 export const bulkCreateWorkspaceSlots = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (data: { slots: Array<{ startTime: string; endTime: string }> }) => {
+    (data: {
+      slots: Array<{ startTime: string; endTime: string }>;
+      durationMinutes?: number | null;
+      priceCents?: number | null;
+    }) => {
       if (!Array.isArray(data?.slots) || data.slots.length === 0) {
         throw new Error("No slots to create");
       }
@@ -178,6 +205,12 @@ export const bulkCreateWorkspaceSlots = createServerFn({ method: "POST" })
         if (new Date(s.endTime).getTime() <= new Date(s.startTime).getTime()) {
           throw new Error("End time must be after start time");
         }
+      }
+      if (!validDurationMinutes(data.durationMinutes)) {
+        throw new Error("Invalid durationMinutes");
+      }
+      if (!validPriceCents(data.priceCents)) {
+        throw new Error("Invalid priceCents");
       }
       return data;
     },
@@ -208,7 +241,13 @@ export const bulkCreateWorkspaceSlots = createServerFn({ method: "POST" })
       end: new Date(r.end_time).getTime(),
     }));
 
-    const toInsert: Array<{ start_time: string; end_time: string; is_booked: boolean }> = [];
+    const toInsert: Array<{
+      start_time: string;
+      end_time: string;
+      is_booked: boolean;
+      duration_minutes: number;
+      price_cents: number | null;
+    }> = [];
     let skipped = 0;
     const accepted: Array<{ start: number; end: number }> = [];
     const overlaps = (
@@ -225,7 +264,14 @@ export const bulkCreateWorkspaceSlots = createServerFn({ method: "POST" })
         continue;
       }
       accepted.push({ start: p.start, end: p.end });
-      toInsert.push({ start_time: p.startIso, end_time: p.endIso, is_booked: false });
+      toInsert.push({
+        start_time: p.startIso,
+        end_time: p.endIso,
+        is_booked: false,
+        duration_minutes:
+          data.durationMinutes ?? derivedDurationMinutes(p.startIso, p.endIso),
+        price_cents: data.priceCents ?? null,
+      });
     }
 
     let created = 0;
