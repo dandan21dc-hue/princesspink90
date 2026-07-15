@@ -144,6 +144,7 @@ function Dashboard() {
           <h1 className="mt-2 font-display text-3xl font-semibold">Your green room</h1>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && <AddVenuePinDialog />}
           <QuickAccessButton />
           <NotificationsBell />
         </div>
