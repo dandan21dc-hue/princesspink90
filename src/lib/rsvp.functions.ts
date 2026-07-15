@@ -3,6 +3,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { videoConsentSchema, type VideoConsent } from "@/lib/verification.functions";
 import { normalizeEntryPhrase } from "@/lib/entry-phrase";
+import { assertAccountNotRestricted } from "@/lib/account-restriction";
+
 
 
 async function sha256Hex(input: string): Promise<string> {
