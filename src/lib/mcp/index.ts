@@ -18,10 +18,10 @@ export default defineMcp({
   title: "Princess Pink",
   version: "0.1.0",
   instructions:
-    "Tools for the signed-in Princess Pink member. Use `list_upcoming_events` to discover public events, `list_my_rsvps` to see the user's own RSVPs and entry codes, `list_my_memberships` to see their active passes, `create_rsvp` to RSVP to a specific event, and `cancel_rsvp` to cancel an existing RSVP.",
+    "Tools for the signed-in Princess Pink member. Use `list_upcoming_events` to discover public events, `get_event_details` to fetch full details for one event, `list_my_rsvps` to see the user's own RSVPs and entry codes, `list_my_memberships` to see their active passes, `create_rsvp` to RSVP to a specific event, and `cancel_rsvp` to cancel an existing RSVP.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
   }),
-  tools: [listUpcomingEvents, listMyRsvps, listMyMemberships, createRsvp, cancelRsvp],
+  tools: [listUpcomingEvents, getEventDetails, listMyRsvps, listMyMemberships, createRsvp, cancelRsvp],
 });
