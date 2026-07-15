@@ -401,21 +401,16 @@ export const listContactSettingsAudit = createServerFn({ method: "GET" })
       new Set(rows.map((r) => r.actor_id).filter((v): v is string => Boolean(v))),
     );
     const emailByActor = new Map<string, string>();
-    if (actorIds.length) {
-      const { data: users } = await (
-        supabaseAdmin as unknown as {
-          from: (t: string) => {
-            select: (c: string) => {
-              in: (c: string, v: string[]) => Promise<{ data: Array<{ id: string; email: string | null }> | null }>;
-            };
-          };
+    await Promise.all(
+      actorIds.map(async (id) => {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
+          if (u?.user?.email) emailByActor.set(id, u.user.email);
+        } catch {
+          // Actor may have been deleted — leave email unresolved.
         }
-      )
-        .from("users")
-        .select("id, email")
-        .in("id", actorIds);
-      for (const u of users ?? []) if (u.email) emailByActor.set(u.id, u.email);
-    }
+      }),
+    );
 
     return rows.map((r) => ({
       id: r.id,
