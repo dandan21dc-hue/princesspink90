@@ -293,7 +293,27 @@ export function AdminSettings() {
     onSuccess: ({ changes }) => {
       setSaved(true);
       setServerEmailError(null);
-      setServerFetlifeError(null);
+      // Round-trip the saved handle: only clear the persisted server-side
+      // FetLife error once the value the server accepted normalises back to
+      // itself via buildFetlifeUrl → URL parse. If for some reason it does
+      // not (e.g. server accepted a value the client considers malformed),
+      // keep the error visible so the admin still sees something is off.
+      const attempt = lastAttemptFetlifeChangeRef.current;
+      if (attempt?.changed) {
+        const savedHandle = attempt.newHandle;
+        const roundTripsOk =
+          savedHandle === "" || fetlifeUrlRoundTripsToHandle(savedHandle);
+        if (roundTripsOk) {
+          setServerFetlifeError(null);
+          // Surface the confirmation dialog showing what actually went live.
+          setPostSaveFetlife({
+            handle: savedHandle,
+            url: savedHandle ? buildFetlifeUrl(savedHandle) : "",
+          });
+        }
+      } else {
+        setServerFetlifeError(null);
+      }
       qc.invalidateQueries({ queryKey: ["site-settings"] });
       qc.invalidateQueries({ queryKey: ["glory-holes-enabled"] });
       qc.invalidateQueries({ queryKey: ["session-pricing"] });
