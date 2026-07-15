@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/admin/media-moderation")({
   component: AdminMediaModeration,
 });
 
-function AdminMediaModeration() {
+export function AdminMediaModeration() {
   const meFn = useServerFn(amIAdmin);
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
   const [status, setStatus] = useState<StatusFilter>("pending");
