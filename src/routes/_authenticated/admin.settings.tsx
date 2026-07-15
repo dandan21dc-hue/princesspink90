@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check, Copy } from "lucide-react";
 
 import {
   AlertDialog,
@@ -642,14 +642,20 @@ export function AdminSettings() {
                     <div className="break-all">
                       <span className="text-muted-foreground">URL:</span>{" "}
                       {settings.data?.fetlife_handle ? (
-                        <a
-                          href={`https://fetlife.com/${settings.data.fetlife_handle}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline hover:text-foreground"
-                        >
-                          https://fetlife.com/{settings.data.fetlife_handle}
-                        </a>
+                        <>
+                          <a
+                            href={`https://fetlife.com/${settings.data.fetlife_handle}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline hover:text-foreground"
+                          >
+                            https://fetlife.com/{settings.data.fetlife_handle}
+                          </a>
+                          <CopyUrlButton
+                            value={`https://fetlife.com/${settings.data.fetlife_handle}`}
+                            label="Copy current FetLife URL"
+                          />
+                        </>
                       ) : (
                         <span className="text-muted-foreground">(none)</span>
                       )}
@@ -668,14 +674,20 @@ export function AdminSettings() {
                     <div className="break-all">
                       <span className="text-muted-foreground">URL:</span>{" "}
                       {fetlifeNormalized ? (
-                        <a
-                          href={`https://fetlife.com/${fetlifeNormalized}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-semibold text-primary underline"
-                        >
-                          https://fetlife.com/{fetlifeNormalized}
-                        </a>
+                        <>
+                          <a
+                            href={`https://fetlife.com/${fetlifeNormalized}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-semibold text-primary underline"
+                          >
+                            https://fetlife.com/{fetlifeNormalized}
+                          </a>
+                          <CopyUrlButton
+                            value={`https://fetlife.com/${fetlifeNormalized}`}
+                            label="Copy new FetLife URL"
+                          />
+                        </>
                       ) : (
                         <span className="text-destructive">(empty)</span>
                       )}
@@ -730,6 +742,55 @@ export function AdminSettings() {
       </AlertDialog>
 
     </Shell>
+  );
+}
+
+function CopyUrlButton({ value, label }: { value: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
+  const onCopy = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        // Fallback for browsers without async clipboard API.
+        const ta = document.createElement("textarea");
+        ta.value = value;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "absolute";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopied(true);
+      toast.success("URL copied to clipboard");
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Couldn't copy URL");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onCopy}
+      aria-label={label}
+      title={label}
+      className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+    >
+      {copied ? (
+        <Check className="h-3 w-3" aria-hidden />
+      ) : (
+        <Copy className="h-3 w-3" aria-hidden />
+      )}
+    </button>
   );
 }
 
