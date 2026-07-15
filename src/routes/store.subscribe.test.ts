@@ -72,7 +72,7 @@ function extractTermPassCards(src: string) {
     const label = /label="([^"]+)"/.exec(body)?.[1]
     const priceId = /priceId="([^"]+)"/.exec(body)?.[1]
     const termMonths = Number(/termMonths=\{(\d+)\}/.exec(body)?.[1])
-    const priceLabel = /priceLabel\(\s*prices\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/.exec(body)
+    const priceLabel = /priceLabel\(\s*prices\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*(?:,[^)]*)?\)/.exec(body)
     if (label && priceId && termMonths && priceLabel) {
       expect(priceLabel[1]).toBe(priceId) // lookup_key alignment
       out.push({ label, priceId, fallback: priceLabel[2]!, termMonths })
