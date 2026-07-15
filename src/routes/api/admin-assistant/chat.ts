@@ -95,11 +95,71 @@ export const Route = createFileRoute("/api/admin-assistant/chat")({
           });
         }
 
-        const body = (await request.json()) as { messages?: UIMessage[] };
+        const body = (await request.json()) as {
+          messages?: UIMessage[];
+          threadId?: string;
+        };
         if (!Array.isArray(body.messages)) {
           return new Response(JSON.stringify({ error: "messages_required" }), {
             status: 400,
           });
+        }
+        const threadId = body.threadId;
+        if (!threadId || typeof threadId !== "string") {
+          return new Response(JSON.stringify({ error: "thread_required" }), {
+            status: 400,
+          });
+        }
+
+        // Ownership check: this admin must own the thread.
+        const { data: thread, error: threadErr } = await userClient
+          .from("admin_assistant_threads")
+          .select("id, title")
+          .eq("id", threadId)
+          .maybeSingle();
+        if (threadErr) {
+          return new Response(JSON.stringify({ error: threadErr.message }), {
+            status: 500,
+          });
+        }
+        if (!thread) {
+          return new Response(JSON.stringify({ error: "thread_not_found" }), {
+            status: 404,
+          });
+        }
+
+        // Persist the newest user message (idempotent via unique client_id).
+        const lastUser = [...body.messages].reverse().find((m) => m.role === "user");
+        if (lastUser) {
+          await userClient.from("admin_assistant_messages").upsert(
+            {
+              thread_id: threadId,
+              client_id: lastUser.id,
+              role: "user",
+              parts: (lastUser.parts ?? []) as never,
+            },
+            { onConflict: "thread_id,client_id" },
+          );
+          // If thread is still the default title, seed from the first user turn.
+          if (thread.title === "New conversation") {
+            const firstText = (lastUser.parts ?? [])
+              .filter((p: { type: string }) => p.type === "text")
+              .map((p: { type: string; text?: string }) => p.text ?? "")
+              .join(" ")
+              .trim()
+              .slice(0, 80);
+            if (firstText) {
+              await userClient
+                .from("admin_assistant_threads")
+                .update({ title: firstText, updated_at: new Date().toISOString() })
+                .eq("id", threadId);
+            }
+          } else {
+            await userClient
+              .from("admin_assistant_threads")
+              .update({ updated_at: new Date().toISOString() })
+              .eq("id", threadId);
+          }
         }
 
         // Determine app URL for OpenRouter attribution headers.
@@ -315,6 +375,31 @@ export const Route = createFileRoute("/api/admin-assistant/chat")({
 
         return result.toUIMessageStreamResponse({
           originalMessages: body.messages,
+          onFinish: async ({ messages: finalMessages }) => {
+            // Persist any assistant messages produced during this run.
+            const priorIds = new Set(body.messages!.map((m) => m.id));
+            const newAssistant = finalMessages.filter(
+              (m) => m.role === "assistant" && !priorIds.has(m.id),
+            );
+            if (newAssistant.length > 0) {
+              const rows = newAssistant.map((m) => ({
+                thread_id: threadId,
+                client_id: m.id,
+                role: "assistant" as const,
+                parts: (m.parts ?? []) as never,
+              }));
+              const { error: insErr } = await userClient
+                .from("admin_assistant_messages")
+                .upsert(rows, { onConflict: "thread_id,client_id" });
+              if (insErr) {
+                console.error("admin-assistant: persist assistant failed", insErr);
+              }
+              await userClient
+                .from("admin_assistant_threads")
+                .update({ updated_at: new Date().toISOString() })
+                .eq("id", threadId);
+            }
+          },
         });
       },
     },

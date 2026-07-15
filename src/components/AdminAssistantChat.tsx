@@ -36,9 +36,17 @@ function isProposalEnvelope(value: unknown): value is { proposal: Proposal } {
   return typeof cast.tool === "string" && typeof cast.summary === "string";
 }
 
-export function AdminAssistantChat() {
+export function AdminAssistantChat({
+  threadId,
+  initialMessages,
+}: {
+  threadId: string;
+  initialMessages: UIMessage[];
+}) {
   const executeAction = useServerFn(executeAdminAssistantAction);
-  const [decidedTools, setDecidedTools] = useState<Record<string, "confirmed" | "cancelled">>({});
+  const [decidedTools, setDecidedTools] = useState<
+    Record<string, "confirmed" | "cancelled">
+  >({});
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -47,6 +55,7 @@ export function AdminAssistantChat() {
     () =>
       new DefaultChatTransport({
         api: "/api/admin-assistant/chat",
+        body: { threadId },
         fetch: async (url, init) => {
           const { data } = await supabase.auth.getSession();
           const token = data.session?.access_token;
@@ -55,19 +64,26 @@ export function AdminAssistantChat() {
           return fetch(url, { ...init, headers });
         },
       }),
-    [],
+    [threadId],
   );
 
   const { messages, sendMessage, status, error } = useChat({
-    id: "admin-command-center",
+    id: threadId,
+    messages: initialMessages,
     transport,
     onError: (e) => toast.error(e.message || "Chat error"),
   });
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, status]);
 
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, [threadId]);
   useEffect(() => {
     if (status === "ready") textareaRef.current?.focus();
   }, [status]);
@@ -85,9 +101,7 @@ export function AdminAssistantChat() {
         data: { tool: proposal.tool, args: proposal.args } as AdminAssistantAction,
       });
       toast.success(res.summary);
-      await sendMessage({
-        text: `Action confirmed and executed: ${res.summary}`,
-      });
+      await sendMessage({ text: `Action confirmed and executed: ${res.summary}` });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Action failed";
       toast.error(msg);
@@ -110,7 +124,7 @@ export function AdminAssistantChat() {
   }
 
   return (
-    <Card className="flex h-[70vh] flex-col overflow-hidden">
+    <Card className="flex h-[75vh] flex-col overflow-hidden">
       <header className="flex items-center gap-2 border-b bg-muted/40 px-4 py-3">
         <Wand2 className="h-4 w-4 text-primary" aria-hidden />
         <div className="flex-1">
@@ -206,7 +220,6 @@ function MessageBubble({
               </div>
             );
           }
-          // Tool parts: type is `tool-<toolName>` in AI SDK v7 UIMessage.
           if (part.type.startsWith("tool-")) {
             const toolPart = part as unknown as {
               toolCallId: string;
@@ -230,7 +243,11 @@ function MessageBubble({
                     {toolName}
                   </Badge>
                   {!isReady && !isError && <span>Running…</span>}
-                  {isError && <span className="text-destructive">{toolPart.errorText ?? "error"}</span>}
+                  {isError && (
+                    <span className="text-destructive">
+                      {toolPart.errorText ?? "error"}
+                    </span>
+                  )}
                 </div>
 
                 {proposalCard ? (
