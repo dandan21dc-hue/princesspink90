@@ -1898,9 +1898,15 @@ export const getCrmUserDetail = createServerFn({ method: "GET" })
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.userId);
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("user_id, display_name, staff_notes, account_restricted, created_at")
+      .select("user_id, display_name, account_restricted, created_at")
       .eq("user_id", data.userId)
       .maybeSingle();
+    const { data: staffNotesRow } = await supabaseAdmin
+      .from("profile_staff_notes")
+      .select("notes")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+
 
     const [{ data: rsvps }, { data: roomBookings }, { data: pantyOrders }, { data: memberships }] =
       await Promise.all([
@@ -1936,7 +1942,7 @@ export const getCrmUserDetail = createServerFn({ method: "GET" })
         email: authUser?.user?.email ?? null,
         created_at: authUser?.user?.created_at ?? profile?.created_at ?? null,
         display_name: profile?.display_name ?? null,
-        staff_notes: profile?.staff_notes ?? "",
+        staff_notes: staffNotesRow?.notes ?? "",
         account_restricted: Boolean(profile?.account_restricted),
       },
       rsvps: rsvps ?? [],
@@ -1958,9 +1964,12 @@ export const updateCrmStaffNotes = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
-      .from("profiles")
-      .update({ staff_notes: data.staff_notes })
-      .eq("user_id", data.userId);
+      .from("profile_staff_notes")
+      .upsert(
+        { user_id: data.userId, notes: data.staff_notes, updated_by: context.userId, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });

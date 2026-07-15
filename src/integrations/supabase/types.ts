@@ -1867,6 +1867,27 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_staff_notes: {
+        Row: {
+          notes: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          notes?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          notes?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_restricted: boolean
@@ -1878,7 +1899,6 @@ export type Database = {
           pending_deletion_at: string | null
           referral_code: string | null
           reward_points: number
-          staff_notes: string | null
           user_id: string
           veriff_session_id: string | null
           verification_status: Database["public"]["Enums"]["verification_status"]
@@ -1893,7 +1913,6 @@ export type Database = {
           pending_deletion_at?: string | null
           referral_code?: string | null
           reward_points?: number
-          staff_notes?: string | null
           user_id: string
           veriff_session_id?: string | null
           verification_status?: Database["public"]["Enums"]["verification_status"]
@@ -1908,7 +1927,6 @@ export type Database = {
           pending_deletion_at?: string | null
           referral_code?: string | null
           reward_points?: number
-          staff_notes?: string | null
           user_id?: string
           veriff_session_id?: string | null
           verification_status?: Database["public"]["Enums"]["verification_status"]
