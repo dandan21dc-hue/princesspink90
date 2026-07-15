@@ -567,13 +567,61 @@ function RecentActivityPanel() {
     setTo("");
   };
 
+  const exportCsv = () => {
+    const rows = q.data ?? [];
+    if (rows.length === 0) return;
+    const headers = [
+      "created_at",
+      "action",
+      "previous_status",
+      "actor_email",
+      "actor_id",
+      "item_kind",
+      "item_title",
+      "content_item_id",
+      "notes",
+    ] as const;
+    const escape = (v: unknown) => {
+      const s = v == null ? "" : String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [
+      headers.join(","),
+      ...rows.map((r) =>
+        headers.map((h) => escape((r as unknown as Record<string, unknown>)[h])).join(","),
+      ),
+    ].join("\r\n");
+    const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `moderation-audit-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const canExport = Boolean(q.data && q.data.length > 0);
+
   return (
     <section className="mt-10 border-t border-border/60 pt-6">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="font-display text-lg font-bold">Recent moderation activity</h2>
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-          Last 50 decisions{filtersActive ? " matching filters" : " across all items"}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            Last 50 decisions{filtersActive ? " matching filters" : " across all items"}
+          </span>
+          <button
+            type="button"
+            onClick={exportCsv}
+            disabled={!canExport}
+            className="rounded-md border border-border/60 px-3 py-1 text-[11px] uppercase tracking-widest text-muted-foreground hover:border-primary/60 disabled:opacity-40 disabled:cursor-not-allowed"
+            title={canExport ? "Download the visible decisions as CSV" : "No decisions to export"}
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 grid gap-3 rounded-lg border border-border/60 bg-background/40 p-3 sm:grid-cols-2 lg:grid-cols-5">
