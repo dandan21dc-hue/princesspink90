@@ -18,9 +18,14 @@ const createScanInput = z.object({
   findings: z.array(findingSchema).max(2000),
 });
 
-async function assertAdmin(supabase: {
-  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
-}, userId: string) {
+type AuthedSupabase = Parameters<Parameters<typeof requireSupabaseAuth>[0]>[0] extends never
+  ? never
+  : never;
+
+async function assertAdmin(
+  supabase: { rpc: (fn: "has_role", args: { _user_id: string; _role: "admin" }) => Promise<{ data: boolean | null; error: { message: string } | null }> },
+  userId: string,
+) {
   const { data, error } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "admin",
