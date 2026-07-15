@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, GripVertical, RefreshCw, Search, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, GripVertical, RefreshCw, Search, X } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { RoleGuard } from "@/components/RoleGuard";
