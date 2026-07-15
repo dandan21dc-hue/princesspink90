@@ -6,7 +6,10 @@ import {
   amIAdmin,
   adminListNowpaymentsEvents,
   adminRetryNowpaymentsGrant,
+  adminBulkUpdateNowpaymentsEvents,
+  type NowpaymentsBulkAction,
 } from "@/lib/admin.functions";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +39,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy, Download } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, ShieldCheck, ExternalLink, RefreshCw, RotateCw, FileJson, Copy, Download, StickyNote, CheckSquare, Square } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/admin/nowpayments-events")({
   head: () => ({ meta: [{ title: "NOWPayments IPN Events · Admin" }] }),
