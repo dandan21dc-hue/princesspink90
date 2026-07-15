@@ -25,6 +25,9 @@ export interface CheckoutOptions {
   bookingPartySize?: number;
   bookingNotes?: string;
   autoRenew?: boolean;
+  /** Reward points to redeem against this checkout (10 pts = $1.00 off).
+   *  Server verifies + reserves the balance; unused for non-panty items. */
+  pointsToApply?: number;
 }
 
 /**
