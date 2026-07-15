@@ -537,6 +537,7 @@ export type Database = {
         Row: {
           accepted_at: string
           accepted_by_user_id: string
+          archive_path: string | null
           created_at: string
           event_id: string | null
           id: string
@@ -548,6 +549,7 @@ export type Database = {
         Insert: {
           accepted_at?: string
           accepted_by_user_id: string
+          archive_path?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
@@ -559,6 +561,7 @@ export type Database = {
         Update: {
           accepted_at?: string
           accepted_by_user_id?: string
+          archive_path?: string | null
           created_at?: string
           event_id?: string | null
           id?: string
