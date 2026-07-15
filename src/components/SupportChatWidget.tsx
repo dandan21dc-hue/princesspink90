@@ -53,6 +53,53 @@ const INITIAL_GREETING: ChatMessage = {
   ],
 };
 
+const LOCAL_KEY = "concierge:history:v1";
+
+function readLocal(): ChatMessage[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return sanitizeMessages(parsed);
+  } catch {
+    return [];
+  }
+}
+
+function writeLocal(messages: ChatMessage[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCAL_KEY, JSON.stringify(messages.slice(-200)));
+  } catch {
+    /* quota — ignore */
+  }
+}
+
+function clearLocal() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(LOCAL_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function sanitizeMessages(raw: unknown): ChatMessage[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ChatMessage[] = [];
+  for (const m of raw) {
+    if (!m || typeof m !== "object") continue;
+    const role = (m as { role?: unknown }).role;
+    const parts = (m as { parts?: unknown }).parts;
+    if (role !== "user" && role !== "assistant" && role !== "system") continue;
+    if (!Array.isArray(parts)) continue;
+    out.push({ role, parts: parts as MessagePart[] });
+  }
+  return out;
+}
+
+
 export function SupportChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
