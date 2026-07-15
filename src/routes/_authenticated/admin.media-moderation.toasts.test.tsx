@@ -148,29 +148,32 @@ describe("admin media moderation — action toasts", () => {
       label: "Approve",
       button: /^approve$/i,
       match: /approved: sunset shoot/i,
+      switchTo: null as null | RegExp,
     },
     {
       label: "Reject",
       button: /^reject$/i,
       match: /rejected: sunset shoot/i,
+      switchTo: null,
     },
     {
       label: "Send back to pending",
       button: /send back to pending/i,
       match: /sent back to pending: sunset shoot/i,
-      setup: () => {
-        // Row must not already be pending for the button to render.
-        mockListQueue.mockImplementation(async () => [
-          { ...ROW, moderation_status: "approved" as const },
-        ]);
-      },
+      // The "Send back to pending" button only renders when the filter is
+      // NOT already on "pending", so flip to the Approved tab (queue is
+      // stubbed to return the row regardless of filter).
+      switchTo: /^approved$/i,
     },
   ])(
     "fires a success toast on $label",
-    async ({ button, match, setup }) => {
-      setup?.();
+    async ({ button, match, switchTo }) => {
       renderPage();
       await waitForRow();
+      if (switchTo) {
+        fireEvent.click(screen.getByRole("button", { name: switchTo }));
+        await waitForRow();
+      }
 
       fireEvent.click(screen.getByRole("button", { name: button }));
 
@@ -185,27 +188,36 @@ describe("admin media moderation — action toasts", () => {
   );
 
   it.each([
-    { label: "Approve", button: /^approve$/i, decision: /approved/i },
-    { label: "Reject", button: /^reject$/i, decision: /rejected/i },
+    {
+      label: "Approve",
+      button: /^approve$/i,
+      decision: /approved/i,
+      switchTo: null as null | RegExp,
+    },
+    {
+      label: "Reject",
+      button: /^reject$/i,
+      decision: /rejected/i,
+      switchTo: null,
+    },
     {
       label: "Send back to pending",
       button: /send back to pending/i,
       decision: /pending/i,
-      setup: () => {
-        mockListQueue.mockImplementation(async () => [
-          { ...ROW, moderation_status: "approved" as const },
-        ]);
-      },
+      switchTo: /^approved$/i,
     },
   ])(
     "fires an error toast when $label fails",
-    async ({ button, decision, setup }) => {
-      setup?.();
+    async ({ button, decision, switchTo }) => {
       mockModerate.mockImplementation(async () => {
         throw new Error("boom");
       });
       renderPage();
       await waitForRow();
+      if (switchTo) {
+        fireEvent.click(screen.getByRole("button", { name: switchTo }));
+        await waitForRow();
+      }
 
       fireEvent.click(screen.getByRole("button", { name: button }));
 
