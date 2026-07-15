@@ -531,6 +531,19 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
     return finalize({ handled: true });
   }
 
+  if (order.kind === "aap90d" || order.kind === "aap180d" || order.kind === "aap365d") {
+    const days = order.kind === "aap90d" ? 90 : order.kind === "aap180d" ? 180 : 365;
+    const { error } = await supabaseAdmin.rpc("grant_all_access_pass_term" as any, {
+      _user_id: order.userId,
+      _environment: order.environment,
+      _amount_cents: order.amountCents,
+      _external_payment_reference: paymentRef,
+      _days: days,
+    });
+    if (error) throw new Error(`grant_all_access_pass_term failed: ${error.message}`);
+    return finalize({ handled: true });
+  }
+
   if (order.kind === "lifetime") {
     const { error } = await supabaseAdmin.rpc("grant_lifetime_membership", {
       _user_id: order.userId,
