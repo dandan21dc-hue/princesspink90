@@ -297,6 +297,13 @@ export function AdminSettings() {
           description: `${message} — public link still points to ${attempt.oldHandle ?? "(none)"}.`,
           duration: 8000,
         });
+        // Send focus back to the handle input so the admin can immediately
+        // edit and retry — the field is where the failure happened.
+        // Send focus back to the handle input so the admin can immediately
+        // edit and retry — the field is where the failure happened. Defer
+        // past Radix's own focus restore (which returns focus to the Save
+        // trigger when the confirm dialog closes on the failed save).
+        setTimeout(() => fetlifeInputRef.current?.focus(), 0);
       } else {
         toast.error("Couldn't save settings", { description: message });
       }
@@ -317,6 +324,9 @@ export function AdminSettings() {
   // return focus there after the dialog closes — otherwise keyboard users
   // land back at document.body.
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
+  // Return keyboard focus to the FetLife input after a validation or server
+  // rejection so the admin can fix and retry without hunting for the field.
+  const fetlifeInputRef = useRef<HTMLInputElement | null>(null);
   const fetlifeConfirmDialogId = "fetlife-confirm-dialog";
   const fetlifeChanged =
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
@@ -338,8 +348,13 @@ export function AdminSettings() {
       toast.error("Fix the FetLife handle first", {
         description: validationError,
       });
+      // Return focus so the admin can immediately edit — the inline error
+      // is announced by its role="alert" span.
+      fetlifeInputRef.current?.focus();
+      fetlifeInputRef.current?.select();
       return;
     }
+
 
     // Recompute the "changed" check against the freshly-normalized value so
     // an admin who typed extra whitespace but kept the same handle doesn't
@@ -422,19 +437,28 @@ export function AdminSettings() {
           hint="3-20 characters: letters, digits, underscore, or hyphen. Pasting a full profile URL is fine — it will be normalized."
         >
           <input
+            ref={fetlifeInputRef}
             required
             maxLength={100}
             value={fetlife}
             aria-invalid={fetlifeError !== null}
+            aria-errormessage={fetlifeError ? "fetlife-handle-error" : undefined}
             onChange={(e) => setFetlife(e.target.value)}
             onBlur={() => setFetlife((v) => normalizeFetlifeHandle(v))}
             className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
               fetlifeError ? "border-destructive" : "border-border"
             }`}
           />
-          {fetlifeError && (
-            <div className="mt-1 text-[11px] text-destructive">{fetlifeError}</div>
-          )}
+          {/* role="alert" + aria-live announce the error the moment it appears
+              (typed input, or after a server rejection focuses the field). */}
+          <div
+            id="fetlife-handle-error"
+            role="alert"
+            aria-live="polite"
+            className="mt-1 text-[11px] text-destructive"
+          >
+            {fetlifeError ?? ""}
+          </div>
         </Field>
         <ContactLinkPreview
           draftEmail={emailError ? null : emailTrimmed}
