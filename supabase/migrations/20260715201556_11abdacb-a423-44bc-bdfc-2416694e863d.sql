@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ALTER COLUMN verification_status SET DEFAULT 'pending'::verification_status;
