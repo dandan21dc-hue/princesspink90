@@ -91,6 +91,7 @@ import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAdminAllAccessRouteImport } from './routes/_authenticated/admin.all-access'
 import { Route as AuthenticatedAdminActivityAuditRouteImport } from './routes/_authenticated/admin.activity-audit'
+import { Route as AuthenticatedAccountRewardsRouteImport } from './routes/_authenticated/account.rewards'
 import { Route as AuthenticatedAccountOrdersRouteImport } from './routes/_authenticated/account.orders'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
@@ -569,6 +570,12 @@ const AuthenticatedAdminActivityAuditRoute =
     path: '/admin/activity-audit',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAccountRewardsRoute =
+  AuthenticatedAccountRewardsRouteImport.update({
+    id: '/rewards',
+    path: '/rewards',
+    getParentRoute: () => AuthenticatedAccountRoute,
+  } as any)
 const AuthenticatedAccountOrdersRoute =
   AuthenticatedAccountOrdersRouteImport.update({
     id: '/orders',
@@ -775,6 +782,7 @@ export interface FileRoutesByFullPath {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/account/orders': typeof AuthenticatedAccountOrdersRoute
+  '/account/rewards': typeof AuthenticatedAccountRewardsRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -885,6 +893,7 @@ export interface FileRoutesByTo {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/account/orders': typeof AuthenticatedAccountOrdersRoute
+  '/account/rewards': typeof AuthenticatedAccountRewardsRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -997,6 +1006,7 @@ export interface FileRoutesById {
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
   '/_authenticated/account/orders': typeof AuthenticatedAccountOrdersRoute
+  '/_authenticated/account/rewards': typeof AuthenticatedAccountRewardsRoute
   '/_authenticated/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/_authenticated/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -1110,6 +1120,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/account/billing'
     | '/account/orders'
+    | '/account/rewards'
     | '/admin/activity-audit'
     | '/admin/all-access'
     | '/admin/analytics'
@@ -1220,6 +1231,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/account/billing'
     | '/account/orders'
+    | '/account/rewards'
     | '/admin/activity-audit'
     | '/admin/all-access'
     | '/admin/analytics'
@@ -1331,6 +1343,7 @@ export interface FileRouteTypes {
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/account/billing'
     | '/_authenticated/account/orders'
+    | '/_authenticated/account/rewards'
     | '/_authenticated/admin/activity-audit'
     | '/_authenticated/admin/all-access'
     | '/_authenticated/admin/analytics'
@@ -2034,6 +2047,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminActivityAuditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/account/rewards': {
+      id: '/_authenticated/account/rewards'
+      path: '/rewards'
+      fullPath: '/account/rewards'
+      preLoaderRoute: typeof AuthenticatedAccountRewardsRouteImport
+      parentRoute: typeof AuthenticatedAccountRoute
+    }
     '/_authenticated/account/orders': {
       id: '/_authenticated/account/orders'
       path: '/orders'
@@ -2236,12 +2256,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAccountRouteChildren {
   AuthenticatedAccountBillingRoute: typeof AuthenticatedAccountBillingRoute
   AuthenticatedAccountOrdersRoute: typeof AuthenticatedAccountOrdersRoute
+  AuthenticatedAccountRewardsRoute: typeof AuthenticatedAccountRewardsRoute
   AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
 }
 
 const AuthenticatedAccountRouteChildren: AuthenticatedAccountRouteChildren = {
   AuthenticatedAccountBillingRoute: AuthenticatedAccountBillingRoute,
   AuthenticatedAccountOrdersRoute: AuthenticatedAccountOrdersRoute,
+  AuthenticatedAccountRewardsRoute: AuthenticatedAccountRewardsRoute,
   AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
 }
 
