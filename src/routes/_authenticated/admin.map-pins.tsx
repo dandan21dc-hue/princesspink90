@@ -94,6 +94,7 @@ function AdminMapPins() {
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
   useEffect(() => {
     setOrder(pins);
+    setSelectedPin((cur) => (cur ? pins.find((p) => p.id === cur.id) ?? null : null));
   }, [pins]);
 
   const filtered = useMemo(() => {
