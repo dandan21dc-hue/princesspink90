@@ -110,6 +110,8 @@ function AdminNowpaymentsEvents() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
   const [autoRefresh, setAutoRefresh] = useState<number>(0); // seconds; 0 = off
+  const [exportScope, setExportScope] = useState<"page" | "all">("page");
+  const [isExporting, setIsExporting] = useState(false);
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
