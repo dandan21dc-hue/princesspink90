@@ -3,6 +3,7 @@ import listUpcomingEvents from "./tools/list-upcoming-events";
 import listMyRsvps from "./tools/list-my-rsvps";
 import listMyMemberships from "./tools/list-my-memberships";
 import createRsvp from "./tools/create-rsvp";
+import cancelRsvp from "./tools/cancel-rsvp";
 
 // The OAuth issuer MUST be the direct Supabase host, not the `.lovable.cloud`
 // proxy that `SUPABASE_URL` resolves to on the published Workers runtime.
