@@ -407,6 +407,9 @@ export function SupportChatWidget() {
       });
     } finally {
       setBookingSlot(null);
+      // The just-held (or just-failed) slot has changed the world — pull
+      // fresh availability so remaining slot cards reflect reality.
+      void refreshSlotCards();
     }
   };
 
