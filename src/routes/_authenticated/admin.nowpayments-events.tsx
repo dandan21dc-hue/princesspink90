@@ -76,13 +76,21 @@ type SortMode =
   | "last_seen_desc"
   | "last_seen_asc"
   | "first_seen_desc"
-  | "first_seen_asc";
+  | "first_seen_asc"
+  | "last_status_asc"
+  | "last_status_desc"
+  | "payment_id_asc"
+  | "payment_id_desc";
 
 const SORT_LABELS: Record<SortMode, string> = {
   last_seen_desc: "Last seen · newest",
   last_seen_asc: "Last seen · oldest",
   first_seen_desc: "First seen · newest",
   first_seen_asc: "First seen · oldest",
+  last_status_asc: "Status · A→Z",
+  last_status_desc: "Status · Z→A",
+  payment_id_asc: "Payment ID · A→Z",
+  payment_id_desc: "Payment ID · Z→A",
 };
 
 function AdminNowpaymentsEvents() {
