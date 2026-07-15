@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
-import type { UIMessage } from "ai";
+
 
 /**
  * Server functions for Admin Command Center thread persistence.
@@ -104,14 +104,19 @@ type StoredMessageRow = {
   created_at: string;
 };
 
+export type StoredMessage = {
+  id: string;
+  role: "user" | "assistant" | "system";
+  parts: unknown[];
+};
+
 export const getAdminThreadMessages = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
     z.object({ threadId: z.string().uuid() }).parse(input),
   )
-  .handler(async ({ data, context }): Promise<UIMessage[]> => {
+  .handler(async ({ data, context }): Promise<StoredMessage[]> => {
     await assertAdmin(context.supabase, context.userId);
-    // Ownership check (RLS also enforces this, but fail fast).
     const { data: thread, error: tErr } = await context.supabase
       .from("admin_assistant_threads")
       .select("id")
@@ -130,6 +135,6 @@ export const getAdminThreadMessages = createServerFn({ method: "POST" })
     return ((rows ?? []) as StoredMessageRow[]).map((r) => ({
       id: r.client_id,
       role: r.role,
-      parts: Array.isArray(r.parts) ? r.parts : [],
-    })) as UIMessage[];
+      parts: Array.isArray(r.parts) ? (r.parts as unknown[]) : [],
+    }));
   });
