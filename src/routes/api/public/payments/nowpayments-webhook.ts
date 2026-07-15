@@ -546,8 +546,24 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_panty_listing_order failed: ${error.message}`);
+    // Deduct any reward points reserved for this order. Idempotent: the
+    // RPC no-ops if the reservation was already consumed on a prior
+    // redelivery of the same finished status.
+    if (order.pointsApplied && order.pointsApplied > 0 && event.order_id) {
+      const { error: consumeErr } = await supabaseAdmin.rpc(
+        "consume_reward_points_reservation",
+        { _order_id: event.order_id },
+      );
+      if (consumeErr) {
+        console.warn(
+          "consume_reward_points_reservation failed:",
+          consumeErr.message,
+        );
+      }
+    }
     return finalize({ handled: true });
   }
+
 
   if (order.kind === "booking") {
     // Idempotent: external_payment_reference is UNIQUE on
