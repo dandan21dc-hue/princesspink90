@@ -160,9 +160,17 @@ export const contactSettingsUpdateSchema = z.object({
     .max(SESSION_DURATION_MAX_MINUTES, {
       message: `Session duration must be at most ${SESSION_DURATION_MAX_MINUTES} minutes.`,
     }),
+  // Client MUST set this to true when the FetLife handle differs from the
+  // currently-saved value. The server re-checks the flag against the actual
+  // stored handle so a spoofed/omitted flag cannot bypass the confirmation.
+  fetlife_confirmed: z.boolean().optional().default(false),
 });
 
+export const FETLIFE_CONFIRMATION_REQUIRED_MESSAGE =
+  "FetLife handle change was not confirmed. Please confirm the change before saving.";
+
 const updateSchema = contactSettingsUpdateSchema;
+
 
 
 export type PricingAuditEntry = {
