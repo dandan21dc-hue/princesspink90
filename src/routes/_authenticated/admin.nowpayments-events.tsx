@@ -1076,7 +1076,23 @@ function EventRow({
               </div>
             )}
           </div>
+          {e.admin_note && (
+            <div className="mt-2 flex items-start gap-2 rounded-md border border-border/60 bg-muted/30 p-2 text-xs">
+              <StickyNote className="h-3 w-3 mt-0.5 text-primary flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="whitespace-pre-wrap break-words">{e.admin_note}</div>
+                {e.admin_note_updated_at && (
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    Note updated {fmt(e.admin_note_updated_at)}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          </div>
         </div>
+
+
 
         <div className="text-right space-y-2 min-w-[180px]">
           <div className="text-xs uppercase tracking-widest text-muted-foreground">
