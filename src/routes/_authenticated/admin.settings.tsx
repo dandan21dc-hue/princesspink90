@@ -543,6 +543,11 @@ export function AdminSettings() {
         open={pendingFetlifeConfirm}
         onOpenChange={(open) => {
           if (open) return;
+          // While the confirm-triggered save is in flight, block Radix from
+          // closing the dialog (Esc, overlay click, programmatic close). The
+          // buttons themselves are disabled — closing would strand the admin
+          // with no visible "saving…" indicator.
+          if (save.isPending) return;
           const intent = fetlifeDismissIntentRef.current;
           fetlifeDismissIntentRef.current = null;
           setPendingFetlifeConfirm(false);
@@ -563,6 +568,7 @@ export function AdminSettings() {
           });
         }}
       >
+
         <AlertDialogContent
           id={fetlifeConfirmDialogId}
           aria-describedby={`${fetlifeConfirmDialogId}-desc`}
