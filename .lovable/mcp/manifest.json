@@ -164,6 +164,32 @@
           ]
         },
         "outputSchema": null
+      },
+      {
+        "name": "check_in_to_event",
+        "title": "Check in to event",
+        "description": "Check the signed-in user in to their RSVP using its entry code (e.g. `PINK-123`). Returns whether check-in succeeded and the check-in timestamp. Idempotent — re-running on an already checked-in RSVP returns the existing timestamp.",
+        "annotations": {
+          "readOnlyHint": false,
+          "idempotentHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "entry_code": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The RSVP's entry code, e.g. `PINK-123`. Case-insensitive."
+            }
+          },
+          "required": [
+            "entry_code"
+          ]
+        },
+        "outputSchema": null
       }
     ]
   }
