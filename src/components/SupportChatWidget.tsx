@@ -814,11 +814,13 @@ export function SupportChatWidget() {
 function MessageBubble({
   message,
   bookingSlot,
+  timezone,
   onSlotPick,
   onConfirm,
 }: {
   message: ChatMessage;
   bookingSlot: string | null;
+  timezone: string;
   onSlotPick: (slot: ConciergeSlot) => void;
   onConfirm: (slot: ConciergeSlot) => void;
 }) {
@@ -841,13 +843,16 @@ function MessageBubble({
             );
           }
           if (part.type === "slots") {
-            return <SlotPickerCard key={i} slots={part.slots} onPick={onSlotPick} />;
+            return (
+              <SlotPickerCard key={i} slots={part.slots} timezone={timezone} onPick={onSlotPick} />
+            );
           }
           if (part.type === "confirm") {
             return (
               <ConfirmSlotCard
                 key={i}
                 slot={part.slot}
+                timezone={timezone}
                 busy={bookingSlot === part.slot.startsAt}
                 onConfirm={onConfirm}
               />
@@ -859,6 +864,7 @@ function MessageBubble({
               bookingId={part.bookingId}
               startsAt={part.startsAt}
               status={part.status}
+              timezone={timezone}
             />
           );
         })}
