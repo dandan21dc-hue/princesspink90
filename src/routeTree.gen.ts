@@ -83,6 +83,7 @@ import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminAnalyticsRouteImport } from './routes/_authenticated/admin.analytics'
 import { Route as AuthenticatedAdminAllAccessRouteImport } from './routes/_authenticated/admin.all-access'
 import { Route as AuthenticatedAdminActivityAuditRouteImport } from './routes/_authenticated/admin.activity-audit'
+import { Route as AuthenticatedAccountOrdersRouteImport } from './routes/_authenticated/account.orders'
 import { Route as AuthenticatedAccountBillingRouteImport } from './routes/_authenticated/account.billing'
 import { Route as LovableEmailTransactionalSendRouteImport } from './routes/lovable/email/transactional/send'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -511,6 +512,12 @@ const AuthenticatedAdminActivityAuditRoute =
     path: '/admin/activity-audit',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAccountOrdersRoute =
+  AuthenticatedAccountOrdersRouteImport.update({
+    id: '/orders',
+    path: '/orders',
+    getParentRoute: () => AuthenticatedAccountRoute,
+  } as any)
 const AuthenticatedAccountBillingRoute =
   AuthenticatedAccountBillingRouteImport.update({
     id: '/billing',
@@ -682,6 +689,7 @@ export interface FileRoutesByFullPath {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
+  '/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -779,6 +787,7 @@ export interface FileRoutesByTo {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
+  '/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -879,6 +888,7 @@ export interface FileRoutesById {
   '/store/$id': typeof StoreIdRoute
   '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
+  '/_authenticated/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/_authenticated/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
   '/_authenticated/admin/all-access': typeof AuthenticatedAdminAllAccessRoute
   '/_authenticated/admin/analytics': typeof AuthenticatedAdminAnalyticsRoute
@@ -979,6 +989,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/account/billing'
+    | '/account/orders'
     | '/admin/activity-audit'
     | '/admin/all-access'
     | '/admin/analytics'
@@ -1076,6 +1087,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/account/billing'
+    | '/account/orders'
     | '/admin/activity-audit'
     | '/admin/all-access'
     | '/admin/analytics'
@@ -1175,6 +1187,7 @@ export interface FileRouteTypes {
     | '/store/$id'
     | '/store/subscribe'
     | '/_authenticated/account/billing'
+    | '/_authenticated/account/orders'
     | '/_authenticated/admin/activity-audit'
     | '/_authenticated/admin/all-access'
     | '/_authenticated/admin/analytics'
@@ -1807,6 +1820,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminActivityAuditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/account/orders': {
+      id: '/_authenticated/account/orders'
+      path: '/orders'
+      fullPath: '/account/orders'
+      preLoaderRoute: typeof AuthenticatedAccountOrdersRouteImport
+      parentRoute: typeof AuthenticatedAccountRoute
+    }
     '/_authenticated/account/billing': {
       id: '/_authenticated/account/billing'
       path: '/billing'
@@ -1973,11 +1993,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAccountRouteChildren {
   AuthenticatedAccountBillingRoute: typeof AuthenticatedAccountBillingRoute
+  AuthenticatedAccountOrdersRoute: typeof AuthenticatedAccountOrdersRoute
   AuthenticatedAccountIndexRoute: typeof AuthenticatedAccountIndexRoute
 }
 
 const AuthenticatedAccountRouteChildren: AuthenticatedAccountRouteChildren = {
   AuthenticatedAccountBillingRoute: AuthenticatedAccountBillingRoute,
+  AuthenticatedAccountOrdersRoute: AuthenticatedAccountOrdersRoute,
   AuthenticatedAccountIndexRoute: AuthenticatedAccountIndexRoute,
 }
 
