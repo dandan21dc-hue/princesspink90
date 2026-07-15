@@ -867,6 +867,7 @@ function BulkAddDialog({
   const [timeEnd, setTimeEnd] = useState("17:00");
   const [duration, setDuration] = useState(60);
   const [gap, setGap] = useState(15);
+  const [priceAud, setPriceAud] = useState<string>("");
   const [localErr, setLocalErr] = useState<string | null>(null);
 
   const preview = useMemo(() => {
