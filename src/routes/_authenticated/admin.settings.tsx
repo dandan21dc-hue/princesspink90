@@ -913,10 +913,13 @@ export function AdminSettings() {
                             label="Copy new FetLife URL"
                             kindLabel="new FetLife URL"
                             disabled={save.isPending}
+                            onCopied={() => setLastCopiedFetlife("new")}
                           />
-
-
+                          {lastCopiedFetlife === "new" ? (
+                            <LastCopiedBadge which="new" />
+                          ) : null}
                         </>
+
                       ) : (
                         <span className="text-destructive">(empty)</span>
                       )}
