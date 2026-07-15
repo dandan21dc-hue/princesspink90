@@ -552,10 +552,24 @@ export function AdminSettings() {
 
           {saved && <span className="text-sm text-primary">Saved ✓</span>}
           {save.error && (
-            <span className="text-sm text-destructive">
-              {(save.error as Error).message}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span role="alert" className="text-sm text-destructive">
+                {(save.error as Error).message}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  save.reset();
+                  handleSubmit();
+                }}
+                disabled={save.isPending || sessionInputsInvalid}
+                className="rounded-md border border-destructive/60 bg-destructive/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-destructive hover:bg-destructive/20 disabled:opacity-50"
+              >
+                Retry save
+              </button>
+            </div>
           )}
+
         </div>
       </form>
 
