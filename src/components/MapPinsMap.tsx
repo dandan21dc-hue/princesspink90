@@ -37,16 +37,16 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props
       container: containerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center: initialCenter,
-      zoom: pins.length > 1 ? 3 : 11,
+      zoom: sortedPins.length > 1 ? 3 : 11,
       attributionControl: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: false }), "top-right");
     mapRef.current = map;
 
     map.on("load", () => {
-      if (pins.length === 0) return;
+      if (sortedPins.length === 0) return;
       const bounds = new mapboxgl.LngLatBounds();
-      for (const pin of pins) {
+      for (const pin of sortedPins) {
         const el = document.createElement("div");
         const isSelected = selectedPinId === pin.id;
         el.className = `h-4 w-4 rounded-full border-2 border-background bg-primary cursor-pointer transition-transform ${
@@ -73,7 +73,7 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props
         }
         bounds.extend([pin.longitude, pin.latitude]);
       }
-      if (pins.length > 1) {
+      if (sortedPins.length > 1) {
         map.fitBounds(bounds, { padding: 60, maxZoom: 12, duration: 0 });
       }
     });
