@@ -411,7 +411,69 @@ function AdminMapPins() {
         </form>
 
         <div>
-          <MapPinsMap pins={filtered} className="h-[380px] w-full" />
+          <MapPinsMap
+            pins={filtered}
+            className="h-[380px] w-full"
+            selectedPinId={selectedPin?.id ?? null}
+            onPinClick={(p) => setSelectedPin(p)}
+          />
+          {selectedPin && (
+            <div className="mt-3 rounded-2xl border border-primary/40 bg-primary/5 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Selected pin</div>
+                  <h3 className="mt-0.5 truncate font-display text-base font-semibold">{selectedPin.title}</h3>
+                  <p className="mt-0.5 text-xs tabular-nums text-muted-foreground">
+                    {selectedPin.latitude.toFixed(5)}, {selectedPin.longitude.toFixed(5)}
+                    <span className="mx-1.5">·</span>
+                    Order {selectedPin.sort_order}
+                  </p>
+                  {selectedPin.description ? (
+                    <p className="mt-2 text-sm text-foreground/90">{selectedPin.description}</p>
+                  ) : (
+                    <p className="mt-2 text-sm italic text-muted-foreground">No description</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPin(null)}
+                  aria-label="Close pin details"
+                  className="rounded p-1 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    startEdit(selectedPin);
+                    setSelectedPin(null);
+                  }}
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingDelete(selectedPin);
+                  }}
+                  className="rounded-md border border-destructive/60 px-3 py-1.5 text-xs text-destructive"
+                >
+                  Delete
+                </button>
+                <a
+                  href={`https://www.google.com/maps?q=${selectedPin.latitude},${selectedPin.longitude}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Open in Google Maps ↗
+                </a>
+              </div>
+            </div>
+          )}
           <div className="mt-6 space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="font-display text-lg font-semibold">
