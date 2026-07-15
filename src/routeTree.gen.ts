@@ -53,6 +53,7 @@ import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminVenueComplianceRemindersRouteImport } from './routes/_authenticated/admin.venue-compliance-reminders'
 import { Route as AuthenticatedAdminVenueComplianceRouteImport } from './routes/_authenticated/admin.venue-compliance'
 import { Route as AuthenticatedAdminUserManagementRouteImport } from './routes/_authenticated/admin.user-management'
+import { Route as AuthenticatedAdminUserAccessTimelineRouteImport } from './routes/_authenticated/admin.user-access-timeline'
 import { Route as AuthenticatedAdminSystemLogsRouteImport } from './routes/_authenticated/admin.system-logs'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin.settings'
@@ -332,6 +333,12 @@ const AuthenticatedAdminUserManagementRoute =
   AuthenticatedAdminUserManagementRouteImport.update({
     id: '/admin/user-management',
     path: '/admin/user-management',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminUserAccessTimelineRoute =
+  AuthenticatedAdminUserAccessTimelineRouteImport.update({
+    id: '/admin/user-access-timeline',
+    path: '/admin/user-access-timeline',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminSystemLogsRoute =
@@ -720,6 +727,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
+  '/admin/user-access-timeline': typeof AuthenticatedAdminUserAccessTimelineRoute
   '/admin/user-management': typeof AuthenticatedAdminUserManagementRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -818,6 +826,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
+  '/admin/user-access-timeline': typeof AuthenticatedAdminUserAccessTimelineRoute
   '/admin/user-management': typeof AuthenticatedAdminUserManagementRoute
   '/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -919,6 +928,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/system-logs': typeof AuthenticatedAdminSystemLogsRoute
+  '/_authenticated/admin/user-access-timeline': typeof AuthenticatedAdminUserAccessTimelineRoute
   '/_authenticated/admin/user-management': typeof AuthenticatedAdminUserManagementRoute
   '/_authenticated/admin/venue-compliance': typeof AuthenticatedAdminVenueComplianceRoute
   '/_authenticated/admin/venue-compliance-reminders': typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -1020,6 +1030,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/support'
     | '/admin/system-logs'
+    | '/admin/user-access-timeline'
     | '/admin/user-management'
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
@@ -1118,6 +1129,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/support'
     | '/admin/system-logs'
+    | '/admin/user-access-timeline'
     | '/admin/user-management'
     | '/admin/venue-compliance'
     | '/admin/venue-compliance-reminders'
@@ -1218,6 +1230,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/system-logs'
+    | '/_authenticated/admin/user-access-timeline'
     | '/_authenticated/admin/user-management'
     | '/_authenticated/admin/venue-compliance'
     | '/_authenticated/admin/venue-compliance-reminders'
@@ -1609,6 +1622,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/user-management'
       fullPath: '/admin/user-management'
       preLoaderRoute: typeof AuthenticatedAdminUserManagementRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/user-access-timeline': {
+      id: '/_authenticated/admin/user-access-timeline'
+      path: '/admin/user-access-timeline'
+      fullPath: '/admin/user-access-timeline'
+      preLoaderRoute: typeof AuthenticatedAdminUserAccessTimelineRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/system-logs': {
@@ -2075,6 +2095,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminSystemLogsRoute: typeof AuthenticatedAdminSystemLogsRoute
+  AuthenticatedAdminUserAccessTimelineRoute: typeof AuthenticatedAdminUserAccessTimelineRoute
   AuthenticatedAdminUserManagementRoute: typeof AuthenticatedAdminUserManagementRoute
   AuthenticatedAdminVenueComplianceRoute: typeof AuthenticatedAdminVenueComplianceRoute
   AuthenticatedAdminVenueComplianceRemindersRoute: typeof AuthenticatedAdminVenueComplianceRemindersRoute
@@ -2137,6 +2158,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
   AuthenticatedAdminSystemLogsRoute: AuthenticatedAdminSystemLogsRoute,
+  AuthenticatedAdminUserAccessTimelineRoute:
+    AuthenticatedAdminUserAccessTimelineRoute,
   AuthenticatedAdminUserManagementRoute: AuthenticatedAdminUserManagementRoute,
   AuthenticatedAdminVenueComplianceRoute:
     AuthenticatedAdminVenueComplianceRoute,

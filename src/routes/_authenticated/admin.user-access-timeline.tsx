@@ -98,7 +98,7 @@ function AdminUserAccessTimeline() {
           </p>
         </div>
         <Link
-          to="/_authenticated/admin/nowpayments-events" as any
+          to="/admin/nowpayments-events"
           className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
         >
           ← All events
