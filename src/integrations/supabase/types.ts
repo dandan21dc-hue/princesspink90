@@ -3049,6 +3049,10 @@ export type Database = {
         Args: { _content_id: string; _env?: string; _user_id: string }
         Returns: boolean
       }
+      validate_referral_code: {
+        Args: { _code: string; _email: string }
+        Returns: Json
+      }
       verify_admin_activity_audit_integrity: { Args: never; Returns: Json }
     }
     Enums: {
