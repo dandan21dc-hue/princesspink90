@@ -116,7 +116,7 @@ export const template = {
     count: 2,
     detectedAt: new Date().toISOString(),
     detailJson: JSON.stringify({ seqs: [42, 57], count: 2 }, null, 2),
-    reviewUrl: 'https://princesspink90.lovable.app/admin/activity-audit',
+    reviewUrl: 'https://princesspink90.com/admin/activity-audit',
   },
 } satisfies TemplateEntry
 

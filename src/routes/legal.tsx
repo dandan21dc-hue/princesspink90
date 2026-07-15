@@ -16,9 +16,9 @@ export const Route = createFileRoute("/legal")({
           "The consent-first rules of the room and how we handle your personal information.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://princesspink90.lovable.app/legal" },
+      { property: "og:url", content: "https://princesspink90.com/legal" },
     ],
-    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/legal" }],
+    links: [{ rel: "canonical", href: "https://princesspink90.com/legal" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/legal")({
           "@context": "https://schema.org",
           "@type": "WebPage",
           name: "Code of Conduct & Privacy Policy — Legal",
-          url: "https://princesspink90.lovable.app/legal",
+          url: "https://princesspink90.com/legal",
           description:
             "Community rules and privacy commitments for every guest, host, and event on Midnight Glory.",
           author: { "@type": "Organization", name: "Midnight Glory" },

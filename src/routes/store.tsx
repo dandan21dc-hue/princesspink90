@@ -36,9 +36,9 @@ export const Route = createFileRoute("/store")({
       },
       { property: "og:title", content: "Media Boutique · Midnight Glory" },
       { property: "og:description", content: "Individual photo sets and video clips — buy securely." },
-      { property: "og:url", content: "https://princesspink90.lovable.app/store" },
+      { property: "og:url", content: "https://princesspink90.com/store" },
     ],
-    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/store" }],
+    links: [{ rel: "canonical", href: "https://princesspink90.com/store" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -46,7 +46,7 @@ export const Route = createFileRoute("/store")({
           "@context": "https://schema.org",
           "@type": "CollectionPage",
           name: "Media Boutique",
-          url: "https://princesspink90.lovable.app/store",
+          url: "https://princesspink90.com/store",
           description:
             "Browse and buy individual photo sets and video clips from Midnight Glory's Media Boutique.",
           mainEntity: {
@@ -54,7 +54,7 @@ export const Route = createFileRoute("/store")({
             itemListElement: (loaderData ?? []).slice(0, 50).map((item: { id: string; title: string }, i: number) => ({
               "@type": "ListItem",
               position: i + 1,
-              url: `https://princesspink90.lovable.app/store/${item.id}`,
+              url: `https://princesspink90.com/store/${item.id}`,
               name: item.title,
             })),
           },

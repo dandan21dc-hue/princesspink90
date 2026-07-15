@@ -25,7 +25,7 @@ export const Route = createFileRoute("/events/$id")({
     return e;
   },
   head: ({ params, loaderData }) => {
-    const url = `https://princesspink90.lovable.app/events/${params.id}`;
+    const url = `https://princesspink90.com/events/${params.id}`;
     if (!loaderData) {
       return {
         meta: [{ property: "og:url", content: url }],

@@ -16,10 +16,10 @@ export const Route = createFileRoute("/conduct")({
           "How we define consent, why we have zero tolerance for harassment, and how vetting protects the community.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://princesspink90.lovable.app/conduct" },
+      { property: "og:url", content: "https://princesspink90.com/conduct" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/conduct" }],
+    links: [{ rel: "canonical", href: "https://princesspink90.com/conduct" }],
     scripts: [
       {
         type: "application/ld+json",
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/conduct")({
           "@context": "https://schema.org",
           "@type": "WebPage",
           name: "Our Standards — Consent, Safety & Community Conduct",
-          url: "https://princesspink90.lovable.app/conduct",
+          url: "https://princesspink90.com/conduct",
           description:
             "Our Consent-First philosophy, zero-tolerance harassment policy, and how our vetting process keeps the community safe.",
           author: { "@type": "Organization", name: "Midnight Glory" },

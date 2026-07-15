@@ -10,7 +10,7 @@ import { enqueueTemplateEmail } from '@/lib/email/enqueue.server'
 // per-project random value stored in Postgres vault.
 
 const REVIEW_URL =
-  'https://princesspink90.lovable.app/admin/activity-audit'
+  'https://princesspink90.com/admin/activity-audit'
 
 function json(payload: unknown, status: number): Response {
   return new Response(JSON.stringify(payload), {

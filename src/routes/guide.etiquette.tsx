@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-const CANONICAL = "https://princesspink90.lovable.app/guide/etiquette";
+const CANONICAL = "https://princesspink90.com/guide/etiquette";
 const TITLE = "BDSM Party Dress Code & Etiquette Guide for First-Timers";
 const DESCRIPTION =
   "What to wear and how to behave at your first BDSM party. Practical outfit ideas, consent rules, and etiquette from Midnight Glory. 18+ only.";
@@ -81,7 +81,7 @@ export const Route = createFileRoute("/guide/etiquette")({
           isPartOf: {
             "@type": "WebSite",
             name: "Midnight Glory",
-            url: "https://princesspink90.lovable.app",
+            url: "https://princesspink90.com",
           },
           primaryImageOfPage: undefined,
         }),
@@ -96,13 +96,13 @@ export const Route = createFileRoute("/guide/etiquette")({
               "@type": "ListItem",
               position: 1,
               name: "Home",
-              item: "https://princesspink90.lovable.app/",
+              item: "https://princesspink90.com/",
             },
             {
               "@type": "ListItem",
               position: 2,
               name: "Guides",
-              item: "https://princesspink90.lovable.app/guide/etiquette",
+              item: "https://princesspink90.com/guide/etiquette",
             },
             {
               "@type": "ListItem",

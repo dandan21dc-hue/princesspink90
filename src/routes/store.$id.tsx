@@ -21,7 +21,7 @@ const itemQuery = (id: string) =>
 export const Route = createFileRoute("/store/$id")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(itemQuery(params.id)),
   head: ({ params, loaderData }) => {
-    const url = `https://princesspink90.lovable.app/store/${params.id}`;
+    const url = `https://princesspink90.com/store/${params.id}`;
     if (!loaderData) {
       return {
         meta: [

@@ -44,10 +44,10 @@ export const Route = createFileRoute("/compliance")({
           "Requirements, required documents, and the review process for venues and event hosts.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://princesspink90.lovable.app/compliance" },
+      { property: "og:url", content: "https://princesspink90.com/compliance" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/compliance" }],
+    links: [{ rel: "canonical", href: "https://princesspink90.com/compliance" }],
   }),
   component: CompliancePage,
 });

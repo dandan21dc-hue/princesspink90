@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-const CANONICAL = "https://princesspink90.lovable.app/guide/what-to-wear-to-a-kink-party";
+const CANONICAL = "https://princesspink90.com/guide/what-to-wear-to-a-kink-party";
 const TITLE = "What to Wear to a Kink Party — First-Timer Dress Code";
 const DESCRIPTION =
   "What to wear to a kink party plus first-timer etiquette. Dress codes for glory hole nights, theatre takeovers, and private rooms explained. 18+ only.";
