@@ -840,3 +840,85 @@ function PayloadDialog({
   );
 }
 
+
+// ---------- CSV export of the filtered event list ----------
+//
+// Client-side export of the rows currently loaded into `list.data.items`
+// (already reflects every server-side filter/sort). Escapes per RFC 4180:
+// fields containing "," / '"' / newlines get wrapped in double quotes and
+// internal quotes are doubled. Booleans/nulls flatten to sensible strings.
+
+function csvCell(v: unknown): string {
+  if (v === null || v === undefined) return "";
+  const s = typeof v === "string" ? v : String(v);
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+const CSV_COLUMNS: Array<[string, (e: EventItem) => unknown]> = [
+  ["payment_id", (e) => e.payment_id],
+  ["last_status", (e) => e.last_status],
+  ["handled", (e) => e.handled],
+  ["reason", (e) => e.reason],
+  ["received_count", (e) => e.received_count],
+  ["first_seen_at", (e) => e.first_seen_at],
+  ["last_seen_at", (e) => e.last_seen_at],
+  ["processed_at", (e) => e.processed_at],
+  ["signature_verified", (e) => e.signature_verified],
+  ["order_id", (e) => e.order_id],
+  ["parsed_kind", (e) => e.parsed_order?.kind ?? ""],
+  ["parsed_environment", (e) => e.parsed_order?.environment ?? ""],
+  ["parsed_amount_cents", (e) => e.parsed_order?.amountCents ?? ""],
+  ["user_id", (e) => e.user_id],
+  ["user_email", (e) => e.user_email],
+  ["user_display_name", (e) => e.user_display_name],
+  ["entitlement_kind", (e) => e.entitlement?.kind ?? ""],
+  ["entitlement_id", (e) => e.entitlement?.id ?? ""],
+  ["entitlement_label", (e) => e.entitlement?.label ?? ""],
+  ["reversal_mode", (e) => e.reversal?.mode ?? ""],
+  ["reversal_applied", (e) => (e.reversal ? e.reversal.applied : "")],
+  ["reversal_at", (e) => e.reversal?.at ?? ""],
+  ["reversal_reason", (e) => e.reversal?.reason ?? ""],
+];
+
+function exportEventsCsv(
+  items: EventItem[],
+  filters: {
+    status: string;
+    handled: string;
+    reversal: string;
+    sort: string;
+    search: string;
+  },
+) {
+  if (items.length === 0) return;
+
+  const header = CSV_COLUMNS.map(([k]) => k).join(",");
+  const rows = items.map((e) =>
+    CSV_COLUMNS.map(([, get]) => csvCell(get(e))).join(","),
+  );
+  // BOM so Excel opens the file as UTF-8 without mangling non-ASCII fields.
+  const csv = "\uFEFF" + [header, ...rows].join("\r\n") + "\r\n";
+
+  const ts = new Date().toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 19);
+  const filterSlug = [
+    filters.status !== "all" ? `status-${filters.status}` : null,
+    filters.handled !== "all" ? filters.handled : null,
+    filters.reversal !== "all" ? `rev-${filters.reversal}` : null,
+    filters.search ? "search" : null,
+  ]
+    .filter(Boolean)
+    .join("_");
+  const suffix = filterSlug ? `_${filterSlug}` : "";
+  const filename = `nowpayments-events${suffix}_${ts}.csv`;
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast.success(`Exported ${items.length} event(s) to ${filename}`);
+}
