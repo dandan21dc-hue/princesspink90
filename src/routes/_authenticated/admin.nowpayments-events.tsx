@@ -820,6 +820,92 @@ function AdminNowpaymentsEvents() {
         event={payloadEvent}
         onClose={() => setPayloadEvent(null)}
       />
+
+      <AlertDialog
+        open={bulkAction !== null}
+        onOpenChange={(open) => {
+          if (!open && !bulk.isPending) {
+            setBulkAction(null);
+            setBulkNote("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkAction === "mark_handled" && `Mark ${selected.size} event(s) as handled?`}
+              {bulkAction === "mark_unhandled" && `Mark ${selected.size} event(s) as unhandled?`}
+              {bulkAction === "set_note" && `Set admin note on ${selected.size} event(s)?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  This applies to <strong>{selected.size}</strong> signature-verified webhook
+                  {selected.size === 1 ? " event" : " events"}. It only updates admin metadata —
+                  no grants, refunds, or user-visible entitlements change.
+                </p>
+                {bulkAction === "mark_handled" && (
+                  <p className="text-muted-foreground">
+                    Sets <code className="font-mono">handled = true</code> and clears any prior
+                    unhandled reason. Use this to acknowledge events you've already resolved manually.
+                  </p>
+                )}
+                {bulkAction === "mark_unhandled" && (
+                  <p className="text-muted-foreground">
+                    Sets <code className="font-mono">handled = false</code>. Useful to re-flag rows
+                    that need another look.
+                  </p>
+                )}
+                {bulkAction === "set_note" && (
+                  <div className="space-y-2">
+                    <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                      Note (leave empty to clear)
+                    </label>
+                    <Textarea
+                      value={bulkNote}
+                      onChange={(e) => setBulkNote(e.target.value)}
+                      placeholder="e.g. Refunded manually via NOWPayments dashboard — see ticket #482"
+                      rows={4}
+                      maxLength={2000}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Same note will overwrite any existing admin_note on every selected row (max 2000 chars).
+                    </p>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulk.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulk.isPending || bulkAction === null || selected.size === 0}
+              onClick={(ev) => {
+                ev.preventDefault();
+                if (!bulkAction) return;
+                const keys = Array.from(selected).map((k) => {
+                  const idx = k.indexOf("::");
+                  return { paymentId: k.slice(0, idx), lastStatus: k.slice(idx + 2) };
+                });
+                bulk.mutate({
+                  keys,
+                  action: bulkAction,
+                  note: bulkAction === "set_note" ? bulkNote : undefined,
+                });
+              }}
+            >
+              {bulk.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Applying…
+                </>
+              ) : (
+                <>Apply to {selected.size}</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Shell>
   );
 }
