@@ -272,6 +272,16 @@ export const updateSiteSettings = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Forbidden");
+
+    // Snapshot pre-update values so we can audit the specific fields
+    // (contact email, FetLife handle) that changed. Other columns have
+    // their own audit trails (e.g. site_settings_pricing_audit).
+    const { data: before } = await context.supabase
+      .from("site_settings")
+      .select("email, fetlife_handle")
+      .eq("id", "host")
+      .maybeSingle();
+
     const { error } = await context.supabase
       .from("site_settings")
       .update({
@@ -284,6 +294,30 @@ export const updateSiteSettings = createServerFn({ method: "POST" })
       })
       .eq("id", "host");
     if (error) throw error;
+
+    const emailChanged = (before?.email ?? null) !== data.email;
+    const fetlifeChanged = (before?.fetlife_handle ?? null) !== data.fetlife_handle;
+    if (emailChanged) {
+      await context.supabase.from("admin_activity_audit").insert({
+        actor_id: context.userId,
+        action: "update_contact_email",
+        resource: "site_settings:host",
+        metadata: { field: "email", old: before?.email ?? null, new: data.email },
+      });
+    }
+    if (fetlifeChanged) {
+      await context.supabase.from("admin_activity_audit").insert({
+        actor_id: context.userId,
+        action: "update_fetlife_handle",
+        resource: "site_settings:host",
+        metadata: {
+          field: "fetlife_handle",
+          old: before?.fetlife_handle ?? null,
+          new: data.fetlife_handle,
+        },
+      });
+    }
+
     return { ok: true };
   });
 
