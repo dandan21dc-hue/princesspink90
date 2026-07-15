@@ -179,6 +179,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
     },
     from: (table: string) => {
       if (table === "private_room_bookings") return bookingsFrom();
+      if (table === "nowpayments_ipn_events") return ipnLedgerFrom();
       throw new Error(`unexpected from(${table})`);
     },
   },
