@@ -172,9 +172,14 @@ export function RewardRedemptionsBell() {
                         {r.reward_name}
                       </div>
                     </div>
-                    <div className="mt-0.5 text-xs text-white/60">{r.points_spent} pts</div>
-                    <div className="mt-1 text-[10px] uppercase tracking-widest text-white/40">
-                      {new Date(r.created_at).toLocaleString()}
+                    <div className="mt-0.5 text-xs text-white/60">
+                      Cost: <span className="font-semibold text-white/80">{r.points_spent} pts</span>
+                    </div>
+                    <div
+                      className="mt-1 text-[10px] uppercase tracking-widest text-white/40"
+                      title={new Date(r.created_at).toLocaleString()}
+                    >
+                      Requested {formatRelativeTime(r.created_at)}
                     </div>
                   </div>
                   {isUnread && (
