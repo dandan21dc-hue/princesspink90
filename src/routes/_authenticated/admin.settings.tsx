@@ -293,6 +293,8 @@ export function AdminSettings() {
     onError: (err) => {
       setServerEmailError(extractEmailValidationMessage(err));
       const message = err instanceof Error ? err.message : "Please try again.";
+      const attemptForInline = lastAttemptFetlifeChangeRef.current;
+      if (attemptForInline?.changed) setServerFetlifeError(message);
       const attempt = lastAttemptFetlifeChangeRef.current;
       if (attempt?.changed) {
         // FetLife-specific failure toast: name the field explicitly, echo the
