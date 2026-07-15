@@ -60,7 +60,7 @@ export const Route = createFileRoute("/security-report")({
 });
 
 function SecurityReportPage() {
-  const { data, isLoading, error } = useQuery(reportQueryOptions);
+  const { data, error } = useQuery(reportQueryOptions);
 
 
   return (
