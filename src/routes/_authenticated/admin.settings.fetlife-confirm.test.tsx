@@ -112,9 +112,13 @@ vi.mock("@/components/RoleGuard", () => ({
   RoleGuard: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-// sonner: no-op so the test doesn't depend on toast rendering.
+// sonner: capture toast calls so we can assert on cancel-notifications.
+const mockToast = Object.assign(vi.fn(), {
+  success: vi.fn(),
+  error: vi.fn(),
+});
 vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: mockToast,
 }));
 
 import { AdminSettings } from "./admin.settings";
