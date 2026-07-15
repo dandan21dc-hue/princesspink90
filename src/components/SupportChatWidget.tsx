@@ -410,7 +410,13 @@ export function SupportChatWidget() {
         parts: [
           {
             type: "text",
-            text: "Sending you to secure checkout — the slot is held for 15 minutes.",
+            text: "Booking created — sending you to secure checkout. The slot is held for 15 minutes.",
+          },
+          {
+            type: "booking",
+            bookingId: result.bookingId,
+            startsAt: slot.startsAt,
+            status: "pending",
           },
         ],
       });
