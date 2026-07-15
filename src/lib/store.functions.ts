@@ -988,11 +988,23 @@ export const adminModerateContentItem = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Snapshot the previous status + item metadata so the audit row is
+    // self-contained even if the item is deleted later.
+    const { data: prev } = await supabaseAdmin
+      .from("content_items")
+      .select("id,title,kind,creator_id,moderation_status")
+      .eq("id", data.id)
+      .maybeSingle();
+    if (!prev) throw new Error("Content item not found");
+
+    const trimmedNotes = data.notes?.trim() || null;
+
     const { data: row, error } = await supabaseAdmin
       .from("content_items")
       .update({
         moderation_status: data.decision,
-        moderation_notes: data.notes?.trim() || null,
+        moderation_notes: trimmedNotes,
         moderation_reviewed_by: context.userId,
         moderation_reviewed_at: new Date().toISOString(),
       } as any)
@@ -1000,6 +1012,31 @@ export const adminModerateContentItem = createServerFn({ method: "POST" })
       .select("id,moderation_status")
       .single();
     if (error) throw new Error(error.message);
+
+    // Best-effort: record the decision. Never fail the moderation call on an
+    // audit-log write failure — the primary action already succeeded.
+    try {
+      const { data: actor } = await supabaseAdmin
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      const actorEmail = context.claims?.email ?? actor?.display_name ?? null;
+      await supabaseAdmin.from("content_moderation_audit").insert({
+        content_item_id: data.id,
+        item_title: prev.title,
+        item_kind: prev.kind,
+        creator_id: prev.creator_id,
+        action: data.decision,
+        previous_status: prev.moderation_status,
+        notes: trimmedNotes,
+        actor_id: context.userId,
+        actor_email: actorEmail,
+      } as any);
+    } catch (e) {
+      console.warn("content_moderation_audit insert failed", e);
+    }
+
     return row;
   });
 
@@ -1046,10 +1083,10 @@ export const adminDeleteContentItem = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Fetch media paths first so we can remove blobs after the row is gone.
+    // Fetch full row first so we can (a) audit the delete and (b) remove blobs.
     const { data: existing, error: readErr } = await supabaseAdmin
       .from("content_items")
-      .select("id, cover_url, media_urls")
+      .select("id, title, kind, creator_id, moderation_status, cover_url, media_urls")
       .eq("id", data.id)
       .maybeSingle();
     if (readErr) throw new Error(readErr.message);
@@ -1072,6 +1109,74 @@ export const adminDeleteContentItem = createServerFn({ method: "POST" })
       await supabaseAdmin.storage.from("content-media").remove(paths).catch(() => {});
     }
 
+    // Best-effort audit-log entry for the deletion.
+    try {
+      const { data: actor } = await supabaseAdmin
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", context.userId)
+        .maybeSingle();
+      const actorEmail = context.claims?.email ?? actor?.display_name ?? null;
+      await supabaseAdmin.from("content_moderation_audit").insert({
+        content_item_id: null, // FK would SET NULL anyway; row is gone
+        item_title: existing.title,
+        item_kind: existing.kind,
+        creator_id: existing.creator_id,
+        action: "deleted",
+        previous_status: existing.moderation_status,
+        notes: null,
+        actor_id: context.userId,
+        actor_email: actorEmail,
+      } as any);
+    } catch (e) {
+      console.warn("content_moderation_audit insert (delete) failed", e);
+    }
+
     return { id: data.id, deleted: true };
+  });
+
+// ---------- Moderation audit log ----------
+
+export type ModerationAuditEntry = {
+  id: string;
+  content_item_id: string | null;
+  item_title: string;
+  item_kind: string | null;
+  action: "approved" | "rejected" | "pending" | "deleted";
+  previous_status: string | null;
+  notes: string | null;
+  actor_id: string | null;
+  actor_email: string | null;
+  created_at: string;
+};
+
+/**
+ * List moderation audit entries. Admin-only. Optionally scope to a single
+ * content item to render an inline history under that row.
+ */
+export const adminListModerationAudit = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { contentItemId?: string; limit?: number } | undefined) => data ?? {})
+  .handler(async ({ data, context }): Promise<ModerationAuditEntry[]> => {
+    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (roleErr) throw new Error(roleErr.message);
+    if (!isAdmin) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const limit = Math.min(Math.max(data.limit ?? 50, 1), 500);
+    let q = supabaseAdmin
+      .from("content_moderation_audit")
+      .select(
+        "id, content_item_id, item_title, item_kind, action, previous_status, notes, actor_id, actor_email, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (data.contentItemId) q = q.eq("content_item_id", data.contentItemId);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return (rows ?? []) as ModerationAuditEntry[];
   });
 
