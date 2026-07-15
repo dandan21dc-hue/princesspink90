@@ -64,6 +64,8 @@ const STATUS_OPTIONS = [
 function AdminNowpaymentsEvents() {
   const meFn = useServerFn(amIAdmin);
   const listFn = useServerFn(adminListNowpaymentsEvents);
+  const retryFn = useServerFn(adminRetryNowpaymentsGrant);
+  const qc = useQueryClient();
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
 
@@ -71,6 +73,7 @@ function AdminNowpaymentsEvents() {
   const [handled, setHandled] = useState<"all" | "handled" | "unhandled">("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
 
   const list = useQuery({
     queryKey: ["admin-nowpayments-events", { status, handled, search }],
@@ -84,6 +87,28 @@ function AdminNowpaymentsEvents() {
         },
       }),
     enabled: me.data?.isAdmin === true,
+  });
+
+  const retry = useMutation({
+    mutationFn: (paymentId: string) => retryFn({ data: { paymentId } }),
+    onSuccess: (res) => {
+      if (res.handled) {
+        toast.success(
+          `Retry succeeded: ${res.kind} grant is idempotently applied${
+            res.entitlementId ? ` (id ${res.entitlementId.slice(0, 8)}…)` : ""
+          }.`,
+        );
+      } else {
+        toast.warning(
+          `Retry ran but did not grant: ${res.reason ?? "no reason returned"}.`,
+        );
+      }
+      setPendingRetry(null);
+      qc.invalidateQueries({ queryKey: ["admin-nowpayments-events"] });
+    },
+    onError: (e) => {
+      toast.error(e instanceof Error ? e.message : String(e));
+    },
   });
 
   if (me.isLoading) {
