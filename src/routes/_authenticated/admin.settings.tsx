@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { amIAdmin } from "@/lib/admin.functions";
+import { reportLovableError } from "@/lib/lovable-error-reporting";
 import {
   getSiteSettings,
   updateSiteSettings,
@@ -297,6 +298,20 @@ export function AdminSettings() {
       if (attemptForInline?.changed) setServerFetlifeError(message);
       const attempt = lastAttemptFetlifeChangeRef.current;
       if (attempt?.changed) {
+        // Ship a monitoring event so recurring FetLife save failures are
+        // visible outside the admin's session. We include the field name,
+        // the error message, and the old/new handles (public identifiers,
+        // not PII) plus their lengths — no email, no auth tokens, no
+        // session inputs, no full settings payload.
+        reportLovableError(err instanceof Error ? err : new Error(message), {
+          source: "admin_settings_fetlife_save",
+          field: "fetlife_handle",
+          error_message: message,
+          old_handle: attempt.oldHandle,
+          new_handle: attempt.newHandle,
+          old_handle_length: attempt.oldHandle?.length ?? 0,
+          new_handle_length: attempt.newHandle?.length ?? 0,
+        });
         // FetLife-specific failure toast: name the field explicitly, echo the
         // full server error, and remind the admin what the public link still
         // points to so they know the homepage is unaffected.
