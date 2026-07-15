@@ -159,6 +159,31 @@ function bookingsFrom() {
   };
 }
 
+const ipnLedger = new Map<string, { handled: boolean; reason: string | null; received_count: number }>();
+function ipnLedgerFrom() {
+  let pendingInsert: { payment_id: string } | null = null;
+  let pendingPid: string | null = null;
+  const api = {
+    insert(row: { payment_id: string }) { pendingInsert = row; return api; },
+    update(_p: unknown) { return api; },
+    select(_c?: string) { return api; },
+    eq(_c: string, v: string) { pendingPid = v; return api; },
+    maybeSingle: () => {
+      if (pendingInsert) {
+        const pid = pendingInsert.payment_id;
+        if (ipnLedger.has(pid)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
+        ipnLedger.set(pid, { handled: false, reason: null, received_count: 1 });
+        return Promise.resolve({ data: { payment_id: pid }, error: null });
+      }
+      const r = pendingPid ? ipnLedger.get(pendingPid) ?? null : null;
+      return Promise.resolve({ data: r, error: null });
+    },
+    then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) =>
+      Promise.resolve({ data: null, error: null }).then(resolve, reject),
+  };
+  return api;
+}
+
 vi.mock("@/integrations/supabase/client.server", () => ({
   supabaseAdmin: {
     rpc: (name: string, args: Record<string, unknown>) => {
