@@ -90,7 +90,17 @@ export const SESSION_DURATION_MAX_MINUTES = 480; // 8 hours
 // normalize them to the bare handle.
 export const FETLIFE_HANDLE_MAX = 20;
 export const FETLIFE_HANDLE_MIN = 3;
+// Cap the *raw* input length before we do any regex/URL work. A well-formed
+// FetLife URL never exceeds ~40 chars, so 512 is generous. Enforcing an
+// upper bound here means a client that bypasses our UI can't ship a
+// megabyte string that we'd then have to feed through the URL/regex chain.
+export const FETLIFE_HANDLE_RAW_MAX = 512;
 const FETLIFE_HANDLE_RE = /^[A-Za-z0-9_-]{3,20}$/;
+// Matches any ASCII control character (including NUL, tab, CR, LF, DEL).
+// These have no business in a FetLife handle or profile URL; reject them
+// before normalization so callers get a specific, actionable message
+// rather than the generic "letters/digits" one.
+const CONTROL_CHAR_RE = /[\x00-\x1f\x7f]/;
 
 export function normalizeFetlifeHandle(input: string): string {
   let h = (input ?? "").trim();
@@ -104,7 +114,31 @@ export function normalizeFetlifeHandle(input: string): string {
 }
 
 export function validateFetlifeHandle(raw: string): string | null {
-  const h = normalizeFetlifeHandle(raw);
+  const trimmed = (raw ?? "").trim();
+  if (trimmed.length > FETLIFE_HANDLE_RAW_MAX)
+    return `FetLife handle input is too long (max ${FETLIFE_HANDLE_RAW_MAX} characters).`;
+  if (CONTROL_CHAR_RE.test(trimmed))
+    return "FetLife handle can't contain control characters or line breaks.";
+  // If someone pasted a URL, make sure the host is actually fetlife.com
+  // *before* we normalize it away. Otherwise "https://evil.com/queen"
+  // becomes "https:" and the caller just sees a generic character-set
+  // error, which hides the real problem (wrong host).
+  if (/^https?:\/\//i.test(trimmed)) {
+    let parsed: URL | null = null;
+    try {
+      parsed = new URL(trimmed);
+    } catch {
+      return "FetLife handle looks like a URL but isn't a valid one.";
+    }
+    const host = parsed.host.toLowerCase();
+    if (host !== "fetlife.com" && host !== "www.fetlife.com") {
+      return `FetLife URL host must be fetlife.com (got ${parsed.host}).`;
+    }
+    if (parsed.protocol !== "https:") {
+      return "FetLife URL must use https://.";
+    }
+  }
+  const h = normalizeFetlifeHandle(trimmed);
   if (!h) return "FetLife handle is required.";
   if (h.length < FETLIFE_HANDLE_MIN)
     return `FetLife handle must be at least ${FETLIFE_HANDLE_MIN} characters.`;
@@ -114,6 +148,7 @@ export function validateFetlifeHandle(raw: string): string | null {
     return "FetLife handle can only contain letters, digits, underscore, and hyphen.";
   return null;
 }
+
 
 // Shared contact-email rules — mirrored on client so the form catches bad
 // addresses before we hit the RPC. The server still re-validates via
