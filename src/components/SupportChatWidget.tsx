@@ -112,6 +112,7 @@ export function SupportChatWidget() {
   const feedRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const launcherRef = useRef<HTMLButtonElement | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([INITIAL_GREETING]);
 
   const fetchSlots = useServerFn(listConciergeSlots);
   const startBooking = useServerFn(createBookingInvoice);
