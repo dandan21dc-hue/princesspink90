@@ -324,9 +324,9 @@ export function AdminSettings() {
             // onError handlers will surface the follow-up toast, so we don't
             // need to duplicate that here.
             onClick: () => {
-              if (save.isPending) return;
+              if (save.isPending || saveInFlightRef.current) return;
               save.reset();
-              save.mutate();
+              startSave();
             },
           },
         });
