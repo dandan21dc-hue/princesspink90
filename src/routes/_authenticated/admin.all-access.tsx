@@ -224,7 +224,97 @@ function AdminAllAccess() {
       )}
     </Shell>
   );
+function Shell({ children }: { children: React.ReactNode }) {
+  return <section className="mx-auto max-w-4xl px-5 py-12">{children}</section>;
 }
+
+type Membership = {
+  id: string;
+  kind: string;
+  environment: string;
+  expires_at: string | null;
+  created_at: string;
+  external_payment_reference: string | null;
+};
+
+function EntitlementSummary({ memberships }: { memberships: Membership[] }) {
+  const now = Date.now();
+  const lifetime = memberships.find((m) => m.kind === "lifetime");
+  const activeTerm = memberships
+    .filter(
+      (m) =>
+        m.kind === "term_pass_all_access_30d" &&
+        m.expires_at &&
+        new Date(m.expires_at).getTime() > now,
+    )
+    .sort(
+      (a, b) => new Date(b.expires_at!).getTime() - new Date(a.expires_at!).getTime(),
+    )[0];
+
+  let status: "lifetime" | "active" | "none" = "none";
+  let expiresAt: string | null = null;
+  let daysLeft: number | null = null;
+  let label = "No active All-Access";
+
+  if (lifetime) {
+    status = "lifetime";
+    label = "Lifetime All-Access";
+  } else if (activeTerm) {
+    status = "active";
+    expiresAt = activeTerm.expires_at;
+    daysLeft = Math.max(
+      0,
+      Math.ceil((new Date(activeTerm.expires_at!).getTime() - now) / 86_400_000),
+    );
+    label = "30-Day Pass active";
+  }
+
+  const badgeVariant: "default" | "secondary" | "outline" =
+    status === "lifetime" ? "default" : status === "active" ? "secondary" : "outline";
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="min-w-0">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">
+            Current entitlement
+          </div>
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {status === "lifetime" ? (
+              <InfinityIcon className="h-5 w-5 text-primary" />
+            ) : status === "active" ? (
+              <Calendar className="h-5 w-5 text-primary" />
+            ) : null}
+            <span className="font-display text-lg">{label}</span>
+            <Badge variant={badgeVariant}>
+              {status === "lifetime" ? "Lifetime" : status === "active" ? "Active" : "None"}
+            </Badge>
+          </div>
+        </div>
+        <div className="text-right">
+          {status === "active" && (
+            <>
+              <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                Days left
+              </div>
+              <div className="font-display text-2xl font-semibold">{daysLeft}</div>
+              <div className="text-xs text-muted-foreground">Expires {fmt(expiresAt)}</div>
+            </>
+          )}
+          {status === "lifetime" && (
+            <div className="text-xs text-muted-foreground">Never expires</div>
+          )}
+          {status === "none" && (
+            <div className="text-xs text-muted-foreground">
+              Grant a pass below to activate access.
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 
 function Shell({ children }: { children: React.ReactNode }) {
   return <section className="mx-auto max-w-4xl px-5 py-12">{children}</section>;
