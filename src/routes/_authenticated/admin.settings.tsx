@@ -442,9 +442,15 @@ export function AdminSettings() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button
+            ref={saveButtonRef}
             type="submit"
             disabled={save.isPending || settings.isLoading || sessionInputsInvalid}
-            className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-50"
+            aria-haspopup={fetlifeChanged && !fetlifeError ? "dialog" : undefined}
+            aria-expanded={fetlifeChanged && !fetlifeError ? pendingFetlifeConfirm : undefined}
+            aria-controls={
+              fetlifeChanged && !fetlifeError ? fetlifeConfirmDialogId : undefined
+            }
+            className="rounded-md bg-primary px-5 py-2 text-sm font-semibold uppercase tracking-widest text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50"
           >
             {save.isPending ? "Saving…" : "Save"}
           </button>
