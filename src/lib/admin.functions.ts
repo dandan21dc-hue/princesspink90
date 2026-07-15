@@ -975,13 +975,17 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       }
     }
 
+    const from = (data.page - 1) * data.pageSize;
+    const to = from + data.pageSize - 1;
+
     let q = supabaseAdmin
       .from("nowpayments_ipn_events")
       .select(
         "payment_id, last_status, order_id, handled, reason, payload, received_count, first_seen_at, last_seen_at, processed_at",
+        { count: "exact" },
       )
       .order(sortColumn, { ascending: sortAscending })
-      .limit(data.limit);
+      .range(from, to);
 
     if (data.status) q = q.eq("last_status", data.status);
     if (data.handled === "handled") q = q.eq("handled", true);
@@ -1012,14 +1016,22 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       if (clauses.length === 0) {
         // Search yielded no candidates — short-circuit to an empty result set
         // instead of returning everything.
-        return { items: [], summary: { total: 0, handled: 0, unhandled: 0, finished: 0, revoked: 0, suspended: 0 } };
+        return {
+          items: [],
+          summary: { total: 0, handled: 0, unhandled: 0, finished: 0, revoked: 0, suspended: 0 },
+          page: data.page,
+          pageSize: data.pageSize,
+          totalCount: 0,
+        };
       }
       q = q.or(clauses.join(","));
     }
 
 
-    const { data: rows, error } = await q;
+    const { data: rows, error, count } = await q;
     if (error) throw new Error(error.message);
+    const totalCount = count ?? 0;
+
 
     type Row = NonNullable<typeof rows>[number];
     const events = rows ?? [];
