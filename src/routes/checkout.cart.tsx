@@ -50,10 +50,10 @@ function CartCheckoutPage() {
       id: it.id,
       unit_amount_cents: it.unit_amount_cents,
     });
-    const opts: Parameters<typeof openCheckout>[0] = {};
-    if (it.kind === "panty") opts.pantyListingId = it.id;
-    else if (it.kind === "content") opts.contentItemId = it.id;
-    else if (it.kind === "plan") opts.priceId = it.id;
+    const opts: Parameters<typeof openCheckout>[0] =
+      it.kind === "panty"
+        ? { pantyListingId: it.id }
+        : { contentItemId: it.id };
     void openCheckout(opts);
   };
 
