@@ -58,9 +58,15 @@ vi.mock("@tanstack/react-router", async () => {
 });
 
 // Server-fn caller — return the underlying mock fn passed in.
-vi.mock("@tanstack/react-start", () => ({
-  useServerFn: (fn: unknown) => fn,
-}));
+vi.mock("@tanstack/react-start", async () => {
+  const actual = await vi.importActual<Record<string, unknown>>(
+    "@tanstack/react-start",
+  );
+  return {
+    ...actual,
+    useServerFn: (fn: unknown) => fn,
+  };
+});
 
 // Admin gate — always allow.
 vi.mock("@/lib/admin.functions", () => ({
