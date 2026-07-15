@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GripVertical, Search, X } from "lucide-react";
+import { GripVertical, RefreshCw, Search, X } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { RoleGuard } from "@/components/RoleGuard";
@@ -62,10 +62,29 @@ function AdminMapPins() {
   const deleteFn = useServerFn(deleteMapPin);
   const reorderFn = useServerFn(reorderMapPins);
 
-  const { data: pins = [], isLoading } = useQuery({
+  const { data: pins = [], isLoading, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["admin-map-pins"],
     queryFn: () => listFn(),
   });
+
+  const handleRefresh = async () => {
+    const before = pins.length;
+    const res = await refetch();
+    if (res.error) {
+      toast.error(res.error instanceof Error ? res.error.message : "Failed to refresh");
+      return;
+    }
+    qc.invalidateQueries({ queryKey: ["map-pins"] });
+    const after = res.data?.length ?? before;
+    const diff = after - before;
+    toast.success(
+      diff === 0
+        ? `Refreshed · ${after} pin${after === 1 ? "" : "s"}`
+        : diff > 0
+          ? `Refreshed · ${diff} new pin${diff === 1 ? "" : "s"}`
+          : `Refreshed · ${Math.abs(diff)} pin${Math.abs(diff) === 1 ? "" : "s"} removed`,
+    );
+  };
 
   // URL-persisted search + status filter.
   const { q, state } = Route.useSearch();
@@ -413,12 +432,36 @@ function AdminMapPins() {
         </form>
 
         <div>
-          <MapPinsMap
-            pins={filtered}
-            className="h-[380px] w-full"
-            selectedPinId={selectedPin?.id ?? null}
-            onPinClick={(p) => setSelectedPin(p)}
-          />
+          <div className="relative">
+            <MapPinsMap
+              pins={filtered}
+              className="h-[380px] w-full"
+              selectedPinId={selectedPin?.id ?? null}
+              onPinClick={(p) => setSelectedPin(p)}
+            />
+            <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isFetching}
+                aria-label="Refresh pins"
+                title={
+                  dataUpdatedAt
+                    ? `Refresh pins · updated ${new Date(dataUpdatedAt).toLocaleTimeString()}`
+                    : "Refresh pins"
+                }
+                className="pointer-events-auto inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background/85 px-2.5 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur hover:bg-background disabled:opacity-60"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+                {isFetching ? "Refreshing…" : "Refresh"}
+              </button>
+              {dataUpdatedAt && !isFetching && (
+                <span className="pointer-events-auto rounded-md bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground backdrop-blur">
+                  Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+          </div>
           {selectedPin && (
             <div className="mt-3 rounded-2xl border border-primary/40 bg-primary/5 p-4">
               <div className="flex items-start justify-between gap-3">
