@@ -29,6 +29,19 @@ function writeSeenIds(ids: Set<string>) {
   window.localStorage.setItem(SEEN_IDS_KEY, JSON.stringify([...ids]));
 }
 
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diffSec = Math.max(0, Math.round((Date.now() - then) / 1000));
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const min = Math.round(diffSec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const days = Math.round(hr / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
 export function RewardRedemptionsBell() {
   const [items, setItems] = useState<PendingRedemption[]>([]);
   const [open, setOpen] = useState(false);
@@ -172,9 +185,14 @@ export function RewardRedemptionsBell() {
                         {r.reward_name}
                       </div>
                     </div>
-                    <div className="mt-0.5 text-xs text-white/60">{r.points_spent} pts</div>
-                    <div className="mt-1 text-[10px] uppercase tracking-widest text-white/40">
-                      {new Date(r.created_at).toLocaleString()}
+                    <div className="mt-0.5 text-xs text-white/60">
+                      Cost: <span className="font-semibold text-white/80">{r.points_spent} pts</span>
+                    </div>
+                    <div
+                      className="mt-1 text-[10px] uppercase tracking-widest text-white/40"
+                      title={new Date(r.created_at).toLocaleString()}
+                    >
+                      Requested {formatRelativeTime(r.created_at)}
                     </div>
                   </div>
                   {isUnread && (
