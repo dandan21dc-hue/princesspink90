@@ -2331,6 +2331,8 @@ export type Database = {
       }
       site_settings: {
         Row: {
+          admin_reward_alert_email: string | null
+          admin_reward_alerts_enabled: boolean
           email: string
           fetlife_handle: string
           glory_holes_enabled: boolean
@@ -2341,6 +2343,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          admin_reward_alert_email?: string | null
+          admin_reward_alerts_enabled?: boolean
           email?: string
           fetlife_handle?: string
           glory_holes_enabled?: boolean
@@ -2351,6 +2355,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          admin_reward_alert_email?: string | null
+          admin_reward_alerts_enabled?: boolean
           email?: string
           fetlife_handle?: string
           glory_holes_enabled?: boolean
