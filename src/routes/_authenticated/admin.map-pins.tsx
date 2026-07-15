@@ -198,6 +198,44 @@ function AdminMapPins() {
     reorder.mutate(next.map((p) => p.id));
   };
 
+  const exportCsv = () => {
+    if (order.length === 0) {
+      toast.error("No pins to export");
+      return;
+    }
+    const headers = [
+      "sort_order",
+      "position",
+      "id",
+      "title",
+      "description",
+      "latitude",
+      "longitude",
+    ];
+    const escape = (v: unknown) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = order.map((p, i) =>
+      [p.sort_order, i + 1, p.id, p.title, p.description ?? "", p.latitude, p.longitude]
+        .map(escape)
+        .join(","),
+    );
+    // BOM so Excel opens UTF-8 correctly.
+    const csv = "\ufeff" + [headers.join(","), ...rows].join("\r\n") + "\r\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `map-pins-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${order.length} pin${order.length === 1 ? "" : "s"}`);
+  };
+
   const [form, setForm] = useState<FormState>(empty);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState | "_form", string>>>({});
   const editing = Boolean(form.id);
