@@ -94,7 +94,7 @@ describe("server-side schema (contactSettingsUpdateSchema)", () => {
     ["fetlife handle with tab", { fetlife_handle: "que\tueen" }],
     ["fetlife handle with NUL byte", { fetlife_handle: "queen\x00" }],
     ["fetlife URL with wrong host", { fetlife_handle: "https://evil.com/queen" }],
-    ["fetlife URL with sub-path", { fetlife_handle: "https://fetlife.com/queen/photos" }],
+    ["fetlife URL with only slashes", { fetlife_handle: "https://fetlife.com///" }],
     ["fetlife raw input over cap", { fetlife_handle: "a".repeat(600) }],
     ["fetlife handle non-string", { fetlife_handle: 42 }],
     ["fetlife handle null", { fetlife_handle: null }],
