@@ -1714,64 +1714,6 @@ export const signMediaUrl = createServerFn({ method: "POST" })
     return { url: signed.signedUrl };
   });
 
-/**
- * Fetch a Checkout Session from Stripe by id, scoped to the signed-in user
- * via the metadata.userId stamp. Used by the /checkout/return landing page
- * to confirm status and route the user to the right destination.
- */
-export const getCheckoutSession = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data: { sessionId: string; environment: StripeEnv }) => {
-    if (!/^cs_[a-zA-Z0-9_]+$/.test(data.sessionId)) throw new Error("Invalid session id");
-    return data;
-  })
-  .handler(async ({ data, context }): Promise<
-    | {
-        status: string | null;
-        metadata: Record<string, string> | null;
-        session_id: string;
-        payment_intent_id: string | null;
-        amount_total: number | null;
-        currency: string | null;
-        order_ids: string[];
-      }
-    | { error: string }
-  > => {
-    try {
-      const stripe = createStripeClient(data.environment);
-      const session = await stripe.checkout.sessions.retrieve(data.sessionId);
-      const metadata = (session.metadata ?? {}) as Record<string, string>;
-      // Security: only expose the session to its owner.
-      if (metadata.userId && metadata.userId !== context.userId) {
-        throw new Error("Not allowed");
-      }
-      const paymentIntentId =
-        typeof session.payment_intent === "string"
-          ? session.payment_intent
-          : (session.payment_intent?.id ?? null);
-
-      // Reconciliation: return the panty_orders row id(s) the webhook created
-      // for this session so client tracking can include order_id alongside the
-      // Stripe identifiers. RLS scopes this read to the session's owner.
-      const { data: orders } = await context.supabase
-        .from("panty_orders")
-        .select("id")
-        .eq("stripe_session_id" as any, session.id);
-      const orderIds = (orders ?? []).map((o) => o.id as string);
-
-      return {
-        status: session.status ?? null,
-        metadata,
-        session_id: session.id,
-        payment_intent_id: paymentIntentId,
-        amount_total: session.amount_total ?? null,
-        currency: session.currency ?? null,
-        order_ids: orderIds,
-      };
-    } catch (error) {
-      return { error: getStripeErrorMessage(error) };
-    }
-  });
 
 // ---------- Admin moderation queue ----------
 
