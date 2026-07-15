@@ -389,15 +389,18 @@ type EventItem = {
         applied: boolean;
       }
     | null;
+  payload_json: string | null;
 };
 
 function EventRow({
   e,
   onRetry,
+  onViewPayload,
   retryPending,
 }: {
   e: EventItem;
   onRetry: () => void;
+  onViewPayload: () => void;
   retryPending: boolean;
 }) {
   const canRetry = e.last_status === "finished" && e.parsed_order !== null;
