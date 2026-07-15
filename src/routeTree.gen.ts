@@ -48,6 +48,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as ApiPublicPartnershipRouteImport } from './routes/api/public/partnership'
 import { Route as ApiPublicAgeGateEventRouteImport } from './routes/api/public/age-gate-event'
 import { Route as ApiConciergeChatRouteImport } from './routes/api/concierge/chat'
+import { Route as ApiAdminAssistantChatRouteImport } from './routes/api/admin-assistant/chat'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
@@ -305,6 +306,11 @@ const ApiPublicAgeGateEventRoute = ApiPublicAgeGateEventRouteImport.update({
 const ApiConciergeChatRoute = ApiConciergeChatRouteImport.update({
   id: '/api/concierge/chat',
   path: '/api/concierge/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminAssistantChatRoute = ApiAdminAssistantChatRouteImport.update({
+  id: '/api/admin-assistant/chat',
+  path: '/api/admin-assistant/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedEventsNewRoute = AuthenticatedEventsNewRouteImport.update({
@@ -740,6 +746,7 @@ export interface FileRoutesByFullPath {
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/admin-assistant/chat': typeof ApiAdminAssistantChatRoute
   '/api/concierge/chat': typeof ApiConciergeChatRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
@@ -840,6 +847,7 @@ export interface FileRoutesByTo {
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/admin-assistant/chat': typeof ApiAdminAssistantChatRoute
   '/api/concierge/chat': typeof ApiConciergeChatRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
@@ -943,6 +951,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/admin-assistant/chat': typeof ApiAdminAssistantChatRoute
   '/api/concierge/chat': typeof ApiConciergeChatRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
@@ -1046,6 +1055,7 @@ export interface FileRouteTypes {
     | '/admin/verifications'
     | '/content/new'
     | '/events/new'
+    | '/api/admin-assistant/chat'
     | '/api/concierge/chat'
     | '/api/public/age-gate-event'
     | '/api/public/partnership'
@@ -1146,6 +1156,7 @@ export interface FileRouteTypes {
     | '/admin/verifications'
     | '/content/new'
     | '/events/new'
+    | '/api/admin-assistant/chat'
     | '/api/concierge/chat'
     | '/api/public/age-gate-event'
     | '/api/public/partnership'
@@ -1248,6 +1259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/verifications'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
+    | '/api/admin-assistant/chat'
     | '/api/concierge/chat'
     | '/api/public/age-gate-event'
     | '/api/public/partnership'
@@ -1304,6 +1316,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventsIdRoute: typeof EventsIdRoute
   GuideEtiquetteRoute: typeof GuideEtiquetteRoute
+  ApiAdminAssistantChatRoute: typeof ApiAdminAssistantChatRoute
   ApiConciergeChatRoute: typeof ApiConciergeChatRoute
   ApiPublicAgeGateEventRoute: typeof ApiPublicAgeGateEventRoute
   ApiPublicPartnershipRoute: typeof ApiPublicPartnershipRoute
@@ -1600,6 +1613,13 @@ declare module '@tanstack/react-router' {
       path: '/api/concierge/chat'
       fullPath: '/api/concierge/chat'
       preLoaderRoute: typeof ApiConciergeChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin-assistant/chat': {
+      id: '/api/admin-assistant/chat'
+      path: '/api/admin-assistant/chat'
+      fullPath: '/api/admin-assistant/chat'
+      preLoaderRoute: typeof ApiAdminAssistantChatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/events/new': {
@@ -2234,6 +2254,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventsIdRoute: EventsIdRoute,
   GuideEtiquetteRoute: GuideEtiquetteRoute,
+  ApiAdminAssistantChatRoute: ApiAdminAssistantChatRoute,
   ApiConciergeChatRoute: ApiConciergeChatRoute,
   ApiPublicAgeGateEventRoute: ApiPublicAgeGateEventRoute,
   ApiPublicPartnershipRoute: ApiPublicPartnershipRoute,
