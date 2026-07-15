@@ -3,7 +3,7 @@ import type {} from "@tanstack/react-start";
 import { listPublicEvents } from "@/lib/events.functions";
 import { listStoreItems } from "@/lib/store.functions";
 
-const BASE_URL = "https://princesspink90.lovable.app";
+const BASE_URL = "https://princesspink90.com";
 
 interface SitemapEntry {
   path: string;
@@ -19,13 +19,22 @@ export const Route = createFileRoute("/sitemap.xml")({
         const entries: SitemapEntry[] = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/store", changefreq: "weekly", priority: "0.8" },
+          { path: "/all-access-pass", changefreq: "weekly", priority: "0.8" },
+          { path: "/glory-holes", changefreq: "weekly", priority: "0.7" },
+          { path: "/private-room", changefreq: "weekly", priority: "0.7" },
+          { path: "/panty-drawer", changefreq: "weekly", priority: "0.7" },
           { path: "/partnerships", changefreq: "monthly", priority: "0.6" },
           { path: "/conduct", changefreq: "monthly", priority: "0.4" },
           { path: "/compliance", changefreq: "monthly", priority: "0.4" },
           { path: "/privacy", changefreq: "yearly", priority: "0.3" },
+          { path: "/terms", changefreq: "yearly", priority: "0.3" },
           { path: "/legal", changefreq: "yearly", priority: "0.3" },
           { path: "/guide/etiquette", changefreq: "monthly", priority: "0.6" },
         ];
+        // Intentionally omitted: /auth, /forgot-password, /reset-password,
+        // /age-gate, /unsubscribe, /checkout/*, /security-report — these are
+        // auth flows, transactional utility pages, or protected content and
+        // should not be indexed by crawlers.
 
         try {
           const events = await listPublicEvents();
