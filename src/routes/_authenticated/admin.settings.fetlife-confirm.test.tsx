@@ -92,9 +92,9 @@ vi.mock("@/lib/settings.functions", async () => {
     ...actual,
     getSiteSettings: vi.fn(async () => SAVED),
     updateSiteSettings: (args: { data: typeof SAVED }) => mockUpdateSiteSettings(args),
-    listPricingAudit: vi.fn(async () => ({ rows: [], total: 0 })),
+    listPricingAudit: vi.fn(async () => ({ rows: [], total: 0, page: 1, pageSize: 10 })),
     exportPricingAudit: vi.fn(async () => ""),
-    listContactSettingsAudit: vi.fn(async () => ({ rows: [], total: 0 })),
+    listContactSettingsAudit: vi.fn(async () => ({ rows: [], total: 0, page: 1, pageSize: 10 })),
   };
 });
 
