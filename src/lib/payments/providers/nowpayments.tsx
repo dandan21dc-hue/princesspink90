@@ -30,6 +30,7 @@ export const nowpaymentsProvider: PaymentProvider = {
             returnOrigin: window.location.origin,
             ...(opts.priceId ? { priceId: opts.priceId } : {}),
             ...(opts.pantyListingId ? { pantyListingId: opts.pantyListingId } : {}),
+            ...(opts.contentItemId ? { contentItemId: opts.contentItemId } : {}),
           },
         });
         if ("error" in result) {
