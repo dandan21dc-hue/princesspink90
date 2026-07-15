@@ -644,7 +644,78 @@ function AdminNowpaymentsEvents() {
         )}
       </Card>
 
-      <div className="mt-6 space-y-3">
+      {items.length > 0 && (
+        <div className="mt-6 flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border/60 bg-muted/20 p-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-xs font-medium hover:text-primary"
+            onClick={() => {
+              const allKeys = items.map((e: EventItem) => `${e.payment_id}::${e.last_status}`);
+              const allSelected = allKeys.every((k) => selected.has(k));
+              const next = new Set(selected);
+              if (allSelected) {
+                for (const k of allKeys) next.delete(k);
+              } else {
+                for (const k of allKeys) next.add(k);
+              }
+              setSelected(next);
+            }}
+          >
+            {items.every((e: EventItem) => selected.has(`${e.payment_id}::${e.last_status}`)) ? (
+              <CheckSquare className="h-4 w-4" />
+            ) : (
+              <Square className="h-4 w-4" />
+            )}
+            Select page ({items.length})
+          </button>
+          <span className="text-xs text-muted-foreground">
+            {selected.size} selected
+          </span>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={selected.size === 0}
+              onClick={() => setBulkAction("mark_handled")}
+            >
+              <CheckSquare className="h-3 w-3 mr-1" /> Mark handled
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={selected.size === 0}
+              onClick={() => setBulkAction("mark_unhandled")}
+            >
+              <Square className="h-3 w-3 mr-1" /> Mark unhandled
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={selected.size === 0}
+              onClick={() => {
+                setBulkNote("");
+                setBulkAction("set_note");
+              }}
+            >
+              <StickyNote className="h-3 w-3 mr-1" /> Add / edit note
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={selected.size === 0}
+              onClick={() => setSelected(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 space-y-3">
         {list.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading events…</p>
         ) : items.length === 0 ? (
@@ -652,17 +723,28 @@ function AdminNowpaymentsEvents() {
             No matching webhook events.
           </Card>
         ) : (
-          items.map((e: EventItem) => (
-            <EventRow
-              key={`${e.payment_id}:${e.last_status}`}
-              e={e}
-              onRetry={() => setPendingRetry(e)}
-              onViewPayload={() => setPayloadEvent(e)}
-              retryPending={retry.isPending && pendingRetry?.payment_id === e.payment_id}
-            />
-          ))
+          items.map((e: EventItem) => {
+            const key = `${e.payment_id}::${e.last_status}`;
+            return (
+              <EventRow
+                key={key}
+                e={e}
+                selected={selected.has(key)}
+                onToggleSelect={() => {
+                  const next = new Set(selected);
+                  if (next.has(key)) next.delete(key);
+                  else next.add(key);
+                  setSelected(next);
+                }}
+                onRetry={() => setPendingRetry(e)}
+                onViewPayload={() => setPayloadEvent(e)}
+                retryPending={retry.isPending && pendingRetry?.payment_id === e.payment_id}
+              />
+            );
+          })
         )}
       </div>
+
 
       <Pagination
         page={page}
