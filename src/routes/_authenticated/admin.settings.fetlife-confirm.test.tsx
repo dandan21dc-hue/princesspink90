@@ -658,7 +658,7 @@ describe("admin settings — FetLife confirmation gate", () => {
       const savingBtn = await within(dialog).findByRole("button", {
         name: /saving…/i,
       }) as HTMLButtonElement;
-      expect(savingBtn.disabled).toBe(true);
+      expect(savingBtn.getAttribute("aria-disabled")).toBe("true");
       expect(savingBtn.querySelector(".lucide-loader-circle")).not.toBeNull();
 
       // Settle the mutation.
