@@ -710,7 +710,9 @@ function AdminMapPins() {
                   Export CSV
                 </button>
                 <p className="text-xs text-muted-foreground">
-                  {dragEnabled
+                  {reorder.isPending
+                    ? "Saving new order… drag disabled."
+                    : dragEnabled
                     ? "Drag the handle or tap ▲/▼ to reorder."
                     : "Clear search & filter to reorder."}
                 </p>
