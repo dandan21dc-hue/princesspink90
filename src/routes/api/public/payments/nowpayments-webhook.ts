@@ -100,6 +100,39 @@ export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
   return null;
 }
 
+async function raiseAlert(
+  supabaseAdmin: { from: (t: string) => any },
+  args: {
+    severity: "info" | "warning" | "critical";
+    kind: string;
+    detail: Record<string, unknown>;
+    throttleWindowMinutes?: number;
+  },
+): Promise<void> {
+  try {
+    if (args.throttleWindowMinutes && args.throttleWindowMinutes > 0) {
+      const since = new Date(Date.now() - args.throttleWindowMinutes * 60_000).toISOString();
+      const { data: recent } = await supabaseAdmin
+        .from("admin_activity_audit_alerts")
+        .select("id")
+        .eq("kind", args.kind)
+        .gte("detected_at", since)
+        .limit(1);
+      if (recent && recent.length > 0) return;
+    }
+    await supabaseAdmin
+      .from("admin_activity_audit_alerts")
+      .insert({
+        severity: args.severity,
+        kind: args.kind,
+        detail: args.detail,
+      });
+  } catch (e) {
+    // Never let alert failures break webhook processing.
+    console.warn("nowpayments alert insert failed:", e);
+  }
+}
+
 export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: boolean; reason?: string; duplicate?: boolean }> {
   const status = String(event.payment_status ?? "").toLowerCase();
   const paymentIdRaw = event.payment_id != null ? String(event.payment_id) : null;
@@ -110,6 +143,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const statusKey = status || "unknown";
+
 
   // Ledger-first idempotency: composite PK (payment_id, last_status) records
   // every distinct status transition once. A redelivery of the SAME status
