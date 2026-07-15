@@ -72,6 +72,18 @@ const STATUS_OPTIONS = [
 ];
 
 type ReversalFilter = "all" | "any" | "revoked" | "suspended";
+type SortMode =
+  | "last_seen_desc"
+  | "last_seen_asc"
+  | "first_seen_desc"
+  | "first_seen_asc";
+
+const SORT_LABELS: Record<SortMode, string> = {
+  last_seen_desc: "Last seen · newest",
+  last_seen_asc: "Last seen · oldest",
+  first_seen_desc: "First seen · newest",
+  first_seen_asc: "First seen · oldest",
+};
 
 function AdminNowpaymentsEvents() {
   const meFn = useServerFn(amIAdmin);
