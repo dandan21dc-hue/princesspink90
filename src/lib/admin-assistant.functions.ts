@@ -64,10 +64,16 @@ const AdminActionInput = z.discriminatedUnion("tool", [
 
 export type AdminAssistantAction = z.infer<typeof AdminActionInput>;
 
+type ActionResult = {
+  ok: true;
+  summary: string;
+  detail: Record<string, unknown> | null;
+};
+
 export const executeAdminAssistantAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => AdminActionInput.parse(input))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<ActionResult> => {
     await assertAdmin(context.supabase, context.userId);
     const supabase = context.supabase;
     const actorId = context.userId;
