@@ -76,18 +76,20 @@ function AdminNowpaymentsEvents() {
 
   const [status, setStatus] = useState<string>("all");
   const [handled, setHandled] = useState<"all" | "handled" | "unhandled">("all");
+  const [reversal, setReversal] = useState<ReversalFilter>("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
 
   const list = useQuery({
-    queryKey: ["admin-nowpayments-events", { status, handled, search }],
+    queryKey: ["admin-nowpayments-events", { status, handled, reversal, search }],
     queryFn: () =>
       listFn({
         data: {
           limit: 200,
           status: status === "all" ? undefined : status,
           handled,
+          reversal,
           search: search || undefined,
         },
       }),
