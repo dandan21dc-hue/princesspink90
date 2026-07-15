@@ -1094,7 +1094,7 @@ export const adminRetryNowpaymentsGrant = createServerFn({ method: "POST" })
         });
         if (error) throw new Error(`grant_panty_listing_order failed: ${error.message}`);
         outcome = { handled: true, entitlementId: (p as { id?: string } | null)?.id ?? null };
-      } else {
+      } else if (order.kind === "booking") {
         // booking — mirror the webhook's idempotent update.
         const { data: existing, error: fetchErr } = await supabaseAdmin
           .from("private_room_bookings")
