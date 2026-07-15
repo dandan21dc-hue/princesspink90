@@ -62,9 +62,34 @@ function AdminMapPins() {
   const deleteFn = useServerFn(deleteMapPin);
   const reorderFn = useServerFn(reorderMapPins);
 
+  const REFRESH_STORAGE_KEY = "admin-map-pins:refresh-interval-ms";
+  const REFRESH_OPTIONS = [
+    { value: 0, label: "Off" },
+    { value: 30_000, label: "30s" },
+    { value: 60_000, label: "1m" },
+    { value: 300_000, label: "5m" },
+  ] as const;
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState<number>(0);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(REFRESH_STORAGE_KEY);
+    const parsed = raw ? Number(raw) : 0;
+    if (REFRESH_OPTIONS.some((o) => o.value === parsed)) setRefreshIntervalMs(parsed);
+  }, []);
+  const setRefreshInterval = (ms: number) => {
+    setRefreshIntervalMs(ms);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(REFRESH_STORAGE_KEY, String(ms));
+    }
+    const label = REFRESH_OPTIONS.find((o) => o.value === ms)?.label ?? `${ms}ms`;
+    toast.success(ms === 0 ? "Auto-refresh off" : `Auto-refresh every ${label}`);
+  };
+
   const { data: pins = [], isLoading, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["admin-map-pins"],
     queryFn: () => listFn(),
+    refetchInterval: refreshIntervalMs > 0 ? refreshIntervalMs : false,
+    refetchIntervalInBackground: false,
   });
 
   const handleRefresh = async () => {
@@ -455,6 +480,21 @@ function AdminMapPins() {
                 <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
                 {isFetching ? "Refreshing…" : "Refresh"}
               </button>
+              <label className="pointer-events-auto inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/85 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
+                <span className="text-muted-foreground">Auto</span>
+                <select
+                  value={refreshIntervalMs}
+                  onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                  aria-label="Auto-refresh interval"
+                  className="bg-transparent text-xs focus:outline-none"
+                >
+                  {REFRESH_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {dataUpdatedAt && !isFetching && (
                 <span className="pointer-events-auto rounded-md bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground backdrop-blur">
                   Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
