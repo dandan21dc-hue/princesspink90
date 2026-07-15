@@ -139,6 +139,7 @@ function AdminMapPins() {
   };
 
   const [form, setForm] = useState<FormState>(empty);
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState | "_form", string>>>({});
   const editing = Boolean(form.id);
 
   const invalidate = () => {
@@ -146,26 +147,93 @@ function AdminMapPins() {
     qc.invalidateQueries({ queryKey: ["map-pins"] });
   };
 
+  const validate = (): {
+    ok: boolean;
+    errs: Partial<Record<keyof FormState | "_form", string>>;
+    payload?: {
+      title: string;
+      description: string | null;
+      latitude: number;
+      longitude: number;
+      sort_order: number;
+    };
+  } => {
+    const errs: Partial<Record<keyof FormState | "_form", string>> = {};
+    const title = form.title.trim();
+    const description = form.description.trim();
+
+    if (!title) errs.title = "Title is required";
+    else if (title.length > 120) errs.title = "Keep title under 120 characters";
+    if (description.length > 500) errs.description = "Keep description under 500 characters";
+
+    const latRaw = form.latitude.trim();
+    const lngRaw = form.longitude.trim();
+    const numRe = /^-?\d+(\.\d+)?$/;
+    const latitude = Number(latRaw);
+    const longitude = Number(lngRaw);
+
+    if (!latRaw) errs.latitude = "Latitude is required";
+    else if (!numRe.test(latRaw) || Number.isNaN(latitude)) errs.latitude = "Must be a decimal number (e.g. -33.8688)";
+    else if (latitude < -90 || latitude > 90) errs.latitude = "Must be between -90 and 90";
+
+    if (!lngRaw) errs.longitude = "Longitude is required";
+    else if (!numRe.test(lngRaw) || Number.isNaN(longitude)) errs.longitude = "Must be a decimal number (e.g. 151.2093)";
+    else if (longitude < -180 || longitude > 180) errs.longitude = "Must be between -180 and 180";
+
+    const sortRaw = form.sort_order.trim();
+    const sortOrder = sortRaw === "" ? 0 : Number(sortRaw);
+    if (sortRaw !== "" && (Number.isNaN(sortOrder) || !Number.isInteger(sortOrder))) {
+      errs.sort_order = "Must be a whole number";
+    }
+
+    if (!errs.latitude && !errs.longitude) {
+      const dupCoord = pins.find(
+        (p) =>
+          p.id !== form.id &&
+          Math.abs(p.latitude - latitude) < 1e-5 &&
+          Math.abs(p.longitude - longitude) < 1e-5,
+      );
+      if (dupCoord) {
+        errs._form = `A pin already exists at these coordinates: "${dupCoord.title}"`;
+      }
+    }
+    if (!errs.title) {
+      const dupTitle = pins.find(
+        (p) => p.id !== form.id && p.title.trim().toLowerCase() === title.toLowerCase(),
+      );
+      if (dupTitle) errs.title = `A pin titled "${dupTitle.title}" already exists`;
+    }
+
+    if (Object.keys(errs).length > 0) return { ok: false, errs };
+    return {
+      ok: true,
+      errs,
+      payload: {
+        title,
+        description: description || null,
+        latitude,
+        longitude,
+        sort_order: sortOrder || 0,
+      },
+    };
+  };
+
   const save = useMutation({
     mutationFn: async () => {
-      const payload = {
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        latitude: Number(form.latitude),
-        longitude: Number(form.longitude),
-        sort_order: Number(form.sort_order) || 0,
-      };
-      if (Number.isNaN(payload.latitude) || Number.isNaN(payload.longitude)) {
-        throw new Error("Latitude and longitude must be numbers");
+      const result = validate();
+      setErrors(result.errs);
+      if (!result.ok || !result.payload) {
+        throw new Error(result.errs._form ?? "Please fix the highlighted fields");
       }
       if (form.id) {
-        return updateFn({ data: { id: form.id, ...payload } });
+        return updateFn({ data: { id: form.id, ...result.payload } });
       }
-      return createFn({ data: payload });
+      return createFn({ data: result.payload });
     },
     onSuccess: () => {
       toast.success(editing ? "Pin updated" : "Pin added");
       setForm(empty);
+      setErrors({});
       invalidate();
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to save"),
@@ -182,6 +250,7 @@ function AdminMapPins() {
   });
 
   const startEdit = (pin: MapPin) => {
+    setErrors({});
     setForm({
       id: pin.id,
       title: pin.title,
@@ -189,6 +258,17 @@ function AdminMapPins() {
       latitude: String(pin.latitude),
       longitude: String(pin.longitude),
       sort_order: String(pin.sort_order),
+    });
+  };
+
+  const updateField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((prev) => {
+      if (!prev[key] && !prev._form) return prev;
+      const next = { ...prev };
+      delete next[key];
+      delete next._form;
+      return next;
     });
   };
 
@@ -219,53 +299,61 @@ function AdminMapPins() {
             {editing ? "Edit pin" : "Add pin"}
           </h2>
 
-          <Field label="Title">
+          {errors._form && (
+            <div className="rounded-md border border-destructive/60 bg-destructive/10 p-2 text-xs text-destructive">
+              {errors._form}
+            </div>
+          )}
+
+          <Field label="Title" error={errors.title}>
             <input
-              required
               value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className={inputCls}
+              onChange={(e) => updateField("title", e.target.value)}
+              aria-invalid={!!errors.title}
+              className={fieldCls(!!errors.title)}
             />
           </Field>
 
-          <Field label="Description">
+          <Field label="Description" error={errors.description}>
             <textarea
               rows={2}
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              className={inputCls}
+              onChange={(e) => updateField("description", e.target.value)}
+              aria-invalid={!!errors.description}
+              className={fieldCls(!!errors.description)}
             />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Latitude">
+            <Field label="Latitude" error={errors.latitude}>
               <input
-                required
                 inputMode="decimal"
                 placeholder="-33.8688"
                 value={form.latitude}
-                onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))}
-                className={inputCls}
+                onChange={(e) => updateField("latitude", e.target.value)}
+                aria-invalid={!!errors.latitude}
+                className={fieldCls(!!errors.latitude)}
               />
             </Field>
-            <Field label="Longitude">
+            <Field label="Longitude" error={errors.longitude}>
               <input
-                required
                 inputMode="decimal"
                 placeholder="151.2093"
                 value={form.longitude}
-                onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))}
-                className={inputCls}
+                onChange={(e) => updateField("longitude", e.target.value)}
+                aria-invalid={!!errors.longitude}
+                className={fieldCls(!!errors.longitude)}
               />
             </Field>
           </div>
 
-          <Field label="Sort order">
+          <Field label="Sort order" error={errors.sort_order}>
             <input
               inputMode="numeric"
               value={form.sort_order}
-              onChange={(e) => setForm((f) => ({ ...f, sort_order: e.target.value }))}
-              className={inputCls}
+              onChange={(e) => updateField("sort_order", e.target.value)}
+              aria-invalid={!!errors.sort_order}
+              className={fieldCls(!!errors.sort_order)}
             />
           </Field>
 
@@ -280,7 +368,10 @@ function AdminMapPins() {
             {editing && (
               <button
                 type="button"
-                onClick={() => setForm(empty)}
+                onClick={() => {
+                  setForm(empty);
+                  setErrors({});
+                }}
                 className="rounded-md border border-border px-4 py-2 text-sm"
               >
                 Cancel
@@ -480,14 +571,29 @@ function AdminMapPins() {
   );
 }
 
-const inputCls =
-  "w-full rounded-md border border-border bg-background/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
+const baseInputCls =
+  "w-full rounded-md border bg-background/60 px-3 py-2 text-sm focus:outline-none focus:ring-2";
+const fieldCls = (hasError: boolean) =>
+  `${baseInputCls} ${
+    hasError
+      ? "border-destructive focus:ring-destructive/50"
+      : "border-border focus:ring-primary/50"
+  }`;
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="mb-1 block text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
       {children}
+      {error && <span className="mt-1 block text-xs text-destructive">{error}</span>}
     </label>
   );
 }
