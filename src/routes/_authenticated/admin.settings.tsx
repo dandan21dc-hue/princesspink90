@@ -45,6 +45,30 @@ export const Route = createFileRoute("/_authenticated/admin/settings")({
   component: AdminSettingsGuarded,
 });
 
+// Pull the server's contact-email validation message out of a rejected save.
+// Zod-in-serverFn errors serialize as an Error whose .message is a JSON string
+// of issues (each { path, message }); some other server errors are plain
+// strings. We show the first message whose path targets "email", or fall back
+// to a plain-string message that mentions the email field.
+function extractEmailValidationMessage(err: unknown): string | null {
+  const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "";
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    const issues = Array.isArray(parsed) ? parsed : parsed?.issues;
+    if (Array.isArray(issues)) {
+      const hit = issues.find(
+        (i) => Array.isArray(i?.path) && i.path.includes("email") && typeof i.message === "string",
+      );
+      if (hit) return hit.message;
+    }
+  } catch {
+    // not JSON — fall through to string heuristic
+  }
+  return /\bemail\b/i.test(raw) ? raw : null;
+}
+
+
 const routeApi = getRouteApi("/_authenticated/admin/settings");
 
 function AdminSettingsGuarded() {
