@@ -119,6 +119,7 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
     onSuccess: (_r, decision) => {
       qc.invalidateQueries({ queryKey: ["admin-media-moderation"] });
       qc.invalidateQueries({ queryKey: ["store-items"] });
+      qc.invalidateQueries({ queryKey: ["admin-moderation-audit"] });
       if (decision === "approved") {
         toast.success(`Approved: ${row.title}`, {
           description: "The item is now live on the public storefront.",
