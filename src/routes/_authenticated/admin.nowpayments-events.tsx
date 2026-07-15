@@ -264,6 +264,122 @@ function AdminNowpaymentsEvents() {
         </form>
 
 
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-widest text-muted-foreground mr-1">
+            Presets
+          </span>
+          {(
+            [
+              {
+                key: "all",
+                label: "All events",
+                apply: () => {
+                  setStatus("all");
+                  setHandled("all");
+                  setReversal("all");
+                  setSort("last_seen_desc");
+                },
+                isActive:
+                  status === "all" &&
+                  handled === "all" &&
+                  reversal === "all" &&
+                  sort === "last_seen_desc",
+              },
+              {
+                key: "reversal",
+                label: "Reversal needed",
+                apply: () => {
+                  setStatus("all");
+                  setHandled("all");
+                  setReversal("any");
+                  setSort("last_seen_desc");
+                },
+                isActive: reversal === "any",
+              },
+              {
+                key: "revoked",
+                label: "Revoked",
+                apply: () => {
+                  setStatus("all");
+                  setHandled("all");
+                  setReversal("revoked");
+                  setSort("last_seen_desc");
+                },
+                isActive: reversal === "revoked",
+              },
+              {
+                key: "suspended",
+                label: "Suspended",
+                apply: () => {
+                  setStatus("all");
+                  setHandled("all");
+                  setReversal("suspended");
+                  setSort("last_seen_desc");
+                },
+                isActive: reversal === "suspended",
+              },
+              {
+                key: "unhandled",
+                label: "Unhandled",
+                apply: () => {
+                  setStatus("all");
+                  setHandled("unhandled");
+                  setReversal("all");
+                  setSort("last_seen_desc");
+                },
+                isActive: handled === "unhandled" && reversal === "all",
+              },
+              {
+                key: "handled",
+                label: "Handled",
+                apply: () => {
+                  setStatus("all");
+                  setHandled("handled");
+                  setReversal("all");
+                  setSort("last_seen_desc");
+                },
+                isActive: handled === "handled" && reversal === "all",
+              },
+              {
+                key: "failed",
+                label: "Failed",
+                apply: () => {
+                  setStatus("failed");
+                  setHandled("all");
+                  setReversal("all");
+                  setSort("last_seen_desc");
+                },
+                isActive: status === "failed",
+              },
+              {
+                key: "finished",
+                label: "Finished",
+                apply: () => {
+                  setStatus("finished");
+                  setHandled("all");
+                  setReversal("all");
+                  setSort("last_seen_desc");
+                },
+                isActive: status === "finished",
+              },
+            ] as const
+          ).map((preset) => (
+            <Button
+              key={preset.key}
+              type="button"
+              size="sm"
+              variant={preset.isActive ? "default" : "outline"}
+              onClick={() => {
+                resetToFirstPage();
+                preset.apply();
+              }}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+
+
         <form
           className="flex flex-wrap gap-3 items-end"
           onSubmit={(e) => {
