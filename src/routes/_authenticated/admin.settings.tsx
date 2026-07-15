@@ -1104,10 +1104,37 @@ export function AdminSettings() {
       <AlertDialog
         open={postSaveFetlife !== null}
         onOpenChange={(open) => {
-          if (!open) setPostSaveFetlife(null);
+          if (!open) {
+            setPostSaveFetlife(null);
+            // Return keyboard focus to the Save button that triggered this
+            // dialog. Radix restores focus to whatever was focused before
+            // the dialog opened, but the trigger path here is programmatic
+            // (save success), and the previously focused element may have
+            // been the confirm dialog's action button which has since been
+            // unmounted — so restore explicitly. Defer to the next frame
+            // so Radix's own focus scope has torn down first.
+            requestAnimationFrame(() => {
+              saveButtonRef.current?.focus();
+            });
+          }
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          onOpenAutoFocus={(event) => {
+            // Preempt Radix's default (which focuses the first focusable
+            // node — the "Open" link when a handle is present, or the Done
+            // button when it's cleared). Explicitly focus the first
+            // relevant field so keyboard/SR users land on the meaningful
+            // review action, not on whichever descendant happens to come
+            // first in the DOM after a future edit.
+            event.preventDefault();
+            const root = event.currentTarget as HTMLElement | null;
+            const target =
+              root?.querySelector<HTMLElement>("[data-postsave-primary]") ??
+              root?.querySelector<HTMLElement>("[data-postsave-done]");
+            target?.focus();
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>FetLife handle saved</AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -1122,10 +1149,11 @@ export function AdminSettings() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <a
+                        data-postsave-primary
                         href={postSaveFetlife.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="break-all font-mono text-sm underline underline-offset-2 hover:text-primary"
+                        className="break-all rounded font-mono text-sm underline underline-offset-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                       >
                         {postSaveFetlife.url}
                       </a>
@@ -1153,7 +1181,10 @@ export function AdminSettings() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setPostSaveFetlife(null)}>
+            <AlertDialogAction
+              data-postsave-done
+              onClick={() => setPostSaveFetlife(null)}
+            >
               Done
             </AlertDialogAction>
           </AlertDialogFooter>
