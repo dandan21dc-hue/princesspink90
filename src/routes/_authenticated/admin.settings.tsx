@@ -531,9 +531,8 @@ export function AdminSettings() {
             // the safer choice for a destructive-adjacent action. Explicitly
             // preserve that behaviour and make it inspectable.
             event.preventDefault();
-            const cancelBtn = event.currentTarget.querySelector<HTMLButtonElement>(
-              '[data-slot="alert-dialog-cancel"], [role="button"][data-cancel]',
-            );
+            const root = event.currentTarget as HTMLElement | null;
+            const cancelBtn = root?.querySelector<HTMLButtonElement>("[data-cancel]");
             cancelBtn?.focus();
           }}
           onKeyDown={(event) => {
