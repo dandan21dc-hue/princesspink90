@@ -1212,8 +1212,9 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
       suspended: items.filter((i) => i.reversal?.mode === "suspended").length,
     };
 
-    return { items, summary };
+    return { items, summary, page: data.page, pageSize: data.pageSize, totalCount };
   });
+
 
 // ---------- Retry a failed / unhandled NOWPayments grant ----------
 //
