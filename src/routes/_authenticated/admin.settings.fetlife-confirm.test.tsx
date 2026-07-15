@@ -414,7 +414,9 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       // Refetch the input on each iteration — after the first paste sets
       // the value away from SAVED, the field is still there but we want
       // to grab it by its stable label rather than a stale reference.
-      const input = screen.getAllByLabelText(/fetlife handle/i)[0] as HTMLInputElement;
+      const input = screen
+        .getAllByLabelText(/fetlife handle/i)
+        .find((el): el is HTMLInputElement => el.tagName === "INPUT")!;
       fireEvent.change(input, { target: { value: raw } });
       await waitFor(() => assertDialogUrls(dialog, "Kinky-Pasted-Handle"));
     }
