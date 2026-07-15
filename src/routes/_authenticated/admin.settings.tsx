@@ -795,6 +795,10 @@ export function AdminSettings() {
                           >
                             https://fetlife.com/{settings.data.fetlife_handle}
                           </a>
+                          <OpenUrlLink
+                            value={`https://fetlife.com/${settings.data.fetlife_handle}`}
+                            label="Open current FetLife URL in a new tab"
+                          />
                           <CopyUrlButton
                             value={`https://fetlife.com/${settings.data.fetlife_handle}`}
                             label="Copy current FetLife URL"
