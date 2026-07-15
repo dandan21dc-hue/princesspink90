@@ -2343,6 +2343,7 @@ export type Database = {
           fetlife_handle: string
           glory_holes_enabled: boolean
           id: string
+          maintenance_mode: boolean
           reddit_handle: string
           session_duration_minutes: number
           session_price_cents: number
@@ -2355,6 +2356,7 @@ export type Database = {
           fetlife_handle?: string
           glory_holes_enabled?: boolean
           id?: string
+          maintenance_mode?: boolean
           reddit_handle?: string
           session_duration_minutes?: number
           session_price_cents?: number
@@ -2367,6 +2369,7 @@ export type Database = {
           fetlife_handle?: string
           glory_holes_enabled?: boolean
           id?: string
+          maintenance_mode?: boolean
           reddit_handle?: string
           session_duration_minutes?: number
           session_price_cents?: number
