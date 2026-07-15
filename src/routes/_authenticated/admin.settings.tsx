@@ -1041,9 +1041,12 @@ function CopyUrlButton({
         type="button"
         onClick={onCopy}
         aria-label={label}
-        title={label}
-        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+        title={disabled ? "Saving FetLife handle change…" : label}
+        disabled={disabled}
+        aria-disabled={disabled || undefined}
+        className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded border border-border/60 align-middle text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
       >
+
         {copied ? (
           <Check className="h-3 w-3" aria-hidden />
         ) : (
