@@ -612,7 +612,7 @@ function AdminMapPins() {
               </h2>
               <p className="text-xs text-muted-foreground">
                 {dragEnabled
-                  ? "Drag the handle to reorder. Order controls list & export priority."
+                  ? "Drag the handle or tap ▲/▼ to reorder. Order controls list & export priority."
                   : "Clear search & filter to reorder."}
               </p>
             </div>
