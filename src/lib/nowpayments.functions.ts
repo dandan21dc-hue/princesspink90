@@ -5,6 +5,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { EXPECTED_PLAN_PRICES } from "@/lib/planPriceValidation.server";
 import { resolveAppOrigin } from "@/lib/app-origin.server";
 import { assertAccountNotRestricted } from "@/lib/account-restriction";
+import { assertNotInMaintenance } from "@/lib/maintenance.functions";
+
 
 
 // Fallback price when no priceId is supplied: the 30-day All-Access Pass.
@@ -149,6 +151,8 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<Success | Failure> => {
     try {
       await assertAccountNotRestricted(context.supabase, context.userId);
+      await assertNotInMaintenance(context);
+
       const { createInvoice } = await import("@/lib/nowpayments.server");
 
 

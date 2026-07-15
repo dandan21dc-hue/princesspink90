@@ -8,6 +8,8 @@ import { EventCard } from "@/components/EventCard";
 import { MapPinsMap } from "@/components/MapPinsMap";
 import heroImg from "@/assets/hero.jpg";
 import { PartnershipForm } from "@/components/PartnershipForm";
+import { useMaintenance } from "@/lib/useMaintenance";
+
 
 const eventsQuery = queryOptions({
   queryKey: ["public-events"],
@@ -249,6 +251,15 @@ function MapSection() {
 
 function EventList() {
   const { data } = useSuspenseQuery(eventsQuery);
+  const { gate } = useMaintenance();
+  if (gate) {
+    return (
+      <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-16 text-center">
+        <p className="font-display text-lg text-amber-100">The doors are closed for maintenance.</p>
+        <p className="mt-2 text-sm text-muted-foreground">Upcoming events are hidden while we upgrade. Check back soon.</p>
+      </div>
+    );
+  }
   if (!data.length) {
     return (
       <div className="rounded-2xl border border-dashed border-border/60 p-16 text-center">
@@ -263,6 +274,7 @@ function EventList() {
     </div>
   );
 }
+
 
 function Hero() {
   return (

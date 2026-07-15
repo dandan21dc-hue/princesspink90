@@ -46,6 +46,8 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { AddVenuePinDialog } from "@/components/AddVenuePinDialog";
 import { MapPinsMap } from "@/components/MapPinsMap";
 import { AdminCommandCenter } from "@/components/AdminCommandCenter";
+import { MaintenanceModeToggle } from "@/components/MaintenanceModeToggle";
+
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -239,12 +241,16 @@ function HomeView({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="space-y-8">
       {isAdmin && (
-        <div>
-          <h2 className="mb-4 font-display text-lg">Admin Command Center</h2>
-          <AdminCommandCenter />
+        <div className="space-y-4">
+          <MaintenanceModeToggle />
+          <div>
+            <h2 className="mb-4 font-display text-lg">Admin Command Center</h2>
+            <AdminCommandCenter />
+          </div>
         </div>
       )}
       {isAdmin && <PendingVerificationsCard />}
+
       <PerksWidget />
 
       <SubscriberDiscountPanel />
