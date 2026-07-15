@@ -10,7 +10,19 @@ import { getStripeEnvironment } from "@/lib/stripe";
  *   term_pass_all_access_30d → 30-day pass  (`all_access_30d_aud`)
  *   lifetime                 → lifetime pass (`lifetime_onetime_aud`)
  */
-export type PlanId = "all_access_30d_aud" | "lifetime_onetime_aud";
+export type PlanId =
+  | "all_access_30d_aud"
+  | "all_access_90d_aud"
+  | "all_access_180d_aud"
+  | "all_access_365d_aud"
+  | "lifetime_onetime_aud";
+
+const TERM_KIND_BY_PLAN: Record<string, string> = {
+  all_access_30d_aud: "term_pass_all_access_30d",
+  all_access_90d_aud: "term_pass_all_access_90d",
+  all_access_180d_aud: "term_pass_all_access_180d",
+  all_access_365d_aud: "term_pass_all_access_365d",
+};
 
 export interface MyTiersState {
   loading: boolean;
