@@ -317,6 +317,9 @@ export function AdminSettings() {
   // return focus there after the dialog closes — otherwise keyboard users
   // land back at document.body.
   const saveButtonRef = useRef<HTMLButtonElement | null>(null);
+  // Return keyboard focus to the FetLife input after a validation or server
+  // rejection so the admin can fix and retry without hunting for the field.
+  const fetlifeInputRef = useRef<HTMLInputElement | null>(null);
   const fetlifeConfirmDialogId = "fetlife-confirm-dialog";
   const fetlifeChanged =
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
