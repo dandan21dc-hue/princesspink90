@@ -145,8 +145,29 @@ function AdminNowpaymentsEvents() {
   const [sort, setSort] = useState<SortMode>(initialSort);
   const [searchInput, setSearchInput] = useState(urlSearch.q);
   const [search, setSearch] = useState(urlSearch.q);
+  const [quickSearch, setQuickSearch] = useState(urlSearch.q);
   const [page, setPage] = useState<number>(urlSearch.page);
   const [pageSize, setPageSize] = useState<number>(urlSearch.pageSize);
+
+  // Debounce the quick-search input into the applied `search` (which is what
+  // the query key + server fn see). Also keeps the full Search form input
+  // (`searchInput`) in lockstep so switching between the two feels seamless.
+  useEffect(() => {
+    const next = quickSearch.trim();
+    if (next === search) return;
+    const t = setTimeout(() => {
+      setSearch(next);
+      setSearchInput(quickSearch);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [quickSearch, search]);
+
+  // Reflect external `search` changes (chip clears, presets, jump form) back
+  // into the quick-search input so it never shows a stale value.
+  useEffect(() => {
+    setQuickSearch((prev) => (prev.trim() === search ? prev : search));
+  }, [search]);
   const [autoRefresh, setAutoRefresh] = useState<number>(0); // seconds; 0 = off
   const [exportScope, setExportScope] = useState<"page" | "all">("page");
   const [isExporting, setIsExporting] = useState(false);
