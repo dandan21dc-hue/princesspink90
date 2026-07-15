@@ -138,6 +138,7 @@ function AdminMapPins() {
   const [overId, setOverId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<MapPin | null>(null);
   const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
+  const [reorderAnnouncement, setReorderAnnouncement] = useState("");
   useEffect(() => {
     setOrder(pins);
     setSelectedPin((cur) => (cur ? pins.find((p) => p.id === cur.id) ?? null : null));
@@ -167,6 +168,7 @@ function AdminMapPins() {
         vars.prevIds.every((id, i) => id === vars.ids[i]);
       if (sameAsBefore) {
         toast.success("Order saved");
+        setReorderAnnouncement("Pin order saved. No changes to rank.");
         return;
       }
       // Detect a simple 1-step move for a friendlier description.
@@ -176,11 +178,16 @@ function AdminMapPins() {
       const description = moved
         ? `"${moved.title}" is now #${changedIdx + 1}`
         : `${vars.ids.length} pin${vars.ids.length === 1 ? "" : "s"} reordered`;
+      const announcement = moved
+        ? `${moved.title} moved to rank ${changedIdx + 1} of ${vars.ids.length}.`
+        : `Pin order updated. ${vars.ids.length} pin${vars.ids.length === 1 ? "" : "s"} reordered.`;
 
       if (vars.isUndo) {
         toast.success("Reorder undone", { description });
+        setReorderAnnouncement(`Reorder undone. ${announcement}`);
         return;
       }
+      setReorderAnnouncement(announcement);
       toast.success("Order saved", {
         description,
         duration: 6000,
@@ -199,8 +206,10 @@ function AdminMapPins() {
       });
     },
     onError: (e: unknown, vars) => {
-      toast.error(e instanceof Error ? e.message : "Failed to save order");
+      const msg = e instanceof Error ? e.message : "Failed to save order";
+      toast.error(msg);
       setOrder(vars?.prevOrder ?? pins);
+      setReorderAnnouncement(`Reorder failed: ${msg}. Previous order restored.`);
     },
   });
 
@@ -873,6 +882,14 @@ function AdminMapPins() {
             {reorder.isPending && (
               <p className="text-xs text-muted-foreground">Saving new order…</p>
             )}
+            <div
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              className="sr-only"
+            >
+              {reorderAnnouncement}
+            </div>
           </div>
         </div>
       </div>
