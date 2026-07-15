@@ -101,6 +101,7 @@ function AdminNowpaymentsEvents() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
+  const [autoRefresh, setAutoRefresh] = useState<number>(0); // seconds; 0 = off
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
@@ -122,6 +123,8 @@ function AdminNowpaymentsEvents() {
         },
       }),
     enabled: me.data?.isAdmin === true,
+    refetchInterval: autoRefresh > 0 ? autoRefresh * 1000 : false,
+    refetchIntervalInBackground: false,
   });
 
 
@@ -316,6 +319,26 @@ function AdminNowpaymentsEvents() {
                     {n}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Auto-refresh
+            </label>
+            <Select
+              value={String(autoRefresh)}
+              onValueChange={(v) => setAutoRefresh(Number(v))}
+            >
+              <SelectTrigger className="mt-1 w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Off</SelectItem>
+                <SelectItem value="10">10s</SelectItem>
+                <SelectItem value="30">30s</SelectItem>
+                <SelectItem value="60">1m</SelectItem>
+                <SelectItem value="300">5m</SelectItem>
               </SelectContent>
             </Select>
           </div>
