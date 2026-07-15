@@ -156,6 +156,39 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
     return { handled: true };
   }
 
+  if (order.kind === "booking") {
+    // Idempotent: external_payment_reference is UNIQUE on
+    // private_room_bookings. If this payment ref already claimed the row
+    // (or another) the update returns 0 rows and we no-op.
+    const { data: existing, error: fetchErr } = await supabaseAdmin
+      .from("private_room_bookings")
+      .select("id, status, external_payment_reference, amount_cents, environment, user_id")
+      .eq("id", order.bookingId)
+      .maybeSingle();
+    if (fetchErr) throw new Error(`booking lookup failed: ${fetchErr.message}`);
+    if (!existing) return { handled: false, reason: "booking_not_found" };
+    if (existing.user_id !== order.userId) {
+      return { handled: false, reason: "booking_user_mismatch" };
+    }
+    if (existing.external_payment_reference && existing.external_payment_reference !== paymentRef) {
+      return { handled: false, reason: "booking_already_paid" };
+    }
+    if (existing.status === "confirmed" && existing.external_payment_reference === paymentRef) {
+      return { handled: true }; // already processed
+    }
+    const { error } = await supabaseAdmin
+      .from("private_room_bookings")
+      .update({
+        status: "confirmed",
+        external_payment_reference: paymentRef,
+        amount_cents: order.amountCents,
+        environment: order.environment,
+      })
+      .eq("id", order.bookingId);
+    if (error) throw new Error(`confirm booking failed: ${error.message}`);
+    return { handled: true };
+  }
+
   return { handled: false, reason: "unhandled_kind" };
 }
 
