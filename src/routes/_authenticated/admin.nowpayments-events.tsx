@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   amIAdmin,
   adminListNowpaymentsEvents,
@@ -127,6 +127,44 @@ function AdminNowpaymentsEvents() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<NowpaymentsBulkAction | null>(null);
   const [bulkNote, setBulkNote] = useState("");
+
+  // Custom filter presets persisted to localStorage.
+  type CustomPreset = {
+    id: string;
+    name: string;
+    status: string;
+    handled: "all" | "handled" | "unhandled";
+    reversal: ReversalFilter;
+    sort: SortMode;
+    search: string;
+  };
+  const CUSTOM_PRESETS_KEY = "nowpayments-events:custom-presets:v1";
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
+  const [presetName, setPresetName] = useState("");
+  const [presetsLoaded, setPresetsLoaded] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CUSTOM_PRESETS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as CustomPreset[];
+        if (Array.isArray(parsed)) setCustomPresets(parsed);
+      }
+    } catch {
+      /* ignore */
+    }
+    setPresetsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!presetsLoaded) return;
+    try {
+      localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(customPresets));
+    } catch {
+      /* ignore quota / privacy-mode errors */
+    }
+  }, [customPresets, presetsLoaded]);
+
 
 
   // Reset to page 1 whenever filters/search/sort/pageSize change.
@@ -409,6 +447,107 @@ function AdminNowpaymentsEvents() {
             </Button>
           ))}
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-widest text-muted-foreground mr-1">
+            My presets
+          </span>
+          {customPresets.length === 0 && (
+            <span className="text-xs text-muted-foreground italic">
+              None saved yet — configure filters, name it, then Save.
+            </span>
+          )}
+          {customPresets.map((p) => {
+            const isActive =
+              status === p.status &&
+              handled === p.handled &&
+              reversal === p.reversal &&
+              sort === p.sort &&
+              search === p.search;
+            return (
+              <span key={p.id} className="inline-flex items-center">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isActive ? "default" : "outline"}
+                  className="rounded-r-none"
+                  onClick={() => {
+                    resetToFirstPage();
+                    setStatus(p.status);
+                    setHandled(p.handled);
+                    setReversal(p.reversal);
+                    setSort(p.sort);
+                    setSearchInput(p.search);
+                    setSearch(p.search);
+                  }}
+                >
+                  {p.name}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isActive ? "default" : "outline"}
+                  className="rounded-l-none border-l-0 px-2"
+                  aria-label={`Delete preset ${p.name}`}
+                  onClick={() => {
+                    if (confirm(`Delete preset "${p.name}"?`)) {
+                      setCustomPresets((prev) => prev.filter((x) => x.id !== p.id));
+                    }
+                  }}
+                >
+                  ×
+                </Button>
+              </span>
+            );
+          })}
+          <form
+            className="flex items-center gap-1 ml-auto"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const name = presetName.trim();
+              if (!name) return;
+              // Replace if a preset with the same (case-insensitive) name already exists.
+              setCustomPresets((prev) => {
+                const filtered = prev.filter(
+                  (x) => x.name.toLowerCase() !== name.toLowerCase(),
+                );
+                return [
+                  ...filtered,
+                  {
+                    id:
+                      (globalThis.crypto?.randomUUID?.() ??
+                        `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+                    name,
+                    status,
+                    handled,
+                    reversal,
+                    sort,
+                    search,
+                  },
+                ];
+              });
+              setPresetName("");
+              toast.success(`Saved preset "${name}".`);
+            }}
+          >
+            <Input
+              className="h-8 w-[180px] text-xs"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              placeholder="Name current filters…"
+              maxLength={40}
+            />
+            <Button
+              type="submit"
+              size="sm"
+              variant="secondary"
+              disabled={presetName.trim() === ""}
+            >
+              Save
+            </Button>
+          </form>
+        </div>
+
 
         {(() => {
           const chips: { key: string; label: string; clear: () => void }[] = [];
