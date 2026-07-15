@@ -8,6 +8,16 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { RoleGuard } from "@/components/RoleGuard";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   listMapPins,
   createMapPin,
   updateMapPin,
@@ -79,6 +89,7 @@ function AdminMapPins() {
   const [order, setOrder] = useState<MapPin[]>([]);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<MapPin | null>(null);
   useEffect(() => {
     setOrder(pins);
   }, [pins]);
@@ -410,9 +421,7 @@ function AdminMapPins() {
                         Edit
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm(`Remove "${p.title}"?`)) remove.mutate(p.id);
-                        }}
+                        onClick={() => setPendingDelete(p)}
                         className="rounded-md border border-destructive/60 px-3 py-1 text-xs text-destructive"
                       >
                         Delete
@@ -433,6 +442,40 @@ function AdminMapPins() {
           </div>
         </div>
       </div>
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o && !remove.isPending) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this venue spot?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete
+                ? `"${pendingDelete.title}" will be permanently removed from the map. This cannot be undone.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={remove.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={remove.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!pendingDelete) return;
+                remove.mutate(pendingDelete.id, {
+                  onSettled: () => setPendingDelete(null),
+                });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {remove.isPending ? "Removing…" : "Remove pin"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
