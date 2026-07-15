@@ -99,15 +99,21 @@ function AdminNowpaymentsEvents() {
   const [sort, setSort] = useState<SortMode>("last_seen_desc");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
 
+  // Reset to page 1 whenever filters/search/sort/pageSize change.
+  const resetToFirstPage = () => setPage(1);
+
   const list = useQuery({
-    queryKey: ["admin-nowpayments-events", { status, handled, reversal, sort, search }],
+    queryKey: ["admin-nowpayments-events", { status, handled, reversal, sort, search, page, pageSize }],
     queryFn: () =>
       listFn({
         data: {
-          limit: 200,
+          page,
+          pageSize,
           status: status === "all" ? undefined : status,
           handled,
           reversal,
@@ -117,6 +123,7 @@ function AdminNowpaymentsEvents() {
       }),
     enabled: me.data?.isAdmin === true,
   });
+
 
   const retry = useMutation({
     mutationFn: (paymentId: string) => retryFn({ data: { paymentId } }),
