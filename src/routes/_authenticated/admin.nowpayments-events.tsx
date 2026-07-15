@@ -145,7 +145,7 @@ function AdminNowpaymentsEvents() {
   const [sort, setSort] = useState<SortMode>(initialSort);
   const [searchInput, setSearchInput] = useState(urlSearch.q);
   const [search, setSearch] = useState(urlSearch.q);
-  const [quickSearch, setQuickSearch] = useState(urlSearch.q);
+  const [quickSearch, setQuickSearch] = useState<string>(urlSearch.q);
   const [page, setPage] = useState<number>(urlSearch.page);
   const [pageSize, setPageSize] = useState<number>(urlSearch.pageSize);
 
