@@ -19,6 +19,9 @@ type MembershipRow = {
   amount_cents: number | null;
   expires_at: Date;
   external_payment_reference: string | null;
+  revoked_at: Date | null;
+  suspended_at: Date | null;
+  revocation_reason: string | null;
 };
 
 const state: { rows: MembershipRow[]; nowMs: number } = { rows: [], nowMs: 0 };
