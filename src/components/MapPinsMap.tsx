@@ -99,14 +99,42 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId, isLoadi
     );
   }
 
+  const count = sortedPins.length;
+  const badgeText = isError
+    ? `Error: ${errorMessage ?? "failed to load pins"}`
+    : isLoading
+      ? "Loading pins…"
+      : `${count} pin${count === 1 ? "" : "s"}`;
+  const badgeClass = isError
+    ? "border-destructive/60 bg-destructive/15 text-destructive"
+    : isLoading
+      ? "border-border/60 bg-background/85 text-muted-foreground"
+      : "border-border/60 bg-background/85 text-foreground";
+
   return (
     <div
-      ref={containerRef}
-      className={`rounded-xl overflow-hidden border border-border/60 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.35)] ${className ?? ""}`}
+      className={`relative rounded-xl overflow-hidden border border-border/60 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.35)] ${className ?? ""}`}
       style={{ minHeight: 420 }}
-    />
+    >
+      <div ref={containerRef} className="absolute inset-0" />
+      {showCount && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`pointer-events-none absolute bottom-3 left-3 z-10 rounded-md border px-2.5 py-1 text-xs font-medium shadow-sm backdrop-blur ${badgeClass}`}
+        >
+          {badgeText}
+        </div>
+      )}
+      {count === 0 && !isLoading && !isError && (
+        <div className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center text-xs text-muted-foreground">
+          No pins to display yet.
+        </div>
+      )}
+    </div>
   );
 }
+
 
 function escapeHtml(s: string) {
   return s
