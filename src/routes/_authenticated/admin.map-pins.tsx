@@ -26,6 +26,7 @@ import {
   type MapPin,
 } from "@/lib/map-pins.functions";
 import { MapPinsMap } from "@/components/MapPinsMap";
+import { PinPickerMap } from "@/components/PinPickerMap";
 
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
@@ -346,6 +347,32 @@ function AdminMapPins() {
               />
             </Field>
           </div>
+
+          <PinPickerMap
+            latitude={(() => {
+              const n = Number(form.latitude);
+              return form.latitude.trim() && !Number.isNaN(n) && n >= -90 && n <= 90 ? n : null;
+            })()}
+            longitude={(() => {
+              const n = Number(form.longitude);
+              return form.longitude.trim() && !Number.isNaN(n) && n >= -180 && n <= 180 ? n : null;
+            })()}
+            onChange={(lat, lng) => {
+              setForm((f) => ({
+                ...f,
+                latitude: lat.toFixed(6),
+                longitude: lng.toFixed(6),
+              }));
+              setErrors((prev) => {
+                if (!prev.latitude && !prev.longitude && !prev._form) return prev;
+                const next = { ...prev };
+                delete next.latitude;
+                delete next.longitude;
+                delete next._form;
+                return next;
+              });
+            }}
+          />
 
           <Field label="Sort order" error={errors.sort_order}>
             <input
