@@ -62,6 +62,10 @@ const inputSchema = z
           "contentItemId must be a content_items.id UUID (8-4-4-4-12 hex).",
       })
       .optional(),
+    /** Reward points to redeem (10 pts = $1.00 discount). Verified and
+     *  reserved server-side against the caller's balance. Only honoured
+     *  for panty listings for now. */
+    pointsToApply: z.number().int().min(0).max(1_000_000).optional(),
   })
   .refine(
     (v) => [v.priceId, v.pantyListingId, v.contentItemId].filter(Boolean).length <= 1,
