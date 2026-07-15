@@ -488,6 +488,15 @@ export const adminRevokeAllAccess = createServerFn({ method: "POST" })
       .in("kind", ALL_ACCESS_KINDS as unknown as string[]);
     if (error) throw new Error(error.message);
 
+    // Post-delete verification: re-read by id to confirm the row is gone.
+    const { data: stillThere, error: verifyErr } = await supabaseAdmin
+      .from("memberships")
+      .select("id")
+      .eq("id", data.membershipId)
+      .maybeSingle();
+    if (verifyErr) throw new Error(`Verification read failed: ${verifyErr.message}`);
+    const verified = !stillThere;
+
     if (existing) {
       await context.supabase.from("admin_activity_audit").insert({
         actor_id: context.userId,
@@ -501,12 +510,32 @@ export const adminRevokeAllAccess = createServerFn({ method: "POST" })
           membership_id: existing.id,
           expires_at: existing.expires_at,
           external_payment_reference: existing.external_payment_reference,
+          verified,
         },
       });
     }
 
-    return { ok: true };
+    if (!verified) {
+      throw new Error(
+        `Delete reported success but membership ${data.membershipId} still exists. Aborting.`,
+      );
+    }
+
+    return {
+      ok: true,
+      verified,
+      deleted: existing
+        ? {
+            id: existing.id,
+            kind: existing.kind,
+            user_id: existing.user_id,
+            environment: existing.environment,
+            expires_at: existing.expires_at,
+          }
+        : null,
+    };
   });
+
 
 // ---------- Bulk grant / revoke by CSV of emails ----------
 
