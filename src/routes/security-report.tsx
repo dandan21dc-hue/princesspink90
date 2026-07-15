@@ -64,7 +64,7 @@ function SecurityReportPage() {
 
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border/50 bg-gradient-to-b from-primary/5 to-transparent">
         <div className="mx-auto max-w-3xl px-5 pt-16 pb-12">
           <Link
@@ -128,13 +128,13 @@ function SecurityReportPage() {
         )}
       </article>
 
-    </main>
+    </div>
   );
 }
 
 function SecurityReportError({ error }: { error: Error }) {
   return (
-    <main className="mx-auto max-w-2xl px-5 py-16">
+    <div className="mx-auto max-w-2xl px-5 py-16">
       <Link to="/" className="text-xs uppercase tracking-widest text-muted-foreground">
         ← Home
       </Link>
@@ -151,6 +151,6 @@ function SecurityReportError({ error }: { error: Error }) {
       <pre className="mt-6 overflow-auto rounded bg-muted p-3 text-xs">
         {error.message}
       </pre>
-    </main>
+    </div>
   );
 }

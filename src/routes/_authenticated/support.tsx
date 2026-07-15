@@ -111,7 +111,7 @@ function SupportChatPage() {
   const escalated = convQuery.data?.escalated ?? false;
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-5 pt-10 pb-6">
         <header className="mb-6">
           <Link
@@ -211,6 +211,6 @@ function SupportChatPage() {
           </PromptInput>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

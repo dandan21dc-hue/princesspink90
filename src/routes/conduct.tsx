@@ -54,7 +54,7 @@ function Section({
 
 function ConductPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-3xl px-5 pt-16 pb-8 sm:pt-20 sm:pb-10">
         <Link
           to="/"
@@ -220,6 +220,6 @@ function ConductPage() {
           ← Back to home
         </Link>
       </div>
-    </main>
+    </div>
   );
 }

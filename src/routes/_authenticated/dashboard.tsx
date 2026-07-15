@@ -187,9 +187,9 @@ function Dashboard() {
           </div>
         </aside>
 
-        <main className="min-w-0">
+        <div className="min-w-0">
           <HomeView isAdmin={isAdmin} />
-        </main>
+        </div>
 
       </div>
     </section>

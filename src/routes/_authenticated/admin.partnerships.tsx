@@ -154,7 +154,7 @@ function AdminPartnerships() {
   const summary = summaryQ.data?.summary ?? {}
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-10">
+    <div className="mx-auto max-w-6xl px-5 py-10">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="text-xs uppercase tracking-[0.3em] text-neon">Admin</div>
@@ -336,7 +336,7 @@ function AdminPartnerships() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   )
 }
 

@@ -74,7 +74,7 @@ function UnsubscribePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-md items-center px-5 py-16">
+    <div className="mx-auto flex min-h-[60vh] max-w-md items-center px-5 py-16">
       <div className="w-full rounded-2xl border border-border/60 bg-card/40 p-8 text-center">
         <div className="text-xs uppercase tracking-[0.3em] text-neon">Email preferences</div>
         <h1 className="mt-2 font-display text-2xl font-bold">Unsubscribe</h1>
@@ -98,6 +98,6 @@ function UnsubscribePage() {
           {state.kind === 'error' && <p className="text-red-400">{state.message}</p>}
         </div>
       </div>
-    </main>
+    </div>
   )
 }

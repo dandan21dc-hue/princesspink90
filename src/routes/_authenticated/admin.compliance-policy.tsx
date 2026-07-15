@@ -249,7 +249,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto max-w-4xl px-5 py-16">
+    <div className="mx-auto max-w-4xl px-5 py-16">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <div className="text-[10px] uppercase tracking-[0.3em] text-primary">Admin</div>
@@ -260,6 +260,6 @@ function Shell({ children }: { children: React.ReactNode }) {
         </Link>
       </div>
       {children}
-    </main>
+    </div>
   );
 }

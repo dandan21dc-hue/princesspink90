@@ -65,7 +65,7 @@ export function MyOrdersPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <header className="mx-auto max-w-5xl px-5 pt-16 pb-8">
         <Link
           to="/account"
@@ -225,7 +225,7 @@ export function MyOrdersPage() {
           </div>
         )}
       </section>
-    </main>
+    </div>
   );
 }
 

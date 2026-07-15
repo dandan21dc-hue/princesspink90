@@ -25,7 +25,7 @@ export const Route = createFileRoute('/partnerships')({
 
 function PartnershipsPage() {
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
+    <div className="mx-auto max-w-3xl px-5 py-16">
       <div className="text-xs uppercase tracking-[0.3em] text-neon">Partnerships</div>
       <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
         Work <span className="text-neon">with me</span>
@@ -38,6 +38,6 @@ function PartnershipsPage() {
       <div className="mt-10 rounded-3xl border border-primary/30 bg-card/40 p-6 sm:p-8">
         <PartnershipForm />
       </div>
-    </main>
+    </div>
   )
 }
