@@ -48,6 +48,7 @@ export function AdminAssistantChat({
     Record<string, "confirmed" | "cancelled">
   >({});
   const [input, setInput] = useState("");
+  const [assetId, setAssetId] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
