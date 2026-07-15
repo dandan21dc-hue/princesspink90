@@ -8,6 +8,8 @@ import { EventCard } from "@/components/EventCard";
 import { MapPinsMap } from "@/components/MapPinsMap";
 import heroImg from "@/assets/hero.jpg";
 import { PartnershipForm } from "@/components/PartnershipForm";
+import { useMaintenance } from "@/lib/useMaintenance";
+
 
 const eventsQuery = queryOptions({
   queryKey: ["public-events"],
