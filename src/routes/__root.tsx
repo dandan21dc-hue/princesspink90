@@ -147,8 +147,10 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen overflow-x-hidden bg-noir">
         <AccountBanners />
+        <MaintenanceBanner />
         <SiteHeader />
         <main id="main-content"><Outlet /></main>
+
         <footer className="border-t border-border/50 mt-24 py-10 text-center text-xs text-muted-foreground">
           <div>MIDNIGHT GLORY · Adults only · 18+ · Consent, safety and discretion are non-negotiable.</div>
           <div className="mt-1">
