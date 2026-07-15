@@ -122,6 +122,7 @@ function UserManagementPage() {
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Joined</th>
                 <th className="px-4 py-3">Roles</th>
+                <th className="px-4 py-3">Compliance</th>
                 <th className="px-4 py-3 text-right">Access</th>
               </tr>
             </thead>
