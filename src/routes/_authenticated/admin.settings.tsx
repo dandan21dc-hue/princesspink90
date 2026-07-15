@@ -360,6 +360,25 @@ export function AdminSettings() {
   // Return keyboard focus to the FetLife input after a validation or server
   // rejection so the admin can fix and retry without hunting for the field.
   const fetlifeInputRef = useRef<HTMLInputElement | null>(null);
+  // Double-submit guard. `save.isPending` only flips true on the next React
+  // render, so two synchronous clicks (fast double-click, keyboard repeat,
+  // Ctrl+Enter racing a click) both see the stale `false` and each fire a
+  // separate `save.mutate()` — two requests, two audit rows. This ref flips
+  // synchronously the moment we call `mutate`, and is cleared in `onSettled`
+  // so a retry after failure still works.
+  const saveInFlightRef = useRef(false);
+  const startSave = (opts?: Parameters<typeof save.mutate>[1]) => {
+    if (saveInFlightRef.current || save.isPending) return false;
+    saveInFlightRef.current = true;
+    save.mutate(undefined, {
+      ...opts,
+      onSettled: (data, error, vars, ctx) => {
+        saveInFlightRef.current = false;
+        opts?.onSettled?.(data, error, vars, ctx);
+      },
+    });
+    return true;
+  };
   const fetlifeConfirmDialogId = "fetlife-confirm-dialog";
   const fetlifeChanged =
     settings.data != null && settings.data.fetlife_handle !== fetlifeNormalized;
