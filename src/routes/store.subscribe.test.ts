@@ -31,7 +31,7 @@ const TERM_PLANS: (PlanExpectation & { termMonths: 3 | 6 | 12 })[] = [
   { label: '6-Month Term',  priceId: 'all_access_6mo_monthly_aud',  fallback: 'A$48', termMonths: 6 },
   { label: '12-Month Term', priceId: 'all_access_12mo_monthly_aud', fallback: 'A$84', termMonths: 12 },
 ]
-const LIFETIME = { priceId: 'lifetime_onetime_aud', fallback: 'A$500' }
+const LIFETIME = { priceId: 'lifetime_onetime_aud', fallback: 'A$00' }
 const ALL_KNOWN = new Set<string>([
   ...PASS_PLANS.map((p) => p.priceId),
   ...TERM_PLANS.map((p) => p.priceId),
@@ -72,7 +72,7 @@ function extractTermPassCards(src: string) {
     const label = /label="([^"]+)"/.exec(body)?.[1]
     const priceId = /priceId="([^"]+)"/.exec(body)?.[1]
     const termMonths = Number(/termMonths=\{(\d+)\}/.exec(body)?.[1])
-    const priceLabel = /priceLabel\(\s*prices\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/.exec(body)
+    const priceLabel = /priceLabel\(\s*prices\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*(?:,[^)]*)?\)/.exec(body)
     if (label && priceId && termMonths && priceLabel) {
       expect(priceLabel[1]).toBe(priceId) // lookup_key alignment
       out.push({ label, priceId, fallback: priceLabel[2]!, termMonths })
