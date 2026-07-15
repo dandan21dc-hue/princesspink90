@@ -456,6 +456,22 @@ describe("admin settings — FetLife handle client-side normalization + validati
       expect(String((opts as { description?: string }).description)).toMatch(
         expectedMessage,
       );
+
+      // Focus returns to the FetLife input so the admin can immediately fix
+      // and retry — critical for keyboard + screen-reader users who would
+      // otherwise be stranded on the (disabled) Save button.
+      await waitFor(() => {
+        expect(document.activeElement).toBe(input);
+      });
+
+      // The inline error is announced by an aria-live region.
+      const errorRegion = document.getElementById("fetlife-handle-error");
+      expect(errorRegion).not.toBeNull();
+      expect(errorRegion!.getAttribute("role")).toBe("alert");
+      expect(errorRegion!.getAttribute("aria-live")).toBe("polite");
+      expect(errorRegion!.textContent ?? "").toMatch(expectedMessage);
+      expect(input.getAttribute("aria-errormessage")).toBe("fetlife-handle-error");
+      expect(input.getAttribute("aria-invalid")).toBe("true");
     },
   );
 
