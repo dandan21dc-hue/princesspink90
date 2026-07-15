@@ -480,6 +480,21 @@ function AdminMapPins() {
                 <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
                 {isFetching ? "Refreshing…" : "Refresh"}
               </button>
+              <label className="pointer-events-auto inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/85 px-2 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur">
+                <span className="text-muted-foreground">Auto</span>
+                <select
+                  value={refreshIntervalMs}
+                  onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                  aria-label="Auto-refresh interval"
+                  className="bg-transparent text-xs focus:outline-none"
+                >
+                  {REFRESH_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {dataUpdatedAt && !isFetching && (
                 <span className="pointer-events-auto rounded-md bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground backdrop-blur">
                   Updated {new Date(dataUpdatedAt).toLocaleTimeString()}
