@@ -1984,6 +1984,59 @@ export type Database = {
         }
         Relationships: []
       }
+      revenue_splits: {
+        Row: {
+          cohost_user_id: string
+          created_at: string
+          currency: string
+          event_id: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          partner_share_percent: number
+          status: string
+          total_revenue_cents: number
+          updated_at: string
+        }
+        Insert: {
+          cohost_user_id: string
+          created_at?: string
+          currency?: string
+          event_id: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          partner_share_percent?: number
+          status?: string
+          total_revenue_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          cohost_user_id?: string
+          created_at?: string
+          currency?: string
+          event_id?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          partner_share_percent?: number
+          status?: string
+          total_revenue_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenue_splits_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reward_point_reservations: {
         Row: {
           created_at: string
