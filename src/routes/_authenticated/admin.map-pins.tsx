@@ -299,53 +299,61 @@ function AdminMapPins() {
             {editing ? "Edit pin" : "Add pin"}
           </h2>
 
-          <Field label="Title">
+          {errors._form && (
+            <div className="rounded-md border border-destructive/60 bg-destructive/10 p-2 text-xs text-destructive">
+              {errors._form}
+            </div>
+          )}
+
+          <Field label="Title" error={errors.title}>
             <input
-              required
               value={form.title}
-              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className={inputCls}
+              onChange={(e) => updateField("title", e.target.value)}
+              aria-invalid={!!errors.title}
+              className={fieldCls(!!errors.title)}
             />
           </Field>
 
-          <Field label="Description">
+          <Field label="Description" error={errors.description}>
             <textarea
               rows={2}
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              className={inputCls}
+              onChange={(e) => updateField("description", e.target.value)}
+              aria-invalid={!!errors.description}
+              className={fieldCls(!!errors.description)}
             />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Latitude">
+            <Field label="Latitude" error={errors.latitude}>
               <input
-                required
                 inputMode="decimal"
                 placeholder="-33.8688"
                 value={form.latitude}
-                onChange={(e) => setForm((f) => ({ ...f, latitude: e.target.value }))}
-                className={inputCls}
+                onChange={(e) => updateField("latitude", e.target.value)}
+                aria-invalid={!!errors.latitude}
+                className={fieldCls(!!errors.latitude)}
               />
             </Field>
-            <Field label="Longitude">
+            <Field label="Longitude" error={errors.longitude}>
               <input
-                required
                 inputMode="decimal"
                 placeholder="151.2093"
                 value={form.longitude}
-                onChange={(e) => setForm((f) => ({ ...f, longitude: e.target.value }))}
-                className={inputCls}
+                onChange={(e) => updateField("longitude", e.target.value)}
+                aria-invalid={!!errors.longitude}
+                className={fieldCls(!!errors.longitude)}
               />
             </Field>
           </div>
 
-          <Field label="Sort order">
+          <Field label="Sort order" error={errors.sort_order}>
             <input
               inputMode="numeric"
               value={form.sort_order}
-              onChange={(e) => setForm((f) => ({ ...f, sort_order: e.target.value }))}
-              className={inputCls}
+              onChange={(e) => updateField("sort_order", e.target.value)}
+              aria-invalid={!!errors.sort_order}
+              className={fieldCls(!!errors.sort_order)}
             />
           </Field>
 
@@ -360,7 +368,10 @@ function AdminMapPins() {
             {editing && (
               <button
                 type="button"
-                onClick={() => setForm(empty)}
+                onClick={() => {
+                  setForm(empty);
+                  setErrors({});
+                }}
                 className="rounded-md border border-border px-4 py-2 text-sm"
               >
                 Cancel
