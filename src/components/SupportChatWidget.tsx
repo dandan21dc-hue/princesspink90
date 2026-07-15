@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { MessageCircle, X, Send, CalendarClock, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, CalendarClock, Loader2, Globe } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
