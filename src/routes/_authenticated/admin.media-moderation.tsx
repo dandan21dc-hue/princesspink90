@@ -305,6 +305,16 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
         )}
         <button
           type="button"
+          onClick={() => setHistoryOpen((v) => !v)}
+          disabled={busy}
+          className="rounded-full border border-border/60 px-4 py-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:border-primary/60"
+          aria-expanded={historyOpen}
+          aria-controls={`moderation-history-${row.id}`}
+        >
+          {historyOpen ? "Hide history" : "History"}
+        </button>
+        <button
+          type="button"
           onClick={confirmDelete}
           disabled={busy}
           className="ml-auto rounded-full border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-50"
@@ -313,7 +323,141 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
           {removeItem.isPending ? "Deleting…" : "Delete"}
         </button>
       </div>
+      {historyOpen && (
+        <div id={`moderation-history-${row.id}`} className="mt-4">
+          <ItemHistory contentItemId={row.id} />
+        </div>
+      )}
     </li>
+  );
+}
+
+function actionBadgeClass(action: ModerationAuditEntry["action"]): string {
+  switch (action) {
+    case "approved":
+      return "border-emerald-500/60 bg-emerald-500/15 text-emerald-400";
+    case "rejected":
+      return "border-destructive/60 bg-destructive/15 text-destructive";
+    case "pending":
+      return "border-amber-500/60 bg-amber-500/15 text-amber-400";
+    case "deleted":
+      return "border-border/60 bg-muted text-muted-foreground line-through";
+  }
+}
+
+function AuditRow({ entry, showTitle = false }: { entry: ModerationAuditEntry; showTitle?: boolean }) {
+  return (
+    <li className="flex flex-wrap items-baseline gap-2 border-b border-border/40 py-2 text-xs last:border-b-0">
+      <span
+        className={cn(
+          "rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest",
+          actionBadgeClass(entry.action),
+        )}
+      >
+        {entry.action}
+      </span>
+      {showTitle && (
+        <span className="font-semibold text-foreground">
+          {entry.item_title}
+          {entry.item_kind && (
+            <span className="ml-1 text-[10px] uppercase tracking-widest text-muted-foreground">
+              · {entry.item_kind}
+            </span>
+          )}
+        </span>
+      )}
+      <span className="text-muted-foreground">
+        by {entry.actor_email ?? entry.actor_id ?? "unknown admin"}
+      </span>
+      <span className="text-muted-foreground">
+        · {new Date(entry.created_at).toLocaleString()}
+      </span>
+      {entry.previous_status && entry.previous_status !== entry.action && (
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          (was {entry.previous_status})
+        </span>
+      )}
+      {entry.notes && (
+        <div className="mt-1 w-full rounded border border-border/60 bg-muted/30 p-2 text-[11px] italic text-muted-foreground">
+          “{entry.notes}”
+        </div>
+      )}
+    </li>
+  );
+}
+
+function ItemHistory({ contentItemId }: { contentItemId: string }) {
+  const listFn = useServerFn(adminListModerationAudit);
+  const q = useQuery({
+    queryKey: ["admin-moderation-audit", contentItemId],
+    queryFn: () => listFn({ data: { contentItemId, limit: 50 } }),
+  });
+
+  if (q.isLoading) {
+    return <p className="text-xs text-muted-foreground">Loading history…</p>;
+  }
+  if (q.error) {
+    return (
+      <p className="text-xs text-destructive">
+        Couldn't load history: {(q.error as Error).message}
+      </p>
+    );
+  }
+  const entries = q.data ?? [];
+  if (entries.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        No prior decisions recorded for this item yet.
+      </p>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+      <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+        Moderation history · {entries.length} decision{entries.length === 1 ? "" : "s"}
+      </div>
+      <ul>
+        {entries.map((e) => (
+          <AuditRow key={e.id} entry={e} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RecentActivityPanel() {
+  const listFn = useServerFn(adminListModerationAudit);
+  const q = useQuery({
+    queryKey: ["admin-moderation-audit", "recent"],
+    queryFn: () => listFn({ data: { limit: 50 } }),
+  });
+
+  return (
+    <section className="mt-10 border-t border-border/60 pt-6">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="font-display text-lg font-bold">Recent moderation activity</h2>
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          Last 50 decisions across all items
+        </span>
+      </div>
+      {q.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
+      {q.error && (
+        <p className="text-sm text-destructive">{(q.error as Error).message}</p>
+      )}
+      {q.data && q.data.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          No moderation decisions have been recorded yet. Approve, reject, or delete an item
+          above and it will show up here.
+        </p>
+      )}
+      {q.data && q.data.length > 0 && (
+        <ul className="rounded-lg border border-border/60 bg-background/60 p-3">
+          {q.data.map((e) => (
+            <AuditRow key={e.id} entry={e} showTitle />
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
