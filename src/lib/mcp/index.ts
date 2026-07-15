@@ -1,5 +1,6 @@
 import { auth, defineMcp } from "@lovable.dev/mcp-js";
 import listUpcomingEvents from "./tools/list-upcoming-events";
+import getEventDetails from "./tools/get-event-details";
 import listMyRsvps from "./tools/list-my-rsvps";
 import listMyMemberships from "./tools/list-my-memberships";
 import createRsvp from "./tools/create-rsvp";
