@@ -75,9 +75,15 @@ export function AllAccessCard() {
   const hasLifetime = tiers.active.lifetime_onetime_aud;
   const currentPlan: PlanId | null = hasLifetime
     ? "lifetime_onetime_aud"
-    : tiers.active.all_access_30d_aud
-      ? "all_access_30d_aud"
-      : null;
+    : tiers.active.all_access_365d_aud
+      ? "all_access_365d_aud"
+      : tiers.active.all_access_180d_aud
+        ? "all_access_180d_aud"
+        : tiers.active.all_access_90d_aud
+          ? "all_access_90d_aud"
+          : tiers.active.all_access_30d_aud
+            ? "all_access_30d_aud"
+            : null;
   const currentLabel = currentPlan
     ? passes.find((p) => p.plan === currentPlan)?.label ?? null
     : null;
