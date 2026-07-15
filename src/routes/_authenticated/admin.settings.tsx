@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Check, Copy } from "lucide-react";
+import { Loader2, Check, Copy, ExternalLink } from "lucide-react";
 
 import {
   AlertDialog,
