@@ -502,6 +502,37 @@ function AdminMapPins() {
                 </span>
               )}
             </div>
+
+            {isLoading && (
+              <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-background/70 backdrop-blur-sm">
+                <div className="flex items-center gap-2 rounded-full border border-border/60 bg-card/80 px-4 py-2 text-xs font-medium text-foreground shadow-sm">
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-primary" />
+                  Loading venue spots…
+                </div>
+              </div>
+            )}
+
+            {errorMessage && !isLoading && (
+              <div className="absolute inset-x-3 bottom-3 z-20 rounded-lg border border-destructive/60 bg-destructive/10 p-3 text-xs text-destructive shadow-lg backdrop-blur">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold">Couldn't load venue spots</div>
+                    <div className="mt-0.5 truncate text-destructive/90" title={errorMessage}>
+                      {errorMessage}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRefresh}
+                    disabled={isFetching}
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-destructive/60 bg-background px-2.5 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-60"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+                    {isFetching ? "Retrying…" : "Retry"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           {selectedPin && (
             <div className="mt-3 rounded-2xl border border-primary/40 bg-primary/5 p-4">
