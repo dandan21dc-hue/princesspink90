@@ -164,8 +164,12 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
   });
 
   const busy = decide.isPending || removeItem.isPending;
+  const pendingDecision = decide.isPending
+    ? (decide.variables as "approved" | "rejected" | "pending" | undefined)
+    : undefined;
 
   const confirmDelete = () => {
+    if (busy) return;
     if (
       window.confirm(
         `Permanently delete "${row.title}"? This removes the item, its media, and any purchase records. This cannot be undone.`,
