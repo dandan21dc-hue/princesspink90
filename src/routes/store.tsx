@@ -76,9 +76,9 @@ function PageShell({ children }: { children: React.ReactNode }) {
       <section className="mx-auto max-w-6xl px-5 pt-10 pb-10">
         <div className="max-w-2xl">
           <div className="text-xs uppercase tracking-[0.3em] text-primary">Media Boutique</div>
-          <h1 className="mt-2 font-display text-4xl font-extrabold">
+          <h2 className="mt-2 font-display text-4xl font-extrabold">
             Individual <span className="text-neon">pictures &amp; videos</span>
-          </h1>
+          </h2>
         </div>
         {paymentPending ? <PaymentPendingPlaceholder /> : null}
         {children}
