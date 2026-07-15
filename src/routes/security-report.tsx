@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { marked } from "marked";
 
 const MD_URL = "/security/security-findings-summary.md";
@@ -15,12 +15,16 @@ const reportQueryOptions = {
     const res = await fetch(MD_URL, { headers: { Accept: "text/markdown" } });
     if (!res.ok) throw new Error(`Failed to load security report (${res.status})`);
     const md = await res.text();
-    // marked.parse returns string in sync mode when no async extensions are registered.
     const html = marked.parse(md) as string;
     return { md, html };
   },
   staleTime: 5 * 60 * 1000,
+  // Client-only: the file lives in /public and there's no absolute URL
+  // available during SSR/prerender. Rendering the shell server-side and
+  // hydrating the body is fine for a rarely-visited share page.
+  enabled: typeof window !== "undefined",
 };
+
 
 export const Route = createFileRoute("/security-report")({
   head: () => ({
