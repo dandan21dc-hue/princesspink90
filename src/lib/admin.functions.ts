@@ -1834,6 +1834,156 @@ export const adminGetUserAccessTimeline = createServerFn({ method: "POST" })
     return { userId: data.userId, profile, items, summary };
   });
 
+// ---------- CRM: user detail + staff notes + account restriction ----------
+
+export const listAllUsersForCrm = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const users: Array<{
+      id: string;
+      email: string | null;
+      created_at: string | null;
+      display_name: string | null;
+      account_restricted: boolean;
+    }> = [];
+
+    let page = 1;
+    const perPage = 200;
+    for (let i = 0; i < 20; i++) {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+      if (error) throw new Error(error.message);
+      for (const u of data.users) {
+        users.push({
+          id: u.id,
+          email: u.email ?? null,
+          created_at: u.created_at ?? null,
+          display_name: null,
+          account_restricted: false,
+        });
+      }
+      if (data.users.length < perPage) break;
+      page += 1;
+    }
+
+    if (users.length === 0) return { users };
+
+    const ids = users.map((u) => u.id);
+    const { data: profiles } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, display_name, account_restricted")
+      .in("user_id", ids);
+    const pmap = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+    for (const u of users) {
+      const p = pmap.get(u.id);
+      u.display_name = p?.display_name ?? null;
+      u.account_restricted = Boolean(p?.account_restricted);
+    }
+    users.sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    return { users };
+  });
+
+export const getCrmUserDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string }) => {
+    if (!data?.userId) throw new Error("userId required");
+    return data;
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("user_id, display_name, staff_notes, account_restricted, created_at")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+
+    const [{ data: rsvps }, { data: roomBookings }, { data: pantyOrders }, { data: memberships }] =
+      await Promise.all([
+        supabaseAdmin
+          .from("rsvps")
+          .select("id, event_id, created_at, guest_count, entry_code, entry_phrase, checked_in_at, events:event_id(title, starts_at)")
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabaseAdmin
+          .from("private_room_bookings")
+          .select("id, starts_at, duration_minutes, status, created_at, amount_cents")
+          .eq("user_id", data.userId)
+          .order("starts_at", { ascending: false })
+          .limit(100),
+        supabaseAdmin
+          .from("panty_orders")
+          .select("id, variant, status, amount_cents, currency, created_at")
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabaseAdmin
+          .from("memberships")
+          .select("id, kind, environment, amount_cents, expires_at, revoked_at, suspended_at, created_at")
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]);
+
+    return {
+      user: {
+        id: data.userId,
+        email: authUser?.user?.email ?? null,
+        created_at: authUser?.user?.created_at ?? profile?.created_at ?? null,
+        display_name: profile?.display_name ?? null,
+        staff_notes: profile?.staff_notes ?? "",
+        account_restricted: Boolean(profile?.account_restricted),
+      },
+      rsvps: rsvps ?? [],
+      room_bookings: roomBookings ?? [],
+      panty_orders: pantyOrders ?? [],
+      memberships: memberships ?? [],
+    };
+  });
+
+export const updateCrmStaffNotes = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; staff_notes: string }) => {
+    if (!data?.userId) throw new Error("userId required");
+    if (typeof data.staff_notes !== "string") throw new Error("staff_notes must be a string");
+    if (data.staff_notes.length > 10000) throw new Error("staff_notes too long (max 10000 chars)");
+    return data;
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ staff_notes: data.staff_notes })
+      .eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const setCrmAccountRestricted = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { userId: string; restricted: boolean }) => {
+    if (!data?.userId) throw new Error("userId required");
+    if (typeof data.restricted !== "boolean") throw new Error("restricted must be boolean");
+    return data;
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .update({ account_restricted: data.restricted })
+      .eq("user_id", data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+
 
 
 
