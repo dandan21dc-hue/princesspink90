@@ -214,16 +214,16 @@ function AdminSettings() {
               fetlifeError ? "border-destructive" : "border-border"
             }`}
           />
-          {fetlifeError ? (
+          {fetlifeError && (
             <div className="mt-1 text-[11px] text-destructive">{fetlifeError}</div>
-          ) : (
-            fetlifeNormalized && (
-              <div className="mt-1 text-[11px] text-muted-foreground">
-                Profile URL: https://fetlife.com/{fetlifeNormalized}
-              </div>
-            )
           )}
         </Field>
+        <ContactLinkPreview
+          draftEmail={emailError ? null : emailTrimmed}
+          draftFetlife={fetlifeError ? null : fetlifeNormalized}
+          savedEmail={settings.data?.email ?? null}
+          savedFetlife={settings.data?.fetlife_handle ?? null}
+        />
         <Field label="Reddit handle" hint="Without u/ prefix, e.g. 19pink-princess90">
           <input
             required
