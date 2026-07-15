@@ -47,6 +47,7 @@ type ParsedOrder =
       userId: string;
       environment: "sandbox" | "live";
       amountCents: number;
+      pointsApplied?: number;
     }
   | {
       kind: "booking";
@@ -62,6 +63,14 @@ function parseEnv(v: string): "sandbox" | "live" | null {
 
 function parseAmount(v: string): number | null {
   const n = Number(v);
+  if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) return null;
+  return n;
+}
+
+function parsePointsSuffix(v: string): number | null {
+  const m = /^p(\d+)$/.exec(v);
+  if (!m) return null;
+  const n = Number(m[1]);
   if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) return null;
   return n;
 }
@@ -83,16 +92,31 @@ export function parseOrderId(orderId: string | undefined): ParsedOrder | null {
   }
 
   // panty / booking — 5 parts: <kind>:<uuid>:<userId>:<env>:<amountCents>
-  if (parts.length === 5) {
-    const [kind, entityId, userId, envRaw, amountRaw] = parts;
+  // panty with reward-point discount — 6 parts, trailing `p<N>` suffix.
+  if (parts.length === 5 || parts.length === 6) {
+    const [kind, entityId, userId, envRaw, amountRaw, ptsRaw] = parts;
     if (kind !== "panty" && kind !== "booking") return null;
+    if (parts.length === 6 && kind !== "panty") return null;
     if (!UUID_RE.test(entityId) || !UUID_RE.test(userId)) return null;
     const environment = parseEnv(envRaw);
     if (!environment) return null;
     const amountCents = parseAmount(amountRaw);
     if (amountCents == null) return null;
     if (kind === "panty") {
-      return { kind: "panty", pantyListingId: entityId, userId, environment, amountCents };
+      let pointsApplied: number | undefined;
+      if (parts.length === 6) {
+        const pts = parsePointsSuffix(ptsRaw);
+        if (pts == null) return null;
+        pointsApplied = pts;
+      }
+      return {
+        kind: "panty",
+        pantyListingId: entityId,
+        userId,
+        environment,
+        amountCents,
+        ...(pointsApplied != null ? { pointsApplied } : {}),
+      };
     }
     return { kind: "booking", bookingId: entityId, userId, environment, amountCents };
   }
@@ -522,8 +546,24 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_panty_listing_order failed: ${error.message}`);
+    // Deduct any reward points reserved for this order. Idempotent: the
+    // RPC no-ops if the reservation was already consumed on a prior
+    // redelivery of the same finished status.
+    if (order.pointsApplied && order.pointsApplied > 0 && event.order_id) {
+      const { error: consumeErr } = await supabaseAdmin.rpc(
+        "consume_reward_points_reservation",
+        { _order_id: event.order_id },
+      );
+      if (consumeErr) {
+        console.warn(
+          "consume_reward_points_reservation failed:",
+          consumeErr.message,
+        );
+      }
+    }
     return finalize({ handled: true });
   }
+
 
   if (order.kind === "booking") {
     // Idempotent: external_payment_reference is UNIQUE on

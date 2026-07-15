@@ -1933,6 +1933,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reward_point_reservations: {
+        Row: {
+          created_at: string
+          order_id: string
+          points: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          order_id: string
+          points: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          order_id?: string
+          points?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       rsvps: {
         Row: {
           age_confirmed_at: string | null
@@ -2571,6 +2598,10 @@ export type Database = {
         }[]
       }
       apply_payment_integrity_schedule: { Args: never; Returns: string }
+      consume_reward_points_reservation: {
+        Args: { _order_id: string }
+        Returns: number
+      }
       cron_health_snapshot: { Args: never; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -2734,6 +2765,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      reserve_reward_points: {
+        Args: { _order_id: string; _points: number; _user_id: string }
+        Returns: boolean
       }
       revoke_entitlement_by_payment_reference: {
         Args: { _mode: string; _reason: string; _reference: string }

@@ -62,6 +62,10 @@ const inputSchema = z
           "contentItemId must be a content_items.id UUID (8-4-4-4-12 hex).",
       })
       .optional(),
+    /** Reward points to redeem (10 pts = $1.00 discount). Verified and
+     *  reserved server-side against the caller's balance. Only honoured
+     *  for panty listings for now. */
+    pointsToApply: z.number().int().min(0).max(1_000_000).optional(),
   })
   .refine(
     (v) => [v.priceId, v.pantyListingId, v.contentItemId].filter(Boolean).length <= 1,
@@ -169,7 +173,47 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
         amountCents = listing.price_cents;
         currency = (listing.currency ?? "aud").toLowerCase();
         description = `${listing.title ?? "Panty listing"} (Midnight Glory)`;
-        orderId = `panty:${listing.id}:${context.userId}:${data.environment}:${amountCents}`;
+
+        // Reward-point redemption (10 pts = $1.00 = 100 cents). Cap so
+        // the invoice remains ≥ $1.00 (NOWPayments minimum) and the
+        // discount can never exceed the item price.
+        let pointsApplied = 0;
+        if (data.pointsToApply && data.pointsToApply > 0) {
+          const maxByPrice = Math.floor((amountCents - 100) / 10);
+          pointsApplied = Math.max(0, Math.min(data.pointsToApply, maxByPrice));
+          if (pointsApplied > 0) {
+            const provisionalOrderId = `panty:${listing.id}:${context.userId}:${data.environment}:pending`;
+            const { error: reserveErr } = await supabaseAdmin.rpc(
+              "reserve_reward_points",
+              {
+                _order_id: provisionalOrderId,
+                _user_id: context.userId,
+                _points: pointsApplied,
+              },
+            );
+            if (reserveErr) {
+              return {
+                error:
+                  reserveErr.message === "insufficient_reward_points"
+                    ? "You don't have enough reward points for that discount."
+                    : `Couldn't reserve reward points: ${reserveErr.message}`,
+              };
+            }
+            amountCents = amountCents - pointsApplied * 10;
+            // Move the reservation onto the final order_id so the webhook
+            // can find and consume it after payment settles.
+            const finalOrderId = `panty:${listing.id}:${context.userId}:${data.environment}:${amountCents}:p${pointsApplied}`;
+            await supabaseAdmin
+              .from("reward_point_reservations")
+              .update({ order_id: finalOrderId })
+              .eq("order_id", provisionalOrderId);
+            orderId = finalOrderId;
+          } else {
+            orderId = `panty:${listing.id}:${context.userId}:${data.environment}:${amountCents}`;
+          }
+        } else {
+          orderId = `panty:${listing.id}:${context.userId}:${data.environment}:${amountCents}`;
+        }
       } else if (data.contentItemId) {
         // Look up the content item so amount + currency come from the
         // authoritative row, not the client. Only published items with a

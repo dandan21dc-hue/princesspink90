@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart, formatMoney, cart as cartStore, cartLineKey, isCartItemIdValid, type CartItem } from "@/lib/cart";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { getMyRewards } from "@/lib/rewards.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { track } from "@/lib/track";
 import { toast } from "sonner";
 
@@ -29,6 +31,15 @@ function CartCheckoutPage() {
   const { items, subtotalCents, currency } = useCart();
   const [user, setUser] = useState<{ id: string; email?: string } | null | undefined>(undefined);
   const { openCheckout, checkoutElement, isOpen } = useStripeCheckout();
+  const fetchRewards = useServerFn(getMyRewards);
+
+  // Reward-point redemption state. Balance is loaded once the user is
+  // known; `appliedPoints` is what the shopper has committed via the
+  // Apply button, and gets attached to the NEXT panty item they check
+  // out. Discount is fixed at 10 pts = $1.00 (100 cents).
+  const [rewardPoints, setRewardPoints] = useState<number | null>(null);
+  const [pointsInput, setPointsInput] = useState<string>("");
+  const [appliedPoints, setAppliedPoints] = useState<number>(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) =>
@@ -37,6 +48,13 @@ function CartCheckoutPage() {
       ),
     );
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchRewards()
+      .then((r) => setRewardPoints(r.reward_points ?? 0))
+      .catch(() => setRewardPoints(0));
+  }, [user, fetchRewards]);
 
   // Bounce to /auth if signed out.
   useEffect(() => {
@@ -68,6 +86,53 @@ function CartCheckoutPage() {
   // Snapshot the cart at mount so the drawer can't mutate it mid-checkout.
   const [snapshot] = useState(() => cartStore.snapshot());
 
+  // Cap the discount so it can never exceed the largest panty item's
+  // price minus $1.00 (NOWPayments minimum invoice). Non-panty items
+  // don't currently accept points.
+  const maxPantyCents = useMemo(() => {
+    return snapshot
+      .filter((it) => it.kind === "panty")
+      .reduce((max, it) => Math.max(max, it.unit_amount_cents), 0);
+  }, [snapshot]);
+  const maxRedeemable = Math.max(
+    0,
+    Math.min(rewardPoints ?? 0, Math.floor((maxPantyCents - 100) / 10)),
+  );
+  const discountCents = appliedPoints * 10;
+
+  const handleApplyPoints = () => {
+    const n = Math.floor(Number(pointsInput));
+    if (!Number.isFinite(n) || n <= 0) {
+      toast.error("Enter a positive number of points to redeem.");
+      return;
+    }
+    if (rewardPoints == null) {
+      toast.error("Loading your balance — try again in a moment.");
+      return;
+    }
+    if (n > rewardPoints) {
+      toast.error(`You only have ${rewardPoints} reward points.`);
+      return;
+    }
+    if (maxPantyCents === 0) {
+      toast.error("Reward points can only be applied to boutique items right now.");
+      return;
+    }
+    if (n > maxRedeemable) {
+      toast.error(
+        `Max ${maxRedeemable} points for this cart (invoice must stay above $1.00).`,
+      );
+      return;
+    }
+    setAppliedPoints(n);
+    toast.success(`${n} points applied — ${formatMoney(n * 10, currency)} off your next payment.`);
+  };
+
+  const handleClearPoints = () => {
+    setAppliedPoints(0);
+    setPointsInput("");
+  };
+
   const payItem = (it: CartItem) => {
     // Defensive: the cart's `read()` filter already drops entries whose id
     // isn't a UUID, but a race (localStorage tampering, cross-tab write mid-
@@ -81,17 +146,30 @@ function CartCheckoutPage() {
       track("cart_checkout_invalid_id", { kind: it.kind, id: String(it.id) });
       return;
     }
+    // Reward points only apply to panty items and only once (to the
+    // first item paid). Clear the applied points after use so the same
+    // discount can't be attached to a second invoice.
+    const canApplyPoints =
+      it.kind === "panty" && appliedPoints > 0 && appliedPoints * 10 < it.unit_amount_cents;
     track("nowpayments_cart_checkout_click", {
       kind: it.kind,
       id: it.id,
       unit_amount_cents: it.unit_amount_cents,
+      points_applied: canApplyPoints ? appliedPoints : 0,
     });
     const opts: Parameters<typeof openCheckout>[0] =
       it.kind === "panty"
-        ? { pantyListingId: it.id }
+        ? { pantyListingId: it.id, ...(canApplyPoints ? { pointsToApply: appliedPoints } : {}) }
         : { contentItemId: it.id };
+    if (canApplyPoints) {
+      // Optimistically clear so a re-click on another item doesn't
+      // double-apply. Server-side reservation is the authoritative guard.
+      setAppliedPoints(0);
+      setPointsInput("");
+    }
     void openCheckout(opts);
   };
+
 
 
   if (snapshot.length === 0 && items.length === 0) {
@@ -176,10 +254,99 @@ function CartCheckoutPage() {
         })}
       </ul>
 
+      <section
+        aria-labelledby="rewards-heading"
+        className="mt-8 rounded-2xl border border-border/60 bg-card p-5"
+      >
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="rewards-heading" className="font-display text-lg font-semibold">
+            Redeem Reward Points
+          </h2>
+          <div className="text-xs text-muted-foreground">
+            Balance:{" "}
+            <span className="font-semibold tabular-nums text-foreground">
+              {rewardPoints ?? "…"} pts
+            </span>
+          </div>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          10 points = $1.00 off. Points are deducted from your balance only after
+          your payment settles. Applies to the next boutique item you check out.
+        </p>
+
+        {appliedPoints > 0 ? (
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-sm">
+            <span>
+              <strong className="font-semibold">{appliedPoints} pts</strong> applied —{" "}
+              <span className="tabular-nums">
+                {formatMoney(discountCents, currency)}
+              </span>{" "}
+              off your next payment
+            </span>
+            <button
+              type="button"
+              onClick={handleClearPoints}
+              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <div className="mt-3 flex items-end gap-2">
+            <label className="flex-1">
+              <span className="sr-only">Points to apply</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={maxRedeemable || undefined}
+                step={10}
+                value={pointsInput}
+                onChange={(e) => setPointsInput(e.target.value)}
+                placeholder={
+                  maxRedeemable > 0 ? `Up to ${maxRedeemable} pts` : "0"
+                }
+                disabled={maxRedeemable === 0}
+                className="w-full rounded-md border border-border/60 bg-background px-3 py-2 text-sm tabular-nums disabled:opacity-60"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleApplyPoints}
+              disabled={maxRedeemable === 0 || !pointsInput}
+              className="shrink-0 rounded-md bg-primary px-4 py-2 text-xs font-semibold uppercase tracking-widest text-primary-foreground disabled:opacity-60"
+            >
+              Apply Points
+            </button>
+          </div>
+        )}
+        {rewardPoints === 0 && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Invite friends with your referral code to start earning points.
+          </p>
+        )}
+      </section>
+
       <div className="mt-6 flex items-center justify-between border-t border-border/60 pt-4 text-sm">
-        <span className="text-muted-foreground">Cart total</span>
+        <span className="text-muted-foreground">Cart subtotal</span>
         <span className="font-semibold tabular-nums">{formatMoney(subtotalCents, currency)}</span>
       </div>
+      {appliedPoints > 0 && (
+        <div className="mt-1 flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Reward discount (next payment)</span>
+          <span className="font-semibold tabular-nums text-primary">
+            −{formatMoney(discountCents, currency)}
+          </span>
+        </div>
+      )}
+      {appliedPoints > 0 && (
+        <div className="mt-1 flex items-center justify-between border-t border-border/60 pt-2 text-sm">
+          <span className="text-muted-foreground">Estimated total after discount</span>
+          <span className="font-semibold tabular-nums">
+            {formatMoney(Math.max(0, subtotalCents - discountCents), currency)}
+          </span>
+        </div>
+      )}
 
       {checkoutElement}
     </section>
