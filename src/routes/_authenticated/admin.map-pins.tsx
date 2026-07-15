@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, GripVertical, RefreshCw, Search, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, GripVertical, RefreshCw, Search, X } from "lucide-react";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { RoleGuard } from "@/components/RoleGuard";
@@ -196,6 +196,44 @@ function AdminMapPins() {
     next.splice(to, 0, moved);
     setOrder(next);
     reorder.mutate(next.map((p) => p.id));
+  };
+
+  const exportCsv = () => {
+    if (order.length === 0) {
+      toast.error("No pins to export");
+      return;
+    }
+    const headers = [
+      "sort_order",
+      "position",
+      "id",
+      "title",
+      "description",
+      "latitude",
+      "longitude",
+    ];
+    const escape = (v: unknown) => {
+      const s = v === null || v === undefined ? "" : String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const rows = order.map((p, i) =>
+      [p.sort_order, i + 1, p.id, p.title, p.description ?? "", p.latitude, p.longitude]
+        .map(escape)
+        .join(","),
+    );
+    // BOM so Excel opens UTF-8 correctly.
+    const csv = "\ufeff" + [headers.join(","), ...rows].join("\r\n") + "\r\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `map-pins-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${order.length} pin${order.length === 1 ? "" : "s"}`);
   };
 
   const [form, setForm] = useState<FormState>(empty);
@@ -610,11 +648,23 @@ function AdminMapPins() {
                   ? "Loading…"
                   : `${filtered.length} of ${order.length} pin${order.length === 1 ? "" : "s"}`}
               </h2>
-              <p className="text-xs text-muted-foreground">
-                {dragEnabled
-                  ? "Drag the handle or tap ▲/▼ to reorder. Order controls list & export priority."
-                  : "Clear search & filter to reorder."}
-              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={exportCsv}
+                  disabled={order.length === 0}
+                  title="Download all pins as CSV in the current order"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/60 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted/40 disabled:opacity-50"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export CSV
+                </button>
+                <p className="text-xs text-muted-foreground">
+                  {dragEnabled
+                    ? "Drag the handle or tap ▲/▼ to reorder."
+                    : "Clear search & filter to reorder."}
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
