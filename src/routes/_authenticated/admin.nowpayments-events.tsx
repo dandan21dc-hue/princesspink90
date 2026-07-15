@@ -346,7 +346,16 @@ type EventItem = {
     | null;
 };
 
-function EventRow({ e }: { e: EventItem }) {
+function EventRow({
+  e,
+  onRetry,
+  retryPending,
+}: {
+  e: EventItem;
+  onRetry: () => void;
+  retryPending: boolean;
+}) {
+  const canRetry = e.last_status === "finished" && e.parsed_order !== null;
   const statusVariant: "default" | "secondary" | "outline" | "destructive" =
     e.last_status === "finished"
       ? "default"
