@@ -176,6 +176,17 @@ function UserManagementPage() {
                         ))}
                       </div>
                     </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadCompliance(u.id)}
+                        disabled={pendingComplianceUserId === u.id}
+                        className="rounded-md border border-primary/40 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-widest text-primary hover:bg-primary/20 disabled:opacity-50"
+                        title="Download the user's latest signed compliance waiver PDF"
+                      >
+                        {pendingComplianceUserId === u.id ? "Preparing…" : "Download PDF"}
+                      </button>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       {isAdmin ? (
                         <span className="text-xs text-muted-foreground">
