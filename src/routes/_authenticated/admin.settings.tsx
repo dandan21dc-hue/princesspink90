@@ -382,6 +382,21 @@ export function AdminSettings() {
   // the public profile link, a typo is user-visible — we require the admin
   // to explicitly confirm the old → new change before the save actually runs.
   const [pendingFetlifeConfirm, setPendingFetlifeConfirm] = useState(false);
+  // Tracks which FetLife URL the admin most recently copied from the confirm
+  // dialog, so we can render a "Last copied" indicator next to that button.
+  // Persists across dialog open/close within the session but is intentionally
+  // reset when the saved handle changes (the "current" URL is a new value).
+  const [lastCopiedFetlife, setLastCopiedFetlife] = useState<
+    null | "current" | "new"
+  >(null);
+  const savedFetlifeHandle = settings.data?.fetlife_handle ?? null;
+  useEffect(() => {
+    // If the saved handle changes (e.g. after a successful save), the "current"
+    // URL no longer refers to what was previously copied — clear the memory
+    // so we don't mislead the admin with a stale badge.
+    setLastCopiedFetlife(null);
+  }, [savedFetlifeHandle]);
+
   // Distinguishes an intentional confirm/cancel button click from a dialog
   // dismissal (Esc / overlay). We only toast on the latter two — confirming
   // proceeds to the save toast instead.
@@ -838,8 +853,13 @@ export function AdminSettings() {
                             label="Copy current FetLife URL"
                             kindLabel="current FetLife URL"
                             disabled={save.isPending}
+                            onCopied={() => setLastCopiedFetlife("current")}
                           />
+                          {lastCopiedFetlife === "current" ? (
+                            <LastCopiedBadge which="current" />
+                          ) : null}
                         </>
+
                       ) : (
                         <span className="text-muted-foreground">(none)</span>
                       )}
@@ -893,10 +913,13 @@ export function AdminSettings() {
                             label="Copy new FetLife URL"
                             kindLabel="new FetLife URL"
                             disabled={save.isPending}
+                            onCopied={() => setLastCopiedFetlife("new")}
                           />
-
-
+                          {lastCopiedFetlife === "new" ? (
+                            <LastCopiedBadge which="new" />
+                          ) : null}
                         </>
+
                       ) : (
                         <span className="text-destructive">(empty)</span>
                       )}
@@ -1040,23 +1063,20 @@ function CopyUrlButton({
   label,
   kindLabel,
   disabled = false,
+  onCopied,
 }: {
   value: string;
   label: string;
-  /**
-   * Human-friendly description of what's being copied (e.g. "current FetLife
-   * URL"). Rendered into the toast so admins can tell which of the two
-   * side-by-side copy buttons fired, and repeated in an aria-live region
-   * so screen readers hear the result inline.
-   */
   kindLabel: string;
-  /**
-   * Disable the button while the FetLife handle save is in-flight. Prevents
-   * rapid repeated clicks from firing while the underlying URL value may be
-   * about to change (current becomes stale, new becomes current).
-   */
   disabled?: boolean;
+  /**
+   * Fired after a successful copy. Parent uses this to remember which of the
+   * two side-by-side URLs was last copied so it can render a "Last copied"
+   * badge.
+   */
+  onCopied?: () => void;
 }) {
+
 
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<null | { kind: "ok" | "err"; message: string }>(null);
@@ -1086,6 +1106,8 @@ function CopyUrlButton({
       setCopied(true);
       setStatus({ kind: "ok", message: `Copied ${kindLabel}` });
       toast.success(`Copied ${kindLabel}`, { description: value });
+      onCopied?.();
+
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         setCopied(false);
@@ -2061,6 +2083,27 @@ function ContactSettingsAuditSection() {
     </section>
   );
 }
+
+/**
+ * Small pill rendered next to whichever CopyUrlButton the admin most recently
+ * used in the FetLife confirm dialog. Helps disambiguate the two side-by-side
+ * URLs (current vs new) after the transient "Copied" toast has faded.
+ */
+function LastCopiedBadge({ which }: { which: "current" | "new" }) {
+  return (
+    <span
+      role="status"
+      aria-live="polite"
+      data-last-copied={which}
+      title={`You most recently copied the ${which} FetLife URL`}
+      className="ml-1 inline-flex items-center gap-0.5 rounded-full border border-primary/40 bg-primary/10 px-1.5 py-0.5 align-middle font-sans text-[10px] font-medium uppercase tracking-wide text-primary"
+    >
+      <Check className="h-2.5 w-2.5" aria-hidden />
+      Last copied
+    </span>
+  );
+}
+
 
 
 
