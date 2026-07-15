@@ -44,7 +44,7 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId, isLoadi
       container: containerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center: initialCenter,
-      zoom: sortedPins.length > 1 ? 3 : 11,
+      zoom: sortedPins.length > 1 ? 3 : 12,
       attributionControl: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: false }), "top-right");
