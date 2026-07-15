@@ -155,18 +155,36 @@ async function scanSecurityDefiner() {
 // --------------------------------------------------------------------------
 await Promise.all([scanOpenRedirect(), scanSelectStar(), scanSecurityDefiner()])
 
-if (violations.length === 0) {
-  console.log('✓ security-regression-scan: no regressions detected')
+// Load baseline: pre-existing hits accepted with documented rationale.
+// A regression = any hit NOT present in the baseline. Removing a baseline
+// entry (because the underlying code was refactored) is safe; adding one
+// requires a rationale and code review.
+let baseline = { entries: [] }
+try {
+  baseline = JSON.parse(await fs.readFile(path.join(ROOT, 'security/regression-baseline.json'), 'utf8'))
+} catch {
+  /* no baseline yet; treat as empty */
+}
+const baselineKey = (v) => `${v.finding}::${v.file}::${v.line}`
+const baselineSet = new Set((baseline.entries ?? []).map(baselineKey))
+
+const regressions = violations.filter((v) => !baselineSet.has(baselineKey(v)))
+const suppressed = violations.length - regressions.length
+
+if (regressions.length === 0) {
+  console.log(
+    `✓ security-regression-scan: no regressions detected (${suppressed} baselined hit(s) suppressed)`,
+  )
   process.exit(0)
 }
 
-console.error(`✗ security-regression-scan: ${violations.length} violation(s)\n`)
-for (const v of violations) {
+console.error(`✗ security-regression-scan: ${regressions.length} new violation(s)\n`)
+for (const v of regressions) {
   console.error(`  [${v.finding}]`)
   console.error(`    ${v.file}:${v.line}`)
   console.error(`    ${v.message}\n`)
 }
 console.error(
-  'These patterns were previously fixed as security findings. If a hit is a false positive, refactor to satisfy the rule or extend the allowlist in scripts/security-regression-scan.mjs with a documented rationale.',
+  'These patterns were previously fixed as security findings. Refactor to satisfy the rule, or add an entry to security/regression-baseline.json with a documented rationale explaining why the hit is safe.',
 )
 process.exit(1)
