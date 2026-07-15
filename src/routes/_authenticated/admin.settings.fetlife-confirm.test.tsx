@@ -83,6 +83,7 @@ const SAVED = {
 };
 
 const mockUpdateSiteSettings = vi.fn(async (_args: { data: typeof SAVED }) => ({ ok: true }));
+const mockGetSiteSettings = vi.fn(async () => SAVED);
 
 vi.mock("@/lib/settings.functions", async () => {
   const actual = await vi.importActual<Record<string, unknown>>(
@@ -90,13 +91,14 @@ vi.mock("@/lib/settings.functions", async () => {
   );
   return {
     ...actual,
-    getSiteSettings: vi.fn(async () => SAVED),
+    getSiteSettings: () => mockGetSiteSettings(),
     updateSiteSettings: (args: { data: typeof SAVED }) => mockUpdateSiteSettings(args),
     listPricingAudit: vi.fn(async () => ({ rows: [], total: 0, page: 1, pageSize: 10 })),
     exportPricingAudit: vi.fn(async () => ""),
     listContactSettingsAudit: vi.fn(async () => []),
   };
 });
+
 
 vi.mock("@/lib/reminder-job-config.functions", () => ({
   getReminderJobConfig: vi.fn(async () => ({
