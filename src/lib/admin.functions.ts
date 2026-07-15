@@ -1221,9 +1221,13 @@ export const adminListNowpaymentsEvents = createServerFn({ method: "POST" })
         entitlement,
         reversal,
         payload_json: e.payload == null ? null : JSON.stringify(e.payload),
+        admin_note: (e as any).admin_note ?? null,
+        admin_note_updated_at: (e as any).admin_note_updated_at ?? null,
+        handled_updated_at: (e as any).handled_updated_at ?? null,
       };
 
     });
+
 
     const summary = {
       total: items.length,
