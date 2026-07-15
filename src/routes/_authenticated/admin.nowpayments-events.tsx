@@ -196,6 +196,25 @@ function AdminNowpaymentsEvents() {
   }, [customPresets, presetsLoaded]);
 
 
+  // Sync current filter/search/sort/page state → URL query params so the view is
+  // shareable and reloadable. Uses replace: true so state changes don't spam
+  // browser history.
+  useEffect(() => {
+    navigate({
+      search: {
+        status,
+        handled,
+        reversal,
+        sort,
+        q: search,
+        page,
+        pageSize,
+      },
+      replace: true,
+      resetScroll: false,
+    });
+  }, [status, handled, reversal, sort, search, page, pageSize, navigate]);
+
 
   // Reset to page 1 whenever filters/search/sort/pageSize change.
   const resetToFirstPage = () => setPage(1);
