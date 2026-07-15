@@ -530,7 +530,7 @@ describe("admin settings — FetLife confirmation gate", () => {
 
     // Resolve the pending request so React Query settles the mutation and
     // the dialog can close cleanly (avoids act() warnings on teardown).
-    resolveSave?.({ ok: true });
+    (resolveSave as ((value: { ok: true }) => void) | null)?.({ ok: true });
     await waitFor(() => {
       expect(mockToast.success).toHaveBeenCalledTimes(1);
     });
