@@ -613,6 +613,32 @@ function EditModal(props: {
           </div>
         )}
 
+        {value.id && (() => {
+          const needs: string[] = [];
+          const t = (value.title ?? "").trim();
+          if (!t || t.toLowerCase() === "untitled draft") needs.push("title");
+          if (!(value.description ?? "").trim()) needs.push("description");
+          if (!(value.color ?? "").trim()) needs.push("colour");
+          if (!(value.style ?? "").trim()) needs.push("style");
+          if (!(value.size ?? "").trim()) needs.push("size");
+          if (!value.published) needs.push("publish toggle");
+          if (needs.length === 0) return null;
+          return (
+            <div
+              role="status"
+              className="mt-4 rounded-md border border-primary/40 bg-primary/10 p-3 text-xs text-primary"
+            >
+              <div className="font-semibold uppercase tracking-widest">Draft saved — finish the details</div>
+              <p className="mt-1 text-primary/90">
+                This pair is stored as a hidden draft. Fill in <span className="font-semibold">{needs.join(", ")}</span>{" "}
+                then click <span className="font-semibold">Save</span> to publish it to the drawer.
+              </p>
+            </div>
+          );
+        })()}
+
+
+
         <div className="mt-6 flex justify-end gap-2">
           <button
             type="button"
