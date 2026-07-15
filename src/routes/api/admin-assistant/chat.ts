@@ -375,6 +375,31 @@ export const Route = createFileRoute("/api/admin-assistant/chat")({
 
         return result.toUIMessageStreamResponse({
           originalMessages: body.messages,
+          onFinish: async ({ messages: finalMessages }) => {
+            // Persist any assistant messages produced during this run.
+            const priorIds = new Set(body.messages!.map((m) => m.id));
+            const newAssistant = finalMessages.filter(
+              (m) => m.role === "assistant" && !priorIds.has(m.id),
+            );
+            if (newAssistant.length > 0) {
+              const rows = newAssistant.map((m) => ({
+                thread_id: threadId,
+                client_id: m.id,
+                role: "assistant" as const,
+                parts: (m.parts ?? []) as never,
+              }));
+              const { error: insErr } = await userClient
+                .from("admin_assistant_messages")
+                .upsert(rows, { onConflict: "thread_id,client_id" });
+              if (insErr) {
+                console.error("admin-assistant: persist assistant failed", insErr);
+              }
+              await userClient
+                .from("admin_assistant_threads")
+                .update({ updated_at: new Date().toISOString() })
+                .eq("id", threadId);
+            }
+          },
         });
       },
     },
