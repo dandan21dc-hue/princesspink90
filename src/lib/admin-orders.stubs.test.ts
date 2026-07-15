@@ -39,7 +39,7 @@ describe('admin-orders stubs — no Stripe reconciliation', () => {
   })
 
   it('accepts the "subscription" kind in input but does not fetch rows for it', () => {
-    expect(SOURCE).toMatch(/z\.enum\(\[\s*"all",\s*"panty",\s*"subscription",/)
+    expect(SOURCE).toMatch(/\.enum\(\[\s*"all",\s*"panty",\s*"subscription",/)
     // The three actual fetches are the only ones — no subscription branch.
     const fromCalls = SOURCE.match(/sb\s*\n?\s*\.from\(/g) ?? []
     expect(fromCalls.length).toBe(3)
