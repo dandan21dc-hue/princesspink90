@@ -83,7 +83,10 @@ vi.mock("@/lib/cart", async () => {
 });
 
 // Checkout hook: spy on openCheckout so we can assert it's NOT called.
-const mockOpenCheckout = vi.fn();
+const { mockOpenCheckout, mockTrack } = vi.hoisted(() => ({
+  mockOpenCheckout: vi.fn(),
+  mockTrack: vi.fn(),
+}));
 vi.mock("@/hooks/useStripeCheckout", () => ({
   useStripeCheckout: () => ({
     openCheckout: mockOpenCheckout,
@@ -93,7 +96,6 @@ vi.mock("@/hooks/useStripeCheckout", () => ({
 }));
 
 // track: swallow analytics.
-const mockTrack = vi.fn();
 vi.mock("@/lib/track", () => ({ track: mockTrack }));
 
 // sonner: capture toast calls.
