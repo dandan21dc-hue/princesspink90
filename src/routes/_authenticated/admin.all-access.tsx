@@ -9,12 +9,14 @@ import {
   adminGrantAllAccess,
   adminRevokeAllAccess,
   adminListAllAccessAudit,
+  adminBulkAllAccess,
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2, InfinityIcon, Calendar, History } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Trash2, InfinityIcon, Calendar, History, Upload } from "lucide-react";
 
 
 export const Route = createFileRoute("/_authenticated/admin/all-access")({
