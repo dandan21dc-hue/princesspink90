@@ -114,6 +114,7 @@ function AdminNowpaymentsEvents() {
   const [isExporting, setIsExporting] = useState(false);
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
+  const [jumpInput, setJumpInput] = useState("");
 
   // Reset to page 1 whenever filters/search/sort/pageSize change.
   const resetToFirstPage = () => setPage(1);
