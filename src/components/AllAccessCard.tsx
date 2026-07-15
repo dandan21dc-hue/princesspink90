@@ -3,74 +3,44 @@ import { toast } from "sonner";
 import { Info, Loader2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { track } from "@/lib/track";
 import { useMyTiers, type PlanId } from "@/hooks/useMyTiers";
 import { cn } from "@/lib/utils";
 import { createNowpaymentsInvoice } from "@/lib/nowpayments.functions";
+import { listActiveAllAccessTiers } from "@/lib/all-access-tiers.functions";
 import { getStripeEnvironment } from "@/lib/stripe";
 
 /**
- * All-Access Pass tier picker. Every purchase is a one-time NOWPayments
- * hosted-invoice checkout — there are no Stripe fallbacks and nothing
- * auto-renews. Two tiers only:
- *
- *   • 30-day pass  → NOWPayments `aap30d` order (default priceId omitted)
- *   • Lifetime     → NOWPayments `lifetime` order (priceId `lifetime_onetime_aud`)
- *
- * On click we mint a hosted invoice via `createNowpaymentsInvoice` and
- * redirect the browser off-site. Entitlements land asynchronously when the
- * IPN webhook fires.
+ * All-Access Pass tier picker. Every tier — including its price, cadence,
+ * and inclusions blurb — comes from the editable `all_access_pass_tiers`
+ * table so admins can adjust everything from the admin dashboard without
+ * a redeploy. Every purchase is a one-time NOWPayments hosted-invoice
+ * checkout; nothing auto-renews.
  */
 export function AllAccessCard() {
+  const listTiers = useServerFn(listActiveAllAccessTiers);
+  const tiersQuery = useQuery({
+    queryKey: ["all-access-tiers", "active"],
+    queryFn: () => listTiers(),
+    staleTime: 60_000,
+  });
+
   const passes: Array<{
     label: string;
     price: string;
     cadence: string;
     perk?: string;
     plan: PlanId;
-    /** Passed to createNowpaymentsInvoice. Omitted → server defaults to 30-day pass. */
     priceId?: string;
-  }> = [
-    {
-      label: "30-Day Pass",
-      price: "A$10",
-      cadence: "one-time",
-      perk: "30 days of full library access · pay in crypto",
-      plan: "all_access_30d_aud",
-    },
-    {
-      label: "3-Month Pass",
-      price: "A$27",
-      cadence: "one-time",
-      perk: "90 days of full library access · pay in crypto",
-      plan: "all_access_90d_aud",
-      priceId: "aap_90d_aud",
-    },
-    {
-      label: "6-Month Pass",
-      price: "A$50",
-      cadence: "one-time",
-      perk: "180 days of full library access · pay in crypto",
-      plan: "all_access_180d_aud",
-      priceId: "aap_180d_aud",
-    },
-    {
-      label: "12-Month Pass",
-      price: "A$90",
-      cadence: "one-time",
-      perk: "365 days of full library access · pay in crypto",
-      plan: "all_access_365d_aud",
-      priceId: "aap_365d_aud",
-    },
-    {
-      label: "Lifetime",
-      price: "A$600",
-      cadence: "one-time",
-      perk: "Never expires · + 1 ticketed event & 1 private room session",
-      plan: "lifetime_onetime_aud",
-      priceId: "lifetime_onetime_aud",
-    },
-  ];
+  }> = (tiersQuery.data ?? []).map((t) => ({
+    label: t.label,
+    price: t.price_display,
+    cadence: t.cadence,
+    perk: t.perk ?? undefined,
+    plan: t.plan_id as PlanId,
+    ...(t.price_id ? { priceId: t.price_id } : {}),
+  }));
 
   const tiers = useMyTiers();
   const hasLifetime = tiers.active.lifetime_onetime_aud;
