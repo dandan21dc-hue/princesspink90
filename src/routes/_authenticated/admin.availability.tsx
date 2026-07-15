@@ -37,6 +37,11 @@ function fmt(iso: string) {
   });
 }
 
+function fmtAud(cents: number | null | undefined) {
+  if (cents == null) return "—";
+  return `A$${(cents / 100).toFixed(2)}`;
+}
+
 type ConflictPair = { a: PrivateSessionSlot; b: PrivateSessionSlot };
 
 function findConflicts(slots: PrivateSessionSlot[]): ConflictPair[] {
@@ -97,8 +102,14 @@ function AvailabilityAdmin() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-availability-slots"] });
 
   const createMut = useMutation({
-    mutationFn: (v: { startTime: string; endTime: string; isBooked: boolean; notes: string }) =>
-      createFn({ data: { ...v, notes: v.notes || null } }),
+    mutationFn: (v: {
+      startTime: string;
+      endTime: string;
+      isBooked: boolean;
+      notes: string;
+      durationMinutes: number | null;
+      priceCents: number | null;
+    }) => createFn({ data: { ...v, notes: v.notes || null } }),
     onSuccess: () => {
       setEditing(null);
       invalidate();
@@ -112,6 +123,8 @@ function AvailabilityAdmin() {
       endTime: string;
       isBooked: boolean;
       notes: string;
+      durationMinutes: number | null;
+      priceCents: number | null;
     }) =>
       updateFn({
         data: {
@@ -120,6 +133,8 @@ function AvailabilityAdmin() {
           endTime: v.endTime,
           isBooked: v.isBooked,
           notes: v.notes || null,
+          durationMinutes: v.durationMinutes,
+          priceCents: v.priceCents,
         },
       }),
     onSuccess: () => {
@@ -134,8 +149,11 @@ function AvailabilityAdmin() {
     onError: (e: Error) => setError(e.message),
   });
   const bulkMut = useMutation({
-    mutationFn: (slots: Array<{ startTime: string; endTime: string }>) =>
-      bulkFn({ data: { slots } }),
+    mutationFn: (v: {
+      slots: Array<{ startTime: string; endTime: string }>;
+      durationMinutes: number | null;
+      priceCents: number | null;
+    }) => bulkFn({ data: v }),
     onSuccess: (res) => {
       setBulkOpen(false);
       invalidate();
@@ -292,6 +310,8 @@ function AvailabilityAdmin() {
               <tr>
                 <th className="px-4 py-3">Start</th>
                 <th className="px-4 py-3">End</th>
+                <th className="px-4 py-3">Duration</th>
+                <th className="px-4 py-3">Price</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Notes</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -317,6 +337,12 @@ function AvailabilityAdmin() {
                     {fmt(s.start_time)}
                   </td>
                   <td className="px-4 py-3">{fmt(s.end_time)}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {s.duration_minutes != null ? `${s.duration_minutes} min` : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {fmtAud(s.price_cents)}
+                  </td>
                   <td className="px-4 py-3">
                     {s.is_booked ? (
                       <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">
@@ -386,9 +412,9 @@ function AvailabilityAdmin() {
         <BulkAddDialog
           pending={bulkMut.isPending}
           onCancel={() => setBulkOpen(false)}
-          onSubmit={(slots) => {
+          onSubmit={(payload) => {
             setError(null);
-            bulkMut.mutate(slots);
+            bulkMut.mutate(payload);
           }}
         />
       )}
@@ -412,6 +438,8 @@ function SlotDialog({
     endTime: string;
     isBooked: boolean;
     notes: string;
+    durationMinutes: number | null;
+    priceCents: number | null;
   }) => void;
 }) {
   const now = new Date();
@@ -424,6 +452,12 @@ function SlotDialog({
   );
   const [isBooked, setIsBooked] = useState(initial?.is_booked ?? false);
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [duration, setDuration] = useState<string>(
+    initial?.duration_minutes != null ? String(initial.duration_minutes) : "",
+  );
+  const [priceAud, setPriceAud] = useState<string>(
+    initial?.price_cents != null ? (initial.price_cents / 100).toFixed(2) : "",
+  );
   const [localErr, setLocalErr] = useState<string | null>(null);
 
   const startISO = start ? fromLocalInput(start) : "";
@@ -454,12 +488,32 @@ function SlotDialog({
       );
       return;
     }
+    let durationMinutes: number | null = null;
+    if (duration.trim() !== "") {
+      const n = Number(duration);
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+        setLocalErr("Duration must be a whole number of minutes.");
+        return;
+      }
+      durationMinutes = n;
+    }
+    let priceCents: number | null = null;
+    if (priceAud.trim() !== "") {
+      const n = Number(priceAud);
+      if (!Number.isFinite(n) || n < 0) {
+        setLocalErr("Price must be A$0 or greater.");
+        return;
+      }
+      priceCents = Math.round(n * 100);
+    }
     setLocalErr(null);
     onSubmit({
       startTime: startISO,
       endTime: endISO,
       isBooked,
       notes,
+      durationMinutes,
+      priceCents,
     });
   };
 
@@ -513,6 +567,37 @@ function SlotDialog({
               picker)
             </span>
           </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                Duration (minutes)
+              </span>
+              <input
+                type="number"
+                min={1}
+                step={5}
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder="auto from start/end"
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                Price (A$)
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                inputMode="decimal"
+                value={priceAud}
+                onChange={(e) => setPriceAud(e.target.value)}
+                placeholder="e.g. 60.00"
+                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
           <label className="block text-sm">
             <span className="text-xs uppercase tracking-widest text-muted-foreground">
               Notes (optional)
@@ -617,7 +702,11 @@ function BulkAddDialog({
 }: {
   pending: boolean;
   onCancel: () => void;
-  onSubmit: (slots: Array<{ startTime: string; endTime: string }>) => void;
+  onSubmit: (v: {
+    slots: Array<{ startTime: string; endTime: string }>;
+    durationMinutes: number | null;
+    priceCents: number | null;
+  }) => void;
 }) {
   const today = new Date();
   const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
@@ -631,6 +720,7 @@ function BulkAddDialog({
   const [timeEnd, setTimeEnd] = useState("17:00");
   const [duration, setDuration] = useState(60);
   const [gap, setGap] = useState(15);
+  const [priceAud, setPriceAud] = useState<string>("");
   const [localErr, setLocalErr] = useState<string | null>(null);
 
   const preview = useMemo(() => {
@@ -658,8 +748,17 @@ function BulkAddDialog({
       setLocalErr(`Too many slots (${slots.length}). Max 500 per bulk add — narrow the range.`);
       return;
     }
+    let priceCents: number | null = null;
+    if (priceAud.trim() !== "") {
+      const n = Number(priceAud);
+      if (!Number.isFinite(n) || n < 0) {
+        setLocalErr("Price must be A$0 or greater.");
+        return;
+      }
+      priceCents = Math.round(n * 100);
+    }
     setLocalErr(null);
-    onSubmit(slots);
+    onSubmit({ slots, durationMinutes: duration, priceCents });
   };
 
   return (
@@ -743,6 +842,21 @@ function BulkAddDialog({
               step={5}
               value={gap}
               onChange={(e) => setGap(Math.max(0, Number(e.target.value) || 0))}
+              className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="col-span-2 block text-sm">
+            <span className="text-xs uppercase tracking-widest text-muted-foreground">
+              Price per session (A$, optional)
+            </span>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              inputMode="decimal"
+              value={priceAud}
+              onChange={(e) => setPriceAud(e.target.value)}
+              placeholder="e.g. 60.00 — leave blank to inherit site default"
               className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
           </label>
