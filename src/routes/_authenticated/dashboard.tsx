@@ -34,12 +34,14 @@ import {
 import { listMyEvents, getMyEventsCompliance } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
 import { amIAdmin } from "@/lib/admin.functions";
+import { listMapPins } from "@/lib/map-pins.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
 import { PerksWidget } from "@/components/PerksWidget";
 import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
 import { RoleGuard } from "@/components/RoleGuard";
 import { AddVenuePinDialog } from "@/components/AddVenuePinDialog";
+import { MapPinsMap } from "@/components/MapPinsMap";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
