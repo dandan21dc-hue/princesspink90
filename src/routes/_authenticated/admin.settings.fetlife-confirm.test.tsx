@@ -419,7 +419,7 @@ describe("admin settings — FetLife confirmation gate", () => {
     // value), and the Live public link preview must render the NEW
     // https://fetlife.com/<new> URL with the "Matches saved" badge — i.e. the
     // saved snapshot has advanced to the draft.
-    const NEW_HANDLE = "Fresh-Public-Handle_42";
+    const NEW_HANDLE = "Fresh-Handle_42";
 
     renderPage();
     await waitForFormLoaded();
