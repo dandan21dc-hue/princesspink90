@@ -6,6 +6,7 @@ import { z } from "zod";
 import { listStoreItems } from "@/lib/store.functions";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { PaymentPendingPlaceholder, usePaymentPending } from "@/components/PaymentPendingPlaceholder";
+import { CreatorHiddenItemsBanner } from "@/components/CreatorHiddenItemsBanner";
 
 import { cn } from "@/lib/utils";
 import { X, SlidersHorizontal } from "lucide-react";
