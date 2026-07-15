@@ -95,8 +95,33 @@ async function downloadEntryPdf(entry: Entry) {
     y += lineHeight;
   }
 
-  const safeTitle = entry.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "entry";
-  doc.save(`security-changelog-v${entry.version}-${safeTitle}.pdf`);
+  doc.save(buildArtifactFilename(entry, "pdf"));
+}
+
+function buildArtifactFilename(entry: Entry, ext: "pdf" | "md"): string {
+  const safeTitle =
+    entry.title.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "entry";
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  return `security-changelog-v${entry.version}-${safeTitle}-${stamp}.${ext}`;
+}
+
+function downloadEntryMarkdown(entry: Entry) {
+  const publishedISO = new Date(entry.published_at).toISOString().slice(0, 10);
+  const md =
+    `# Security Changelog v${entry.version} — ${entry.title}\n\n` +
+    `- Version: ${entry.version}\n` +
+    `- Published: ${publishedISO}\n` +
+    `- Generated: ${new Date().toISOString()}\n\n` +
+    `---\n\n${entry.summary}\n`;
+  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = buildArtifactFilename(entry, "md");
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function Page() {
@@ -258,6 +283,13 @@ function SecurityChangelogView() {
                       className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs hover:bg-muted/40"
                     >
                       <Download className="h-3.5 w-3.5" /> Download PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadEntryMarkdown(selected)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-xs hover:bg-muted/40"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download MD
                     </button>
                     <button
                       type="button"
