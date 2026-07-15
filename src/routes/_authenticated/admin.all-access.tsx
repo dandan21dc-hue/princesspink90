@@ -16,7 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Trash2, InfinityIcon, Calendar, History, Upload } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Trash2, InfinityIcon, Calendar, History, Upload, ShieldCheck } from "lucide-react";
 
 
 export const Route = createFileRoute("/_authenticated/admin/all-access")({
