@@ -38,7 +38,7 @@ export function PinPickerMap({ latitude, longitude, onChange, className }: Props
       container: containerRef.current,
       style: "mapbox://styles/mapbox/dark-v11",
       center,
-      zoom: hasCoord ? 12 : 3,
+      zoom: 12,
       attributionControl: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: false }), "top-right");
