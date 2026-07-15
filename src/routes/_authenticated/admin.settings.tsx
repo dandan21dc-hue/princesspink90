@@ -397,6 +397,14 @@ export function AdminSettings() {
   // the public profile link, a typo is user-visible — we require the admin
   // to explicitly confirm the old → new change before the save actually runs.
   const [pendingFetlifeConfirm, setPendingFetlifeConfirm] = useState(false);
+  // Post-save confirmation dialog. Populated after a successful save that
+  // included a FetLife handle change AND whose saved value round-trips
+  // cleanly through buildFetlifeUrl → new URL() → normalize. Renders the
+  // exact URL now live on the homepage so the admin can visually confirm
+  // (and open) what visitors will see.
+  const [postSaveFetlife, setPostSaveFetlife] = useState<
+    null | { handle: string; url: string }
+  >(null);
   // Tracks which FetLife URL the admin most recently copied from the confirm
   // dialog, so we can render a "Last copied" indicator next to that button.
   // Persists across dialog open/close within the session but is intentionally
