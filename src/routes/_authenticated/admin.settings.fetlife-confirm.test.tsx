@@ -1024,13 +1024,17 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
       // on the Handle line and once where the new-URL link used to sit.
       expect(within(dialog).getAllByText(/^\(empty\)$/i).length).toBeGreaterThanOrEqual(1);
     });
-    // Only the "Currently live" link remains — the new-URL link is gone.
+    // Only the "Currently live" URL is linked — the new-URL block is gone.
+    // Both the URL text and the "Open" affordance point to the same href,
+    // so we assert on the unique href set rather than raw link count.
     const savedUrl = `https://fetlife.com/${SAVED.fetlife_handle}`;
-    const fetlifeLinks = within(dialog)
-      .getAllByRole("link")
-      .filter((el) => (el.getAttribute("href") ?? "").startsWith("https://fetlife.com/"));
-    expect(fetlifeLinks).toHaveLength(1);
-    expect(fetlifeLinks[0]!.getAttribute("href")).toBe(savedUrl);
+    const fetlifeHrefs = new Set(
+      within(dialog)
+        .getAllByRole("link")
+        .map((el) => el.getAttribute("href") ?? "")
+        .filter((h) => h.startsWith("https://fetlife.com/")),
+    );
+    expect([...fetlifeHrefs]).toEqual([savedUrl]);
 
     const confirmBtn = within(dialog).getByRole("button", {
       name: /yes, update handle/i,
