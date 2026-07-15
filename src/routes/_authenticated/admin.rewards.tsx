@@ -65,6 +65,7 @@ function AdminRewardsPage() {
       </div>
 
       <CatalogSection />
+      <AdminAlertPrefsSection />
       <PendingRedemptionsSection />
     </Shell>
   );
