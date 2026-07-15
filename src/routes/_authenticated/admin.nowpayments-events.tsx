@@ -201,16 +201,22 @@ function AdminNowpaymentsEvents() {
             setSearch(searchInput.trim());
           }}
         >
-          <div className="min-w-[200px] flex-1">
+          <div className="min-w-[240px] flex-1">
             <label className="text-xs uppercase tracking-widest text-muted-foreground">
-              Search (payment_id or order_id)
+              Search
             </label>
             <Input
               className="mt-1"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="e.g. 5077125051 or aap30d:…"
+              placeholder="payment_id, order_id, buyer@email, or membership/order/booking UUID"
             />
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              Auto-detected: an <code className="font-mono">@</code> is treated as a buyer email
+              (resolves to their entitlement payments); a UUID matches a membership,
+              panty order or booking id; anything else is an ilike match on
+              <code className="font-mono"> payment_id</code>/<code className="font-mono">order_id</code>.
+            </p>
           </div>
           <div>
             <label className="text-xs uppercase tracking-widest text-muted-foreground">
