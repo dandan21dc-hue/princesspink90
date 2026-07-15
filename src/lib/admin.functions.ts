@@ -1268,4 +1268,309 @@ export const adminRetryNowpaymentsGrant = createServerFn({ method: "POST" })
   });
 
 
+// ---------- Per-user access change timeline (admin) ----------
+//
+// Chronological view of every NOWPayments IPN event that touches a single
+// user's entitlements — grants, revocations, suspensions, refused replays.
+// Events are collected two ways so nothing is missed:
+//   1. `order_id` parsed for a matching userId (covers events even if no
+//      entitlement row was ever created — e.g. an unmatched reversal).
+//   2. `external_payment_reference` matched against the user's memberships /
+//      panty orders / bookings (covers events whose order_id is malformed).
+//
+// For each event we compute the action taken:
+//   - grant      : `finished` event that produced an active entitlement row
+//   - grant_noop : `finished` event whose grant did not apply (idempotent
+//                  replay, later refused, or precondition failure)
+//   - revoke     : refunded/reversed reversal that revoked an entitlement
+//   - suspend    : chargeback/dispute reversal that suspended an entitlement
+//   - reversal_no_match : reversal event whose payment ref matches nothing
+//   - ignored    : non-terminal status (waiting/confirming/…) — kept for
+//                  audit context but no entitlement effect
+export type UserAccessTimelineEntry = {
+  payment_id: string;
+  status: string;
+  order_id: string | null;
+  handled: boolean;
+  reason: string | null;
+  first_seen_at: string | null;
+  last_seen_at: string | null;
+  processed_at: string | null;
+  received_count: number;
+  action:
+    | "grant"
+    | "grant_noop"
+    | "revoke"
+    | "suspend"
+    | "reversal_no_match"
+    | "ignored";
+  action_detail: string;
+  entitlement:
+    | { kind: "membership"; id: string; label: string; revoked_at: string | null; suspended_at: string | null }
+    | { kind: "panty_order"; id: string; label: string }
+    | { kind: "booking"; id: string; label: string }
+    | null;
+  amount_cents: number | null;
+  currency: string | null;
+};
+
+export const adminGetUserAccessTimeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; limit?: number }) => {
+    if (!d.userId || !NPE_UUID_RE.test(d.userId)) {
+      throw new Error("Valid userId (uuid) is required");
+    }
+    return {
+      userId: d.userId,
+      limit: Math.min(Math.max(d.limit ?? 200, 1), 1000),
+    };
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 1) All entitlement rows owned by this user, mapped by payment_ref.
+    const [
+      { data: memberships },
+      { data: pantyOrders },
+      { data: bookings },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("memberships")
+        .select(
+          "id, user_id, kind, environment, amount_cents, expires_at, external_payment_reference, revoked_at, suspended_at, revocation_reason, created_at",
+        )
+        .eq("user_id", data.userId),
+      supabaseAdmin
+        .from("panty_orders")
+        .select(
+          "id, user_id, panty_listing_id, variant, status, environment, amount_cents, currency, external_payment_reference, created_at, updated_at",
+        )
+        .eq("user_id", data.userId),
+      supabaseAdmin
+        .from("private_room_bookings")
+        .select(
+          "id, user_id, status, starts_at, duration_minutes, environment, amount_cents, external_payment_reference, created_at, updated_at",
+        )
+        .eq("user_id", data.userId),
+    ]);
+
+    const membershipByRef = new Map<string, any>();
+    for (const m of memberships ?? []) {
+      if (m.external_payment_reference) membershipByRef.set(m.external_payment_reference, m);
+    }
+    const pantyByRef = new Map<string, any>();
+    for (const p of pantyOrders ?? []) {
+      if (p.external_payment_reference) pantyByRef.set(p.external_payment_reference, p);
+    }
+    const bookingByRef = new Map<string, any>();
+    for (const b of bookings ?? []) {
+      if (b.external_payment_reference) bookingByRef.set(b.external_payment_reference, b);
+    }
+
+    const refs = [
+      ...membershipByRef.keys(),
+      ...pantyByRef.keys(),
+      ...bookingByRef.keys(),
+    ];
+
+    // 2) Two queries against ipn events: by order_id containing userId, and
+    // by payment_id derived from the user's payment refs. Dedupe on payment_id.
+    const paymentIdsFromRefs = refs
+      .map((r) => (r.startsWith("nowpayments:") ? r.slice("nowpayments:".length) : null))
+      .filter((v): v is string => v != null);
+
+    const [{ data: byOrder }, { data: byRef }] = await Promise.all([
+      supabaseAdmin
+        .from("nowpayments_ipn_events")
+        .select(
+          "payment_id, last_status, order_id, handled, reason, received_count, first_seen_at, last_seen_at, processed_at, payload",
+        )
+        .ilike("order_id", `%:${data.userId}:%`)
+        .order("first_seen_at", { ascending: true })
+        .limit(data.limit),
+      paymentIdsFromRefs.length
+        ? supabaseAdmin
+            .from("nowpayments_ipn_events")
+            .select(
+              "payment_id, last_status, order_id, handled, reason, received_count, first_seen_at, last_seen_at, processed_at, payload",
+            )
+            .in("payment_id", paymentIdsFromRefs)
+            .order("first_seen_at", { ascending: true })
+            .limit(data.limit)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+
+    const seen = new Set<string>();
+    const combined: any[] = [];
+    for (const row of [...(byOrder ?? []), ...(byRef ?? [])]) {
+      const key = `${row.payment_id}|${row.last_status}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      combined.push(row);
+    }
+    combined.sort((a, b) => {
+      const ta = a.first_seen_at ? new Date(a.first_seen_at).getTime() : 0;
+      const tb = b.first_seen_at ? new Date(b.first_seen_at).getTime() : 0;
+      return ta - tb;
+    });
+
+    const items: UserAccessTimelineEntry[] = combined.map((e: any) => {
+      const parsed = parseOrderId(e.order_id ?? undefined);
+      const ref = `nowpayments:${e.payment_id}`;
+      const membership = membershipByRef.get(ref) ?? null;
+      const panty = pantyByRef.get(ref) ?? null;
+      const booking = bookingByRef.get(ref) ?? null;
+
+      let entitlement: UserAccessTimelineEntry["entitlement"] = null;
+      if (membership) {
+        entitlement = {
+          kind: "membership",
+          id: membership.id,
+          label: membership.kind,
+          revoked_at: membership.revoked_at ?? null,
+          suspended_at: membership.suspended_at ?? null,
+        };
+      } else if (panty) {
+        entitlement = {
+          kind: "panty_order",
+          id: panty.id,
+          label: `panty order (${panty.status})`,
+        };
+      } else if (booking) {
+        entitlement = {
+          kind: "booking",
+          id: booking.id,
+          label: `booking ${booking.status}`,
+        };
+      }
+
+      const status = String(e.last_status ?? "").toLowerCase();
+      const isRevoke = (REVERSAL_REVOKE_STATUSES as readonly string[]).includes(status);
+      const isSuspend = (REVERSAL_SUSPEND_STATUSES as readonly string[]).includes(status);
+
+      let action: UserAccessTimelineEntry["action"] = "ignored";
+      let action_detail = "";
+
+      if (status === "finished") {
+        // The webhook stores `reason` describing the grant outcome.
+        // A missing entitlement snapshot means the grant never materialised —
+        // either refused (late finished after reversal) or handled=false.
+        if (e.handled && entitlement) {
+          action = "grant";
+          const kindLabel =
+            entitlement.kind === "membership"
+              ? membership?.kind ?? "membership"
+              : entitlement.kind === "panty_order"
+                ? "panty order"
+                : "private room booking";
+          action_detail = `Granted ${kindLabel}${
+            membership?.expires_at ? ` (expires ${membership.expires_at})` : ""
+          }`;
+        } else {
+          action = "grant_noop";
+          action_detail = e.reason ?? "Finished event did not produce an entitlement";
+        }
+      } else if (isRevoke || isSuspend) {
+        const mode: "revoked" | "suspended" = isRevoke ? "revoked" : "suspended";
+        // Applied when the entitlement carries a matching marker or a
+        // matching terminal status.
+        let applied = false;
+        if (membership) {
+          applied =
+            mode === "revoked"
+              ? membership.revoked_at != null
+              : membership.suspended_at != null;
+        } else if (panty) {
+          applied =
+            mode === "revoked"
+              ? panty.status === "refunded"
+              : panty.status === "disputed";
+        } else if (booking) {
+          applied = booking.status === "cancelled";
+        }
+
+        if (!membership && !panty && !booking) {
+          action = "reversal_no_match";
+          action_detail = `${mode === "revoked" ? "Refund/reversal" : "Chargeback/dispute"} arrived (${status}) but no matching entitlement was found`;
+        } else if (applied) {
+          action = mode === "revoked" ? "revoke" : "suspend";
+          action_detail =
+            mode === "revoked"
+              ? `Revoked ${entitlement?.label ?? "entitlement"}`
+              : `Suspended ${entitlement?.label ?? "entitlement"}`;
+        } else {
+          action = "grant_noop";
+          action_detail = e.reason ?? `Reversal (${status}) received but not applied`;
+        }
+      } else {
+        action = "ignored";
+        action_detail = `Non-terminal status ${status || "unknown"} — no entitlement effect`;
+      }
+
+      const amountCents =
+        parsed && "amountCents" in parsed
+          ? parsed.amountCents
+          : membership?.amount_cents ??
+            panty?.amount_cents ??
+            booking?.amount_cents ??
+            null;
+      const currency = panty?.currency ?? null;
+
+      return {
+        payment_id: e.payment_id,
+        status,
+        order_id: e.order_id ?? null,
+        handled: Boolean(e.handled),
+        reason: e.reason ?? null,
+        first_seen_at: e.first_seen_at ?? null,
+        last_seen_at: e.last_seen_at ?? null,
+        processed_at: e.processed_at ?? null,
+        received_count: e.received_count ?? 1,
+        action,
+        action_detail,
+        entitlement,
+        amount_cents: amountCents,
+        currency,
+      };
+    });
+
+    // Resolve user profile/email for the header.
+    let profile: { display_name: string | null; email: string | null } = {
+      display_name: null,
+      email: null,
+    };
+    const { data: p } = await supabaseAdmin
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+    profile.display_name = (p as any)?.display_name ?? null;
+    try {
+      const { data: u } = await supabaseAdmin.auth.admin.getUserById(data.userId);
+      profile.email = u?.user?.email ?? null;
+    } catch {
+      /* best-effort */
+    }
+
+    const summary = {
+      total: items.length,
+      grants: items.filter((i) => i.action === "grant").length,
+      revokes: items.filter((i) => i.action === "revoke").length,
+      suspends: items.filter((i) => i.action === "suspend").length,
+      noops: items.filter((i) => i.action === "grant_noop" || i.action === "reversal_no_match").length,
+      active_memberships: (memberships ?? []).filter(
+        (m: any) =>
+          m.revoked_at == null &&
+          m.suspended_at == null &&
+          (m.kind === "lifetime" ||
+            (typeof m.expires_at === "string" && new Date(m.expires_at).getTime() > Date.now())),
+      ).length,
+    };
+
+    return { userId: data.userId, profile, items, summary };
+  });
+
+
+
 

@@ -456,6 +456,13 @@ function EventRow({
                   <div className="font-mono text-[10px] text-muted-foreground/70 truncate">
                     {e.user_id}
                   </div>
+                  <Link
+                    to="/admin/user-access-timeline"
+                    search={{ userId: e.user_id }}
+                    className="text-[11px] text-primary underline underline-offset-2"
+                  >
+                    View access timeline →
+                  </Link>
                 </>
               ) : (
                 <span className="text-muted-foreground">unresolved</span>
