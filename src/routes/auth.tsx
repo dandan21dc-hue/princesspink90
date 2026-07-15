@@ -9,8 +9,19 @@ export const Route = createFileRoute("/auth")({
   validateSearch: z.object({ next: z.string().optional(), ref: z.string().optional() }),
   head: () => ({
     meta: [
-      { title: "Sign in · AFTERDARK" },
-      { name: "description", content: "Sign in or create an AFTERDARK account." },
+      { title: "Sign in · Midnight Glory" },
+      {
+        name: "description",
+        content:
+          "Sign in or create your Midnight Glory account to RSVP for events, manage memberships, and unlock the full library.",
+      },
+      { property: "og:title", content: "Sign in · Midnight Glory" },
+      {
+        property: "og:description",
+        content:
+          "Sign in or create your Midnight Glory account to RSVP for events and manage memberships.",
+      },
+      { name: "robots", content: "noindex,follow" },
     ],
   }),
   component: Auth,
