@@ -607,3 +607,126 @@ describe("NOWPayments webhook — reversal idempotency & out-of-order", () => {
     }
   });
 });
+
+// ---- primary reversal & suspension paths (regression coverage) -----------
+
+describe("NOWPayments webhook — revocation & suspension entitlement logic", () => {
+  async function deliverFinished(payment_id: number, orderId: string = ORDER_ID) {
+    await handleWebhookRequest(
+      signedRequest({ payment_id, payment_status: "finished", order_id: orderId, price_amount: 10 }),
+    );
+  }
+
+  // -- refunded / reversed / refund (revoke aliases) ------------------------
+
+  it.each([
+    ["refunded", 7001],
+    ["reversed", 7002],
+    ["refund", 7003],
+  ] as const)(
+    "`%s` on an active pass revokes the entitlement and immediately expires it",
+    async (status, paymentId) => {
+      await deliverFinished(paymentId);
+      expect(passIsActive(USER, "sandbox")).toBe(true);
+
+      const res = await handleWebhookRequest(
+        signedRequest({ payment_id: paymentId, payment_status: status, order_id: ORDER_ID }),
+      );
+      const json = (await res.json()) as { handled: boolean; reason?: string };
+      expect(res.status).toBe(200);
+      expect(json.handled).toBe(true);
+      expect(json.reason).toMatch(/^revoked:1_entitlement/);
+
+      const m = state.rows.find((r) => r.external_payment_reference === `nowpayments:${paymentId}`)!;
+      expect(m.revoked_at).not.toBeNull();
+      expect(m.suspended_at).toBeNull();
+      // Pass window is forced closed even if it was in the future.
+      expect(m.expires_at.getTime()).toBeLessThanOrEqual(state.nowMs);
+      expect(m.revocation_reason).toBe(`nowpayments_${status}`);
+      expect(passIsActive(USER, "sandbox")).toBe(false);
+    },
+  );
+
+  // -- chargeback / disputed / dispute (suspend aliases) --------------------
+
+  it.each([
+    ["chargeback", 7101],
+    ["disputed", 7102],
+    ["dispute", 7103],
+  ] as const)(
+    "`%s` on an active pass suspends (but does not revoke) the entitlement",
+    async (status, paymentId) => {
+      await deliverFinished(paymentId);
+      const originalExpiry = state.rows.find(
+        (r) => r.external_payment_reference === `nowpayments:${paymentId}`,
+      )!.expires_at.getTime();
+
+      const res = await handleWebhookRequest(
+        signedRequest({ payment_id: paymentId, payment_status: status, order_id: ORDER_ID }),
+      );
+      const json = (await res.json()) as { handled: boolean; reason?: string };
+      expect(res.status).toBe(200);
+      expect(json.handled).toBe(true);
+      expect(json.reason).toMatch(/^suspended:1_entitlement/);
+
+      const m = state.rows.find((r) => r.external_payment_reference === `nowpayments:${paymentId}`)!;
+      expect(m.suspended_at).not.toBeNull();
+      expect(m.revoked_at).toBeNull();
+      // Suspension must NOT rewrite the pass window — only revocation does.
+      expect(m.expires_at.getTime()).toBe(originalExpiry);
+      expect(m.revocation_reason).toBe(`nowpayments_${status}`);
+      // A suspended pass is treated as inactive for gating.
+      expect(passIsActive(USER, "sandbox")).toBe(false);
+    },
+  );
+
+  // -- reversal with no prior grant -----------------------------------------
+
+  it("a reversal for an unknown payment reference reports no_matching_entitlement (still 200)", async () => {
+    const res = await handleWebhookRequest(
+      signedRequest({ payment_id: 7201, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+    const json = (await res.json()) as { handled: boolean; reason?: string };
+    expect(res.status).toBe(200);
+    // affected_count = 0 → handled:false but reason names the mode + miss.
+    expect(json.handled).toBe(false);
+    expect(json.reason).toBe("revoked:no_matching_entitlement");
+    // No membership was created as a side-effect of the reversal.
+    expect(state.rows).toHaveLength(0);
+  });
+
+  it("a chargeback for an unknown payment reference reports suspended:no_matching_entitlement", async () => {
+    const res = await handleWebhookRequest(
+      signedRequest({ payment_id: 7202, payment_status: "chargeback", order_id: ORDER_ID }),
+    );
+    const json = (await res.json()) as { handled: boolean; reason?: string };
+    expect(res.status).toBe(200);
+    expect(json.handled).toBe(false);
+    expect(json.reason).toBe("suspended:no_matching_entitlement");
+    expect(state.rows).toHaveLength(0);
+  });
+
+  // -- reversal isolation ----------------------------------------------------
+
+  it("a reversal on one payment does NOT affect another user's active pass", async () => {
+    const USER_B = "22222222-2222-2222-2222-222222222222";
+    const ORDER_B = `aap30d:${USER_B}:sandbox:1000`;
+
+    await deliverFinished(7301, ORDER_ID);
+    await deliverFinished(7302, ORDER_B);
+    expect(passIsActive(USER, "sandbox")).toBe(true);
+    expect(passIsActive(USER_B, "sandbox")).toBe(true);
+
+    await handleWebhookRequest(
+      signedRequest({ payment_id: 7301, payment_status: "refunded", order_id: ORDER_ID }),
+    );
+
+    expect(passIsActive(USER, "sandbox")).toBe(false);
+    // User B's independent pass is untouched.
+    expect(passIsActive(USER_B, "sandbox")).toBe(true);
+    const b = state.rows.find((r) => r.external_payment_reference === "nowpayments:7302")!;
+    expect(b.revoked_at).toBeNull();
+    expect(b.suspended_at).toBeNull();
+  });
+});
+
