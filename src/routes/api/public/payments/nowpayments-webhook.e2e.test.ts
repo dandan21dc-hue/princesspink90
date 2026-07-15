@@ -59,6 +59,9 @@ function fakeGrantAllAccessPass30d(args: {
     amount_cents: args._amount_cents,
     expires_at: newExpiry,
     external_payment_reference: args._external_payment_reference,
+    revoked_at: null,
+    suspended_at: null,
+    revocation_reason: null,
   };
   state.rows.push(row);
   return { data: row, error: null };
