@@ -180,16 +180,16 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
     ? (decide.variables as "approved" | "rejected" | "pending" | undefined)
     : undefined;
 
-  const confirmDelete = () => {
+  const openDelete = () => {
     if (busy) return;
-    if (
-      window.confirm(
-        `Permanently delete "${row.title}"? This removes the item, its media, and any purchase records. This cannot be undone.`,
-      )
-    ) {
-      removeItem.mutate();
-    }
+    setConfirmDeleteOpen(true);
   };
+  const openReject = () => {
+    if (busy) return;
+    setConfirmReject(true);
+  };
+
+
 
 
   const openMedia = async (path: string) => {
