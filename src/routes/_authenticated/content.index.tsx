@@ -47,26 +47,61 @@ function ContentAdminPage() {
         </div>
       ) : (
         <ul className="mt-8 space-y-3">
-          {data.map((it) => (
-            <li key={it.id} className="flex items-center justify-between rounded-xl border border-border/60 bg-card p-4">
-              <div>
-                <div className="font-medium">{it.title}</div>
-                <div className="text-xs text-muted-foreground">
-                  {it.kind} · {it.price_cents ? `$${(it.price_cents / 100).toFixed(2)}` : "—"}
-                  {it.subscribers_only && " · Subs only"}
-                  {!it.published && " · Draft"}
+          {data.map((it) => {
+            const mod = (it as { moderation_status?: string | null }).moderation_status ?? null;
+            const notes = (it as { moderation_notes?: string | null }).moderation_notes ?? null;
+            const badge =
+              mod === "pending"
+                ? {
+                    label: "Pending moderation",
+                    cls: "border-amber-500/40 bg-amber-500/10 text-amber-300",
+                    reason: "Waiting on admin review — hidden from the store until approved.",
+                  }
+                : mod === "rejected"
+                ? {
+                    label: "Rejected",
+                    cls: "border-red-500/40 bg-red-500/10 text-red-300",
+                    reason: notes?.trim() || "Rejected by admin — not visible in the store.",
+                  }
+                : null;
+            return (
+              <li key={it.id} className="flex items-start justify-between gap-4 rounded-xl border border-border/60 bg-card p-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="font-medium">{it.title}</div>
+                    {badge && (
+                      <span
+                        title={badge.reason}
+                        aria-label={`${badge.label}: ${badge.reason}`}
+                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest ${badge.cls}`}
+                      >
+                        {badge.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {it.kind} · {it.price_cents ? `$${(it.price_cents / 100).toFixed(2)}` : "—"}
+                    {it.subscribers_only && " · Subs only"}
+                    {!it.published && " · Draft"}
+                  </div>
+                  {badge && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      <span className="font-semibold text-foreground/80">Why it's not showing: </span>
+                      {badge.reason}
+                    </p>
+                  )}
                 </div>
-              </div>
-              <button
-                onClick={() => {
-                  if (confirm("Delete this item permanently?")) del.mutate(it.id);
-                }}
-                className="text-xs uppercase tracking-widest text-red-400 hover:text-red-300"
-              >
-                Delete
-              </button>
-            </li>
-          ))}
+                <button
+                  onClick={() => {
+                    if (confirm("Delete this item permanently?")) del.mutate(it.id);
+                  }}
+                  className="shrink-0 text-xs uppercase tracking-widest text-red-400 hover:text-red-300"
+                >
+                  Delete
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
