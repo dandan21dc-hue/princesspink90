@@ -304,6 +304,9 @@ function Hero() {
         src={heroImg}
         alt="Neon-lit stage curtain at a Midnight Glory adult theatre night"
         fetchPriority="high"
+        decoding="async"
+        width={1920}
+        height={1280}
         className="absolute inset-0 h-full w-full object-cover opacity-60"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
