@@ -83,14 +83,32 @@ function AdminAllAccess() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [pendingRevoke, setPendingRevoke] = useState<{
+    id: string;
+    kind: string;
+    environment: string;
+    expires_at: string | null;
+  } | null>(null);
+  const [lastVerified, setLastVerified] = useState<{ id: string; kind: string } | null>(null);
+
   const revoke = useMutation({
     mutationFn: (membershipId: string) => revokeFn({ data: { membershipId } }),
-    onSuccess: () => {
-      toast.success("Membership revoked");
+    onSuccess: (res) => {
+      const kind = res.deleted?.kind ?? "membership";
+      if (res.verified) {
+        setLastVerified({ id: res.deleted?.id ?? "", kind });
+        toast.success(`Revoked and verified: ${kind} row removed from database`);
+      } else {
+        toast.warning(`Delete returned OK but verification could not confirm removal`);
+      }
+      setPendingRevoke(null);
       qc.invalidateQueries({ queryKey: ["admin-all-access-lookup"] });
       qc.invalidateQueries({ queryKey: ["admin-all-access-audit"] });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setPendingRevoke(null);
+      toast.error(e.message);
+    },
   });
 
 
