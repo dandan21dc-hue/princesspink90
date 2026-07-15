@@ -141,6 +141,9 @@ function ItemPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const busy = pending !== null;
+  const { gate: maintenanceGate } = useMaintenance();
+  const buyDisabled = busy || maintenanceGate;
+
 
   useEffect(() => {
     // When the embedded checkout is dismissed, clear the pending state so
