@@ -19,6 +19,21 @@ export const nowpaymentsProvider: PaymentProvider = {
     const [isOpen, setIsOpen] = useState(false);
 
     const openCheckout = useCallback(async (opts: CheckoutOptions) => {
+      // Client-side guard: the server input validator throws a raw ZodError
+      // for a non-UUID pantyListingId / contentItemId, which surfaces as an
+      // unhandled runtime error and a blank screen. Reject bad ids here so
+      // every call site (cart, panty drawer, store) fails gracefully.
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const badPanty = opts.pantyListingId && !UUID_RE.test(opts.pantyListingId);
+      const badContent = opts.contentItemId && !UUID_RE.test(opts.contentItemId);
+      if (badPanty || badContent) {
+        toast.error("This item can't be checked out", {
+          description:
+            "Its reference is out of date. Remove it from the cart and add the current listing again.",
+        });
+        setIsOpen(false);
+        return;
+      }
       setIsOpen(true);
       try {
         const environment = (import.meta.env.MODE === "production" ? "live" : "sandbox") as
