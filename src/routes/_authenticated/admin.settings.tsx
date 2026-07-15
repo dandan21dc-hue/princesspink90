@@ -299,7 +299,11 @@ export function AdminSettings() {
         });
         // Send focus back to the handle input so the admin can immediately
         // edit and retry — the field is where the failure happened.
-        fetlifeInputRef.current?.focus();
+        // Send focus back to the handle input so the admin can immediately
+        // edit and retry — the field is where the failure happened. Defer
+        // past Radix's own focus restore (which returns focus to the Save
+        // trigger when the confirm dialog closes on the failed save).
+        setTimeout(() => fetlifeInputRef.current?.focus(), 0);
       } else {
         toast.error("Couldn't save settings", { description: message });
       }
