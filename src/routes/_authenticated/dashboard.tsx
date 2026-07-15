@@ -29,7 +29,7 @@ import {
   BarChart3,
   MapPin,
   ChevronDown,
-
+  Wand2,
 } from "lucide-react";
 import { listMyEvents, getMyEventsCompliance } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
@@ -78,6 +78,7 @@ const GROUPS: NavGroup[] = [
     label: "Admin & Users",
     adminOnly: true,
     items: [
+      { label: "Command Center (AI)", to: "/admin/command-center", icon: Wand2, adminOnly: true },
       { label: "User Management", to: "/admin/user-management", icon: UserCog, adminOnly: true },
       { label: "Co-Hosts", to: "/admin/cohosts", icon: UsersRound, adminOnly: true },
       { label: "Verifications", to: "/admin/verifications", icon: BadgeCheck, adminOnly: true },

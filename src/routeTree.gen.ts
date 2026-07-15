@@ -48,6 +48,7 @@ import { Route as LovableEmailSuppressionRouteImport } from './routes/lovable/em
 import { Route as ApiPublicPartnershipRouteImport } from './routes/api/public/partnership'
 import { Route as ApiPublicAgeGateEventRouteImport } from './routes/api/public/age-gate-event'
 import { Route as ApiConciergeChatRouteImport } from './routes/api/concierge/chat'
+import { Route as ApiAdminAssistantChatRouteImport } from './routes/api/admin-assistant/chat'
 import { Route as AuthenticatedEventsNewRouteImport } from './routes/_authenticated/events.new'
 import { Route as AuthenticatedContentNewRouteImport } from './routes/_authenticated/content.new'
 import { Route as AuthenticatedAdminVerificationsRouteImport } from './routes/_authenticated/admin.verifications'
@@ -79,6 +80,7 @@ import { Route as AuthenticatedAdminEmailDeliveryRouteImport } from './routes/_a
 import { Route as AuthenticatedAdminConsentReviewRouteImport } from './routes/_authenticated/admin.consent-review'
 import { Route as AuthenticatedAdminCompliancePolicyRouteImport } from './routes/_authenticated/admin.compliance-policy'
 import { Route as AuthenticatedAdminComplianceAuditRouteImport } from './routes/_authenticated/admin.compliance-audit'
+import { Route as AuthenticatedAdminCommandCenterRouteImport } from './routes/_authenticated/admin.command-center'
 import { Route as AuthenticatedAdminCohostsRouteImport } from './routes/_authenticated/admin.cohosts'
 import { Route as AuthenticatedAdminBookingRejectionsRouteImport } from './routes/_authenticated/admin.booking-rejections'
 import { Route as AuthenticatedAdminAvailabilityRouteImport } from './routes/_authenticated/admin.availability'
@@ -307,6 +309,11 @@ const ApiConciergeChatRoute = ApiConciergeChatRouteImport.update({
   path: '/api/concierge/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminAssistantChatRoute = ApiAdminAssistantChatRouteImport.update({
+  id: '/api/admin-assistant/chat',
+  path: '/api/admin-assistant/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedEventsNewRoute = AuthenticatedEventsNewRouteImport.update({
   id: '/events/new',
   path: '/events/new',
@@ -488,6 +495,12 @@ const AuthenticatedAdminComplianceAuditRoute =
   AuthenticatedAdminComplianceAuditRouteImport.update({
     id: '/admin/compliance-audit',
     path: '/admin/compliance-audit',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminCommandCenterRoute =
+  AuthenticatedAdminCommandCenterRouteImport.update({
+    id: '/admin/command-center',
+    path: '/admin/command-center',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminCohostsRoute =
@@ -709,6 +722,7 @@ export interface FileRoutesByFullPath {
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -740,6 +754,7 @@ export interface FileRoutesByFullPath {
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/admin-assistant/chat': typeof ApiAdminAssistantChatRoute
   '/api/concierge/chat': typeof ApiConciergeChatRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
@@ -809,6 +824,7 @@ export interface FileRoutesByTo {
   '/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
   '/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -840,6 +856,7 @@ export interface FileRoutesByTo {
   '/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/content/new': typeof AuthenticatedContentNewRoute
   '/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/admin-assistant/chat': typeof ApiAdminAssistantChatRoute
   '/api/concierge/chat': typeof ApiConciergeChatRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
@@ -912,6 +929,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/availability': typeof AuthenticatedAdminAvailabilityRoute
   '/_authenticated/admin/booking-rejections': typeof AuthenticatedAdminBookingRejectionsRoute
   '/_authenticated/admin/cohosts': typeof AuthenticatedAdminCohostsRoute
+  '/_authenticated/admin/command-center': typeof AuthenticatedAdminCommandCenterRoute
   '/_authenticated/admin/compliance-audit': typeof AuthenticatedAdminComplianceAuditRoute
   '/_authenticated/admin/compliance-policy': typeof AuthenticatedAdminCompliancePolicyRoute
   '/_authenticated/admin/consent-review': typeof AuthenticatedAdminConsentReviewRoute
@@ -943,6 +961,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/verifications': typeof AuthenticatedAdminVerificationsRoute
   '/_authenticated/content/new': typeof AuthenticatedContentNewRoute
   '/_authenticated/events/new': typeof AuthenticatedEventsNewRoute
+  '/api/admin-assistant/chat': typeof ApiAdminAssistantChatRoute
   '/api/concierge/chat': typeof ApiConciergeChatRoute
   '/api/public/age-gate-event': typeof ApiPublicAgeGateEventRoute
   '/api/public/partnership': typeof ApiPublicPartnershipRoute
@@ -1015,6 +1034,7 @@ export interface FileRouteTypes {
     | '/admin/availability'
     | '/admin/booking-rejections'
     | '/admin/cohosts'
+    | '/admin/command-center'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/consent-review'
@@ -1046,6 +1066,7 @@ export interface FileRouteTypes {
     | '/admin/verifications'
     | '/content/new'
     | '/events/new'
+    | '/api/admin-assistant/chat'
     | '/api/concierge/chat'
     | '/api/public/age-gate-event'
     | '/api/public/partnership'
@@ -1115,6 +1136,7 @@ export interface FileRouteTypes {
     | '/admin/availability'
     | '/admin/booking-rejections'
     | '/admin/cohosts'
+    | '/admin/command-center'
     | '/admin/compliance-audit'
     | '/admin/compliance-policy'
     | '/admin/consent-review'
@@ -1146,6 +1168,7 @@ export interface FileRouteTypes {
     | '/admin/verifications'
     | '/content/new'
     | '/events/new'
+    | '/api/admin-assistant/chat'
     | '/api/concierge/chat'
     | '/api/public/age-gate-event'
     | '/api/public/partnership'
@@ -1217,6 +1240,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/availability'
     | '/_authenticated/admin/booking-rejections'
     | '/_authenticated/admin/cohosts'
+    | '/_authenticated/admin/command-center'
     | '/_authenticated/admin/compliance-audit'
     | '/_authenticated/admin/compliance-policy'
     | '/_authenticated/admin/consent-review'
@@ -1248,6 +1272,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/verifications'
     | '/_authenticated/content/new'
     | '/_authenticated/events/new'
+    | '/api/admin-assistant/chat'
     | '/api/concierge/chat'
     | '/api/public/age-gate-event'
     | '/api/public/partnership'
@@ -1304,6 +1329,7 @@ export interface RootRouteChildren {
   EmailUnsubscribeRoute: typeof EmailUnsubscribeRoute
   EventsIdRoute: typeof EventsIdRoute
   GuideEtiquetteRoute: typeof GuideEtiquetteRoute
+  ApiAdminAssistantChatRoute: typeof ApiAdminAssistantChatRoute
   ApiConciergeChatRoute: typeof ApiConciergeChatRoute
   ApiPublicAgeGateEventRoute: typeof ApiPublicAgeGateEventRoute
   ApiPublicPartnershipRoute: typeof ApiPublicPartnershipRoute
@@ -1602,6 +1628,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiConciergeChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/admin-assistant/chat': {
+      id: '/api/admin-assistant/chat'
+      path: '/api/admin-assistant/chat'
+      fullPath: '/api/admin-assistant/chat'
+      preLoaderRoute: typeof ApiAdminAssistantChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/events/new': {
       id: '/_authenticated/events/new'
       path: '/events/new'
@@ -1817,6 +1850,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/compliance-audit'
       fullPath: '/admin/compliance-audit'
       preLoaderRoute: typeof AuthenticatedAdminComplianceAuditRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/command-center': {
+      id: '/_authenticated/admin/command-center'
+      path: '/admin/command-center'
+      fullPath: '/admin/command-center'
+      preLoaderRoute: typeof AuthenticatedAdminCommandCenterRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/cohosts': {
@@ -2091,6 +2131,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAvailabilityRoute: typeof AuthenticatedAdminAvailabilityRoute
   AuthenticatedAdminBookingRejectionsRoute: typeof AuthenticatedAdminBookingRejectionsRoute
   AuthenticatedAdminCohostsRoute: typeof AuthenticatedAdminCohostsRoute
+  AuthenticatedAdminCommandCenterRoute: typeof AuthenticatedAdminCommandCenterRoute
   AuthenticatedAdminComplianceAuditRoute: typeof AuthenticatedAdminComplianceAuditRoute
   AuthenticatedAdminCompliancePolicyRoute: typeof AuthenticatedAdminCompliancePolicyRoute
   AuthenticatedAdminConsentReviewRoute: typeof AuthenticatedAdminConsentReviewRoute
@@ -2143,6 +2184,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminBookingRejectionsRoute:
     AuthenticatedAdminBookingRejectionsRoute,
   AuthenticatedAdminCohostsRoute: AuthenticatedAdminCohostsRoute,
+  AuthenticatedAdminCommandCenterRoute: AuthenticatedAdminCommandCenterRoute,
   AuthenticatedAdminComplianceAuditRoute:
     AuthenticatedAdminComplianceAuditRoute,
   AuthenticatedAdminCompliancePolicyRoute:
@@ -2234,6 +2276,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmailUnsubscribeRoute: EmailUnsubscribeRoute,
   EventsIdRoute: EventsIdRoute,
   GuideEtiquetteRoute: GuideEtiquetteRoute,
+  ApiAdminAssistantChatRoute: ApiAdminAssistantChatRoute,
   ApiConciergeChatRoute: ApiConciergeChatRoute,
   ApiPublicAgeGateEventRoute: ApiPublicAgeGateEventRoute,
   ApiPublicPartnershipRoute: ApiPublicPartnershipRoute,
