@@ -81,7 +81,7 @@ export const getMyRewardActivity = createServerFn({ method: "GET" })
       ...(reservations.data ?? [])
         .filter((r) => r.status !== "released")
         .map((r): RewardActivityItem => ({
-          id: `resv:${r.id}`,
+          id: `resv:${r.order_id}`,
           created_at: r.created_at as string,
           delta: -(r.points ?? 0),
           reason: r.status === "consumed" ? "Points spent at checkout" : "Points held for checkout",
