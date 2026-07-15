@@ -51,7 +51,7 @@ function buildArtifactFilename(entry: Entry, ext: "pdf" | "md", stamp: string): 
   return `security-changelog-v${entry.version}-${safeTitle}-${stamp}.${ext}`;
 }
 
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
+async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
   const hash = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -69,18 +69,12 @@ function saveBlob(bytes: BlobPart, filename: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-async function saveWithChecksum(bytes: Uint8Array, filename: string, mime: string) {
+async function saveWithChecksum(bytes: ArrayBuffer, filename: string, mime: string) {
   saveBlob(bytes, filename, mime);
   const digest = await sha256Hex(bytes);
   const checksumLine = `${digest}  ${filename}\n`;
   saveBlob(checksumLine, `${filename}.sha256`, "text/plain;charset=utf-8");
 }
-
-function buildEntryPdfBytes(entry: Entry): Uint8Array {
-  // NOTE: caller must import jsPDF; this runs synchronously once the module is loaded.
-  throw new Error("buildEntryPdfBytes must be called via downloadEntryPdf");
-}
-void buildEntryPdfBytes;
 
 async function downloadEntryPdf(entry: Entry) {
   const { jsPDF } = await import("jspdf");
