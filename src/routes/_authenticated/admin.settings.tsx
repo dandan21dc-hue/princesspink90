@@ -280,7 +280,7 @@ function AdminSettings() {
         className="mt-6 space-y-5"
         onSubmit={(e) => {
           e.preventDefault();
-          save.mutate();
+          handleSubmit();
         }}
       >
         <Field label="Contact email">
