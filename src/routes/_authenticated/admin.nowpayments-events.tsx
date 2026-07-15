@@ -122,14 +122,31 @@ function AdminNowpaymentsEvents() {
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
 
-  const [status, setStatus] = useState<string>("all");
-  const [handled, setHandled] = useState<"all" | "handled" | "unhandled">("all");
-  const [reversal, setReversal] = useState<ReversalFilter>("all");
-  const [sort, setSort] = useState<SortMode>("last_seen_desc");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(50);
+  const urlSearch = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+
+  const HANDLED_VALUES = ["all", "handled", "unhandled"] as const;
+  const REVERSAL_VALUES: ReversalFilter[] = ["all", "any", "revoked", "suspended"];
+  const SORT_VALUES = Object.keys(SORT_LABELS) as SortMode[];
+  const initialHandled = (HANDLED_VALUES as readonly string[]).includes(urlSearch.handled)
+    ? (urlSearch.handled as "all" | "handled" | "unhandled")
+    : "all";
+  const initialReversal = (REVERSAL_VALUES as string[]).includes(urlSearch.reversal)
+    ? (urlSearch.reversal as ReversalFilter)
+    : "all";
+  const initialSort = (SORT_VALUES as string[]).includes(urlSearch.sort)
+    ? (urlSearch.sort as SortMode)
+    : "last_seen_desc";
+  const initialStatus = STATUS_OPTIONS.includes(urlSearch.status) ? urlSearch.status : "all";
+
+  const [status, setStatus] = useState<string>(initialStatus);
+  const [handled, setHandled] = useState<"all" | "handled" | "unhandled">(initialHandled);
+  const [reversal, setReversal] = useState<ReversalFilter>(initialReversal);
+  const [sort, setSort] = useState<SortMode>(initialSort);
+  const [searchInput, setSearchInput] = useState(urlSearch.q);
+  const [search, setSearch] = useState(urlSearch.q);
+  const [page, setPage] = useState(urlSearch.page);
+  const [pageSize, setPageSize] = useState(urlSearch.pageSize);
   const [autoRefresh, setAutoRefresh] = useState<number>(0); // seconds; 0 = off
   const [exportScope, setExportScope] = useState<"page" | "all">("page");
   const [isExporting, setIsExporting] = useState(false);
