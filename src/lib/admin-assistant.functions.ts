@@ -84,7 +84,8 @@ export const executeAdminAssistantAction = createServerFn({ method: "POST" })
     const actorId = context.userId;
     const nowIso = new Date().toISOString();
 
-    let result: { ok: true; summary: string; detail?: unknown };
+    let summary = "";
+    let detail: { [k: string]: JsonValue } | null = null;
 
     switch (data.tool) {
       case "cancelBooking": {
@@ -96,7 +97,8 @@ export const executeAdminAssistantAction = createServerFn({ method: "POST" })
         if (readErr) throw new Error(readErr.message);
         if (!existing) throw new Error("Booking not found");
         if (existing.status === "cancelled") {
-          result = { ok: true, summary: "Booking was already cancelled.", detail: existing };
+          summary = "Booking was already cancelled.";
+          detail = toJson(existing);
           break;
         }
         const { data: updated, error: upErr } = await supabase
@@ -106,11 +108,8 @@ export const executeAdminAssistantAction = createServerFn({ method: "POST" })
           .select("id, status, starts_at, user_id")
           .single();
         if (upErr) throw new Error(upErr.message);
-        result = {
-          ok: true,
-          summary: `Cancelled booking ${data.args.id}.`,
-          detail: updated,
-        };
+        summary = `Cancelled booking ${data.args.id}.`;
+        detail = toJson(updated);
         break;
       }
       case "approveAsset": {
@@ -126,7 +125,8 @@ export const executeAdminAssistantAction = createServerFn({ method: "POST" })
           .select("id, title, moderation_status")
           .single();
         if (error) throw new Error(error.message);
-        result = { ok: true, summary: `Approved asset "${updated.title}".`, detail: updated };
+        summary = `Approved asset "${updated.title}".`;
+        detail = toJson(updated);
         break;
       }
       case "rejectAsset": {
@@ -142,7 +142,8 @@ export const executeAdminAssistantAction = createServerFn({ method: "POST" })
           .select("id, title, moderation_status")
           .single();
         if (error) throw new Error(error.message);
-        result = { ok: true, summary: `Rejected asset "${updated.title}".`, detail: updated };
+        summary = `Rejected asset "${updated.title}".`;
+        detail = toJson(updated);
         break;
       }
       case "setListingPublished": {
@@ -153,11 +154,8 @@ export const executeAdminAssistantAction = createServerFn({ method: "POST" })
           .select("id, title, published, sold")
           .single();
         if (error) throw new Error(error.message);
-        result = {
-          ok: true,
-          summary: `${data.args.published ? "Published" : "Unpublished"} listing "${updated.title}".`,
-          detail: updated,
-        };
+        summary = `${data.args.published ? "Published" : "Unpublished"} listing "${updated.title}".`;
+        detail = toJson(updated);
         break;
       }
       case "setListingSold": {
@@ -168,26 +166,25 @@ export const executeAdminAssistantAction = createServerFn({ method: "POST" })
           .select("id, title, published, sold")
           .single();
         if (error) throw new Error(error.message);
-        result = {
-          ok: true,
-          summary: `Marked listing "${updated.title}" as ${data.args.sold ? "sold" : "available"}.`,
-          detail: updated,
-        };
+        summary = `Marked listing "${updated.title}" as ${data.args.sold ? "sold" : "available"}.`;
+        detail = toJson(updated);
         break;
       }
     }
 
     // Hash-chained audit log entry for every confirmed admin mutation.
+    const auditMeta: { [k: string]: JsonValue } = {
+      surface: "admin_command_center",
+      args: toJson(data.args) ?? {},
+      result: detail,
+    };
     await supabase.from("admin_activity_audit").insert({
       actor_id: actorId,
       action: `admin_assistant.${data.tool}`,
       resource: data.args.id,
-      metadata: {
-        surface: "admin_command_center",
-        args: data.args,
-        result: result.detail ?? null,
-      },
+      metadata: auditMeta as never,
     });
 
-    return result;
+    return { ok: true, summary, detail };
   });
+
