@@ -168,6 +168,7 @@ function AdminMapPins() {
         vars.prevIds.every((id, i) => id === vars.ids[i]);
       if (sameAsBefore) {
         toast.success("Order saved");
+        setReorderAnnouncement("Pin order saved. No changes to rank.");
         return;
       }
       // Detect a simple 1-step move for a friendlier description.
@@ -177,11 +178,16 @@ function AdminMapPins() {
       const description = moved
         ? `"${moved.title}" is now #${changedIdx + 1}`
         : `${vars.ids.length} pin${vars.ids.length === 1 ? "" : "s"} reordered`;
+      const announcement = moved
+        ? `${moved.title} moved to rank ${changedIdx + 1} of ${vars.ids.length}.`
+        : `Pin order updated. ${vars.ids.length} pin${vars.ids.length === 1 ? "" : "s"} reordered.`;
 
       if (vars.isUndo) {
         toast.success("Reorder undone", { description });
+        setReorderAnnouncement(`Reorder undone. ${announcement}`);
         return;
       }
+      setReorderAnnouncement(announcement);
       toast.success("Order saved", {
         description,
         duration: 6000,
