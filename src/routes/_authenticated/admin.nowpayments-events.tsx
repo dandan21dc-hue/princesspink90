@@ -287,11 +287,12 @@ function AdminNowpaymentsEvents() {
             No matching webhook events.
           </Card>
         ) : (
-          items.map((e) => (
+          items.map((e: EventItem) => (
             <EventRow
               key={`${e.payment_id}:${e.last_status}`}
               e={e}
               onRetry={() => setPendingRetry(e)}
+              onViewPayload={() => setPayloadEvent(e)}
               retryPending={retry.isPending && pendingRetry?.payment_id === e.payment_id}
             />
           ))
