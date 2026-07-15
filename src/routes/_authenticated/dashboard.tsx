@@ -34,12 +34,14 @@ import {
 import { listMyEvents, getMyEventsCompliance } from "@/lib/host.functions";
 import { listMyRsvps } from "@/lib/rsvp.functions";
 import { amIAdmin } from "@/lib/admin.functions";
+import { listMapPins } from "@/lib/map-pins.functions";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { QuickAccessButton } from "@/components/QuickAccessScripts";
 import { PerksWidget } from "@/components/PerksWidget";
 import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
 import { RoleGuard } from "@/components/RoleGuard";
 import { AddVenuePinDialog } from "@/components/AddVenuePinDialog";
+import { MapPinsMap } from "@/components/MapPinsMap";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
@@ -224,6 +226,9 @@ function HomeView() {
       <PerksWidget />
       <SubscriberDiscountPanel />
 
+      <VenueMapPreview />
+
+
       <div className="grid gap-8 xl:grid-cols-2">
         <div>
           <h2 className="mb-4 font-display text-lg">Your tickets</h2>
@@ -310,6 +315,44 @@ function HomeView() {
       </div>
 
       <ComplianceChecklist isLoading={compliance.isLoading} data={compliance.data ?? []} />
+    </div>
+  );
+}
+
+function VenueMapPreview() {
+  const listFn = useServerFn(listMapPins);
+  const pins = useQuery({
+    queryKey: ["dashboard-map-pins"],
+    queryFn: () => listFn(),
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+  });
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card/60 p-4">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="font-display text-lg">Venue spots</h2>
+          <p className="text-xs text-muted-foreground">
+            {pins.isLoading
+              ? "Loading latest pins…"
+              : `${pins.data?.length ?? 0} pin${pins.data?.length === 1 ? "" : "s"} · updates every 30s`}
+          </p>
+        </div>
+        <Link
+          to="/admin/map-pins"
+          className="text-xs uppercase tracking-widest text-primary hover:underline"
+        >
+          Manage →
+        </Link>
+      </div>
+      {pins.data && pins.data.length > 0 ? (
+        <MapPinsMap pins={pins.data} className="h-[320px] w-full rounded-xl overflow-hidden" />
+      ) : (
+        <div className="flex h-[320px] items-center justify-center rounded-xl border border-dashed border-border/60 text-sm text-muted-foreground">
+          {pins.isLoading ? "Loading map…" : "No venue pins yet — add one to see it here."}
+        </div>
+      )}
     </div>
   );
 }
