@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/admin/orders-status")({
       {
         name: "description",
         content:
-          "Every order, subscription, purchase and booking with its current payment status, last webhook event, and entitlement state.",
+          "Every order, purchase and booking with its current payment status and entitlement state.",
       },
     ],
   }),
