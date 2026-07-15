@@ -6,8 +6,18 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Set a new password · AFTERDARK" },
-      { name: "description", content: "Choose a new password for your account." },
+      { title: "Set a new password · Midnight Glory" },
+      {
+        name: "description",
+        content:
+          "Choose a new password for your Midnight Glory account. Use a strong, unique password to keep your account secure.",
+      },
+      { property: "og:title", content: "Set a new password · Midnight Glory" },
+      {
+        property: "og:description",
+        content: "Choose a new password for your Midnight Glory account.",
+      },
+      { name: "robots", content: "noindex,follow" },
     ],
   }),
   component: ResetPassword,
