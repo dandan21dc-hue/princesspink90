@@ -115,7 +115,7 @@ export function SubscriberDiscountPanel() {
 
       <div className="mt-4">
         <Link
-          to="/store/subscribe"
+          to="/store"
           hash="panty-drawer"
           className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-widest text-primary hover:underline"
         >
