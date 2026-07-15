@@ -74,6 +74,7 @@ const GROUPS: NavGroup[] = [
       { label: "Co-Hosts", to: "/admin/cohosts", icon: UsersRound, adminOnly: true },
       { label: "Verifications", to: "/admin/verifications", icon: BadgeCheck, adminOnly: true },
       { label: "Admin", to: "/admin/lifetime", icon: Crown, adminOnly: true },
+      { label: "Manual All-Access", to: "/admin/all-access", icon: Crown, adminOnly: true },
     ],
   },
   {

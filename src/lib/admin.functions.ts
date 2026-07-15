@@ -358,3 +358,117 @@ export const listFreeEntryPerkMembers = createServerFn({ method: "GET" })
     return { members, totals };
   });
 
+
+// ---------- Manual All-Access grant / revoke (admin testing) ----------
+
+type AllAccessGrantKind = "term_pass_all_access_30d" | "lifetime";
+
+const ALL_ACCESS_KINDS = [
+  "term_pass_all_access_30d",
+  "term_pass_3",
+  "term_pass_6",
+  "term_pass_12",
+  "lifetime",
+] as const;
+
+async function findUserByEmailAdmin(supabaseAdmin: any, email: string) {
+  const target = email.trim().toLowerCase();
+  if (!target) throw new Error("email required");
+  let page = 1;
+  const perPage = 200;
+  for (let i = 0; i < 20; i++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) throw new Error(error.message);
+    const match = data.users.find((u: any) => (u.email ?? "").toLowerCase() === target);
+    if (match) return { id: match.id as string, email: match.email as string | null };
+    if (data.users.length < perPage) break;
+    page += 1;
+  }
+  return null;
+}
+
+export const adminLookupUserAllAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { email: string }) => {
+    if (!d?.email) throw new Error("email required");
+    return { email: d.email };
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const user = await findUserByEmailAdmin(supabaseAdmin, data.email);
+    if (!user) return { user: null, memberships: [] as any[] };
+
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const { data: memberships, error } = await supabaseAdmin
+      .from("memberships")
+      .select("id, kind, environment, expires_at, created_at, amount_cents, external_payment_reference")
+      .eq("user_id", user.id)
+      .in("kind", ALL_ACCESS_KINDS as unknown as string[])
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+
+    return {
+      user: { id: user.id, email: user.email, display_name: profile?.display_name ?? null },
+      memberships: memberships ?? [],
+    };
+  });
+
+export const adminGrantAllAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId: string; kind: AllAccessGrantKind }) => {
+    if (!d?.userId) throw new Error("userId required");
+    if (d.kind !== "term_pass_all_access_30d" && d.kind !== "lifetime") {
+      throw new Error("kind must be term_pass_all_access_30d or lifetime");
+    }
+    return d;
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const environment = env();
+    const externalRef = `admin_manual:${context.userId}:${Date.now()}`;
+
+    if (data.kind === "lifetime") {
+      const { data: row, error } = await supabaseAdmin.rpc("grant_lifetime_membership", {
+        _user_id: data.userId,
+        _environment: environment,
+        _amount_cents: 0,
+        _external_payment_reference: externalRef,
+      });
+      if (error) throw new Error(error.message);
+      return { membership: row };
+    }
+
+    const { data: row, error } = await supabaseAdmin.rpc("grant_all_access_pass_30d", {
+      _user_id: data.userId,
+      _environment: environment,
+      _amount_cents: 0,
+      _external_payment_reference: externalRef,
+    });
+    if (error) throw new Error(error.message);
+    return { membership: row };
+  });
+
+export const adminRevokeAllAccess = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { membershipId: string }) => {
+    if (!d?.membershipId) throw new Error("membershipId required");
+    return d;
+  })
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("memberships")
+      .delete()
+      .eq("id", data.membershipId)
+      .in("kind", ALL_ACCESS_KINDS as unknown as string[]);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
