@@ -34,7 +34,32 @@ export const nowpaymentsProvider: PaymentProvider = {
           },
         });
         if ("error" in result) {
-          toast.error(`Couldn't start checkout: ${result.error}`);
+          // "Unknown priceId" means the product isn't wired up on the
+          // server yet. Show a friendly, actionable message instead of
+          // the raw error, and offer a one-click path to support.
+          if (/unknown priceid/i.test(result.error)) {
+            toast.error("This item isn't available for checkout yet.", {
+              description:
+                "Our team has been notified. Please contact support so we can complete your purchase.",
+              action: {
+                label: "Contact support",
+                onClick: () => {
+                  window.location.href =
+                    "mailto:support@midnightglory.au?subject=" +
+                    encodeURIComponent("Checkout unavailable") +
+                    "&body=" +
+                    encodeURIComponent(
+                      `I tried to check out but the item isn't available yet.\n\nReference: ${
+                        opts.priceId ?? opts.contentItemId ?? opts.pantyListingId ?? "unknown"
+                      }`,
+                    );
+                },
+              },
+              duration: 10000,
+            });
+          } else {
+            toast.error(`Couldn't start checkout: ${result.error}`);
+          }
           setIsOpen(false);
           return;
         }
