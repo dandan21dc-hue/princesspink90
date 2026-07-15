@@ -224,9 +224,9 @@ function AdminAllAccess() {
       )}
     </Shell>
   );
-function Shell({ children }: { children: React.ReactNode }) {
-  return <section className="mx-auto max-w-4xl px-5 py-12">{children}</section>;
 }
+
+
 
 type Membership = {
   id: string;
