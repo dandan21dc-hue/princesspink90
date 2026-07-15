@@ -38,7 +38,9 @@ function AdminAllAccess() {
   const lookupFn = useServerFn(adminLookupUserAllAccess);
   const grantFn = useServerFn(adminGrantAllAccess);
   const revokeFn = useServerFn(adminRevokeAllAccess);
+  const auditFn = useServerFn(adminListAllAccessAudit);
   const qc = useQueryClient();
+
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
   const [email, setEmail] = useState("");
