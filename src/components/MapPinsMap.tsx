@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import type { MapPin } from "@/lib/map-pins.functions";
 import { getPublicMapboxToken } from "@/lib/mapbox-token";
 
@@ -113,8 +114,8 @@ export function MapPinsMap({ pins, className, onPinClick, selectedPinId, isLoadi
 
   return (
     <div
-      className={`relative rounded-xl overflow-hidden border border-border/60 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.35)] ${className ?? ""}`}
-      style={{ minHeight: 420 }}
+      className={`relative w-full rounded-xl overflow-hidden border border-border/60 shadow-[0_0_40px_-10px_hsl(var(--primary)/0.35)] ${className ?? ""}`}
+      style={{ minHeight: 420, width: "100%" }}
     >
       <div ref={containerRef} className="absolute inset-0" />
       {showCount && (
