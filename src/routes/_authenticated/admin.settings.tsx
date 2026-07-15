@@ -514,13 +514,44 @@ export function AdminSettings() {
               description: `Kept current handle: ${settings.data?.fetlife_handle ?? "(none)"}`,
             });
           }
+          // Return keyboard focus to the Save button that opened the dialog.
+          // Radix only auto-restores focus to its own <Trigger>, and we open
+          // this dialog programmatically. Defer to the next frame so Radix
+          // has finished tearing down its focus scope first.
+          requestAnimationFrame(() => {
+            saveButtonRef.current?.focus();
+          });
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent
+          id={fetlifeConfirmDialogId}
+          aria-describedby={`${fetlifeConfirmDialogId}-desc`}
+          onOpenAutoFocus={(event) => {
+            // AlertDialog's default is to focus the Cancel button, which is
+            // the safer choice for a destructive-adjacent action. Explicitly
+            // preserve that behaviour and make it inspectable.
+            event.preventDefault();
+            const cancelBtn = event.currentTarget.querySelector<HTMLButtonElement>(
+              '[data-slot="alert-dialog-cancel"], [role="button"][data-cancel]',
+            );
+            cancelBtn?.focus();
+          }}
+          onKeyDown={(event) => {
+            // Ctrl/Cmd+Enter = power-user shortcut to confirm without moving
+            // focus onto the destructive action first. Plain Enter still
+            // activates whichever button currently has focus (Radix default).
+            if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+              event.preventDefault();
+              fetlifeDismissIntentRef.current = "confirm";
+              save.mutate();
+              setPendingFetlifeConfirm(false);
+            }
+          }}
+        >
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm FetLife handle change</AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm">
+              <div id={`${fetlifeConfirmDialogId}-desc`} className="space-y-2 text-sm">
                 <p>
                   This updates the public profile link on the homepage. A typo
                   here sends visitors to the wrong (or a missing) FetLife
@@ -538,12 +569,16 @@ export function AdminSettings() {
                   <div className="mt-1 break-all text-muted-foreground">
                     https://fetlife.com/{fetlifeNormalized}
                   </div>
+                  <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                    Tip: press Esc to cancel, or Ctrl/⌘+Enter to confirm.
+                  </div>
                 </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel
+              data-cancel
               onClick={() => {
                 fetlifeDismissIntentRef.current = "cancel";
               }}
