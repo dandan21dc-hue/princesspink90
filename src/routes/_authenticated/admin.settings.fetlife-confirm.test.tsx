@@ -535,6 +535,75 @@ describe("admin settings — FetLife confirmation gate", () => {
       expect(mockToast.success).toHaveBeenCalledTimes(1);
     });
   });
+
+  it("shows the Saving… spinner and blocks Escape/Cancel until the save settles", async () => {
+    // While the confirmed save is in flight the dialog must present a locked
+    // loading state: the confirm button flips to a disabled "Saving…" label
+    // with the Loader2 spinner, the Cancel ("Keep current handle") button is
+    // disabled, and dismissing the dialog via Escape is a no-op. Otherwise a
+    // panicked admin could close the dialog mid-request and be left unsure
+    // whether the FetLife handle change actually persisted.
+    let resolveSave: ((value: { ok: true }) => void) | null = null;
+    mockUpdateSiteSettings.mockImplementationOnce(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle) as HTMLInputElement;
+    fireEvent.change(fetInput, { target: { value: "Locked-While-Saving" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: /yes, update handle/i }));
+
+    // Server function was called exactly once and hasn't resolved yet.
+    await waitFor(() => {
+      expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
+    });
+
+    // Confirm button: label swaps to "Saving…", is disabled, marked aria-busy,
+    // and renders the Loader2 spinner (identified by lucide's class marker).
+    const savingBtn = await within(dialog).findByRole("button", {
+      name: /saving…/i,
+    }) as HTMLButtonElement;
+    expect(savingBtn.disabled).toBe(true);
+    expect(savingBtn.getAttribute("aria-busy")).toBe("true");
+    expect(savingBtn.querySelector(".lucide-loader-circle")).not.toBeNull();
+
+    // Cancel button: disabled so the admin can't abandon a live request.
+    const cancelBtn = within(dialog).getByRole("button", {
+      name: /keep current handle/i,
+    }) as HTMLButtonElement;
+    expect(cancelBtn.disabled).toBe(true);
+    // Clicking the disabled Cancel is a no-op — the dialog must remain open.
+    fireEvent.click(cancelBtn);
+    expect(screen.queryByRole("alertdialog")).not.toBeNull();
+
+    // Escape while save is pending: swallowed by onEscapeKeyDown → dialog
+    // stays open, no cancel toast fires, no extra server call.
+    mockToast.mockClear();
+    fireEvent.keyDown(dialog, { key: "Escape", code: "Escape" });
+    expect(screen.queryByRole("alertdialog")).not.toBeNull();
+    expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
+    expect(mockToast).not.toHaveBeenCalledWith(
+      "FetLife handle change not saved",
+      expect.anything(),
+    );
+
+    // Resolve the pending mutation; dialog closes, success toast fires.
+    (resolveSave as ((value: { ok: true }) => void) | null)?.({ ok: true });
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+    });
+  });
 });
 
 describe("admin settings — FetLife handle client-side normalization + validation", () => {
