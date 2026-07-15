@@ -291,30 +291,40 @@ function PrivateRoomPage() {
     setReviewing(true);
   }
 
-  function confirm() {
+  async function confirm() {
     if (pending) return;
     if (!user || !selectedSlot) return;
     if (selectedConflict) return;
     setPending(true);
-    const priceId = duration <= 30 ? "private_room_30min_aud" : "private_room_60min_aud";
-    openCheckout({
-      priceId,
-      userId: user.id,
-      customerEmail: user.email,
-      bookingStartsAt: selectedSlot.toISOString(),
-      bookingPartySize: 1,
-      bookingNotes: notes.trim() || undefined,
-      returnUrl: `${window.location.origin}/checkout/return?next=%2Fdashboard`,
-    });
+    setIsOpen(true);
+    try {
+      const environment = (import.meta.env.MODE === "production" ? "live" : "sandbox") as
+        | "sandbox"
+        | "live";
+      const result = await createBookingInvoice({
+        data: {
+          environment,
+          returnOrigin: window.location.origin,
+          roomType: "private_room",
+          bookingStartsAt: selectedSlot.toISOString(),
+          bookingNotes: notes.trim() || undefined,
+          bookingPartySize: 1,
+        },
+      });
+      if ("error" in result) {
+        toast.error(`Couldn't start checkout: ${result.error}`);
+        setPending(false);
+        setIsOpen(false);
+        return;
+      }
+      window.location.href = result.invoiceUrl;
+    } catch (e) {
+      toast.error(`Couldn't start checkout: ${(e as Error).message}`);
+      setPending(false);
+      setIsOpen(false);
+    }
   }
 
-
-  useEffect(() => {
-    // Re-enable the confirm button if the user dismisses the embedded
-    // checkout without paying — otherwise it would stay stuck as
-    // "Processing…" until a full reload.
-    if (!isOpen && pending) setPending(false);
-  }, [isOpen, pending]);
 
   return (
     <>
@@ -328,17 +338,14 @@ function PrivateRoomPage() {
         </Link>
 
         {isOpen ? (
-          <div className="mt-6 rounded-2xl border border-border/60 bg-card p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="font-display text-lg">Checkout</div>
-              <button
-                onClick={closeCheckout}
-                className="text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
-              >
-                Cancel
-              </button>
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-6 text-sm">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" aria-hidden />
+            <div>
+              <div className="font-medium">Redirecting you to secure checkout…</div>
+              <p className="text-xs text-muted-foreground">
+                You'll be sent to NOWPayments to complete payment in crypto.
+              </p>
             </div>
-            {checkoutElement}
           </div>
         ) : reviewing && selectedSlot ? (
           <ReviewBookingCard
