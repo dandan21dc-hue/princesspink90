@@ -103,7 +103,9 @@ function AdminNowpaymentsEvents() {
   const meFn = useServerFn(amIAdmin);
   const listFn = useServerFn(adminListNowpaymentsEvents);
   const retryFn = useServerFn(adminRetryNowpaymentsGrant);
+  const bulkFn = useServerFn(adminBulkUpdateNowpaymentsEvents);
   const qc = useQueryClient();
+
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
 
@@ -121,6 +123,11 @@ function AdminNowpaymentsEvents() {
   const [pendingRetry, setPendingRetry] = useState<EventItem | null>(null);
   const [payloadEvent, setPayloadEvent] = useState<EventItem | null>(null);
   const [jumpInput, setJumpInput] = useState("");
+  // Bulk-selection state — keyed by `${payment_id}::${last_status}` (composite pk).
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<NowpaymentsBulkAction | null>(null);
+  const [bulkNote, setBulkNote] = useState("");
+
 
   // Reset to page 1 whenever filters/search/sort/pageSize change.
   const resetToFirstPage = () => setPage(1);
