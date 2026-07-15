@@ -33,19 +33,27 @@ const PRICE_KIND: Record<string, string> = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Private-room booking priceIds — amount comes from `site_settings`. */
+const PRIVATE_ROOM_PRICE_RE = /^private_room_(30|60)min_aud$/;
+
 const inputSchema = z
   .object({
     environment: z.enum(["sandbox", "live"]),
     returnOrigin: z.string().url(),
-    /** Lookup key from EXPECTED_PLAN_PRICES (e.g. `lifetime_onetime_aud`). */
+    /** Lookup key from EXPECTED_PLAN_PRICES or a dynamic pattern below
+     *  (e.g. `lifetime_onetime_aud`, `private_room_30min_aud`). */
     priceId: z.string().min(1).max(64).regex(/^[a-zA-Z0-9_-]+$/).optional(),
     /** A single panty listing to purchase. Amount is derived from the
-     *  listing row server-side. Mutually exclusive with `priceId`. */
+     *  listing row server-side. */
     pantyListingId: z.string().regex(UUID_RE).optional(),
+    /** A single published, priced content item to purchase. Amount is
+     *  derived from the `content_items` row server-side. */
+    contentItemId: z.string().regex(UUID_RE).optional(),
   })
-  .refine((v) => !(v.priceId && v.pantyListingId), {
-    message: "Pass either priceId or pantyListingId, not both",
-  });
+  .refine(
+    (v) => [v.priceId, v.pantyListingId, v.contentItemId].filter(Boolean).length <= 1,
+    { message: "Pass at most one of priceId, pantyListingId, or contentItemId" },
+  );
 
 type Success = { invoiceUrl: string };
 type Failure = { error: string };
@@ -54,9 +62,9 @@ type Failure = { error: string };
  * Creates a NOWPayments invoice and returns the hosted checkout URL.
  *
  * Amount, currency and description are always derived server-side (from
- * `EXPECTED_PLAN_PRICES` or the `panty_listings` row) so the client can't
- * influence what a user is charged. If neither `priceId` nor
- * `pantyListingId` is supplied, falls back to the 30-day All-Access Pass
+ * `EXPECTED_PLAN_PRICES`, `panty_listings`, `content_items`, or
+ * `site_settings`) so the client can't influence what a user is charged.
+ * If nothing is supplied, falls back to the 30-day All-Access Pass
  * (A$10.00).
  *
  * The IPN webhook (`/api/public/payments/nowpayments-webhook`) grants the
@@ -65,6 +73,8 @@ type Failure = { error: string };
  *   - `aap30d:<userId>:<env>:<amt>`
  *   - `lifetime:<userId>:<env>:<amt>`
  *   - `panty:<listingId>:<userId>:<env>:<amt>`
+ *   - `content:<itemId>:<userId>:<env>:<amt>`
+ *   - `private_room_<mins>:<userId>:<env>:<amt>`
  */
 export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -99,6 +109,44 @@ export const createNowpaymentsInvoice = createServerFn({ method: "POST" })
         currency = (listing.currency ?? "aud").toLowerCase();
         description = `${listing.title ?? "Panty listing"} (Midnight Glory)`;
         orderId = `panty:${listing.id}:${context.userId}:${data.environment}:${amountCents}`;
+      } else if (data.contentItemId) {
+        // Look up the content item so amount + currency come from the
+        // authoritative row, not the client. Only published items with a
+        // real price are purchasable this way.
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: item, error } = await supabaseAdmin
+          .from("content_items")
+          .select("id, title, kind, price_cents, currency, published")
+          .eq("id", data.contentItemId)
+          .maybeSingle();
+        if (error) return { error: `Content item lookup failed: ${error.message}` };
+        if (!item) return { error: "Content item not found" };
+        if (!item.published) return { error: "Content item is not available" };
+        if (!item.price_cents || item.price_cents < 100) {
+          return { error: "Content item has no valid price" };
+        }
+        amountCents = item.price_cents;
+        currency = (item.currency ?? "aud").toLowerCase();
+        description = `${item.title ?? "Content item"} (Midnight Glory)`;
+        orderId = `content:${item.id}:${context.userId}:${data.environment}:${amountCents}`;
+      } else if (data.priceId && PRIVATE_ROOM_PRICE_RE.test(data.priceId)) {
+        // Private-room bookings: amount lives in `site_settings.session_price_cents`
+        // (admin-configured). The priceId encodes the duration so the
+        // webhook / booking flow can size the slot.
+        const minutes = Number(PRIVATE_ROOM_PRICE_RE.exec(data.priceId)![1]);
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: settings, error } = await supabaseAdmin
+          .from("site_settings")
+          .select("session_price_cents")
+          .maybeSingle();
+        if (error) return { error: `Session pricing lookup failed: ${error.message}` };
+        if (!settings?.session_price_cents || settings.session_price_cents < 100) {
+          return { error: "Private-room session price is not configured" };
+        }
+        amountCents = settings.session_price_cents;
+        currency = "aud";
+        description = `Private Room — ${minutes} minutes (Midnight Glory)`;
+        orderId = `private_room_${minutes}:${context.userId}:${data.environment}:${amountCents}`;
       } else if (data.priceId) {
         const spec = EXPECTED_PLAN_PRICES[data.priceId];
         if (!spec) {
