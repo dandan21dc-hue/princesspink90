@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart, formatMoney, cart as cartStore, cartLineKey, isCartItemIdValid, type CartItem } from "@/lib/cart";
 import { useStripeCheckout } from "@/hooks/useStripeCheckout";
+import { getMyRewards } from "@/lib/rewards.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { track } from "@/lib/track";
 import { toast } from "sonner";
 
