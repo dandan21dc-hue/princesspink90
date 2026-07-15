@@ -54,6 +54,13 @@ export function cartLineKey(it: Pick<CartItem, "kind" | "id" | "size">): string 
 
 const STORAGE_KEY = "pp_cart_v1";
 
+// Items dropped by `read()` because their `id` no longer matches the
+// server-side UUID contract. Buffered here so the next mounted UI can
+// surface a single toast explaining what was removed (see
+// `consumePrunedItems`) instead of having every hydration silently drop
+// the item and leave the user staring at a suddenly-empty cart.
+let pendingPruned: CartItem[] = [];
+
 function read(): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
