@@ -137,6 +137,7 @@ export function SupportChatWidget() {
   const startBooking = useServerFn(createBookingInvoice);
   const loadHistory = useServerFn(loadConciergeHistory);
   const saveHistory = useServerFn(saveConciergeHistory);
+  const fetchBookingStatuses = useServerFn(getConciergeBookingStatuses);
 
   // --- Persistence -----------------------------------------------------
   // Signed-in → server row. Guest → localStorage. If a guest builds up
