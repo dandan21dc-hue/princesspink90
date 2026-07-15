@@ -16,6 +16,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { AccountBanners } from "@/components/AccountBanners";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
+import { SupportChatWidget } from "@/components/SupportChatWidget";
 
 function NotFoundComponent() {
   return (
@@ -168,6 +169,7 @@ function RootComponent() {
       </div>
       <AgeGate />
       <Toaster />
+      <SupportChatWidget />
     </QueryClientProvider>
   );
 }
