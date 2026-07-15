@@ -246,18 +246,28 @@ function AdminAllAccess() {
                             </div>
                           )}
                         </div>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => {
-                            if (confirm(`Revoke ${m.kind}? This deletes the membership row.`)) {
-                              revoke.mutate(m.id);
+                        <div className="flex flex-col items-end gap-2">
+                          {lastVerified?.id === m.id && (
+                            <Badge variant="outline" className="text-[10px] gap-1">
+                              <ShieldCheck className="h-3 w-3" /> Verified removed
+                            </Badge>
+                          )}
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() =>
+                              setPendingRevoke({
+                                id: m.id,
+                                kind: m.kind,
+                                environment: m.environment,
+                                expires_at: m.expires_at,
+                              })
                             }
-                          }}
-                          disabled={revoke.isPending}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" /> Revoke
-                        </Button>
+                            disabled={revoke.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Revoke
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   );
