@@ -130,7 +130,7 @@ async function downloadEntryPdf(entry: Entry) {
     y += lineHeight;
   }
 
-  const bytes = new Uint8Array(doc.output("arraybuffer"));
+  const bytes = doc.output("arraybuffer") as ArrayBuffer;
   const filename = buildArtifactFilename(entry, "pdf", buildStamp());
   await saveWithChecksum(bytes, filename, "application/pdf");
 }
