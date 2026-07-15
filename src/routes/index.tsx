@@ -33,6 +33,24 @@ export const Route = createFileRoute("/")({
     ]),
   head: () => ({
     meta: [
+      { title: "Midnight Glory — Upcoming glory hole & theatre nights" },
+      {
+        name: "description",
+        content:
+          "Browse Midnight Glory's upcoming glory hole nights, private room bookings, and adult theatre takeovers. Consent-first, 18+ only.",
+      },
+      { property: "og:title", content: "Midnight Glory — Upcoming glory hole & theatre nights" },
+      {
+        property: "og:description",
+        content:
+          "Browse upcoming glory hole nights, private rooms, and adult theatre takeovers. Consent-first, 18+ only.",
+      },
+      { name: "twitter:title", content: "Midnight Glory — Upcoming glory hole & theatre nights" },
+      {
+        name: "twitter:description",
+        content:
+          "Browse upcoming glory hole nights, private rooms, and adult theatre takeovers. Consent-first, 18+ only.",
+      },
       { property: "og:url", content: "https://princesspink90.lovable.app/" },
       { property: "og:image", content: "https://princesspink90.lovable.app/__l5e/assets-v1/c6cfc346-e3de-433e-b100-5c845b88d3d9/og-home.jpg" },
       { property: "og:image:width", content: "1200" },
