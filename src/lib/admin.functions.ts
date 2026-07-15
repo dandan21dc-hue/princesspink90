@@ -1964,9 +1964,12 @@ export const updateCrmStaffNotes = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
-      .from("profiles")
-      .update({ staff_notes: data.staff_notes })
-      .eq("user_id", data.userId);
+      .from("profile_staff_notes")
+      .upsert(
+        { user_id: data.userId, notes: data.staff_notes, updated_by: context.userId, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+
     if (error) throw new Error(error.message);
     return { ok: true as const };
   });
