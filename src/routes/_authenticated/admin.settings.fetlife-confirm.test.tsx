@@ -153,7 +153,7 @@ describe("admin settings — FetLife confirmation gate", () => {
     const redditInput = screen.getByDisplayValue(SAVED.reddit_handle);
     fireEvent.change(redditInput, { target: { value: "some-other-handle" } });
 
-    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
 
     // No confirmation dialog should appear.
     expect(
@@ -177,7 +177,7 @@ describe("admin settings — FetLife confirmation gate", () => {
     const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle);
     fireEvent.change(fetInput, { target: { value: "New-Handle-99" } });
 
-    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
 
     // The dialog opens…
     const dialog = await screen.findByRole("alertdialog");
@@ -194,7 +194,7 @@ describe("admin settings — FetLife confirmation gate", () => {
 
     const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle);
     fireEvent.change(fetInput, { target: { value: "Another-Handle" } });
-    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
 
     const dialog = await screen.findByRole("alertdialog");
     fireEvent.click(
@@ -216,7 +216,7 @@ describe("admin settings — FetLife confirmation gate", () => {
     fireEvent.change(fetInput, {
       target: { value: "https://fetlife.com/Brand-New-Handle" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
 
     const dialog = await screen.findByRole("alertdialog");
     // Preview should show the normalized handle, not the raw URL.
