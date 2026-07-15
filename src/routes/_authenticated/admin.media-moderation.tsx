@@ -107,6 +107,7 @@ type ModerationRow = {
 function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) {
   const qc = useQueryClient();
   const decideFn = useServerFn(adminModerateContentItem);
+  const deleteFn = useServerFn(adminDeleteContentItem);
   const signFn = useServerFn(adminGetModerationMediaUrl);
   const [notes, setNotes] = useState(row.moderation_notes ?? "");
 
@@ -120,6 +121,29 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
     },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  const removeItem = useMutation({
+    mutationFn: () => deleteFn({ data: { id: row.id } }),
+    onSuccess: () => {
+      toast.success("Item deleted");
+      qc.invalidateQueries({ queryKey: ["admin-media-moderation"] });
+      qc.invalidateQueries({ queryKey: ["store-items"] });
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  const busy = decide.isPending || removeItem.isPending;
+
+  const confirmDelete = () => {
+    if (
+      window.confirm(
+        `Permanently delete "${row.title}"? This removes the item, its media, and any purchase records. This cannot be undone.`,
+      )
+    ) {
+      removeItem.mutate();
+    }
+  };
+
 
   const openMedia = async (path: string) => {
     try {
