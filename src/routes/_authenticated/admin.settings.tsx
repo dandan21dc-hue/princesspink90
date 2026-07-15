@@ -730,6 +730,28 @@ export function AdminSettings() {
                   <div className="border-t border-border/60 pt-2 text-[10px] uppercase tracking-widest text-muted-foreground/80">
                     Tip: press Esc to cancel, or Ctrl/⌘+Enter to confirm.
                   </div>
+                  {/*
+                    aria-live region: announces the normalized new URL (or the
+                    current validation error) whenever the admin edits the
+                    handle while the confirm dialog is open. `polite` avoids
+                    interrupting; `atomic` re-reads the whole message on every
+                    change so partial edits don't produce fragmentary output.
+                    Sighted users already see the preview update inline — this
+                    mirrors that feedback for screen-reader users, who would
+                    otherwise have to re-navigate the dialog after every
+                    keystroke to hear the current URL.
+                  */}
+                  <div
+                    aria-live="polite"
+                    aria-atomic="true"
+                    className="sr-only"
+                  >
+                    {fetlifeError
+                      ? `FetLife handle invalid: ${fetlifeError}`
+                      : fetlifeNormalized
+                        ? `New FetLife URL: ${newFetlifeUrl}`
+                        : "New FetLife URL is empty."}
+                  </div>
                 </div>
               </div>
             </AlertDialogDescription>
