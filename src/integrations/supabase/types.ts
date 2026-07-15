@@ -561,6 +561,27 @@ export type Database = {
         }
         Relationships: []
       }
+      concierge_chat_history: {
+        Row: {
+          created_at: string
+          messages: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          messages?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          messages?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       content_items: {
         Row: {
           cover_url: string | null
