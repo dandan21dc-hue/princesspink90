@@ -1,0 +1,35 @@
+{
+  "$schema": "Baseline of pre-existing pattern hits for scripts/security-regression-scan.mjs. NEW hits fail CI. To add an entry, include a rationale so reviewers understand why the pattern is safe in that specific site.",
+  "entries": [
+    {
+      "finding": "events_public_select_star_leak",
+      "file": "src/lib/host.functions.ts",
+      "line": 70,
+      "rationale": "getMyEvent scopes by host_id = context.userId; the host is reading their own event and is entitled to every column, including compliance_notes/permit_details/insurance_policy_number. Not guest-facing."
+    },
+    {
+      "finding": "SUPA_*_security_definer_function_executable",
+      "file": "supabase/migrations/20260705200603_email_infra.sql",
+      "line": 137,
+      "rationale": "public.enqueue_email pgmq wrapper. Only pgmq schema referenced; search_path not required for safety here because the function body calls fully-qualified `pgmq.*` functions."
+    },
+    {
+      "finding": "SUPA_*_security_definer_function_executable",
+      "file": "supabase/migrations/20260705200603_email_infra.sql",
+      "line": 149,
+      "rationale": "public.read_email_batch pgmq wrapper; body uses fully-qualified pgmq.* calls only."
+    },
+    {
+      "finding": "SUPA_*_security_definer_function_executable",
+      "file": "supabase/migrations/20260705200603_email_infra.sql",
+      "line": 161,
+      "rationale": "public.delete_email pgmq wrapper; body uses fully-qualified pgmq.* calls only."
+    },
+    {
+      "finding": "SUPA_*_security_definer_function_executable",
+      "file": "supabase/migrations/20260705200603_email_infra.sql",
+      "line": 172,
+      "rationale": "public.move_to_dlq pgmq wrapper; body uses fully-qualified pgmq.* calls only."
+    }
+  ]
+}
