@@ -46,12 +46,25 @@ export function RewardRedemptionsBell() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 20_000);
+    const interval = setInterval(load, 60_000);
     const onFocus = () => load();
     window.addEventListener("focus", onFocus);
+
+    const channel = supabase
+      .channel("admin-reward-redemptions")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_rewards" },
+        () => {
+          load();
+        },
+      )
+      .subscribe();
+
     return () => {
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
+      supabase.removeChannel(channel);
     };
   }, []);
 
