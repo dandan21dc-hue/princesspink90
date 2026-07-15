@@ -228,6 +228,27 @@ export function SupportChatWidget() {
   const [bookingSlot, setBookingSlot] = useState<string | null>(null); // ISO of slot currently being booked
   const [hydrated, setHydrated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  // Timezone selector — initialize from saved preference, else browser zone.
+  // `useState` initializer is client-safe here because the widget is only
+  // rendered inside the app shell after hydration; guards inside the
+  // helpers keep SSR-friendly if that ever changes.
+  const [timezone, setTimezone] = useState<string>(
+    () => readStoredTimezone() ?? detectBrowserTimezone(),
+  );
+
+  // Merge the browser-detected zone with the curated list, dedupe, keep
+  // detected zone pinned first for quick reset.
+  const browserTz = useMemo(() => detectBrowserTimezone(), []);
+  const timezoneOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const z of [browserTz, timezone, ...TIMEZONE_CHOICES]) {
+      if (!z || seen.has(z)) continue;
+      seen.add(z);
+      out.push(z);
+    }
+    return out;
+  }, [browserTz, timezone]);
 
   const feedRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
