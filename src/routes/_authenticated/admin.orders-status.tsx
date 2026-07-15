@@ -275,7 +275,7 @@ function AdminOrdersStatusPage() {
                               </div>
                               <div>
                                 <div className="uppercase tracking-widest text-muted-foreground/70">
-                                  Stripe reference
+                                  Payment reference
                                 </div>
                                 <div className="font-mono text-foreground/80">
                                   {r.reference_id ?? "—"}
