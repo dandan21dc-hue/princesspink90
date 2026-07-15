@@ -658,25 +658,77 @@ function AdminNowpaymentsEvents() {
             });
           }
           if (chips.length === 0) return null;
+          const clearAll = () => {
+            resetToFirstPage();
+            setStatus("all");
+            setHandled("all");
+            setReversal("all");
+            setSort("last_seen_desc");
+            setSearchInput("");
+            setSearch("");
+          };
+          const focusChipButton = (idx: number) => {
+            const total = chips.length + 1; // + Clear all
+            const wrapped = (idx + total) % total;
+            const container = document.getElementById("active-filter-chips");
+            const buttons = container?.querySelectorAll<HTMLButtonElement>("[data-chip-btn]");
+            buttons?.[wrapped]?.focus();
+          };
           return (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-widest text-muted-foreground mr-1">
+            <div
+              id="active-filter-chips"
+              role="toolbar"
+              aria-label="Active filters"
+              className="flex flex-wrap items-center gap-2"
+              onKeyDown={(e) => {
+                const target = e.target as HTMLElement;
+                const btn = target.closest<HTMLElement>("[data-chip-btn]");
+                if (!btn) return;
+                const idx = Number(btn.dataset.chipIdx);
+                if (Number.isNaN(idx)) return;
+                if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                  e.preventDefault();
+                  focusChipButton(idx + 1);
+                } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  focusChipButton(idx - 1);
+                } else if (e.key === "Home") {
+                  e.preventDefault();
+                  focusChipButton(0);
+                } else if (e.key === "End") {
+                  e.preventDefault();
+                  focusChipButton(chips.length);
+                } else if ((e.key === "Backspace" || e.key === "Delete") && idx < chips.length) {
+                  e.preventDefault();
+                  chips[idx].clear();
+                  // After removal, focus the next chip (or Clear all / previous).
+                  requestAnimationFrame(() => focusChipButton(Math.min(idx, chips.length - 1)));
+                }
+              }}
+            >
+              <span
+                id="active-filter-chips-label"
+                className="text-xs uppercase tracking-widest text-muted-foreground mr-1"
+              >
                 Active
               </span>
-              {chips.map((c) => (
+              {chips.map((c, i) => (
                 <Badge
                   key={c.key}
                   variant="secondary"
-                  className="gap-1 pl-2 pr-1 py-1"
+                  className="gap-1 pl-2 pr-1 py-1 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1 focus-within:ring-offset-background"
                 >
                   <span>{c.label}</span>
                   <button
                     type="button"
-                    aria-label={`Remove filter ${c.label}`}
+                    data-chip-btn
+                    data-chip-idx={i}
+                    tabIndex={i === 0 ? 0 : -1}
+                    aria-label={`Remove filter ${c.label} (Backspace)`}
                     onClick={c.clear}
-                    className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-sm hover:bg-muted-foreground/20"
+                    className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-sm hover:bg-muted-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    ×
+                    <span aria-hidden="true">×</span>
                   </button>
                 </Badge>
               ))}
@@ -684,15 +736,11 @@ function AdminNowpaymentsEvents() {
                 type="button"
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  resetToFirstPage();
-                  setStatus("all");
-                  setHandled("all");
-                  setReversal("all");
-                  setSort("last_seen_desc");
-                  setSearchInput("");
-                  setSearch("");
-                }}
+                data-chip-btn
+                data-chip-idx={chips.length}
+                tabIndex={-1}
+                aria-label={`Clear all ${chips.length} active filter${chips.length === 1 ? "" : "s"}`}
+                onClick={clearAll}
               >
                 Clear all
               </Button>
