@@ -210,7 +210,15 @@ export function AdminSettings() {
           );
         }
       }
-      return updateFn({ data: nextValues }).then((res) => ({ res, changes }));
+      // The FetLife confirmation dialog gates this mutation on the client;
+      // the server also re-checks by comparing the submitted handle against
+      // the stored value, so we pass the flag whenever the handle changed.
+      const fetlifeChanging =
+        !!prev && prev.fetlife_handle !== nextValues.fetlife_handle;
+      return updateFn({
+        data: { ...nextValues, fetlife_confirmed: fetlifeChanging },
+      }).then((res) => ({ res, changes }));
+
     },
     onSuccess: ({ changes }) => {
       setSaved(true);
