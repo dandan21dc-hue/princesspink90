@@ -433,25 +433,32 @@ export const adminGrantAllAccess = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const environment = env();
     const externalRef = `admin_manual:${context.userId}:${Date.now()}`;
+    const rpc =
+      data.kind === "lifetime" ? "grant_lifetime_membership" : "grant_all_access_pass_30d";
 
-    if (data.kind === "lifetime") {
-      const { data: row, error } = await supabaseAdmin.rpc("grant_lifetime_membership", {
-        _user_id: data.userId,
-        _environment: environment,
-        _amount_cents: 0,
-        _external_payment_reference: externalRef,
-      });
-      if (error) throw new Error(error.message);
-      return { membership: row };
-    }
-
-    const { data: row, error } = await supabaseAdmin.rpc("grant_all_access_pass_30d", {
+    const { data: row, error } = await supabaseAdmin.rpc(rpc, {
       _user_id: data.userId,
       _environment: environment,
       _amount_cents: 0,
       _external_payment_reference: externalRef,
     });
     if (error) throw new Error(error.message);
+
+    // Record the grant in the admin audit chain (RLS: actor_id = auth.uid()).
+    await context.supabase.from("admin_activity_audit").insert({
+      actor_id: context.userId,
+      action: "grant_all_access",
+      resource: `user:${data.userId}`,
+      metadata: {
+        target_user_id: data.userId,
+        kind: data.kind,
+        rpc,
+        environment,
+        membership_id: (row as { id?: string } | null)?.id ?? null,
+        external_payment_reference: externalRef,
+      },
+    });
+
     return { membership: row };
   });
 
@@ -464,11 +471,114 @@ export const adminRevokeAllAccess = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Snapshot the row first so the audit entry records what was revoked
+    // even though the row itself is about to be deleted.
+    const { data: existing } = await supabaseAdmin
+      .from("memberships")
+      .select("id, user_id, kind, environment, expires_at, external_payment_reference")
+      .eq("id", data.membershipId)
+      .in("kind", ALL_ACCESS_KINDS as unknown as string[])
+      .maybeSingle();
+
     const { error } = await supabaseAdmin
       .from("memberships")
       .delete()
       .eq("id", data.membershipId)
       .in("kind", ALL_ACCESS_KINDS as unknown as string[]);
     if (error) throw new Error(error.message);
+
+    if (existing) {
+      await context.supabase.from("admin_activity_audit").insert({
+        actor_id: context.userId,
+        action: "revoke_all_access",
+        resource: `user:${existing.user_id}`,
+        metadata: {
+          target_user_id: existing.user_id,
+          kind: existing.kind,
+          rpc: "delete_membership",
+          environment: existing.environment,
+          membership_id: existing.id,
+          expires_at: existing.expires_at,
+          external_payment_reference: existing.external_payment_reference,
+        },
+      });
+    }
+
     return { ok: true };
   });
+
+/**
+ * Recent grant/revoke history for the manual All-Access admin page.
+ * Reads from the append-only hash-chained admin_activity_audit table.
+ * Optionally filter by target user (as recorded in metadata.target_user_id).
+ */
+export const adminListAllAccessAudit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { userId?: string; limit?: number } = {}) => ({
+    userId: d.userId,
+    limit: Math.min(Math.max(d.limit ?? 25, 1), 100),
+  }))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    let query = supabaseAdmin
+      .from("admin_activity_audit")
+      .select("id, actor_id, action, resource, metadata, created_at")
+      .in("action", ["grant_all_access", "revoke_all_access"])
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+
+    if (data.userId) {
+      query = query.eq("resource", `user:${data.userId}`);
+    }
+
+    const { data: rows, error } = await query;
+    if (error) throw new Error(error.message);
+
+    // Enrich with actor email/display name for the UI.
+    const actorIds = Array.from(new Set((rows ?? []).map((r) => r.actor_id).filter(Boolean)));
+    const actorMap = new Map<string, { email: string | null; display_name: string | null }>();
+    if (actorIds.length > 0) {
+      const { data: profiles } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id, display_name")
+        .in("user_id", actorIds);
+      for (const p of profiles ?? []) {
+        actorMap.set(p.user_id as string, { email: null, display_name: p.display_name ?? null });
+      }
+      for (const id of actorIds) {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(id);
+          const email = u?.user?.email ?? null;
+          const existing = actorMap.get(id) ?? { email: null, display_name: null };
+          actorMap.set(id, { ...existing, email });
+        } catch {
+          // best-effort enrichment
+        }
+      }
+    }
+
+    return {
+      entries: (rows ?? []).map((r) => ({
+        id: r.id as string,
+        action: r.action as "grant_all_access" | "revoke_all_access",
+        resource: r.resource as string,
+        created_at: r.created_at as string,
+        actor_id: r.actor_id as string,
+        actor: actorMap.get(r.actor_id as string) ?? { email: null, display_name: null },
+        metadata: (r.metadata ?? {}) as {
+          target_user_id?: string;
+          kind?: string;
+          rpc?: string;
+          environment?: string;
+          membership_id?: string | null;
+          expires_at?: string | null;
+          external_payment_reference?: string | null;
+        },
+
+      })),
+    };
+  });
+

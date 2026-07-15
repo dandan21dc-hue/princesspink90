@@ -8,12 +8,14 @@ import {
   adminLookupUserAllAccess,
   adminGrantAllAccess,
   adminRevokeAllAccess,
+  adminListAllAccessAudit,
 } from "@/lib/admin.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2, InfinityIcon, Calendar } from "lucide-react";
+import { Loader2, Trash2, InfinityIcon, Calendar, History } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/admin/all-access")({
   head: () => ({ meta: [{ title: "Manual All-Access · Admin" }] }),
@@ -36,7 +38,9 @@ function AdminAllAccess() {
   const lookupFn = useServerFn(adminLookupUserAllAccess);
   const grantFn = useServerFn(adminGrantAllAccess);
   const revokeFn = useServerFn(adminRevokeAllAccess);
+  const auditFn = useServerFn(adminListAllAccessAudit);
   const qc = useQueryClient();
+
 
   const me = useQuery({ queryKey: ["am-i-admin"], queryFn: () => meFn() });
   const [email, setEmail] = useState("");
@@ -48,12 +52,21 @@ function AdminAllAccess() {
     enabled: !!searched && me.data?.isAdmin === true,
   });
 
+  const targetUserId = lookup.data?.user?.id ?? null;
+
+  const audit = useQuery({
+    queryKey: ["admin-all-access-audit", targetUserId],
+    queryFn: () => auditFn({ data: { userId: targetUserId ?? undefined, limit: 25 } }),
+    enabled: me.data?.isAdmin === true && !!targetUserId,
+  });
+
   const grant = useMutation({
     mutationFn: (kind: "term_pass_all_access_30d" | "lifetime") =>
       grantFn({ data: { userId: lookup.data!.user!.id, kind } }),
     onSuccess: (_, kind) => {
       toast.success(kind === "lifetime" ? "Lifetime granted" : "30-day pass granted");
       qc.invalidateQueries({ queryKey: ["admin-all-access-lookup"] });
+      qc.invalidateQueries({ queryKey: ["admin-all-access-audit"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -63,9 +76,11 @@ function AdminAllAccess() {
     onSuccess: () => {
       toast.success("Membership revoked");
       qc.invalidateQueries({ queryKey: ["admin-all-access-lookup"] });
+      qc.invalidateQueries({ queryKey: ["admin-all-access-audit"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   if (me.isLoading) return <Shell><p className="text-muted-foreground">Loading…</p></Shell>;
   if (!me.data?.isAdmin) {
@@ -220,8 +235,15 @@ function AdminAllAccess() {
               </div>
             )}
           </div>
+
+          <AuditLogPanel
+            title={`Recent grant/revoke history for ${user.email ?? user.id}`}
+            entries={audit.data?.entries ?? []}
+            isLoading={audit.isLoading}
+          />
         </div>
       )}
+
     </Shell>
   );
 }
@@ -319,3 +341,98 @@ function EntitlementSummary({ memberships }: { memberships: Membership[] }) {
 function Shell({ children }: { children: React.ReactNode }) {
   return <section className="mx-auto max-w-4xl px-5 py-12">{children}</section>;
 }
+
+type AuditEntry = {
+  id: string;
+  action: "grant_all_access" | "revoke_all_access";
+  created_at: string;
+  actor_id: string;
+  actor: { email: string | null; display_name: string | null };
+  metadata: {
+    target_user_id?: string;
+    kind?: string;
+    rpc?: string;
+    environment?: string;
+    membership_id?: string | null;
+    expires_at?: string | null;
+    external_payment_reference?: string | null;
+  };
+};
+
+function AuditLogPanel({
+  title,
+  entries,
+  isLoading,
+}: {
+  title: string;
+  entries: AuditEntry[];
+  isLoading: boolean;
+}) {
+  return (
+    <div>
+      <h2 className="text-sm uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+        <History className="h-4 w-4" /> Audit log
+      </h2>
+      <Card className="p-5">
+        <div className="text-xs text-muted-foreground mb-3">{title}</div>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading history…</p>
+        ) : entries.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No grants or revocations recorded for this user yet.
+          </p>
+        ) : (
+          <ol className="space-y-3">
+            {entries.map((e) => {
+              const isGrant = e.action === "grant_all_access";
+              const actorLabel =
+                e.actor.email ?? e.actor.display_name ?? e.actor_id;
+              return (
+                <li
+                  key={e.id}
+                  className="border border-border/40 rounded-md p-3 text-sm"
+                >
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={isGrant ? "default" : "destructive"}>
+                        {isGrant ? "Granted" : "Revoked"}
+                      </Badge>
+                      <span className="font-mono text-xs">
+                        {e.metadata.kind ?? "—"}
+                      </span>
+                      {e.metadata.environment && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {e.metadata.environment}
+                        </Badge>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {fmt(e.created_at)}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    by <span className="text-foreground">{actorLabel}</span>
+                    {e.metadata.rpc && (
+                      <>
+                        {" · "}RPC{" "}
+                        <span className="font-mono text-foreground">
+                          {e.metadata.rpc}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {e.metadata.membership_id && (
+                    <div className="mt-1 text-[10px] font-mono text-muted-foreground/70 truncate">
+                      membership: {e.metadata.membership_id}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </Card>
+    </div>
+  );
+}
+
