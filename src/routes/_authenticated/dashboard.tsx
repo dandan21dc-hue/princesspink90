@@ -39,6 +39,7 @@ import { QuickAccessButton } from "@/components/QuickAccessScripts";
 import { PerksWidget } from "@/components/PerksWidget";
 import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
 import { RoleGuard } from "@/components/RoleGuard";
+import { AddVenuePinDialog } from "@/components/AddVenuePinDialog";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
@@ -143,6 +144,7 @@ function Dashboard() {
           <h1 className="mt-2 font-display text-3xl font-semibold">Your green room</h1>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && <AddVenuePinDialog />}
           <QuickAccessButton />
           <NotificationsBell />
         </div>
