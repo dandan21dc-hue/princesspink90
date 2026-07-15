@@ -945,6 +945,38 @@ function AdminMapPins() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!pendingUndo}
+        onOpenChange={(o) => {
+          if (!o) setPendingUndo(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Undo an earlier reorder?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingUndo
+                ? `${pendingUndo.sinceCount} newer reorder${
+                    pendingUndo.sinceCount === 1 ? " has" : "s have"
+                  } happened since this change (${pendingUndo.description}). Undoing now will roll back to the order before that older change, discarding the newer ones.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                pendingUndo?.run();
+                setPendingUndo(null);
+              }}
+            >
+              Undo anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
