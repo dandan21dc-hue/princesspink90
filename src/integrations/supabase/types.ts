@@ -1277,8 +1277,13 @@ export type Database = {
       }
       nowpayments_ipn_events: {
         Row: {
+          admin_note: string | null
+          admin_note_updated_at: string | null
+          admin_note_updated_by: string | null
           first_seen_at: string
           handled: boolean
+          handled_updated_at: string | null
+          handled_updated_by: string | null
           last_seen_at: string
           last_status: string
           order_id: string | null
@@ -1289,8 +1294,13 @@ export type Database = {
           received_count: number
         }
         Insert: {
+          admin_note?: string | null
+          admin_note_updated_at?: string | null
+          admin_note_updated_by?: string | null
           first_seen_at?: string
           handled?: boolean
+          handled_updated_at?: string | null
+          handled_updated_by?: string | null
           last_seen_at?: string
           last_status: string
           order_id?: string | null
@@ -1301,8 +1311,13 @@ export type Database = {
           received_count?: number
         }
         Update: {
+          admin_note?: string | null
+          admin_note_updated_at?: string | null
+          admin_note_updated_by?: string | null
           first_seen_at?: string
           handled?: boolean
+          handled_updated_at?: string | null
+          handled_updated_by?: string | null
           last_seen_at?: string
           last_status?: string
           order_id?: string | null
