@@ -121,3 +121,39 @@ export const listConciergeSlots = createServerFn({ method: "GET" })
  * would drift out of sync with the /private-room page.
  */
 
+export type ConciergeBookingStatus = {
+  id: string;
+  status: string;
+  startsAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Reconcile booking cards the widget re-hydrates from persisted history
+ * with the current DB state. RLS scopes rows to the caller.
+ *
+ * Called on chat mount to catch the "user came back from checkout" case
+ * where a status change happened while the tab was gone and no realtime
+ * event was received.
+ */
+export const getConciergeBookingStatuses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ bookingIds: z.array(z.string().uuid()).max(50) }).parse(data),
+  )
+  .handler(async ({ data, context }): Promise<ConciergeBookingStatus[]> => {
+    if (data.bookingIds.length === 0) return [];
+    const { data: rows, error } = await context.supabase
+      .from("private_room_bookings")
+      .select("id, status, starts_at, updated_at")
+      .in("id", data.bookingIds);
+    if (error) throw new Error(error.message);
+    return (rows ?? []).map((r) => ({
+      id: r.id as string,
+      status: r.status as string,
+      startsAt: r.starts_at as string,
+      updatedAt: r.updated_at as string,
+    }));
+  });
+
+
