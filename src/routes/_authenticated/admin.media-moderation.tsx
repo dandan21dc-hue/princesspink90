@@ -273,6 +273,15 @@ function ItemRow({ row, status }: { row: ModerationRow; status: StatusFilter }) 
             Send back to pending
           </button>
         )}
+        <button
+          type="button"
+          onClick={confirmDelete}
+          disabled={busy}
+          className="ml-auto rounded-full border border-destructive/60 px-4 py-1.5 text-xs uppercase tracking-widest text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          title="Permanently remove this item and its media"
+        >
+          {removeItem.isPending ? "Deleting…" : "Delete"}
+        </button>
       </div>
     </li>
   );
