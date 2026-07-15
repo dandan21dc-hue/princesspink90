@@ -54,7 +54,8 @@ export default defineTool({
     }
 
     const checkInStatus = data.checked_in_at ? "checked_in" : "not_checked_in";
-    const summary = `RSVP confirmed for "${data.events?.title ?? "event"}". Entry code: ${data.entry_code}. Check-in status: ${checkInStatus}.`;
+    const eventTitle = Array.isArray(data.events) ? data.events[0]?.title : (data.events as { title?: string } | null)?.title;
+    const summary = `RSVP confirmed for "${eventTitle ?? "event"}". Entry code: ${data.entry_code}. Check-in status: ${checkInStatus}.`;
 
     return {
       content: [{ type: "text", text: summary }],
