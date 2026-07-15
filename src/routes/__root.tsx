@@ -105,8 +105,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         children: JSON.stringify({
           "@context": "https://schema.org",
           "@graph": [
-            { "@type": "Organization", name: "Midnight Glory", url: "https://princesspink90.lovable.app" },
-            { "@type": "WebSite", name: "Midnight Glory", url: "https://princesspink90.lovable.app" },
+            { "@type": "Organization", name: "Midnight Glory", url: "https://princesspink90.com" },
+            { "@type": "WebSite", name: "Midnight Glory", url: "https://princesspink90.com" },
           ],
         }),
       },

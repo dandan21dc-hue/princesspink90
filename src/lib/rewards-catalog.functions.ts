@@ -100,7 +100,7 @@ export const redeemReward = createServerFn({ method: "POST" })
             memberEmail,
             memberDisplayName: (profile as any)?.display_name ?? undefined,
             redeemedAt: redemption.created_at,
-            fulfillUrl: "https://princesspink90.lovable.app/admin/rewards",
+            fulfillUrl: "https://princesspink90.com/admin/rewards",
           },
         });
       }

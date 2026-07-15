@@ -92,7 +92,7 @@ export const template = {
     memberEmail: 'member@example.com',
     memberDisplayName: 'Jane Member',
     redeemedAt: new Date().toISOString(),
-    fulfillUrl: 'https://princesspink90.lovable.app/admin/rewards',
+    fulfillUrl: 'https://princesspink90.com/admin/rewards',
   },
 } satisfies TemplateEntry
 

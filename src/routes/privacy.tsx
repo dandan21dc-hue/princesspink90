@@ -16,10 +16,10 @@ export const Route = createFileRoute("/privacy")({
           "Our commitments on personal and sensitive health information handling, retention, and access.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://princesspink90.lovable.app/privacy" },
+      { property: "og:url", content: "https://princesspink90.com/privacy" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
-    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/privacy" }],
+    links: [{ rel: "canonical", href: "https://princesspink90.com/privacy" }],
   }),
   component: PrivacyPage,
 });

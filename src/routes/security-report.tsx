@@ -44,14 +44,14 @@ export const Route = createFileRoute("/security-report")({
       { property: "og:type", content: "article" },
       {
         property: "og:url",
-        content: "https://princesspink90.lovable.app/security-report",
+        content: "https://princesspink90.com/security-report",
       },
       // Don't index the security report by default — it's meant to be shared
       // via a direct link, not surfaced in search results.
       { name: "robots", content: "noindex,follow" },
     ],
     links: [
-      { rel: "canonical", href: "https://princesspink90.lovable.app/security-report" },
+      { rel: "canonical", href: "https://princesspink90.com/security-report" },
     ],
   }),
   loader: () => null,

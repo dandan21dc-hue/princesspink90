@@ -53,13 +53,13 @@ export const Route = createFileRoute("/")({
         content:
           "Browse upcoming glory hole nights, private rooms, and adult theatre takeovers. Consent-first, 18+ only.",
       },
-      { property: "og:url", content: "https://princesspink90.lovable.app/" },
-      { property: "og:image", content: "https://princesspink90.lovable.app/__l5e/assets-v1/c6cfc346-e3de-433e-b100-5c845b88d3d9/og-home.jpg" },
+      { property: "og:url", content: "https://princesspink90.com/" },
+      { property: "og:image", content: "https://princesspink90.com/__l5e/assets-v1/c6cfc346-e3de-433e-b100-5c845b88d3d9/og-home.jpg" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
-      { name: "twitter:image", content: "https://princesspink90.lovable.app/__l5e/assets-v1/c6cfc346-e3de-433e-b100-5c845b88d3d9/og-home.jpg" },
+      { name: "twitter:image", content: "https://princesspink90.com/__l5e/assets-v1/c6cfc346-e3de-433e-b100-5c845b88d3d9/og-home.jpg" },
     ],
-    links: [{ rel: "canonical", href: "https://princesspink90.lovable.app/" }],
+    links: [{ rel: "canonical", href: "https://princesspink90.com/" }],
   }),
   component: Home,
 });

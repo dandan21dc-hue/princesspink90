@@ -165,7 +165,7 @@ export const Route = createFileRoute("/api/admin-assistant/chat")({
         // Determine app URL for OpenRouter attribution headers.
         const origin = request.headers.get("origin") ?? "";
         const openrouter = createOpenRouterProvider(openrouterKey, {
-          appUrl: origin || "https://princesspink90.lovable.app",
+          appUrl: origin || "https://princesspink90.com",
           appTitle: "Midnight Glory 90 — Admin Command Center",
         });
         const model = openrouter("anthropic/claude-haiku-4.5");
