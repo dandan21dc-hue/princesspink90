@@ -11,7 +11,12 @@ interface Props {
   className?: string;
   onPinClick?: (pin: MapPin) => void;
   selectedPinId?: string | null;
+  isLoading?: boolean;
+  isError?: boolean;
+  errorMessage?: string | null;
+  showCount?: boolean;
 }
+
 
 export function MapPinsMap({ pins, className, onPinClick, selectedPinId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
