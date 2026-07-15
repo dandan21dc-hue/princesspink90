@@ -225,6 +225,25 @@ function AdminNowpaymentsEvents() {
               </SelectContent>
             </Select>
           </div>
+          <div>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground">
+              Reversal
+            </label>
+            <Select
+              value={reversal}
+              onValueChange={(v) => setReversal(v as ReversalFilter)}
+            >
+              <SelectTrigger className="mt-1 w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All events</SelectItem>
+                <SelectItem value="any">Any reversal</SelectItem>
+                <SelectItem value="revoked">Revoked (refund/reversed)</SelectItem>
+                <SelectItem value="suspended">Suspended (chargeback/dispute)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Button type="submit">Apply</Button>
           <Button
             type="button"
@@ -246,6 +265,8 @@ function AdminNowpaymentsEvents() {
             <span>Handled: {summary.handled}</span>
             <span>Unhandled: {summary.unhandled}</span>
             <span>Finished: {summary.finished}</span>
+            <span className="text-destructive">Revoked: {summary.revoked}</span>
+            <span className="text-destructive">Suspended: {summary.suspended}</span>
           </div>
         )}
       </Card>
