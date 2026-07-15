@@ -59,6 +59,8 @@ export function SupportChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_GREETING]);
   const [pending, setPending] = useState(false);
   const [bookingSlot, setBookingSlot] = useState<string | null>(null); // ISO of slot currently being booked
+  const [hydrated, setHydrated] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const feedRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -66,6 +68,83 @@ export function SupportChatWidget() {
 
   const fetchSlots = useServerFn(listConciergeSlots);
   const startBooking = useServerFn(createBookingInvoice);
+  const loadHistory = useServerFn(loadConciergeHistory);
+  const saveHistory = useServerFn(saveConciergeHistory);
+
+  // --- Persistence -----------------------------------------------------
+  // Signed-in → server row. Guest → localStorage. If a guest builds up
+  // history and then signs in, we merge their local turns into the DB
+  // once, then delete the local copy so the two stop drifting.
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrate = async (uid: string | null) => {
+      const localRaw = readLocal();
+      if (uid) {
+        try {
+          const remote = await loadHistory();
+          const remoteMsgs = sanitizeMessages(remote.messages);
+          let next: ChatMessage[];
+          if (remoteMsgs.length > 0) {
+            next = remoteMsgs;
+            // Merge any pre-signin guest turns onto the end, then upload.
+            if (localRaw.length > 1) {
+              next = [...remoteMsgs, ...localRaw.slice(1)];
+              await saveHistory({ data: { messages: next as unknown as never[] } });
+            }
+          } else if (localRaw.length > 0) {
+            next = localRaw;
+            await saveHistory({ data: { messages: next as unknown as never[] } });
+          } else {
+            next = [INITIAL_GREETING];
+          }
+          if (cancelled) return;
+          clearLocal();
+          setMessages(next);
+        } catch {
+          // Fall back to local so the widget still opens.
+          if (!cancelled) setMessages(localRaw.length ? localRaw : [INITIAL_GREETING]);
+        }
+      } else {
+        if (!cancelled) setMessages(localRaw.length ? localRaw : [INITIAL_GREETING]);
+      }
+      if (!cancelled) setHydrated(true);
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data.session?.user?.id ?? null;
+      setUserId(uid);
+      void hydrate(uid);
+    });
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      const uid = session?.user?.id ?? null;
+      setUserId((prev) => (prev === uid ? prev : uid));
+      // Re-hydrate on identity change (sign-in merges local; sign-out drops to guest).
+      setHydrated(false);
+      void hydrate(uid);
+    });
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist on every message change once we've finished hydrating.
+  useEffect(() => {
+    if (!hydrated) return;
+    if (userId) {
+      // Fire-and-forget; the next change will retry.
+      void saveHistory({ data: { messages: messages as unknown as never[] } }).catch(() => {});
+    } else {
+      writeLocal(messages);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, hydrated, userId]);
+
+
 
   // Auto-scroll to newest content.
   useEffect(() => {
