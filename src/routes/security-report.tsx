@@ -113,12 +113,21 @@ function SecurityReportPage() {
       </header>
 
       <article className="mx-auto max-w-3xl px-5 py-12">
-        <div
-          className="prose prose-invert max-w-none prose-headings:font-display prose-headings:font-bold prose-h1:text-3xl prose-h2:mt-10 prose-h2:text-2xl prose-h3:text-xl prose-a:text-primary prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:before:content-none prose-code:after:content-none prose-pre:bg-muted"
-          // Source is an author-controlled markdown file in public/, not user input.
-          dangerouslySetInnerHTML={{ __html: data.html }}
-        />
+        {error ? (
+          <p className="text-sm text-destructive">
+            Couldn't render the inline report. Use the download buttons above.
+          </p>
+        ) : !data ? (
+          <p className="text-sm text-muted-foreground">Loading report…</p>
+        ) : (
+          <div
+            className="prose prose-invert max-w-none prose-headings:font-display prose-headings:font-bold prose-h1:text-3xl prose-h2:mt-10 prose-h2:text-2xl prose-h3:text-xl prose-a:text-primary prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-sm prose-code:before:content-none prose-code:after:content-none prose-pre:bg-muted"
+            // Source is an author-controlled markdown file in public/, not user input.
+            dangerouslySetInnerHTML={{ __html: data.html }}
+          />
+        )}
       </article>
+
     </main>
   );
 }
