@@ -195,16 +195,25 @@ function AdminSettings() {
             required
             maxLength={255}
             value={email}
-            aria-invalid={emailError !== null}
-            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={emailError !== null || serverEmailError !== null}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              // Editing dismisses any prior server-side rejection for this field.
+              if (serverEmailError) setServerEmailError(null);
+            }}
             className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
-              emailError ? "border-destructive" : "border-border"
+              emailError || serverEmailError ? "border-destructive" : "border-border"
             }`}
           />
-          {emailError && (
+          {emailError ? (
             <div className="mt-1 text-[11px] text-destructive">{emailError}</div>
-          )}
+          ) : serverEmailError ? (
+            <div className="mt-1 text-[11px] text-destructive">
+              Server rejected this email: {serverEmailError}
+            </div>
+          ) : null}
         </Field>
+
         <Field
           label="FetLife handle"
           hint="3-20 characters: letters, digits, underscore, or hyphen. Pasting a full profile URL is fine — it will be normalized."
