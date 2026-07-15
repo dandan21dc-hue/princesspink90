@@ -182,6 +182,7 @@ export function SupportChatWidget() {
 
   // Persist on every message change once we've finished hydrating.
   useEffect(() => {
+    messagesRef.current = messages;
     if (!hydrated) return;
     if (userId) {
       // Fire-and-forget; the next change will retry.
