@@ -60,6 +60,7 @@ const GROUPS: NavGroup[] = [
     label: "Personal",
     items: [
       { label: "My Bookings", to: "/bookings", icon: Ticket },
+      { label: "My Orders", to: "/account/orders", icon: ScrollText },
       { label: "Verify ID", to: "/verify", icon: ShieldCheck },
       { label: "Co-Host With Me", to: "/cohost-apply", icon: Users },
       { label: "Support Chat", to: "/support", icon: MessageCircle },
