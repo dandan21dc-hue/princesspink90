@@ -388,7 +388,7 @@ function AdminNowpaymentsEvents() {
         showing={items.length}
         onPrev={() => setPage((p) => Math.max(1, p - 1))}
         onNext={() => setPage((p) => p + 1)}
-        onJump={(p) => setPage(p)}
+        onJump={(p: number) => setPage(p)}
         loading={list.isFetching}
       />
 
