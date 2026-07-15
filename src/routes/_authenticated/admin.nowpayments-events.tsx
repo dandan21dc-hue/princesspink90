@@ -963,6 +963,74 @@ function AdminNowpaymentsEvents() {
           <span className="text-xs text-muted-foreground">
             {selected.size} selected
           </span>
+
+          <div className="flex items-center gap-1.5">
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              last_status
+            </label>
+            <Select
+              value={status}
+              onValueChange={(v) => {
+                resetToFirstPage();
+                setStatus(v);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[130px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <form
+            className="flex items-center gap-1.5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              resetToFirstPage();
+              setSearch(searchInput.trim());
+            }}
+          >
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              payment_id
+            </label>
+            <Input
+              className="h-8 w-[180px] font-mono text-xs"
+              value={searchInput}
+              onChange={(ev) => setSearchInput(ev.target.value)}
+              placeholder="filter…"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              variant="secondary"
+              className="h-8"
+              disabled={searchInput.trim() === search.trim()}
+            >
+              Apply
+            </Button>
+            {search && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-8"
+                onClick={() => {
+                  resetToFirstPage();
+                  setSearchInput("");
+                  setSearch("");
+                }}
+              >
+                ×
+              </Button>
+            )}
+          </form>
+
           <div className="ml-auto flex flex-wrap items-center gap-2">
             <Button
               type="button"
