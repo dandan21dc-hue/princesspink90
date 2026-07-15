@@ -450,6 +450,13 @@ function actionBadgeClass(action: ModerationAuditEntry["action"]): string {
 }
 
 function AuditRow({ entry, showTitle = false }: { entry: ModerationAuditEntry; showTitle?: boolean }) {
+  const actionLabel: Record<ModerationAuditEntry["action"], string> = {
+    approved: "Approved",
+    rejected: "Rejected",
+    pending: "Sent back to pending",
+    deleted: "Deleted",
+  };
+  const actor = entry.actor_email ?? entry.actor_id ?? "unknown admin";
   return (
     <li className="flex flex-wrap items-baseline gap-2 border-b border-border/40 py-2 text-xs last:border-b-0">
       <span
@@ -457,32 +464,38 @@ function AuditRow({ entry, showTitle = false }: { entry: ModerationAuditEntry; s
           "rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest",
           actionBadgeClass(entry.action),
         )}
+        aria-label={`Action: ${actionLabel[entry.action]}`}
       >
-        {entry.action}
+        <span aria-hidden="true">{entry.action}</span>
       </span>
       {showTitle && (
         <span className="font-semibold text-foreground">
           {entry.item_title}
           {entry.item_kind && (
             <span className="ml-1 text-[10px] uppercase tracking-widest text-muted-foreground">
-              · {entry.item_kind}
+              <span aria-hidden="true">· </span>
+              {entry.item_kind}
             </span>
           )}
         </span>
       )}
       <span className="text-muted-foreground">
-        by {entry.actor_email ?? entry.actor_id ?? "unknown admin"}
+        by {actor}
       </span>
       <span className="text-muted-foreground">
-        · {new Date(entry.created_at).toLocaleString()}
+        <span aria-hidden="true">· </span>
+        <time dateTime={entry.created_at}>
+          {new Date(entry.created_at).toLocaleString()}
+        </time>
       </span>
       {entry.previous_status && entry.previous_status !== entry.action && (
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-          (was {entry.previous_status})
+          (previously {entry.previous_status})
         </span>
       )}
       {entry.notes && (
         <div className="mt-1 w-full rounded border border-border/60 bg-muted/30 p-2 text-[11px] italic text-muted-foreground">
+          <span className="sr-only">Moderator note: </span>
           “{entry.notes}”
         </div>
       )}
@@ -490,19 +503,24 @@ function AuditRow({ entry, showTitle = false }: { entry: ModerationAuditEntry; s
   );
 }
 
-function ItemHistory({ contentItemId }: { contentItemId: string }) {
+function ItemHistory({ contentItemId, itemTitle }: { contentItemId: string; itemTitle?: string }) {
   const listFn = useServerFn(adminListModerationAudit);
+  const headingId = `moderation-history-heading-${contentItemId}`;
   const q = useQuery({
     queryKey: ["admin-moderation-audit", contentItemId],
     queryFn: () => listFn({ data: { contentItemId, limit: 50 } }),
   });
 
   if (q.isLoading) {
-    return <p className="text-xs text-muted-foreground">Loading history…</p>;
+    return (
+      <p role="status" aria-live="polite" className="text-xs text-muted-foreground">
+        Loading history{itemTitle ? ` for ${itemTitle}` : ""}…
+      </p>
+    );
   }
   if (q.error) {
     return (
-      <p className="text-xs text-destructive">
+      <p role="alert" className="text-xs text-destructive">
         Couldn't load history: {(q.error as Error).message}
       </p>
     );
@@ -516,18 +534,26 @@ function ItemHistory({ contentItemId }: { contentItemId: string }) {
     );
   }
   return (
-    <div className="rounded-lg border border-border/60 bg-background/60 p-3">
-      <div className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-        Moderation history · {entries.length} decision{entries.length === 1 ? "" : "s"}
-      </div>
-      <ul>
+    <section
+      role="region"
+      aria-labelledby={headingId}
+      className="rounded-lg border border-border/60 bg-background/60 p-3"
+    >
+      <h3
+        id={headingId}
+        className="mb-2 text-[10px] font-normal uppercase tracking-widest text-muted-foreground"
+      >
+        Moderation history{itemTitle ? ` for ${itemTitle}` : ""} · {entries.length} decision{entries.length === 1 ? "" : "s"}
+      </h3>
+      <ul aria-label="Moderation decisions, newest first">
         {entries.map((e) => (
           <AuditRow key={e.id} entry={e} />
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
+
 
 type AuditAction = "approved" | "rejected" | "pending" | "deleted";
 
