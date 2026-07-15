@@ -62,7 +62,7 @@ export const template = {
   subject: (data: Record<string, any>) =>
     `New partnership enquiry — ${data.name || 'unknown'}${data.organization ? ` (${data.organization})` : ''}`,
   displayName: 'Partnership — internal admin notification',
-  to: 'danielle@princesspink90.com',
+  to: 'midnight-glory@princesspink90.com',
   previewData: {
     name: 'Jamie Rivera',
     email: 'jamie@somewhere.com',

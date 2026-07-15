@@ -108,7 +108,7 @@ export const template = {
     reasonLabel: 'Payment refunded',
     membershipLabel: '30-day All-Access Pass',
     effectiveDateLabel: '15 July 2026',
-    supportUrl: 'mailto:support@princesspink90.com',
+    supportUrl: 'mailto:midnight-glory@princesspink90.com',
     dashboardUrl: 'https://princesspink90.com/account',
   },
 } satisfies TemplateEntry
