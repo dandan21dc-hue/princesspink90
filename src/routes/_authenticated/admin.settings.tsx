@@ -209,22 +209,12 @@ export function AdminSettings() {
   // we're about to save — catches any drift between the preview and the
   // normalized handle (whitespace, case, stray path segments) before the
   // admin confirms. Save is disabled when the URL is missing or mismatched.
-  const newFetlifeUrl = fetlifeNormalized
-    ? `https://fetlife.com/${fetlifeNormalized}`
-    : "";
-  const fetlifeUrlMatchesHandle = (() => {
-    if (!fetlifeNormalized) return false;
-    try {
-      const u = new URL(newFetlifeUrl);
-      if (u.host.toLowerCase() !== "fetlife.com") return false;
-      const handleFromUrl = u.pathname.replace(/^\/+|\/+$/g, "");
-      return handleFromUrl === fetlifeNormalized;
-    } catch {
-      return false;
-    }
-  })();
+  // Both helpers are pure and tested in src/lib/fetlife-url.test.ts.
+  const newFetlifeUrl = buildFetlifeUrl(fetlife);
+  const fetlifeUrlMatchesHandle = fetlifeUrlRoundTripsToHandle(fetlife);
   const fetlifeConfirmBlocked =
     fetlifeError !== null || !fetlifeUrlMatchesHandle;
+
 
   const sessionInputsInvalid =
     priceError !== null ||
