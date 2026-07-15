@@ -46,6 +46,8 @@ import { RoleGuard } from "@/components/RoleGuard";
 import { AddVenuePinDialog } from "@/components/AddVenuePinDialog";
 import { MapPinsMap } from "@/components/MapPinsMap";
 import { AdminCommandCenter } from "@/components/AdminCommandCenter";
+import { MaintenanceModeToggle } from "@/components/MaintenanceModeToggle";
+
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
