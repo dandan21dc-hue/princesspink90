@@ -356,6 +356,11 @@ function AdminNowpaymentsEvents() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PayloadDialog
+        event={payloadEvent}
+        onClose={() => setPayloadEvent(null)}
+      />
     </Shell>
   );
 }
