@@ -42,6 +42,8 @@ import { SubscriberDiscountPanel } from "@/components/SubscriberDiscountPanel";
 import { RoleGuard } from "@/components/RoleGuard";
 import { AddVenuePinDialog } from "@/components/AddVenuePinDialog";
 import { MapPinsMap } from "@/components/MapPinsMap";
+import { AdminCommandCenter } from "@/components/AdminCommandCenter";
+
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · AFTERDARK" }] }),
@@ -184,8 +186,9 @@ function Dashboard() {
         </aside>
 
         <main className="min-w-0">
-          <HomeView />
+          <HomeView isAdmin={isAdmin} />
         </main>
+
       </div>
     </section>
   );
@@ -214,7 +217,7 @@ function NavButton({
   );
 }
 
-function HomeView() {
+function HomeView({ isAdmin }: { isAdmin: boolean }) {
   const myEventsFn = useServerFn(listMyEvents);
   const myRsvpsFn = useServerFn(listMyRsvps);
   const complianceFn = useServerFn(getMyEventsCompliance);
@@ -224,10 +227,18 @@ function HomeView() {
 
   return (
     <div className="space-y-8">
+      {isAdmin && (
+        <div>
+          <h2 className="mb-4 font-display text-lg">Admin Command Center</h2>
+          <AdminCommandCenter />
+        </div>
+      )}
       <PerksWidget />
       <SubscriberDiscountPanel />
 
       <VenueMapPreview />
+
+
 
 
       <div className="grid gap-8 xl:grid-cols-2">
