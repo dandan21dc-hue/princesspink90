@@ -297,6 +297,9 @@ export function AdminSettings() {
           description: `${message} — public link still points to ${attempt.oldHandle ?? "(none)"}.`,
           duration: 8000,
         });
+        // Send focus back to the handle input so the admin can immediately
+        // edit and retry — the field is where the failure happened.
+        fetlifeInputRef.current?.focus();
       } else {
         toast.error("Couldn't save settings", { description: message });
       }
