@@ -411,6 +411,72 @@ describe("admin settings — FetLife confirmation gate", () => {
       (screen.getByDisplayValue("Retry-Handle") as HTMLInputElement).value,
     ).toBe("Retry-Handle");
   });
+
+  it("success toast copy and live-handle reminder reflect the newly saved FetLife handle", async () => {
+    // Regression guard: after a successful confirmed save, the success toast
+    // title must count the FetLife change, its description must show the new
+    // handle in the "FetLife handle → <new>" line (never the stale saved
+    // value), and the Live public link preview must render the NEW
+    // https://fetlife.com/<new> URL with the "Matches saved" badge — i.e. the
+    // saved snapshot has advanced to the draft.
+    const NEW_HANDLE = "Fresh-Public-Handle_42";
+
+    renderPage();
+    await waitForFormLoaded();
+
+    const fetInput = screen.getByDisplayValue(SAVED.fetlife_handle) as HTMLInputElement;
+    fireEvent.change(fetInput, { target: { value: NEW_HANDLE } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^save$/i })[0]!);
+
+    const dialog = await screen.findByRole("alertdialog");
+    // Prime the post-save refetch so the saved snapshot advances to the new
+    // handle — otherwise ContactLinkPreview would still see draft ≠ saved.
+    mockGetSiteSettings.mockImplementation(async () => ({
+      ...SAVED,
+      fetlife_handle: NEW_HANDLE,
+    }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /yes, update handle/i }));
+
+    await waitFor(() => {
+      expect(mockUpdateSiteSettings).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(mockToast.success).toHaveBeenCalledTimes(1);
+    });
+
+    // 1. Toast title counts the FetLife change (exactly one field updated).
+    const [title, opts] = mockToast.success.mock.calls[0]! as [
+      string,
+      { description?: React.ReactNode },
+    ];
+    expect(title).toMatch(/settings saved — 1 field updated/i);
+
+    // 2. Toast description lists the FetLife change with the NEW handle
+    //    (never the previously-saved handle).
+    const { container: descContainer, unmount: unmountDesc } = render(
+      <>{opts.description}</>,
+    );
+    expect(descContainer.textContent).toContain(`FetLife handle → ${NEW_HANDLE}`);
+    expect(descContainer.textContent).not.toContain(SAVED.fetlife_handle);
+    unmountDesc();
+
+    // 3. Live public link preview now shows the NEW URL and the "Matches
+    //    saved" reminder (draft === saved after the refetch).
+    await waitFor(() => {
+      expect(screen.getAllByText(/matches saved/i).length).toBeGreaterThan(0);
+    });
+    const liveLink = screen.getByRole("link", {
+      name: `https://fetlife.com/${NEW_HANDLE}`,
+    }) as HTMLAnchorElement;
+    expect(liveLink.getAttribute("href")).toBe(`https://fetlife.com/${NEW_HANDLE}`);
+    // The stale saved URL must NOT still be linked in the preview.
+    expect(
+      screen.queryByRole("link", {
+        name: `https://fetlife.com/${SAVED.fetlife_handle}`,
+      }),
+    ).toBeNull();
+    expect(screen.queryByText(/unsaved changes/i)).toBeNull();
+  });
 });
 
 describe("admin settings — FetLife handle client-side normalization + validation", () => {
