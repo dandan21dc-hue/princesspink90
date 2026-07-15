@@ -18,6 +18,8 @@ import {
   SESSION_DURATION_MAX_MINUTES,
   SESSION_PRICE_DEFAULT_CENTS,
   SESSION_DURATION_DEFAULT_MINUTES,
+  normalizeFetlifeHandle,
+  validateFetlifeHandle,
 } from "@/lib/settings.functions";
 import {
   getReminderJobConfig,
