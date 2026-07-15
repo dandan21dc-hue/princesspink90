@@ -1898,9 +1898,15 @@ export const getCrmUserDetail = createServerFn({ method: "GET" })
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(data.userId);
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("user_id, display_name, staff_notes, account_restricted, created_at")
+      .select("user_id, display_name, account_restricted, created_at")
       .eq("user_id", data.userId)
       .maybeSingle();
+    const { data: staffNotesRow } = await supabaseAdmin
+      .from("profile_staff_notes")
+      .select("notes")
+      .eq("user_id", data.userId)
+      .maybeSingle();
+
 
     const [{ data: rsvps }, { data: roomBookings }, { data: pantyOrders }, { data: memberships }] =
       await Promise.all([
