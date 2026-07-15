@@ -1269,7 +1269,6 @@ export type Database = {
       nowpayments_ipn_events: {
         Row: {
           first_seen_at: string
-          first_status: string
           handled: boolean
           last_seen_at: string
           last_status: string
@@ -1282,7 +1281,6 @@ export type Database = {
         }
         Insert: {
           first_seen_at?: string
-          first_status: string
           handled?: boolean
           last_seen_at?: string
           last_status: string
@@ -1295,7 +1293,6 @@ export type Database = {
         }
         Update: {
           first_seen_at?: string
-          first_status?: string
           handled?: boolean
           last_seen_at?: string
           last_status?: string
