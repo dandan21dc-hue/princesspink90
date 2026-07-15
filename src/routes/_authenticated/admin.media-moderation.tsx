@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { amIAdmin } from "@/lib/admin.functions";
 import {
@@ -526,29 +526,122 @@ function ItemHistory({ contentItemId }: { contentItemId: string }) {
   );
 }
 
+type AuditAction = "approved" | "rejected" | "pending" | "deleted";
+
 function RecentActivityPanel() {
   const listFn = useServerFn(adminListModerationAudit);
+  const [actorEmailInput, setActorEmailInput] = useState("");
+  const [actorEmail, setActorEmail] = useState("");
+  const [action, setAction] = useState<"" | AuditAction>("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+
+  // Debounce the email input so we don't refetch on every keystroke.
+  useEffect(() => {
+    const t = setTimeout(() => setActorEmail(actorEmailInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [actorEmailInput]);
+
+  const filters = {
+    limit: 50,
+    ...(actorEmail ? { actorEmail } : {}),
+    ...(action ? { action } : {}),
+    ...(from ? { from: new Date(from).toISOString() } : {}),
+    // Treat the "to" date as end-of-day (local) for inclusive filtering.
+    ...(to
+      ? { to: new Date(new Date(to).getTime() + 24 * 60 * 60 * 1000 - 1).toISOString() }
+      : {}),
+  };
+
   const q = useQuery({
-    queryKey: ["admin-moderation-audit", "recent"],
-    queryFn: () => listFn({ data: { limit: 50 } }),
+    queryKey: ["admin-moderation-audit", "recent", filters],
+    queryFn: () => listFn({ data: filters }),
   });
+
+  const filtersActive = Boolean(actorEmail || action || from || to);
+  const clearFilters = () => {
+    setActorEmailInput("");
+    setActorEmail("");
+    setAction("");
+    setFrom("");
+    setTo("");
+  };
 
   return (
     <section className="mt-10 border-t border-border/60 pt-6">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <h2 className="font-display text-lg font-bold">Recent moderation activity</h2>
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
-          Last 50 decisions across all items
+          Last 50 decisions{filtersActive ? " matching filters" : " across all items"}
         </span>
       </div>
+
+      <div className="mb-4 grid gap-3 rounded-lg border border-border/60 bg-background/40 p-3 sm:grid-cols-2 lg:grid-cols-5">
+        <label className="flex flex-col gap-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+          Actor email
+          <input
+            type="search"
+            value={actorEmailInput}
+            onChange={(e) => setActorEmailInput(e.target.value)}
+            placeholder="admin@…"
+            className="rounded-md border border-border/60 bg-background/60 p-1.5 text-xs normal-case tracking-normal text-foreground"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+          Action
+          <select
+            value={action}
+            onChange={(e) => setAction(e.target.value as "" | AuditAction)}
+            className="rounded-md border border-border/60 bg-background/60 p-1.5 text-xs normal-case tracking-normal text-foreground"
+          >
+            <option value="">Any</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="pending">Sent back to pending</option>
+            <option value="deleted">Deleted</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+          From
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            max={to || undefined}
+            className="rounded-md border border-border/60 bg-background/60 p-1.5 text-xs normal-case tracking-normal text-foreground"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+          To
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            min={from || undefined}
+            className="rounded-md border border-border/60 bg-background/60 p-1.5 text-xs normal-case tracking-normal text-foreground"
+          />
+        </label>
+        <div className="flex items-end">
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={!filtersActive}
+            className="w-full rounded-md border border-border/60 px-3 py-1.5 text-[11px] uppercase tracking-widest text-muted-foreground hover:border-primary/60 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Clear filters
+          </button>
+        </div>
+      </div>
+
       {q.isLoading && <p className="text-sm text-muted-foreground">Loading…</p>}
       {q.error && (
         <p className="text-sm text-destructive">{(q.error as Error).message}</p>
       )}
       {q.data && q.data.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          No moderation decisions have been recorded yet. Approve, reject, or delete an item
-          above and it will show up here.
+          {filtersActive
+            ? "No decisions match those filters. Try widening the range or clearing filters."
+            : "No moderation decisions have been recorded yet. Approve, reject, or delete an item above and it will show up here."}
         </p>
       )}
       {q.data && q.data.length > 0 && (
