@@ -108,27 +108,20 @@ const startInput = z.object({
 });
 
 /**
- * Auth-required: start the Create Booking workflow for a chat-selected slot.
- * Thin wrapper around `createBookingInvoice` so the chat has a single,
- * concierge-scoped API (fixed `roomType`, party size, environment) instead
- * of duplicating booking-invoice knowledge on the client.
+ * The chat widget triggers the actual booking by calling
+ * `createBookingInvoice` from `@/lib/bookingInvoice.functions` directly with
+ * `roomType: "private_room"` and the concierge-selected slot. That server
+ * function already:
+ *   - Requires the user to be signed in (Supabase auth middleware).
+ *   - Reads pricing/duration from `site_settings` server-side.
+ *   - Enforces the 1-hour lead time.
+ *   - Rechecks `get_private_room_busy` to reject stolen slots.
+ *   - Inserts the `pending` `private_room_bookings` row + returns the
+ *     NOWPayments invoice URL that the IPN webhook flips to `confirmed`.
+ *
+ * We intentionally do NOT wrap it in a second concierge-scoped server
+ * function: TanStack's server-fn RPC boundary makes chaining server fns
+ * from within another handler brittle, and duplicating the logic here
+ * would drift out of sync with the /private-room page.
  */
-export const startConciergeBooking = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => startInput.parse(data))
-  .handler(async ({ data }) => {
-    const environment = (process.env.NODE_ENV === "production" ? "live" : "sandbox") as
-      | "sandbox"
-      | "live";
-    // Reuse the exact server-side booking workflow used by /private-room.
-    return createBookingInvoice({
-      data: {
-        environment,
-        returnOrigin: data.returnOrigin,
-        roomType: "private_room",
-        bookingStartsAt: data.startsAt,
-        bookingNotes: data.notes,
-        bookingPartySize: 1,
-      },
-    });
-  });
+
