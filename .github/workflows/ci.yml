@@ -607,6 +607,13 @@ jobs:
             test-results/
           retention-days: 7
 
+      - name: Dump dev server log on failure
+        if: failure()
+        run: tail -n 200 /tmp/dev-server.log || true
+
+
+
+
 
 
   # Notification gate: opens (or updates) a single tracking GitHub Issue
