@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { amIAdmin } from "@/lib/admin.functions";
+import { reportLovableError } from "@/lib/lovable-error-reporting";
 import {
   getSiteSettings,
   updateSiteSettings,
