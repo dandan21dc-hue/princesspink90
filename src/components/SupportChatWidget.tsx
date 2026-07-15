@@ -371,7 +371,7 @@ export function SupportChatWidget() {
           ...next,
           {
             role: "assistant",
-            parts: [{ type: "text", text: statusNarration(status, startsAt) }],
+            parts: [{ type: "text", text: statusNarration(status, startsAt, timezone) }],
           },
         ];
       }
