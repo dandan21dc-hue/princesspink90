@@ -62,9 +62,34 @@ function AdminMapPins() {
   const deleteFn = useServerFn(deleteMapPin);
   const reorderFn = useServerFn(reorderMapPins);
 
+  const REFRESH_STORAGE_KEY = "admin-map-pins:refresh-interval-ms";
+  const REFRESH_OPTIONS = [
+    { value: 0, label: "Off" },
+    { value: 30_000, label: "30s" },
+    { value: 60_000, label: "1m" },
+    { value: 300_000, label: "5m" },
+  ] as const;
+  const [refreshIntervalMs, setRefreshIntervalMs] = useState<number>(0);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(REFRESH_STORAGE_KEY);
+    const parsed = raw ? Number(raw) : 0;
+    if (REFRESH_OPTIONS.some((o) => o.value === parsed)) setRefreshIntervalMs(parsed);
+  }, []);
+  const setRefreshInterval = (ms: number) => {
+    setRefreshIntervalMs(ms);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(REFRESH_STORAGE_KEY, String(ms));
+    }
+    const label = REFRESH_OPTIONS.find((o) => o.value === ms)?.label ?? `${ms}ms`;
+    toast.success(ms === 0 ? "Auto-refresh off" : `Auto-refresh every ${label}`);
+  };
+
   const { data: pins = [], isLoading, isFetching, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["admin-map-pins"],
     queryFn: () => listFn(),
+    refetchInterval: refreshIntervalMs > 0 ? refreshIntervalMs : false,
+    refetchIntervalInBackground: false,
   });
 
   const handleRefresh = async () => {
