@@ -53,6 +53,40 @@ const auditSearchSchema = z.object({
   pageSize: fallback(z.number().int(), 10).default(10),
 });
 
+/**
+ * Belt-and-braces validator for the exact URL strings we're about to render
+ * (and copy) in the FetLife confirmation dialog. `validateFetlifeHandle`
+ * already checks the handle; this checks the *rendered URL* end-to-end so we
+ * catch drift between the stored handle and what the dialog is actually
+ * going to send visitors to. Returns a short human-readable warning, or
+ * `null` when the URL is a clean `https://fetlife.com/<handle>`.
+ */
+function validateFetlifeUrl(url: string): string | null {
+  if (!url) return "URL is empty.";
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return "URL isn't a valid web address.";
+  }
+  if (parsed.protocol !== "https:") return "URL must use https://.";
+  const host = parsed.host.toLowerCase();
+  if (host !== "fetlife.com" && host !== "www.fetlife.com") {
+    return `URL host must be fetlife.com (got ${parsed.host}).`;
+  }
+  if (parsed.search || parsed.hash) {
+    return "URL must not contain a query string or fragment.";
+  }
+  const path = parsed.pathname.replace(/^\/+/, "").replace(/\/+$/, "");
+  if (!path) return "URL is missing the profile handle.";
+  if (path.includes("/")) return "URL must point directly at a profile, not a sub-page.";
+  const handleError = validateFetlifeHandle(path);
+  if (handleError) return handleError;
+  return null;
+}
+
+
+
 export const Route = createFileRoute("/_authenticated/admin/settings")({
   head: () => ({ meta: [{ title: "Site settings · Admin" }] }),
   validateSearch: zodValidator(auditSearchSchema),
