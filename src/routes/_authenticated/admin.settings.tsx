@@ -555,16 +555,18 @@ export function AdminSettings() {
           ) : null}
         </Field>
 
-        <Field
-          label="FetLife handle"
-          hint="3-20 characters: letters, digits, underscore, or hyphen. Pasting a full profile URL is fine — it will be normalized."
-        >
+        <Field label="FetLife handle">
           <input
             ref={fetlifeInputRef}
             required
             maxLength={100}
             value={fetlife}
             aria-invalid={fetlifeError !== null || serverFetlifeError !== null}
+            // Point AT to both the hint (always) and the error message
+            // (rendered even when empty so the id stays valid; screen
+            // readers ignore empty text). aria-errormessage stays for UAs
+            // that prefer the newer attribute.
+            aria-describedby="fetlife-handle-hint fetlife-handle-error"
             aria-errormessage={
               fetlifeError || serverFetlifeError ? "fetlife-handle-error" : undefined
             }
@@ -578,18 +580,33 @@ export function AdminSettings() {
               fetlifeError || serverFetlifeError ? "border-destructive" : "border-border"
             }`}
           />
+          <div
+            id="fetlife-handle-hint"
+            className="mt-1 text-[11px] text-muted-foreground"
+          >
+            3-20 characters: letters, digits, underscore, or hyphen. Pasting a
+            full profile URL is fine — it will be normalized.
+          </div>
           <FetlifeHandleLivePreview raw={fetlife} normalized={fetlifeNormalized} url={newFetlifeUrl} />
 
-          {/* role="alert" + aria-live announce the error the moment it appears
-              (typed input, or after a server rejection focuses the field). */}
+          {/*
+            Visible, static error target for aria-describedby /
+            aria-errormessage. Kept in the DOM at all times (empty text
+            when valid) so the id reference never dangles. Not itself a
+            live region — announcements are handled by the sibling
+            <FetlifeErrorAnnouncer /> so screen readers hear a single
+            crisp message on transitions rather than on every keystroke.
+          */}
           <div
             id="fetlife-handle-error"
-            role="alert"
-            aria-live="polite"
-            className="mt-1 text-[11px] text-destructive"
+            className="mt-1 min-h-[1em] text-[11px] text-destructive"
           >
             {fetlifeError ?? (serverFetlifeError ? `Server rejected this handle: ${serverFetlifeError}` : "")}
           </div>
+          <FetlifeErrorAnnouncer
+            clientError={fetlifeError}
+            serverError={serverFetlifeError}
+          />
         </Field>
         <ContactLinkPreview
           draftEmail={emailError ? null : emailTrimmed}
@@ -1594,6 +1611,62 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       {children}
       {hint && <div className="mt-1 text-[11px] text-muted-foreground">{hint}</div>}
     </label>
+  );
+}
+
+/**
+ * Dedicated screen-reader announcer for FetLife handle validation errors.
+ *
+ * The visible error message under the input is a static describedby target
+ * (not itself a live region), so screen readers describe the field's error
+ * on focus without also chattering on every keystroke. This component
+ * renders a visually-hidden polite live region that only updates when the
+ * invalid state transitions:
+ *
+ * - valid → invalid: announces "FetLife handle is invalid: <message>"
+ * - invalid → invalid with a new message: re-announces the new message
+ * - invalid → valid: announces "FetLife handle is valid"
+ * - valid → valid: silent (no update, so no announcement)
+ *
+ * Client-side errors take precedence over server-side ones so the admin
+ * hears the actionable message first.
+ */
+function FetlifeErrorAnnouncer({
+  clientError,
+  serverError,
+}: {
+  clientError: string | null;
+  serverError: string | null;
+}) {
+  const [message, setMessage] = useState("");
+  const prevInvalidRef = useRef(false);
+  const prevTextRef = useRef<string | null>(null);
+  const activeError = clientError ?? serverError;
+  const isInvalid = activeError !== null;
+  useEffect(() => {
+    if (isInvalid) {
+      const text = clientError
+        ? `FetLife handle is invalid: ${clientError}`
+        : `Server rejected FetLife handle: ${serverError}`;
+      if (!prevInvalidRef.current || prevTextRef.current !== text) {
+        setMessage(text);
+        prevTextRef.current = text;
+      }
+    } else if (prevInvalidRef.current) {
+      setMessage("FetLife handle is valid.");
+      prevTextRef.current = null;
+    }
+    prevInvalidRef.current = isInvalid;
+  }, [isInvalid, clientError, serverError]);
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className="sr-only"
+    >
+      {message}
+    </div>
   );
 }
 
