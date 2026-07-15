@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import mapboxgl from "mapbox-gl";
+import { getPublicMapboxToken } from "@/lib/mapbox-token";
 
-const PUBLIC_TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
+const TOKEN_CHECK = getPublicMapboxToken();
+const PUBLIC_TOKEN = TOKEN_CHECK.ok ? TOKEN_CHECK.token : undefined;
 
 interface Props {
   latitude: number | null;
@@ -90,9 +92,9 @@ export function PinPickerMap({ latitude, longitude, onChange, className }: Props
   if (!PUBLIC_TOKEN) {
     return (
       <div
-        className={`flex items-center justify-center rounded-lg border border-border bg-card/40 p-4 text-xs text-muted-foreground ${className ?? ""}`}
+        className={`flex items-center justify-center rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-xs text-destructive ${className ?? ""}`}
       >
-        Map preview unavailable — Mapbox public token is not configured.
+        Map preview unavailable — {TOKEN_CHECK.ok ? "Mapbox token error." : TOKEN_CHECK.error}
       </div>
     );
   }

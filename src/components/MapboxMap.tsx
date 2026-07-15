@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { getPublicMapboxToken } from "@/lib/mapbox-token";
 
-const PUBLIC_TOKEN = import.meta.env.VITE_LOVABLE_CONNECTOR_MAPBOX_PUBLIC_TOKEN as string | undefined;
+const TOKEN_CHECK = getPublicMapboxToken();
+const PUBLIC_TOKEN = TOKEN_CHECK.ok ? TOKEN_CHECK.token : undefined;
 
 interface MapboxMapProps {
   /** Latitude of the map center. */
@@ -142,8 +144,8 @@ export function MapboxMap({
 
   if (!PUBLIC_TOKEN) {
     return (
-      <div className={`${className} grid place-items-center rounded-2xl border border-dashed border-border/60 bg-card/40 text-sm text-muted-foreground`}>
-        Mapbox token not configured.
+      <div className={`${className} grid place-items-center rounded-2xl border border-dashed border-destructive/50 bg-destructive/10 p-4 text-center text-sm text-destructive`}>
+        {TOKEN_CHECK.ok ? "Mapbox token error." : TOKEN_CHECK.error}
       </div>
     );
   }
