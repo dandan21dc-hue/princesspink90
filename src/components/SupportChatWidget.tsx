@@ -40,6 +40,8 @@ type BookingStatus =
   | "refunded"
   | string;
 
+type LeadDetails = { name: string; email: string; phone: string };
+
 type MessagePart =
   | { type: "text"; text: string }
   | { type: "slots"; slots: ConciergeSlot[] }
@@ -49,6 +51,13 @@ type MessagePart =
       bookingId: string;
       startsAt: string;
       status: BookingStatus;
+    }
+  | {
+      type: "lead";
+      /** Slot the form was raised for so we can resume the confirm on submit. */
+      slot: ConciergeSlot;
+      /** Filled once the user submits — freezes the card into a summary. */
+      submitted?: LeadDetails;
     };
 
 type ChatMessage = {
