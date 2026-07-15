@@ -299,7 +299,8 @@ function SecurityFindingsView() {
                   </button>
                   {isOpen && (
                     <div className="border-t border-border/60 p-4">
-                      <ol className="space-y-3">
+                      <DiffPanel latest={g.rows[0]} previous={g.rows[1]} />
+                      <ol className="mt-4 space-y-3">
                         {g.rows.map((r, i) => {
                           const prev = g.rows[i + 1];
                           const changed = prev && prev.state !== r.state;
