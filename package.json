@@ -21,6 +21,7 @@
     "validate:security-config": "node scripts/validate-security-config.mjs",
     "security:baseline:update": "bash scripts/update-security-baseline.sh",
     "security:changelog": "node scripts/security-changelog.mjs",
+    "security:fixed-issue": "node scripts/security-fixed-issue.mjs",
     "security:gate:local": "bash scripts/reproduce-security-gate.sh",
     "hooks:install": "bash scripts/install-git-hooks.sh",
     "security:artifacts": "bash scripts/fetch-security-artifacts.sh",
