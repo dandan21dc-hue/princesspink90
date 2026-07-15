@@ -204,6 +204,10 @@ function AdminMapPins() {
     },
   });
 
+  const dragEnabled = filterEnabled && !reorder.isPending;
+
+
+
   const runReorder = (nextOrder: MapPin[]) => {
     const prevOrder = order;
     setOrder(nextOrder);
