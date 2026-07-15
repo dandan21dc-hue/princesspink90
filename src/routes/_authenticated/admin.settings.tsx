@@ -831,6 +831,10 @@ export function AdminSettings() {
                           >
                             {newFetlifeUrl}
                           </a>
+                          <OpenUrlLink
+                            value={newFetlifeUrl}
+                            label="Open new FetLife URL in a new tab"
+                          />
                           <CopyUrlButton
                             value={newFetlifeUrl}
                             label="Copy new FetLife URL"
