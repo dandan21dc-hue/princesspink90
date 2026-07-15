@@ -28,7 +28,6 @@ import { Route as AllAccessPassRouteImport } from './routes/all-access-pass'
 import { Route as AgeGateRouteImport } from './routes/age-gate'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as StoreSubscribeRouteImport } from './routes/store.subscribe'
 import { Route as StoreIdRouteImport } from './routes/store.$id'
 import { Route as GuideEtiquetteRouteImport } from './routes/guide.etiquette'
 import { Route as EventsIdRouteImport } from './routes/events.$id'
@@ -201,11 +200,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const StoreSubscribeRoute = StoreSubscribeRouteImport.update({
-  id: '/subscribe',
-  path: '/subscribe',
-  getParentRoute: () => StoreRoute,
 } as any)
 const StoreIdRoute = StoreIdRouteImport.update({
   id: '/$id',
@@ -687,7 +681,6 @@ export interface FileRoutesByFullPath {
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
-  '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
@@ -785,7 +778,6 @@ export interface FileRoutesByTo {
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
-  '/store/subscribe': typeof StoreSubscribeRoute
   '/account/billing': typeof AuthenticatedAccountBillingRoute
   '/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
@@ -886,7 +878,6 @@ export interface FileRoutesById {
   '/events/$id': typeof EventsIdRoute
   '/guide/etiquette': typeof GuideEtiquetteRoute
   '/store/$id': typeof StoreIdRoute
-  '/store/subscribe': typeof StoreSubscribeRoute
   '/_authenticated/account/billing': typeof AuthenticatedAccountBillingRoute
   '/_authenticated/account/orders': typeof AuthenticatedAccountOrdersRoute
   '/_authenticated/admin/activity-audit': typeof AuthenticatedAdminActivityAuditRoute
@@ -987,7 +978,6 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/guide/etiquette'
     | '/store/$id'
-    | '/store/subscribe'
     | '/account/billing'
     | '/account/orders'
     | '/admin/activity-audit'
@@ -1085,7 +1075,6 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/guide/etiquette'
     | '/store/$id'
-    | '/store/subscribe'
     | '/account/billing'
     | '/account/orders'
     | '/admin/activity-audit'
@@ -1185,7 +1174,6 @@ export interface FileRouteTypes {
     | '/events/$id'
     | '/guide/etiquette'
     | '/store/$id'
-    | '/store/subscribe'
     | '/_authenticated/account/billing'
     | '/_authenticated/account/orders'
     | '/_authenticated/admin/activity-audit'
@@ -1434,13 +1422,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/store/subscribe': {
-      id: '/store/subscribe'
-      path: '/subscribe'
-      fullPath: '/store/subscribe'
-      preLoaderRoute: typeof StoreSubscribeRouteImport
-      parentRoute: typeof StoreRoute
     }
     '/store/$id': {
       id: '/store/$id'
@@ -2153,12 +2134,10 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface StoreRouteChildren {
   StoreIdRoute: typeof StoreIdRoute
-  StoreSubscribeRoute: typeof StoreSubscribeRoute
 }
 
 const StoreRouteChildren: StoreRouteChildren = {
   StoreIdRoute: StoreIdRoute,
-  StoreSubscribeRoute: StoreSubscribeRoute,
 }
 
 const StoreRouteWithChildren = StoreRoute._addFileChildren(StoreRouteChildren)

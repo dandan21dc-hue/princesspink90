@@ -2,40 +2,27 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getStripeEnvironment } from "@/lib/stripe";
 
-export type PlanId =
-  | "all_access_monthly_aud"
-  | "all_access_3mo_monthly_aud"
-  | "all_access_6mo_monthly_aud"
-  | "all_access_12mo_monthly_aud"
-  | "lifetime_onetime_aud";
-
 /**
- * All All-Access tiers are now expressed as rows in `public.memberships`.
- * The legacy `subscriptions` table was dropped with Stripe, so this hook
- * derives everything from memberships kinds/expires_at.
+ * All-Access Pass ownership derived exclusively from `public.memberships`.
+ * Every tier is a NOWPayments one-time purchase — there are no recurring
+ * subscriptions or Stripe fallbacks.
  *
- *   term_pass_all_access_30d → monthly (30-day) pass
- *   term_pass_3 / 6 / 12    → multi-month term passes
- *   lifetime                → lifetime pass (no expiry)
+ *   term_pass_all_access_30d → 30-day pass  (`all_access_30d_aud`)
+ *   lifetime                 → lifetime pass (`lifetime_onetime_aud`)
  */
-const TERM_PASS_KIND_TO_PLAN: Record<string, PlanId> = {
-  term_pass_all_access_30d: "all_access_monthly_aud",
-  term_pass_3: "all_access_3mo_monthly_aud",
-  term_pass_6: "all_access_6mo_monthly_aud",
-  term_pass_12: "all_access_12mo_monthly_aud",
-};
+export type PlanId = "all_access_30d_aud" | "lifetime_onetime_aud";
 
 export interface MyTiersState {
   loading: boolean;
   signedIn: boolean;
   active: Record<PlanId, boolean>;
-  /** Expiry timestamps (ISO) for term passes if known. */
+  /** Expiry timestamp (ISO) for the 30-day pass if known. */
   expires: Partial<Record<PlanId, string | null>>;
-  /** Start timestamps (ISO) for the current period / lifetime purchase. */
+  /** Start timestamp (ISO) for the current pass / lifetime purchase. */
   starts: Partial<Record<PlanId, string | null>>;
   /**
-   * Whether the current subscription is set to cancel at period end. Kept for
-   * API compatibility; term passes never auto-renew, so this is always false.
+   * Whether the current pass is set to cancel at period end. Kept for API
+   * compatibility; NOWPayments passes never auto-renew, so this is always false.
    */
   cancelAtPeriodEnd: Partial<Record<PlanId, boolean>>;
   /** Force a refetch from the client (e.g. on focus, or after checkout). */
@@ -45,10 +32,7 @@ export interface MyTiersState {
 type TiersData = Omit<MyTiersState, "refresh">;
 
 const EMPTY_ACTIVE: Record<PlanId, boolean> = {
-  all_access_monthly_aud: false,
-  all_access_3mo_monthly_aud: false,
-  all_access_6mo_monthly_aud: false,
-  all_access_12mo_monthly_aud: false,
+  all_access_30d_aud: false,
   lifetime_onetime_aud: false,
 };
 
@@ -92,60 +76,38 @@ export function useMyTiers(): MyTiersState {
       const nowIso = new Date().toISOString();
       const lifetime = mems.find((r: any) => r.kind === "lifetime");
 
-      // Pick the currently active term pass (latest non-expired row of each
-      // kind). Term passes are one-time purchases, so `expires_at` is the
+      // Pick the currently active 30-day pass (latest non-expired row).
+      // Passes are one-time NOWPayments purchases so `expires_at` is the
       // source of truth for "still active".
-      const activeTermPassByPlan: Partial<
-        Record<PlanId, { starts: string | null; expires: string | null }>
-      > = {};
+      let active30d: { starts: string | null; expires: string | null } | null = null;
       for (const row of mems) {
-        const kind = String((row as any).kind ?? "");
-        const plan = TERM_PASS_KIND_TO_PLAN[kind];
-        if (!plan) continue;
+        if (String((row as any).kind ?? "") !== "term_pass_all_access_30d") continue;
         const expiresAt = (row as any).expires_at as string | null;
         if (!expiresAt || expiresAt <= nowIso) continue;
-        const existing = activeTermPassByPlan[plan];
-        // Prefer the latest-expiring row if user stacked purchases.
-        if (!existing || (existing.expires ?? "") < expiresAt) {
-          activeTermPassByPlan[plan] = {
+        if (!active30d || (active30d.expires ?? "") < expiresAt) {
+          active30d = {
             starts: ((row as any).created_at as string | null) ?? null,
             expires: expiresAt,
           };
         }
       }
 
-      const termOr = <T,>(plan: PlanId, key: "starts" | "expires", fallback: T | null): T | null =>
-        (activeTermPassByPlan[plan]?.[key] as T | undefined) ?? fallback;
-
       setState({
         loading: false,
         signedIn: true,
         active: {
-          all_access_monthly_aud: !!activeTermPassByPlan.all_access_monthly_aud,
-          all_access_3mo_monthly_aud: !!activeTermPassByPlan.all_access_3mo_monthly_aud,
-          all_access_6mo_monthly_aud: !!activeTermPassByPlan.all_access_6mo_monthly_aud,
-          all_access_12mo_monthly_aud: !!activeTermPassByPlan.all_access_12mo_monthly_aud,
+          all_access_30d_aud: !!active30d,
           lifetime_onetime_aud: !!lifetime,
         },
         expires: {
-          all_access_monthly_aud: termOr("all_access_monthly_aud", "expires", null),
-          all_access_3mo_monthly_aud: termOr("all_access_3mo_monthly_aud", "expires", null),
-          all_access_6mo_monthly_aud: termOr("all_access_6mo_monthly_aud", "expires", null),
-          all_access_12mo_monthly_aud: termOr("all_access_12mo_monthly_aud", "expires", null),
+          all_access_30d_aud: active30d?.expires ?? null,
         },
         starts: {
-          all_access_monthly_aud: termOr("all_access_monthly_aud", "starts", null),
-          all_access_3mo_monthly_aud: termOr("all_access_3mo_monthly_aud", "starts", null),
-          all_access_6mo_monthly_aud: termOr("all_access_6mo_monthly_aud", "starts", null),
-          all_access_12mo_monthly_aud: termOr("all_access_12mo_monthly_aud", "starts", null),
+          all_access_30d_aud: active30d?.starts ?? null,
           lifetime_onetime_aud: lifetime?.created_at ?? null,
         },
         cancelAtPeriodEnd: {
-          // Nothing auto-renews anymore — every tier is a one-time purchase.
-          all_access_monthly_aud: false,
-          all_access_3mo_monthly_aud: false,
-          all_access_6mo_monthly_aud: false,
-          all_access_12mo_monthly_aud: false,
+          all_access_30d_aud: false,
         },
       });
     }
