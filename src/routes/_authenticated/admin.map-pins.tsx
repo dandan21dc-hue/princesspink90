@@ -139,6 +139,7 @@ function AdminMapPins() {
   };
 
   const [form, setForm] = useState<FormState>(empty);
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState | "_form", string>>>({});
   const editing = Boolean(form.id);
 
   const invalidate = () => {
@@ -146,26 +147,93 @@ function AdminMapPins() {
     qc.invalidateQueries({ queryKey: ["map-pins"] });
   };
 
+  const validate = (): {
+    ok: boolean;
+    errs: Partial<Record<keyof FormState | "_form", string>>;
+    payload?: {
+      title: string;
+      description: string | null;
+      latitude: number;
+      longitude: number;
+      sort_order: number;
+    };
+  } => {
+    const errs: Partial<Record<keyof FormState | "_form", string>> = {};
+    const title = form.title.trim();
+    const description = form.description.trim();
+
+    if (!title) errs.title = "Title is required";
+    else if (title.length > 120) errs.title = "Keep title under 120 characters";
+    if (description.length > 500) errs.description = "Keep description under 500 characters";
+
+    const latRaw = form.latitude.trim();
+    const lngRaw = form.longitude.trim();
+    const numRe = /^-?\d+(\.\d+)?$/;
+    const latitude = Number(latRaw);
+    const longitude = Number(lngRaw);
+
+    if (!latRaw) errs.latitude = "Latitude is required";
+    else if (!numRe.test(latRaw) || Number.isNaN(latitude)) errs.latitude = "Must be a decimal number (e.g. -33.8688)";
+    else if (latitude < -90 || latitude > 90) errs.latitude = "Must be between -90 and 90";
+
+    if (!lngRaw) errs.longitude = "Longitude is required";
+    else if (!numRe.test(lngRaw) || Number.isNaN(longitude)) errs.longitude = "Must be a decimal number (e.g. 151.2093)";
+    else if (longitude < -180 || longitude > 180) errs.longitude = "Must be between -180 and 180";
+
+    const sortRaw = form.sort_order.trim();
+    const sortOrder = sortRaw === "" ? 0 : Number(sortRaw);
+    if (sortRaw !== "" && (Number.isNaN(sortOrder) || !Number.isInteger(sortOrder))) {
+      errs.sort_order = "Must be a whole number";
+    }
+
+    if (!errs.latitude && !errs.longitude) {
+      const dupCoord = pins.find(
+        (p) =>
+          p.id !== form.id &&
+          Math.abs(p.latitude - latitude) < 1e-5 &&
+          Math.abs(p.longitude - longitude) < 1e-5,
+      );
+      if (dupCoord) {
+        errs._form = `A pin already exists at these coordinates: "${dupCoord.title}"`;
+      }
+    }
+    if (!errs.title) {
+      const dupTitle = pins.find(
+        (p) => p.id !== form.id && p.title.trim().toLowerCase() === title.toLowerCase(),
+      );
+      if (dupTitle) errs.title = `A pin titled "${dupTitle.title}" already exists`;
+    }
+
+    if (Object.keys(errs).length > 0) return { ok: false, errs };
+    return {
+      ok: true,
+      errs,
+      payload: {
+        title,
+        description: description || null,
+        latitude,
+        longitude,
+        sort_order: sortOrder || 0,
+      },
+    };
+  };
+
   const save = useMutation({
     mutationFn: async () => {
-      const payload = {
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        latitude: Number(form.latitude),
-        longitude: Number(form.longitude),
-        sort_order: Number(form.sort_order) || 0,
-      };
-      if (Number.isNaN(payload.latitude) || Number.isNaN(payload.longitude)) {
-        throw new Error("Latitude and longitude must be numbers");
+      const result = validate();
+      setErrors(result.errs);
+      if (!result.ok || !result.payload) {
+        throw new Error(result.errs._form ?? "Please fix the highlighted fields");
       }
       if (form.id) {
-        return updateFn({ data: { id: form.id, ...payload } });
+        return updateFn({ data: { id: form.id, ...result.payload } });
       }
-      return createFn({ data: payload });
+      return createFn({ data: result.payload });
     },
     onSuccess: () => {
       toast.success(editing ? "Pin updated" : "Pin added");
       setForm(empty);
+      setErrors({});
       invalidate();
     },
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : "Failed to save"),
