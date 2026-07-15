@@ -3022,28 +3022,51 @@ export type Database = {
           read_ct: number
         }[]
       }
-      redeem_reward: {
-        Args: { _reward_id: string }
-        Returns: {
-          admin_notes: string | null
-          created_at: string
-          fulfilled_at: string | null
-          fulfilled_by: string | null
-          id: string
-          points_spent: number
-          reward_id: string
-          reward_name: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "user_rewards"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+      redeem_reward:
+        | {
+            Args: { _reward_id: string }
+            Returns: {
+              admin_notes: string | null
+              created_at: string
+              fulfilled_at: string | null
+              fulfilled_by: string | null
+              id: string
+              points_spent: number
+              reward_id: string
+              reward_name: string
+              status: string
+              updated_at: string
+              user_id: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "user_rewards"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: { _caller?: string; _reward_id: string }
+            Returns: {
+              admin_notes: string | null
+              created_at: string
+              fulfilled_at: string | null
+              fulfilled_by: string | null
+              id: string
+              points_spent: number
+              reward_id: string
+              reward_name: string
+              status: string
+              updated_at: string
+              user_id: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "user_rewards"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
       reserve_reward_points: {
         Args: { _order_id: string; _points: number; _user_id: string }
         Returns: boolean
