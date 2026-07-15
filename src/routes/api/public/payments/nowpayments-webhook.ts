@@ -322,8 +322,39 @@ export async function handleWebhookRequest(request: Request): Promise<Response> 
 
   if (!verifyNowPaymentsSignature(rawBody, signature, secret)) {
     console.warn("NOWPayments webhook: invalid signature");
+
+    // Alert admins: unsigned/tampered requests hitting the IPN endpoint are a
+    // security signal. Throttle to 1 per hour so a burst of retries or a
+    // scanner doesn't flood the alert channel.
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      // Snapshot a small, safe slice of the body (never log the whole payload).
+      let bodySample: string | null = null;
+      try {
+        bodySample = rawBody.slice(0, 500);
+      } catch {
+        bodySample = null;
+      }
+      await raiseAlert(supabaseAdmin, {
+        severity: "critical",
+        kind: "nowpayments_invalid_signature",
+        detail: {
+          signature_present: Boolean(signature),
+          signature_length: signature ? signature.length : 0,
+          user_agent: request.headers.get("user-agent") ?? null,
+          content_length: rawBody.length,
+          body_sample: bodySample,
+          count: 1,
+        },
+        throttleWindowMinutes: 60,
+      });
+    } catch (e) {
+      console.warn("nowpayments invalid-signature alert failed:", e);
+    }
+
     return new Response("Invalid signature", { status: 401 });
   }
+
 
   let event: NowPaymentsIpn;
   try {
