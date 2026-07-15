@@ -103,7 +103,7 @@ vi.mock("sonner", () => ({ toast: mockToast }));
 import { Route as CartCheckoutRoute } from "./checkout.cart";
 
 const CartCheckoutPage = (CartCheckoutRoute as unknown as {
-  component: () => JSX.Element;
+  component: () => React.ReactElement;
 }).component;
 
 beforeEach(() => {
