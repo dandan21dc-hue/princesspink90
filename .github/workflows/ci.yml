@@ -520,6 +520,67 @@ jobs:
           fi
           echo "All upstream Supabase security jobs passed."
 
+  # Publishes the human-readable security findings summary (Markdown +
+  # PDF from public/security/) as a downloadable artifact on every CI
+  # run — including PRs, main, nightly cron, and workflow_dispatch — so
+  # reviewers can grab the current summary straight from the run's
+  # Artifacts panel without cloning the repo or hitting the public
+  # /security-report route.
+  security_summary_artifact:
+    name: Security / Summary Artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage summary files
+        id: stage
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/security-summary
+          missing=0
+          for f in security-findings-summary.md security-findings-summary.pdf; do
+            if [ -f "public/security/$f" ]; then
+              cp "public/security/$f" "/tmp/security-summary/$f"
+            else
+              echo "::error::Missing public/security/$f — the summary artifact requires both the Markdown and PDF."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+          ls -la /tmp/security-summary
+
+      - name: Upload security findings summary
+        id: upload_summary
+        if: always() && steps.stage.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-findings-summary
+          path: /tmp/security-summary/
+          # Same retention shape as the other security artifacts.
+          retention-days: ${{ job.status == 'success' && 14 || 30 }}
+          compression-level: 9
+          if-no-files-found: error
+
+      - name: Write job summary
+        if: always()
+        env:
+          STATUS: ${{ job.status }}
+          ARTIFACT_URL: ${{ steps.upload_summary.outputs.artifact-url }}
+        run: |
+          {
+            echo "## Security / Summary Artifact — \`$STATUS\`"
+            echo ""
+            if [ -n "$ARTIFACT_URL" ]; then
+              echo "📎 **Artifact:** [security-findings-summary]($ARTIFACT_URL)"
+              echo ""
+              echo "Contains \`security-findings-summary.md\` and \`security-findings-summary.pdf\` from \`public/security/\`."
+            else
+              echo "_Summary files not staged — artifact not uploaded._"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
 
 
 
