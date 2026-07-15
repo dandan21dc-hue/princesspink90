@@ -76,6 +76,63 @@ function RewardsTab() {
 
       <section className="rounded-2xl border border-border/70 bg-card p-6">
         <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+          <Users className="h-4 w-4 text-primary" /> Referrals
+        </div>
+        <h2 className="mt-2 font-display text-lg">Referral history</h2>
+
+        {referralHistory.isLoading ? (
+          <div className="mt-4 text-sm text-muted-foreground">Loading referrals…</div>
+        ) : referralHistory.data && referralHistory.data.total_signups > 0 ? (
+          <>
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Stat label="Signups" value={referralHistory.data.total_signups.toLocaleString()} />
+              <Stat label="Points earned" value={`+${referralHistory.data.total_points.toLocaleString()}`} />
+              <Stat
+                label="First"
+                value={referralHistory.data.first_granted_at
+                  ? new Date(referralHistory.data.first_granted_at).toLocaleDateString()
+                  : "—"}
+              />
+              <Stat
+                label="Most recent"
+                value={referralHistory.data.last_granted_at
+                  ? new Date(referralHistory.data.last_granted_at).toLocaleDateString()
+                  : "—"}
+              />
+            </div>
+
+            <ul className="mt-4 divide-y divide-border/60">
+              {referralHistory.data.entries.map((entry, idx) => (
+                <li key={entry.id} className="flex items-start justify-between gap-4 py-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">
+                      Signup #{referralHistory.data!.total_signups - idx}
+                    </div>
+                    <div className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5 font-mono text-[11px] tracking-widest">
+                      {entry.referral_code || "—"}
+                    </div>
+                    <div className="mt-1 text-[11px] uppercase tracking-widest text-muted-foreground">
+                      {new Date(entry.granted_at).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="shrink-0 font-mono text-sm text-neon">
+                    +{entry.points_awarded.toLocaleString()} pts
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <div className="mt-4 text-sm text-muted-foreground">
+            No referred signups yet. Share your code above to start earning.
+          </div>
+        )}
+      </section>
+
+
+
+      <section className="rounded-2xl border border-border/70 bg-card p-6">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
           <Activity className="h-4 w-4 text-primary" /> Activity
         </div>
         <h2 className="mt-2 font-display text-lg">Point history</h2>
