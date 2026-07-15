@@ -379,11 +379,14 @@ describe("admin settings — FetLife confirmation dialog updates live", () => {
   }
 
   it("updates the new URL preview as the admin types successive characters", async () => {
-    const { dialog, fetInput } = await openDialogWithEdit("A");
-    // Initial edit sanity check — the new URL renders after just one char.
-    assertDialogUrls(dialog, "A");
+    // Start with a valid handle so the confirm dialog opens (Save is gated
+    // on `!fetlifeError` — a 1-char draft never gets us past that check).
+    const { dialog, fetInput } = await openDialogWithEdit("Abc");
+    assertDialogUrls(dialog, "Abc");
 
-    for (const value of ["Ab", "Abc", "Abc-1", "Abc-12"]) {
+    // Type more characters (all remain within the min/max bounds) and
+    // assert the dialog's new-URL preview tracks the input on every change.
+    for (const value of ["Abcd", "Abcd-", "Abcd-1", "Abcd-12"]) {
       fireEvent.change(fetInput, { target: { value } });
       await waitFor(() => assertDialogUrls(dialog, value));
     }
