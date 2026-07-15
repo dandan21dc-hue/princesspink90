@@ -34,4 +34,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'audit-alert': auditAlert,
   'all-access-revoked': allAccessRevoked,
   'admin-reward-redeemed': adminRewardRedeemed,
+  'order-receipt': orderReceipt,
 }
