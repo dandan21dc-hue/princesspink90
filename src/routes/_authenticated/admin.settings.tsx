@@ -459,12 +459,18 @@ export function AdminSettings() {
             required
             maxLength={100}
             value={fetlife}
-            aria-invalid={fetlifeError !== null}
-            aria-errormessage={fetlifeError ? "fetlife-handle-error" : undefined}
-            onChange={(e) => setFetlife(e.target.value)}
+            aria-invalid={fetlifeError !== null || serverFetlifeError !== null}
+            aria-errormessage={
+              fetlifeError || serverFetlifeError ? "fetlife-handle-error" : undefined
+            }
+            onChange={(e) => {
+              setFetlife(e.target.value);
+              // Editing dismisses any prior server-side rejection for this field.
+              if (serverFetlifeError) setServerFetlifeError(null);
+            }}
             onBlur={() => setFetlife((v) => normalizeFetlifeHandle(v))}
             className={`w-full rounded-md border bg-background px-3 py-2 text-sm ${
-              fetlifeError ? "border-destructive" : "border-border"
+              fetlifeError || serverFetlifeError ? "border-destructive" : "border-border"
             }`}
           />
           {/* role="alert" + aria-live announce the error the moment it appears
@@ -475,7 +481,7 @@ export function AdminSettings() {
             aria-live="polite"
             className="mt-1 text-[11px] text-destructive"
           >
-            {fetlifeError ?? ""}
+            {fetlifeError ?? (serverFetlifeError ? `Server rejected this handle: ${serverFetlifeError}` : "")}
           </div>
         </Field>
         <ContactLinkPreview
