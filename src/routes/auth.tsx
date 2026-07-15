@@ -1,9 +1,11 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
+import { validateReferralCode } from "@/lib/referral-validate.functions";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: z.object({ next: z.string().optional(), ref: z.string().optional() }),
@@ -39,6 +41,46 @@ function Auth() {
   );
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [refStatus, setRefStatus] = useState<
+    { state: "idle" | "checking" | "ok" | "invalid" | "self"; message: string }
+  >({ state: "idle", message: "" });
+  const runValidate = useServerFn(validateReferralCode);
+
+  useEffect(() => {
+    if (mode !== "signup") {
+      setRefStatus({ state: "idle", message: "" });
+      return;
+    }
+    const code = referralCode.trim().toUpperCase();
+    if (!code) {
+      setRefStatus({ state: "idle", message: "" });
+      return;
+    }
+    let cancelled = false;
+    setRefStatus({ state: "checking", message: "Checking code…" });
+    const t = setTimeout(async () => {
+      try {
+        const res = await runValidate({ data: { code, email } });
+        if (cancelled) return;
+        if (!res.exists) {
+          setRefStatus({ state: "invalid", message: "That referral code doesn't exist." });
+        } else if (res.is_self) {
+          setRefStatus({
+            state: "self",
+            message: "You can't use your own referral code.",
+          });
+        } else {
+          setRefStatus({ state: "ok", message: "Referral code applied." });
+        }
+      } catch {
+        if (!cancelled) setRefStatus({ state: "idle", message: "" });
+      }
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [referralCode, email, mode, runValidate]);
 
   // Only accept same-origin relative paths for `next` so OAuth consent returns work
   // without opening an open-redirect.
@@ -63,6 +105,21 @@ function Auth() {
     try {
       if (mode === "signup") {
         const trimmedRef = referralCode.trim().toUpperCase();
+        if (trimmedRef) {
+          const res = await runValidate({ data: { code: trimmedRef, email } });
+          if (!res.exists) {
+            setRefStatus({ state: "invalid", message: "That referral code doesn't exist." });
+            toast.error("That referral code doesn't exist.");
+            setLoading(false);
+            return;
+          }
+          if (res.is_self) {
+            setRefStatus({ state: "self", message: "You can't use your own referral code." });
+            toast.error("You can't use your own referral code.");
+            setLoading(false);
+            return;
+          }
+        }
         const { error } = await supabase.auth.signUp({
           email, password,
           options: {
@@ -142,13 +199,36 @@ function Auth() {
             className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm focus:border-primary focus:outline-none"
           />
           {mode === "signup" && (
-            <input
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 12))}
-              placeholder="Referral code (optional)"
-              autoCapitalize="characters"
-              className="w-full rounded-md border border-input bg-background px-4 py-3 text-sm font-mono tracking-widest uppercase focus:border-primary focus:outline-none"
-            />
+            <div>
+              <input
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase().slice(0, 12))}
+                placeholder="Referral code (optional)"
+                autoCapitalize="characters"
+                aria-invalid={refStatus.state === "invalid" || refStatus.state === "self"}
+                className={`w-full rounded-md border bg-background px-4 py-3 text-sm font-mono tracking-widest uppercase focus:outline-none ${
+                  refStatus.state === "invalid" || refStatus.state === "self"
+                    ? "border-destructive focus:border-destructive"
+                    : refStatus.state === "ok"
+                      ? "border-primary focus:border-primary"
+                      : "border-input focus:border-primary"
+                }`}
+              />
+              {refStatus.message ? (
+                <p
+                  className={`mt-1 text-xs ${
+                    refStatus.state === "invalid" || refStatus.state === "self"
+                      ? "text-destructive"
+                      : refStatus.state === "ok"
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                  }`}
+                  role={refStatus.state === "invalid" || refStatus.state === "self" ? "alert" : undefined}
+                >
+                  {refStatus.message}
+                </p>
+              ) : null}
+            </div>
           )}
           {mode === "signup" && (
             <label className="flex items-start gap-2 pt-1 text-xs text-muted-foreground">
@@ -172,7 +252,7 @@ function Auth() {
             </label>
           )}
           <button
-            type="submit" disabled={loading || (mode === "signup" && !agreedToTerms)}
+            type="submit" disabled={loading || (mode === "signup" && (!agreedToTerms || refStatus.state === "invalid" || refStatus.state === "self" || refStatus.state === "checking"))}
             className="w-full rounded-md bg-primary py-3 text-sm font-semibold uppercase tracking-widest text-primary-foreground shadow-[var(--shadow-glow-pink)] hover:brightness-110 transition disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? "…" : mode === "signin" ? "Sign in" : "Create account"}
