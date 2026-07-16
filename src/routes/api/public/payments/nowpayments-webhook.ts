@@ -666,11 +666,8 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
         );
       }
     }
+    await awardPurchasePoints(order.userId, order.amountCents, "panty");
     return finalize({ handled: true });
-  }
-
-
-  if (order.kind === "booking") {
     // Idempotent: external_payment_reference is UNIQUE on
     // private_room_bookings. If this payment ref already claimed the row
     // (or another) the update returns 0 rows and we no-op.
