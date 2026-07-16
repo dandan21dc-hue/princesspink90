@@ -633,6 +633,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
     console.log(
       `[nowpayments] lifetime grant OK payment_id=${paymentIdRaw} user=${order.userId} charged=A$${chargedAud} membership_id=${row?.id ?? "?"} amount_cents=${row?.amount_cents ?? "?"} expires_at=${row?.expires_at ?? "never"} idempotent=${idempotent}`,
     );
+    await awardPurchasePoints(order.userId, order.amountCents, "lifetime");
     return finalize({
       handled: true,
       reason: idempotent
