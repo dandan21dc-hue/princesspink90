@@ -80,6 +80,90 @@ function Shell({ children }: { children: React.ReactNode }) {
   return <main className="mx-auto max-w-6xl px-5 py-10 space-y-10">{children}</main>;
 }
 
+// ---------------- Reward Multiplier ----------------
+
+function RewardMultiplierSection() {
+  const getFn = useServerFn(getPointsPerDollarMultiplier);
+  const setFn = useServerFn(setPointsPerDollarMultiplier);
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["reward-multiplier"],
+    queryFn: () => getFn(),
+  });
+  const [value, setValue] = useState<string>("");
+  const current = q.data?.multiplier ?? 1;
+
+  const m = useMutation({
+    mutationFn: async (mult: number) => setFn({ data: { multiplier: mult } }),
+    onSuccess: (res) => {
+      toast.success(`Multiplier updated: A$1 = ${res.multiplier} points`);
+      qc.invalidateQueries({ queryKey: ["reward-multiplier"] });
+      setValue("");
+    },
+    onError: (e: unknown) =>
+      toast.error(e instanceof Error ? e.message : "Failed to update multiplier"),
+  });
+
+  const parsed = value === "" ? current : Number(value);
+  const canSave =
+    value !== "" &&
+    Number.isFinite(parsed) &&
+    parsed >= 0 &&
+    parsed <= 1000 &&
+    parsed !== current &&
+    !m.isPending;
+
+  return (
+    <section className="rounded-2xl border border-border/60 bg-card/40 p-6 space-y-4">
+      <div>
+        <h2 className="font-display text-xl font-semibold">Reward Multiplier</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Controls how many reward points members earn per Australian dollar
+          spent at checkout. Adjust during promotions to boost earnings.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-border/40 bg-background/60 px-4 py-3 text-sm">
+        <span className="text-muted-foreground">Current rate:</span>{" "}
+        <strong className="text-foreground">
+          A$1 spent = {q.isLoading ? "…" : current} point{current === 1 ? "" : "s"}
+        </strong>
+      </div>
+
+      <form
+        className="flex flex-wrap items-end gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (canSave) m.mutate(parsed);
+        }}
+      >
+        <label className="flex flex-col text-xs uppercase tracking-widest text-muted-foreground">
+          Points per A$1
+          <input
+            type="number"
+            min={0}
+            max={1000}
+            step="0.01"
+            value={value}
+            placeholder={String(current)}
+            onChange={(e) => setValue(e.target.value)}
+            className="mt-1 w-40 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={!canSave}
+          className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        >
+          {m.isPending ? "Saving…" : "Save"}
+        </button>
+      </form>
+    </section>
+  );
+}
+
+
+
 // ---------------- Catalog ----------------
 
 function CatalogSection() {
