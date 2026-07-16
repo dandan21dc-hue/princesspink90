@@ -556,6 +556,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_all_access_pass_30d failed: ${error.message}`);
+    await awardPurchasePoints(order.userId, order.amountCents, "aap30d");
     return finalize({ handled: true });
   }
 
