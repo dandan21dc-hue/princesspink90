@@ -327,6 +327,34 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
     };
   }
 
+  const awardPurchasePoints = async (
+    userId: string,
+    amountCents: number,
+    source: string,
+  ) => {
+    try {
+      const { error: pointsErr } = await supabaseAdmin.rpc(
+        "grant_purchase_reward_points" as never,
+        {
+          _user_id: userId,
+          _amount_cents: amountCents,
+          _external_payment_reference: paymentRef,
+          _source: source,
+        } as never,
+      );
+      if (pointsErr) {
+        console.warn(
+          `[nowpayments] grant_purchase_reward_points failed source=${source} ref=${paymentRef}: ${pointsErr.message}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[nowpayments] grant_purchase_reward_points threw source=${source} ref=${paymentRef}:`,
+        e,
+      );
+    }
+  };
+
   const finalize = async (outcome: { handled: boolean; reason?: string }) => {
     await supabaseAdmin
       .from("nowpayments_ipn_events")
