@@ -1990,6 +1990,39 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_reward_grants: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          external_payment_reference: string
+          id: string
+          multiplier: number
+          points_awarded: number
+          source: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          external_payment_reference: string
+          id?: string
+          multiplier: number
+          points_awarded: number
+          source: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          external_payment_reference?: string
+          id?: string
+          multiplier?: number
+          points_awarded?: number
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       referral_reward_grants: {
         Row: {
           created_at: string
@@ -2472,6 +2505,7 @@ export type Database = {
           glory_holes_enabled: boolean
           id: string
           maintenance_mode: boolean
+          points_per_dollar_multiplier: number
           reddit_handle: string
           session_duration_minutes: number
           session_price_cents: number
@@ -2485,6 +2519,7 @@ export type Database = {
           glory_holes_enabled?: boolean
           id?: string
           maintenance_mode?: boolean
+          points_per_dollar_multiplier?: number
           reddit_handle?: string
           session_duration_minutes?: number
           session_price_cents?: number
@@ -2498,6 +2533,7 @@ export type Database = {
           glory_holes_enabled?: boolean
           id?: string
           maintenance_mode?: boolean
+          points_per_dollar_multiplier?: number
           reddit_handle?: string
           session_duration_minutes?: number
           session_price_cents?: number
@@ -3134,6 +3170,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      grant_purchase_reward_points: {
+        Args: {
+          _amount_cents: number
+          _external_payment_reference: string
+          _source: string
+          _user_id: string
+        }
+        Returns: number
       }
       has_age_verification: { Args: { _user_id: string }; Returns: boolean }
       has_role: {

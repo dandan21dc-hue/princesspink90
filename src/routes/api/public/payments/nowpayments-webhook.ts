@@ -327,6 +327,34 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
     };
   }
 
+  const awardPurchasePoints = async (
+    userId: string,
+    amountCents: number,
+    source: string,
+  ) => {
+    try {
+      const { error: pointsErr } = await supabaseAdmin.rpc(
+        "grant_purchase_reward_points" as never,
+        {
+          _user_id: userId,
+          _amount_cents: amountCents,
+          _external_payment_reference: paymentRef,
+          _source: source,
+        } as never,
+      );
+      if (pointsErr) {
+        console.warn(
+          `[nowpayments] grant_purchase_reward_points failed source=${source} ref=${paymentRef}: ${pointsErr.message}`,
+        );
+      }
+    } catch (e) {
+      console.warn(
+        `[nowpayments] grant_purchase_reward_points threw source=${source} ref=${paymentRef}:`,
+        e,
+      );
+    }
+  };
+
   const finalize = async (outcome: { handled: boolean; reason?: string }) => {
     await supabaseAdmin
       .from("nowpayments_ipn_events")
@@ -528,6 +556,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _external_payment_reference: paymentRef,
     });
     if (error) throw new Error(`grant_all_access_pass_30d failed: ${error.message}`);
+    await awardPurchasePoints(order.userId, order.amountCents, "aap30d");
     return finalize({ handled: true });
   }
 
@@ -541,6 +570,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _days: days,
     });
     if (error) throw new Error(`grant_all_access_pass_term failed: ${error.message}`);
+    await awardPurchasePoints(order.userId, order.amountCents, order.kind);
     return finalize({ handled: true });
   }
 
@@ -603,6 +633,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
     console.log(
       `[nowpayments] lifetime grant OK payment_id=${paymentIdRaw} user=${order.userId} charged=A$${chargedAud} membership_id=${row?.id ?? "?"} amount_cents=${row?.amount_cents ?? "?"} expires_at=${row?.expires_at ?? "never"} idempotent=${idempotent}`,
     );
+    await awardPurchasePoints(order.userId, order.amountCents, "lifetime");
     return finalize({
       handled: true,
       reason: idempotent
@@ -635,6 +666,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
         );
       }
     }
+    await awardPurchasePoints(order.userId, order.amountCents, "panty");
     return finalize({ handled: true });
   }
 
@@ -676,6 +708,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       })
       .eq("id", order.bookingId);
     if (error) throw new Error(`confirm booking failed: ${error.message}`);
+    await awardPurchasePoints(order.userId, order.amountCents, "booking");
     return finalize({ handled: true });
   }
 
