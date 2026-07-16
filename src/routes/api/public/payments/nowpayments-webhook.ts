@@ -708,6 +708,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       })
       .eq("id", order.bookingId);
     if (error) throw new Error(`confirm booking failed: ${error.message}`);
+    await awardPurchasePoints(order.userId, order.amountCents, "booking");
     return finalize({ handled: true });
   }
 
