@@ -68,6 +68,7 @@ function AdminRewardsPage() {
         </Link>
       </div>
 
+      <RewardMultiplierSection />
       <CatalogSection />
       <AdminAlertPrefsSection />
       <PendingRedemptionsSection />
