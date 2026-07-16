@@ -14,6 +14,10 @@ import {
   getAdminRewardAlertPrefs,
   updateAdminRewardAlertPrefs,
 } from "@/lib/rewards-catalog.functions";
+import {
+  getPointsPerDollarMultiplier,
+  setPointsPerDollarMultiplier,
+} from "@/lib/reward-multiplier.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/rewards")({
   head: () => ({ meta: [{ title: "Rewards Manager · Admin" }] }),
