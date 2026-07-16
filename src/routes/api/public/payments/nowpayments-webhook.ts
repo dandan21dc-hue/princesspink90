@@ -570,6 +570,7 @@ export async function processIpn(event: NowPaymentsIpn): Promise<{ handled: bool
       _days: days,
     });
     if (error) throw new Error(`grant_all_access_pass_term failed: ${error.message}`);
+    await awardPurchasePoints(order.userId, order.amountCents, order.kind);
     return finalize({ handled: true });
   }
 
