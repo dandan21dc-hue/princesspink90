@@ -56,7 +56,14 @@ vi.mock("@/integrations/supabase/client.server", () => {
             data: ledger.get(keyOf(filters.payment_id, filters.last_status)) ?? null,
             error: null,
           }),
-          then: (resolve: (v: HistorySelectResult) => unknown, reject?: (e: unknown) => unknown) => {
+          then: <TResult1 = HistorySelectResult, TResult2 = never>(
+            onfulfilled?:
+              | ((value: HistorySelectResult) => TResult1 | PromiseLike<TResult1>)
+              | null,
+            onrejected?:
+              | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
+              | null,
+          ): Promise<TResult1 | TResult2> => {
             const data = entries()
               .filter((row) => matches(row as Record<string, unknown>, filters, "eq"))
               .filter((row) => matches(row as Record<string, unknown>, notEqFilters, "neq"))
@@ -65,7 +72,10 @@ vi.mock("@/integrations/supabase/client.server", () => {
                 handled: row.handled,
                 processed_at: row.processed_at ?? null,
               }));
-            return Promise.resolve({ data, error: null }).then(resolve, reject);
+            return Promise.resolve({ data, error: null }).then(
+              onfulfilled ?? undefined,
+              onrejected ?? undefined,
+            );
           },
         };
         return rd;
