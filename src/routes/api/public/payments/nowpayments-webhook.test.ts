@@ -14,6 +14,14 @@ vi.mock("@/integrations/supabase/client.server", () => {
     data: Array<{ last_status: string; handled: boolean; processed_at: string | null }>;
     error: null;
   };
+  type LedgerEntry = {
+    payment_id: string;
+    last_status: string;
+    handled: boolean;
+    reason: string | null;
+    received_count: number;
+    processed_at?: string | null;
+  };
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
@@ -34,13 +42,13 @@ vi.mock("@/integrations/supabase/client.server", () => {
       select(_c?: string) {
         const filters: Record<string, string> = {};
         const notEqFilters: Record<string, string> = {};
-        const entries = () =>
+        const entries = (): LedgerEntry[] =>
           [...ledger.entries()].map(([k, row]) => {
             const [payment_id, last_status] = k.split("|");
             return { payment_id, last_status, ...row };
           });
         const matches = (
-          row: Record<string, unknown>,
+          row: LedgerEntry,
           selectedFilters: Record<string, string>,
           comparator: "eq" | "neq",
         ) =>
@@ -64,8 +72,8 @@ vi.mock("@/integrations/supabase/client.server", () => {
               | null,
           ): Promise<TResult1 | TResult2> => {
             const data = entries()
-              .filter((row) => matches(row as Record<string, unknown>, filters, "eq"))
-              .filter((row) => matches(row as Record<string, unknown>, notEqFilters, "neq"))
+              .filter((row) => matches(row, filters, "eq"))
+              .filter((row) => matches(row, notEqFilters, "neq"))
               .map((row) => ({
                 last_status: row.last_status,
                 handled: row.handled,
