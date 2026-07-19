@@ -47,14 +47,24 @@ vi.mock("@/integrations/supabase/client.server", () => {
             const [payment_id, last_status] = k.split("|");
             return { payment_id, last_status, ...row };
           });
+        const knownColumns = new Set<keyof LedgerEntry>([
+          "payment_id",
+          "last_status",
+          "handled",
+          "reason",
+          "received_count",
+          "processed_at",
+        ]);
         const matches = (
           row: LedgerEntry,
-          selectedFilters: Record<string, string>,
+          filterMap: Record<string, string>,
           comparator: "eq" | "neq",
         ) =>
-          Object.entries(selectedFilters).every(([c, v]) => {
-            if (comparator === "eq") return String(row[c]) === v;
-            return String(row[c]) !== v;
+          Object.entries(filterMap).every(([column, value]) => {
+            if (!knownColumns.has(column as keyof LedgerEntry)) return false;
+            const rowValue = row[column as keyof LedgerEntry];
+            if (comparator === "eq") return String(rowValue) === value;
+            return String(rowValue) !== value;
           });
         const rd = {
           eq: (c: string, v: string) => { filters[c] = v; return rd; },
