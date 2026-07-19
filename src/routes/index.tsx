@@ -59,7 +59,10 @@ export const Route = createFileRoute("/")({
       { property: "og:image:height", content: "630" },
       { name: "twitter:image", content: "https://princesspink90.com/__l5e/assets-v1/c6cfc346-e3de-433e-b100-5c845b88d3d9/og-home.jpg" },
     ],
-    links: [{ rel: "canonical", href: "https://princesspink90.com/" }],
+    links: [
+      { rel: "canonical", href: "https://princesspink90.com/" },
+      { rel: "preload", as: "image", href: heroImg, fetchpriority: "high" },
+    ],
   }),
   component: Home,
 });
