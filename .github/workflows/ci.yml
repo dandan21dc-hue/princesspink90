@@ -818,6 +818,13 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Ensure SUPABASE secrets present
+        run: |
+          if [ -z "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] || [ -z "${{ secrets.SUPABASE_PROJECT_REF }}" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN and SUPABASE_PROJECT_REF must be set as repository secrets. Add them under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
       - name: Generate rescan summary
         id: summary
         env:
@@ -885,7 +892,6 @@ jobs:
               });
               core.info(`Opened rescan tracker #${created.data.number}`);
             }
-
 
 
 
