@@ -10,6 +10,10 @@ vi.mock("@/integrations/supabase/client.server", () => {
     received_count: number;
     processed_at?: string | null;
   };
+  type HistorySelectResult = {
+    data: Array<{ last_status: string; handled: boolean; processed_at: string | null }>;
+    error: null;
+  };
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
@@ -35,6 +39,16 @@ vi.mock("@/integrations/supabase/client.server", () => {
             const [payment_id, last_status] = k.split("|");
             return { payment_id, last_status, ...row };
           });
+        const matches = (
+          row: Record<string, unknown>,
+          selectedFilters: Record<string, string>,
+          comparator: "eq" | "neq",
+        ) =>
+          Object.entries(selectedFilters).every(([c, v]) =>
+            comparator === "eq"
+              ? String(row[c]) === v
+              : String(row[c]) !== v,
+          );
         const rd = {
           eq: (c: string, v: string) => { filters[c] = v; return rd; },
           neq: (c: string, v: string) => { notEqFilters[c] = v; return rd; },
@@ -42,10 +56,10 @@ vi.mock("@/integrations/supabase/client.server", () => {
             data: ledger.get(keyOf(filters.payment_id, filters.last_status)) ?? null,
             error: null,
           }),
-          then: (resolve: (v: { data: Array<{ last_status: string; handled: boolean; processed_at: string | null }>; error: null }) => unknown, reject?: (e: unknown) => unknown) => {
+          then: (resolve: (v: HistorySelectResult) => unknown, reject?: (e: unknown) => unknown) => {
             const data = entries()
-              .filter((row) => Object.entries(filters).every(([c, v]) => String((row as Record<string, unknown>)[c]) === v))
-              .filter((row) => Object.entries(notEqFilters).every(([c, v]) => String((row as Record<string, unknown>)[c]) !== v))
+              .filter((row) => matches(row as Record<string, unknown>, filters, "eq"))
+              .filter((row) => matches(row as Record<string, unknown>, notEqFilters, "neq"))
               .map((row) => ({
                 last_status: row.last_status,
                 handled: row.handled,
