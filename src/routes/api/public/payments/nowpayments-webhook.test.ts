@@ -4,7 +4,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // it via dynamic import inside processIpn, so vi.mock's hoisting still applies.
 const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null });
 vi.mock("@/integrations/supabase/client.server", () => {
-  type Row = { handled: boolean; reason: string | null; received_count: number };
+  type Row = {
+    handled: boolean;
+    reason: string | null;
+    received_count: number;
+    processed_at?: string | null;
+  };
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
@@ -24,12 +29,30 @@ vi.mock("@/integrations/supabase/client.server", () => {
       },
       select(_c?: string) {
         const filters: Record<string, string> = {};
+        const notEqFilters: Record<string, string> = {};
+        const entries = () =>
+          [...ledger.entries()].map(([k, row]) => {
+            const [payment_id, last_status] = k.split("|");
+            return { payment_id, last_status, ...row };
+          });
         const rd = {
           eq: (c: string, v: string) => { filters[c] = v; return rd; },
+          neq: (c: string, v: string) => { notEqFilters[c] = v; return rd; },
           maybeSingle: () => Promise.resolve({
             data: ledger.get(keyOf(filters.payment_id, filters.last_status)) ?? null,
             error: null,
           }),
+          then: (resolve: (v: { data: Array<{ last_status: string; handled: boolean; processed_at: string | null }>; error: null }) => unknown, reject?: (e: unknown) => unknown) => {
+            const data = entries()
+              .filter((row) => Object.entries(filters).every(([c, v]) => String((row as Record<string, unknown>)[c]) === v))
+              .filter((row) => Object.entries(notEqFilters).every(([c, v]) => String((row as Record<string, unknown>)[c]) !== v))
+              .map((row) => ({
+                last_status: row.last_status,
+                handled: row.handled,
+                processed_at: row.processed_at ?? null,
+              }));
+            return Promise.resolve({ data, error: null }).then(resolve, reject);
+          },
         };
         return rd;
       },
