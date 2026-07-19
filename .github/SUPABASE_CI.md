@@ -1,6 +1,6 @@
 # Supabase CI Secrets
 
-The nightly `security_scheduled_summary` workflow requires two repository secrets:
+The nightly `security_scheduled_summary` workflow in `.github/workflows/ci.yml` requires two repository secrets:
 
 - `SUPABASE_ACCESS_TOKEN`: a Supabase personal access token (or automation token) with access to the target project.
 - `SUPABASE_PROJECT_REF`: your Supabase project ref (the short project ID used in dashboard URLs).
