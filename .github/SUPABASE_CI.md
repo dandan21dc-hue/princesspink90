@@ -15,6 +15,6 @@ The nightly `security_scheduled_summary` workflow requires two repository secret
 In GitHub, add both secrets under **Repository Settings → Secrets and variables → Actions**, or use:
 
 ```bash
-gh secret set SUPABASE_ACCESS_TOKEN -b"<your_supabase_access_token>"
-gh secret set SUPABASE_PROJECT_REF -b"<your_project_ref>"
+gh secret set SUPABASE_ACCESS_TOKEN -b "<your_supabase_access_token>"
+gh secret set SUPABASE_PROJECT_REF -b "<your_project_ref>"
 ```
