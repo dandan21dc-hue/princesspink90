@@ -61,7 +61,9 @@ vi.mock("@/integrations/supabase/client.server", () => {
           comparator: "eq" | "neq",
         ) =>
           Object.entries(filterMap).every(([column, value]) => {
-            if (!knownColumns.has(column as keyof LedgerEntry)) return false;
+            if (!knownColumns.has(column as keyof LedgerEntry)) {
+              throw new Error(`unexpected filter column: ${column}`);
+            }
             const rowValue = row[column as keyof LedgerEntry];
             if (comparator === "eq") return String(rowValue) === value;
             return String(rowValue) !== value;
