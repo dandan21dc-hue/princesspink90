@@ -44,11 +44,10 @@ vi.mock("@/integrations/supabase/client.server", () => {
           selectedFilters: Record<string, string>,
           comparator: "eq" | "neq",
         ) =>
-          Object.entries(selectedFilters).every(([c, v]) =>
-            comparator === "eq"
-              ? String(row[c]) === v
-              : String(row[c]) !== v,
-          );
+          Object.entries(selectedFilters).every(([c, v]) => {
+            if (comparator === "eq") return String(row[c]) === v;
+            return String(row[c]) !== v;
+          });
         const rd = {
           eq: (c: string, v: string) => { filters[c] = v; return rd; },
           neq: (c: string, v: string) => { notEqFilters[c] = v; return rd; },
@@ -72,10 +71,7 @@ vi.mock("@/integrations/supabase/client.server", () => {
                 handled: row.handled,
                 processed_at: row.processed_at ?? null,
               }));
-            return Promise.resolve({ data, error: null }).then(
-              onfulfilled ?? undefined,
-              onrejected ?? undefined,
-            );
+            return Promise.resolve({ data, error: null }).then(onfulfilled, onrejected);
           },
         };
         return rd;
