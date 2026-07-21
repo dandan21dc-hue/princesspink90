@@ -599,6 +599,8 @@ export function AdminSettings() {
           */}
           <div
             id="fetlife-handle-error"
+            role="alert"
+            aria-live="polite"
             className="mt-1 min-h-[1em] text-[11px] text-destructive"
           >
             {fetlifeError ?? (serverFetlifeError ? `Server rejected this handle: ${serverFetlifeError}` : "")}

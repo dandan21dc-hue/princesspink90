@@ -96,13 +96,30 @@ vi.mock("@/integrations/supabase/client.server", () => {
         };
       },
       select(_c?: string) {
-        const f: Record<string, string> = {};
+        const eqFilters: Record<string, string> = {};
+        const neqFilters: Record<string, string> = {};
+        type HistoryRow = { last_status: string; handled: boolean; processed_at: string | null };
         const rd = {
-          eq: (c: string, v: string) => { f[c] = v; return rd; },
+          eq: (c: string, v: string) => { eqFilters[c] = v; return rd; },
+          neq: (c: string, v: string) => { neqFilters[c] = v; return rd; },
           maybeSingle: () => Promise.resolve({
-            data: ledger.get(keyOf(f.payment_id, f.last_status)) ?? null,
+            data: ledger.get(keyOf(eqFilters.payment_id, eqFilters.last_status)) ?? null,
             error: null,
           }),
+          then(
+            resolve: (v: { data: HistoryRow[]; error: null }) => unknown,
+            reject?: (e: unknown) => unknown,
+          ) {
+            const rows: HistoryRow[] = [];
+            for (const [k, row] of ledger.entries()) {
+              const [pid, st] = k.split("|");
+              if (eqFilters.payment_id !== undefined && pid !== eqFilters.payment_id) continue;
+              if (eqFilters.last_status !== undefined && st !== eqFilters.last_status) continue;
+              if (neqFilters.last_status !== undefined && st === neqFilters.last_status) continue;
+              rows.push({ last_status: st, handled: row.handled, processed_at: null });
+            }
+            return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
+          },
         };
         return rd;
       },
@@ -124,7 +141,8 @@ vi.mock("@/integrations/supabase/client.server", () => {
     supabaseAdmin: {
       rpc: (name: string, args: Parameters<typeof fakeGrantAllAccessPass30d>[0]) => {
         if (name === "grant_all_access_pass_30d") return Promise.resolve(fakeGrantAllAccessPass30d(args));
-        return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
+        // grant_purchase_reward_points and others are silently no-ops in tests.
+        return Promise.resolve({ data: null, error: null });
       },
       from,
     },
@@ -161,6 +179,21 @@ vi.mock("@/lib/nowpayments.server", async (importOriginal) => {
     }),
   };
 });
+
+// Bypass account-restriction and maintenance guards so the handler body
+// can be exercised without a live Supabase session in the context.
+vi.mock("@/lib/account-restriction", () => ({
+  assertAccountNotRestricted: () => Promise.resolve(),
+  assertProfileVerified: () => Promise.resolve(),
+}));
+vi.mock("@/lib/maintenance.functions", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/maintenance.functions")>();
+  return { ...actual, assertNotInMaintenance: () => Promise.resolve() };
+});
+// Resolve app origin deterministically — no real HTTP request in tests.
+vi.mock("@/lib/app-origin.server", () => ({
+  resolveAppOrigin: () => "https://example.test",
+}));
 
 // Mock TanStack's createServerFn so the auth middleware is not required in
 // tests — we inject a synthetic `context.userId`, run the input validator,
