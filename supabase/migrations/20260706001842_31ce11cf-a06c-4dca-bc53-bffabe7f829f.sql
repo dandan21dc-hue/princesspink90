@@ -95,7 +95,10 @@ $$;
 -- 4. Daily dunning-escalation cron (10:00 UTC)
 DO $$
 DECLARE
-  anon_key text := 'sb_publishable_your-key-here';
+  anon_key text := COALESCE(
+    (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_PUBLISHABLE_KEY' LIMIT 1),
+    current_setting('app.settings.supabase_publishable_key', true)
+  );
   base_url text := 'https://project--2ea7609b-c928-4ad6-b438-a4db3aadd458-dev.lovable.app';
 BEGIN
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'dunning-escalation') THEN
