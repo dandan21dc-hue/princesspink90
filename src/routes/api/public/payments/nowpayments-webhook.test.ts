@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null });
 vi.mock("@/integrations/supabase/client.server", () => {
   type Row = { handled: boolean; reason: string | null; received_count: number };
+  type HistoryRow = { last_status: string; handled: boolean; processed_at: string | null };
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
@@ -23,13 +24,29 @@ vi.mock("@/integrations/supabase/client.server", () => {
         };
       },
       select(_c?: string) {
-        const filters: Record<string, string> = {};
+        const eqFilters: Record<string, string> = {};
+        const neqFilters: Record<string, string> = {};
         const rd = {
-          eq: (c: string, v: string) => { filters[c] = v; return rd; },
+          eq: (c: string, v: string) => { eqFilters[c] = v; return rd; },
+          neq: (c: string, v: string) => { neqFilters[c] = v; return rd; },
           maybeSingle: () => Promise.resolve({
-            data: ledger.get(keyOf(filters.payment_id, filters.last_status)) ?? null,
+            data: ledger.get(keyOf(eqFilters.payment_id, eqFilters.last_status)) ?? null,
             error: null,
           }),
+          then(
+            resolve: (v: { data: HistoryRow[]; error: null }) => unknown,
+            reject?: (e: unknown) => unknown,
+          ) {
+            const rows: HistoryRow[] = [];
+            for (const [k, row] of ledger.entries()) {
+              const [pid, st] = k.split("|");
+              if (eqFilters.payment_id !== undefined && pid !== eqFilters.payment_id) continue;
+              if (eqFilters.last_status !== undefined && st !== eqFilters.last_status) continue;
+              if (neqFilters.last_status !== undefined && st === neqFilters.last_status) continue;
+              rows.push({ last_status: st, handled: row.handled, processed_at: null });
+            }
+            return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
+          },
         };
         return rd;
       },
@@ -109,7 +126,8 @@ describe("processIpn", () => {
       payment_id: 987654,
     });
     expect(res.handled).toBe(true);
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // Two RPC calls: grant_all_access_pass_30d + grant_purchase_reward_points.
+    expect(rpcMock).toHaveBeenCalledTimes(2);
     expect(rpcMock).toHaveBeenCalledWith("grant_all_access_pass_30d", {
       _user_id: "11111111-1111-1111-1111-111111111111",
       _environment: "sandbox",
@@ -122,11 +140,12 @@ describe("processIpn", () => {
     const evt = { payment_status: "finished", order_id: validOrderId, payment_id: 3003 };
     const first = await processIpn(evt);
     expect(first.handled).toBe(true);
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // Two RPC calls: grant_all_access_pass_30d + grant_purchase_reward_points.
+    expect(rpcMock).toHaveBeenCalledTimes(2);
     const second = await processIpn(evt);
     expect(second).toMatchObject({ handled: true, duplicate: true });
     // No additional RPC call on redelivery.
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledTimes(2);
   });
 
   it("throws when the RPC fails so the webhook returns 5xx and NOWPayments retries", async () => {

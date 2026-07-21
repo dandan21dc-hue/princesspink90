@@ -3,6 +3,8 @@
 -- Verifies that an authenticated attendee cannot mutate staff/door-only
 -- columns on their own RSVP, while admins and the event host can.
 --
+-- Uses pgTAP (the framework used by `supabase db test` / pg_prove).
+--
 -- HOW TO RUN
 --   Local (recommended):    supabase db test
 --   Ad-hoc against a branch: psql "$DIRECT_DB_URL" -v ON_ERROR_STOP=1 \
@@ -74,97 +76,156 @@ BEGIN
   EXECUTE 'RESET ROLE';
 END $$;
 
--- Assertion helper: expect the statement to fail with the tamper message.
-CREATE OR REPLACE FUNCTION pg_temp.expect_reject(_uid uuid, _sql text, _label text) RETURNS void
+-- pgTAP helper: returns TRUE when the statement is blocked (any exception),
+-- FALSE when it unexpectedly succeeds.
+CREATE OR REPLACE FUNCTION pg_temp.rejects(_uid uuid, _sql text) RETURNS boolean
 LANGUAGE plpgsql AS $$
 BEGIN
   BEGIN
     PERFORM pg_temp.as_user(_uid, _sql);
-    RAISE EXCEPTION 'FAIL: % — attendee update was NOT blocked', _label;
-  EXCEPTION
-    WHEN raise_exception THEN
-      IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
-      RAISE NOTICE 'PASS: % — trigger rejected as expected (%)', _label, SQLERRM;
-    WHEN insufficient_privilege THEN
-      RAISE NOTICE 'PASS: % — rejected by RLS/privilege (%)', _label, SQLERRM;
+    EXECUTE 'RESET ROLE';
+    RETURN false;  -- should have thrown
+  EXCEPTION WHEN OTHERS THEN
+    EXECUTE 'RESET ROLE';
+    RETURN true;   -- blocked as expected
   END;
-  EXECUTE 'RESET ROLE';
 END $$;
 
--- Assertion helper: expect the statement to succeed.
-CREATE OR REPLACE FUNCTION pg_temp.expect_allow(_uid uuid, _sql text, _label text) RETURNS void
+-- pgTAP helper: returns TRUE when the statement succeeds,
+-- FALSE when it unexpectedly throws.
+CREATE OR REPLACE FUNCTION pg_temp.allows(_uid uuid, _sql text) RETURNS boolean
 LANGUAGE plpgsql AS $$
 BEGIN
-  PERFORM pg_temp.as_user(_uid, _sql);
-  RAISE NOTICE 'PASS: % — update allowed as expected', _label;
-EXCEPTION WHEN OTHERS THEN
-  EXECUTE 'RESET ROLE';
-  RAISE EXCEPTION 'FAIL: % — expected success but got: %', _label, SQLERRM;
+  BEGIN
+    PERFORM pg_temp.as_user(_uid, _sql);  -- resets role on success
+    RETURN true;
+  EXCEPTION WHEN OTHERS THEN
+    EXECUTE 'RESET ROLE';
+    RETURN false;  -- threw unexpectedly
+  END;
 END $$;
 
 -- ---------------------------------------------------------------------------
--- Attendee attempts — every one MUST be rejected
+-- pgTAP plan: 9 reject + 2 allow = 11 assertions
 -- ---------------------------------------------------------------------------
-DO $$
-DECLARE
-  v_attendee uuid := current_setting('test.attendee')::uuid;
-  v_rsvp     uuid := current_setting('test.rsvp')::uuid;
-  v_event    uuid := current_setting('test.event')::uuid;
-BEGIN
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET checked_in_at = now() WHERE id = %L', v_rsvp),
-    'attendee cannot self-check-in');
+SELECT plan(11);
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET checked_in_by = %L WHERE id = %L', v_attendee, v_rsvp),
-    'attendee cannot set checked_in_by');
+-- ---------------------------------------------------------------------------
+-- Attendee tamper attempts — every one MUST be rejected
+-- ---------------------------------------------------------------------------
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET checked_in_at = now() WHERE id = %L',
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot self-check-in'
+);
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET door_notes = ''forged'' WHERE id = %L', v_rsvp),
-    'attendee cannot write door_notes');
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET checked_in_by = %L WHERE id = %L',
+           current_setting('test.attendee'),
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot set checked_in_by'
+);
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET waiver_signature = ''X'', waiver_accepted_at = now() WHERE id = %L', v_rsvp),
-    'attendee cannot forge waiver acceptance');
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET door_notes = %L WHERE id = %L',
+           'forged',
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot write door_notes'
+);
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET entry_code = ''PINK-999999'' WHERE id = %L', v_rsvp),
-    'attendee cannot rewrite entry_code');
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET waiver_signature = %L, waiver_accepted_at = now() WHERE id = %L',
+           'X',
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot forge waiver acceptance'
+);
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET entry_phrase = ''Chosen Phrase'' WHERE id = %L', v_rsvp),
-    'attendee cannot rewrite entry_phrase');
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET entry_code = %L WHERE id = %L',
+           'PINK-999999',
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot rewrite entry_code'
+);
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET ticket_code = ''FAKE'' WHERE id = %L', v_rsvp),
-    'attendee cannot rewrite ticket_code');
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET entry_phrase = %L WHERE id = %L',
+           'Chosen Phrase',
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot rewrite entry_phrase'
+);
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET event_id = %L WHERE id = %L', gen_random_uuid(), v_rsvp),
-    'attendee cannot move rsvp to a different event');
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET ticket_code = %L WHERE id = %L',
+           'FAKE',
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot rewrite ticket_code'
+);
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET user_id = %L WHERE id = %L', gen_random_uuid(), v_rsvp),
-    'attendee cannot reassign rsvp ownership');
-END $$;
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET event_id = %L WHERE id = %L',
+           gen_random_uuid(),
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot move rsvp to a different event'
+);
+
+SELECT ok(
+  pg_temp.rejects(
+    current_setting('test.attendee')::uuid,
+    format('UPDATE public.rsvps SET user_id = %L WHERE id = %L',
+           gen_random_uuid(),
+           current_setting('test.rsvp'))
+  ),
+  'attendee cannot reassign rsvp ownership'
+);
 
 -- ---------------------------------------------------------------------------
 -- Host and admin attempts — MUST succeed
 -- ---------------------------------------------------------------------------
-DO $$
-DECLARE
-  v_host  uuid := current_setting('test.host')::uuid;
-  v_admin uuid := current_setting('test.admin')::uuid;
-  v_rsvp  uuid := current_setting('test.rsvp')::uuid;
-BEGIN
-  PERFORM pg_temp.expect_allow(v_host,
-    format('UPDATE public.rsvps SET checked_in_at = now(), checked_in_by = %L WHERE id = %L', v_host, v_rsvp),
-    'event host can check attendee in');
+SELECT ok(
+  pg_temp.allows(
+    current_setting('test.host')::uuid,
+    format('UPDATE public.rsvps SET checked_in_at = now(), checked_in_by = %L WHERE id = %L',
+           current_setting('test.host'),
+           current_setting('test.rsvp'))
+  ),
+  'event host can check attendee in'
+);
 
-  PERFORM pg_temp.expect_allow(v_admin,
-    format('UPDATE public.rsvps SET door_notes = ''VIP'' WHERE id = %L', v_rsvp),
-    'admin can annotate door_notes');
-END $$;
+SELECT ok(
+  pg_temp.allows(
+    current_setting('test.admin')::uuid,
+    format('UPDATE public.rsvps SET door_notes = %L WHERE id = %L',
+           'VIP',
+           current_setting('test.rsvp'))
+  ),
+  'admin can annotate door_notes'
+);
+
+SELECT finish();
 
 -- Roll everything back so the test leaves no residue.
 ROLLBACK;

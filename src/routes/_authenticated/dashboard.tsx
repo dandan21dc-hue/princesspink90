@@ -130,7 +130,7 @@ const GROUPS: NavGroup[] = [
       { label: "Activity Audit", to: "/admin/activity-audit", icon: ScrollText, adminOnly: true },
       { label: "Purge Log", to: "/admin/health-purge", icon: Trash2, adminOnly: true },
       { label: "Incident Log", to: "/admin/safety-incidents", icon: AlertTriangle, adminOnly: true },
-      { label: "Webhook Events", to: "/admin/webhook-events", icon: Webhook, adminOnly: true },
+      { label: "Webhook Events", to: "/admin/nowpayments-events", icon: Webhook, adminOnly: true },
       { label: "System Logs", to: "/admin/system-logs", icon: Terminal, adminOnly: true },
       { label: "Reminder Logs", to: "/admin/health-reminders", icon: BellRing, adminOnly: true },
       { label: "Tier Analytics", to: "/admin/analytics", icon: BarChart3, adminOnly: true },

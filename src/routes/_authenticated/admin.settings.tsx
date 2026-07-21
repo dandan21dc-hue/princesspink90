@@ -599,6 +599,8 @@ export function AdminSettings() {
           */}
           <div
             id="fetlife-handle-error"
+            role="alert"
+            aria-live="polite"
             className="mt-1 min-h-[1em] text-[11px] text-destructive"
           >
             {fetlifeError ?? (serverFetlifeError ? `Server rejected this handle: ${serverFetlifeError}` : "")}
@@ -1718,7 +1720,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function PricingAuditSection() {
   const listFn = useServerFn(listPricingAudit);
   const exportFn = useServerFn(exportPricingAudit);
-  const navigate = useNavigate({ from: "/_authenticated/admin/settings" });
+  const navigate = useNavigate({ from: Route.fullPath });
   const { q: search, from, to, page, pageSize } = routeApi.useSearch();
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);

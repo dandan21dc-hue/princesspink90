@@ -335,8 +335,8 @@ jobs:
 
           echo ""
           echo "===== Postgres server log (last 400 lines) ====="
-          supabase logs db --tail 400 2>&1 || \
-            supabase logs --experimental 2>&1 || \
+          supabase db logs --format pretty 2>&1 || \
+            docker logs supabase_db_princesspink90 --tail 400 2>&1 || \
             echo "(no supabase logs available)"
 
           echo ""
@@ -470,7 +470,7 @@ jobs:
 
       - name: Dump Supabase logs on failure
         if: failure()
-        run: supabase logs --experimental || true
+        run: supabase db logs --format pretty 2>&1 || true
 
       - name: Tear down
         if: always()

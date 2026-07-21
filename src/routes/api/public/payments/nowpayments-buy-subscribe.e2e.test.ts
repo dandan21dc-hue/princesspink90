@@ -115,38 +115,103 @@ function fakeGrantPantyOrder(args: {
   return { data: row, error: null };
 }
 
-vi.mock("@/integrations/supabase/client.server", () => ({
-  supabaseAdmin: {
-    from: (table: string) => {
-      if (table === "panty_listings") {
+vi.mock("@/integrations/supabase/client.server", () => {
+  type LedgerRow = { handled: boolean; reason: string | null; received_count: number };
+  const ledger = new Map<string, LedgerRow>();
+  const ledgerKey = (pid: string, st: string) => `${pid}|${st}`;
+  type HistoryRow = { last_status: string; handled: boolean; processed_at: string | null };
+
+  function ipnLedgerFrom() {
+    return {
+      insert(row: { payment_id: string; last_status: string }) {
+        const k = ledgerKey(row.payment_id, row.last_status);
         return {
-          select: () => ({
-            eq: (_col: string, id: string) => ({
-              maybeSingle: () => {
-                const row = state.listings.find((l) => l.id === id) ?? null;
-                return Promise.resolve({ data: row, error: null });
-              },
-            }),
+          select: (_c?: string) => ({
+            maybeSingle: () => {
+              if (ledger.has(k)) return Promise.resolve({ data: null, error: { code: "23505", message: "dup" } });
+              ledger.set(k, { handled: false, reason: null, received_count: 1 });
+              return Promise.resolve({ data: { payment_id: row.payment_id }, error: null });
+            },
           }),
         };
-      }
-      throw new Error(`unexpected table: ${table}`);
+      },
+      select(_c?: string) {
+        const eqFilters: Record<string, string> = {};
+        const neqFilters: Record<string, string> = {};
+        const rd = {
+          eq: (c: string, v: string) => { eqFilters[c] = v; return rd; },
+          neq: (c: string, v: string) => { neqFilters[c] = v; return rd; },
+          maybeSingle: () => Promise.resolve({
+            data: ledger.get(ledgerKey(eqFilters.payment_id, eqFilters.last_status)) ?? null,
+            error: null,
+          }),
+          then(
+            resolve: (v: { data: HistoryRow[]; error: null }) => unknown,
+            reject?: (e: unknown) => unknown,
+          ) {
+            const rows: HistoryRow[] = [];
+            for (const [k, row] of ledger.entries()) {
+              const [pid, st] = k.split("|");
+              if (eqFilters.payment_id !== undefined && pid !== eqFilters.payment_id) continue;
+              if (eqFilters.last_status !== undefined && st !== eqFilters.last_status) continue;
+              if (neqFilters.last_status !== undefined && st === neqFilters.last_status) continue;
+              rows.push({ last_status: st, handled: row.handled, processed_at: null });
+            }
+            return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
+          },
+        };
+        return rd;
+      },
+      update(patch: Record<string, unknown>) {
+        const f: Record<string, string> = {};
+        const upd = {
+          eq: (c: string, v: string) => { f[c] = v; return upd; },
+          then: (resolve: (v: { data: null; error: null }) => unknown, reject?: (e: unknown) => unknown) => {
+            const row = ledger.get(ledgerKey(f.payment_id, f.last_status));
+            if (row) Object.assign(row, patch);
+            return Promise.resolve({ data: null, error: null }).then(resolve, reject);
+          },
+        };
+        return upd;
+      },
+    };
+  }
+
+  return {
+    supabaseAdmin: {
+      from: (table: string) => {
+        if (table === "panty_listings") {
+          return {
+            select: () => ({
+              eq: (_col: string, id: string) => ({
+                maybeSingle: () => {
+                  const row = state.listings.find((l) => l.id === id) ?? null;
+                  return Promise.resolve({ data: row, error: null });
+                },
+              }),
+            }),
+          };
+        }
+        if (table === "nowpayments_ipn_events") return ipnLedgerFrom();
+        throw new Error(`unexpected table: ${table}`);
+      },
+      rpc: (name: string, args: Record<string, unknown>) => {
+        if (name === "grant_lifetime_membership") {
+          return Promise.resolve(
+            fakeGrantLifetime(args as Parameters<typeof fakeGrantLifetime>[0]),
+          );
+        }
+        if (name === "grant_panty_listing_order") {
+          return Promise.resolve(
+            fakeGrantPantyOrder(args as Parameters<typeof fakeGrantPantyOrder>[0]),
+          );
+        }
+        // grant_purchase_reward_points and other helpers are no-ops in tests.
+        return Promise.resolve({ data: null, error: null });
+      },
     },
-    rpc: (name: string, args: Record<string, unknown>) => {
-      if (name === "grant_lifetime_membership") {
-        return Promise.resolve(
-          fakeGrantLifetime(args as Parameters<typeof fakeGrantLifetime>[0]),
-        );
-      }
-      if (name === "grant_panty_listing_order") {
-        return Promise.resolve(
-          fakeGrantPantyOrder(args as Parameters<typeof fakeGrantPantyOrder>[0]),
-        );
-      }
-      return Promise.resolve({ data: null, error: { message: `unexpected rpc: ${name}` } });
-    },
-  },
-}));
+  };
+});
 
 // ---- fake NOWPayments hosted invoice API ----------------------------------
 
@@ -182,6 +247,21 @@ vi.mock("@/lib/nowpayments.server", async (importOriginal) => {
     }),
   };
 });
+
+// Bypass account-restriction and maintenance guards so the handler body
+// can be exercised without a live Supabase session in the context.
+vi.mock("@/lib/account-restriction", () => ({
+  assertAccountNotRestricted: () => Promise.resolve(),
+  assertProfileVerified: () => Promise.resolve(),
+}));
+vi.mock("@/lib/maintenance.functions", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/maintenance.functions")>();
+  return { ...actual, assertNotInMaintenance: () => Promise.resolve() };
+});
+// Resolve app origin deterministically — no real HTTP request in tests.
+vi.mock("@/lib/app-origin.server", () => ({
+  resolveAppOrigin: () => "https://example.test",
+}));
 
 // Bypass the auth middleware — inject `context.userId` from CURRENT_USER
 // so the invoice server fn can run without a live Supabase session.
