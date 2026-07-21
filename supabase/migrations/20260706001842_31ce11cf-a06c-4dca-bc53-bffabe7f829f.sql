@@ -111,7 +111,7 @@ BEGIN
    LIMIT 1;
 
   IF anon_key IS NULL OR btrim(anon_key) = '' THEN
-    RAISE EXCEPTION 'Missing Supabase publishable key for dunning-escalation cron. Add vault secret SUPABASE_PUBLISHABLE_KEY in Supabase Dashboard (Project Settings -> Vault) or run: supabase secrets set SUPABASE_PUBLISHABLE_KEY=<value>.';
+    RAISE EXCEPTION 'Missing Supabase publishable key for dunning-escalation cron. Add vault secret SUPABASE_PUBLISHABLE_KEY in Supabase Dashboard (Project Settings -> Vault).';
   END IF;
 
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'dunning-escalation') THEN
