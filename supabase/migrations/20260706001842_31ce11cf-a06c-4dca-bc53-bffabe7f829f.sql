@@ -110,7 +110,7 @@ BEGIN
    WHERE name = 'SUPABASE_PUBLISHABLE_KEY'
    LIMIT 1;
 
-  IF anon_key IS NULL OR btrim(anon_key) = '' THEN
+  IF COALESCE(btrim(anon_key), '') = '' THEN
     RAISE EXCEPTION 'Missing Supabase publishable key for dunning-escalation cron. Add vault secret SUPABASE_PUBLISHABLE_KEY in Supabase Dashboard (Project Settings -> Vault).';
   END IF;
 
