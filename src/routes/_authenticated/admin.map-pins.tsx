@@ -115,7 +115,7 @@ function AdminMapPins() {
 
   // URL-persisted search + status filter.
   const { q, state } = Route.useSearch();
-  const navigate = useNavigate({ from: "/_authenticated/admin/map-pins" });
+  const navigate = useNavigate({ from: Route.fullPath });
   const [qInput, setQInput] = useState(q);
   useEffect(() => setQInput(q), [q]);
   useEffect(() => {

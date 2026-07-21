@@ -1718,7 +1718,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function PricingAuditSection() {
   const listFn = useServerFn(listPricingAudit);
   const exportFn = useServerFn(exportPricingAudit);
-  const navigate = useNavigate({ from: "/_authenticated/admin/settings" });
+  const navigate = useNavigate({ from: Route.fullPath });
   const { q: search, from, to, page, pageSize } = routeApi.useSearch();
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
