@@ -96,14 +96,13 @@ $$;
 DO $$
 DECLARE
   -- Expected vault secret name: SUPABASE_PUBLISHABLE_KEY
-  anon_key text := COALESCE(
-    (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_PUBLISHABLE_KEY' LIMIT 1),
-    current_setting('app.settings.supabase_publishable_key', true)
+  anon_key text := (
+    SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_PUBLISHABLE_KEY' LIMIT 1
   );
   base_url text := 'https://project--2ea7609b-c928-4ad6-b438-a4db3aadd458-dev.lovable.app';
 BEGIN
   IF anon_key IS NULL OR btrim(anon_key) = '' THEN
-    RAISE EXCEPTION 'Missing Supabase publishable key for dunning-escalation cron. Configure vault secret SUPABASE_PUBLISHABLE_KEY or app.settings.supabase_publishable_key.';
+    RAISE EXCEPTION 'Missing Supabase publishable key for dunning-escalation cron. Configure vault secret SUPABASE_PUBLISHABLE_KEY.';
   END IF;
 
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'dunning-escalation') THEN
