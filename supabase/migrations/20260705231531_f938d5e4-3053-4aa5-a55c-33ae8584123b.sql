@@ -51,6 +51,10 @@ REVOKE EXECUTE ON FUNCTION public.enqueue_email(text, jsonb) FROM anon, authenti
 REVOKE EXECUTE ON FUNCTION public.read_email_batch(text, integer, integer) FROM anon, authenticated, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.delete_email(text, bigint) FROM anon, authenticated, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.move_to_dlq(text, text, bigint, jsonb) FROM anon, authenticated, PUBLIC;
+-- email_queue_dispatch / email_queue_wake are SECURITY DEFINER functions created
+-- outside of migration files (via the Management API). They appear in types.ts so
+-- they exist on the live DB. REVOKE is guarded because on a fresh DB reset (CI)
+-- these functions are absent and PostgreSQL's REVOKE has no IF EXISTS syntax.
 DO $$ BEGIN
   REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM anon, authenticated, PUBLIC;
 EXCEPTION WHEN undefined_function THEN NULL;
