@@ -172,12 +172,19 @@ describe("processIpn", () => {
       payment_id: 987654,
     });
     expect(res.handled).toBe(true);
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // grant_all_access_pass_30d + grant_purchase_reward_points
+    expect(rpcMock).toHaveBeenCalledTimes(2);
     expect(rpcMock).toHaveBeenCalledWith("grant_all_access_pass_30d", {
       _user_id: "11111111-1111-1111-1111-111111111111",
       _environment: "sandbox",
       _amount_cents: 1000,
       _external_payment_reference: "nowpayments:987654",
+    });
+    expect(rpcMock).toHaveBeenCalledWith("grant_purchase_reward_points", {
+      _user_id: "11111111-1111-1111-1111-111111111111",
+      _amount_cents: 1000,
+      _external_payment_reference: "nowpayments:987654",
+      _source: "aap30d",
     });
   });
 
@@ -185,11 +192,12 @@ describe("processIpn", () => {
     const evt = { payment_status: "finished", order_id: validOrderId, payment_id: 3003 };
     const first = await processIpn(evt);
     expect(first.handled).toBe(true);
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // grant_all_access_pass_30d + grant_purchase_reward_points
+    expect(rpcMock).toHaveBeenCalledTimes(2);
     const second = await processIpn(evt);
     expect(second).toMatchObject({ handled: true, duplicate: true });
     // No additional RPC call on redelivery.
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledTimes(2);
   });
 
   it("throws when the RPC fails so the webhook returns 5xx and NOWPayments retries", async () => {
