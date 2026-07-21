@@ -23,13 +23,33 @@ vi.mock("@/integrations/supabase/client.server", () => {
         };
       },
       select(_c?: string) {
-        const filters: Record<string, string> = {};
+        const eqFilters: Record<string, string> = {};
+        const neqFilters: Record<string, string> = {};
         const rd = {
-          eq: (c: string, v: string) => { filters[c] = v; return rd; },
+          eq: (c: string, v: string) => { eqFilters[c] = v; return rd; },
+          neq: (c: string, v: string) => { neqFilters[c] = v; return rd; },
           maybeSingle: () => Promise.resolve({
-            data: ledger.get(keyOf(filters.payment_id, filters.last_status)) ?? null,
+            data: ledger.get(keyOf(eqFilters.payment_id, eqFilters.last_status)) ?? null,
             error: null,
           }),
+          then(
+            resolve: (v: { data: Array<{ last_status: string; handled: boolean; processed_at: string | null }>; error: null }) => unknown,
+            reject?: (e: unknown) => unknown,
+          ) {
+            const rows = [...ledger.entries()]
+              .filter(([k]) => {
+                const [pid, st] = k.split("|");
+                if (eqFilters.payment_id !== undefined && pid !== eqFilters.payment_id) return false;
+                if (eqFilters.last_status !== undefined && st !== eqFilters.last_status) return false;
+                if (neqFilters.last_status !== undefined && st === neqFilters.last_status) return false;
+                return true;
+              })
+              .map(([k, row]) => {
+                const [, st] = k.split("|");
+                return { last_status: st, handled: row.handled, processed_at: null };
+              });
+            return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
+          },
         };
         return rd;
       },
