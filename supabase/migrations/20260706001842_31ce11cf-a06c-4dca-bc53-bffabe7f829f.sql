@@ -101,7 +101,7 @@ DECLARE
   base_url text := 'https://project--2ea7609b-c928-4ad6-b438-a4db3aadd458-dev.lovable.app';
 BEGIN
   IF to_regclass('vault.decrypted_secrets') IS NULL THEN
-    RAISE EXCEPTION 'Missing prerequisite relation vault.decrypted_secrets. Enable Supabase Vault before running this migration.';
+    RAISE EXCEPTION 'Missing prerequisite relation vault.decrypted_secrets. Supabase Vault must be enabled before this migration can complete.';
   END IF;
 
   SELECT decrypted_secret
@@ -111,7 +111,7 @@ BEGIN
    LIMIT 1;
 
   IF COALESCE(btrim(anon_key), '') = '' THEN
-    RAISE EXCEPTION 'Missing Supabase publishable key for dunning-escalation cron. Add vault secret SUPABASE_PUBLISHABLE_KEY in Supabase Dashboard (Project Settings -> Vault).';
+    RAISE EXCEPTION 'Cannot create dunning-escalation cron job: missing SUPABASE_PUBLISHABLE_KEY in Vault. Add the secret in Supabase Dashboard (Project Settings -> Vault).';
   END IF;
 
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'dunning-escalation') THEN
