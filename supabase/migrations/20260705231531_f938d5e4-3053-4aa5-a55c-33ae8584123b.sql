@@ -51,8 +51,14 @@ REVOKE EXECUTE ON FUNCTION public.enqueue_email(text, jsonb) FROM anon, authenti
 REVOKE EXECUTE ON FUNCTION public.read_email_batch(text, integer, integer) FROM anon, authenticated, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.delete_email(text, bigint) FROM anon, authenticated, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.move_to_dlq(text, text, bigint, jsonb) FROM anon, authenticated, PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM anon, authenticated, PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.email_queue_wake() FROM anon, authenticated, PUBLIC;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION public.email_queue_dispatch() FROM anon, authenticated, PUBLIC;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION public.email_queue_wake() FROM anon, authenticated, PUBLIC;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 REVOKE EXECUTE ON FUNCTION public.rsvps_assign_entry_code() FROM anon, authenticated, PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.rsvps_assign_entry_phrase() FROM anon, authenticated, PUBLIC;
 
