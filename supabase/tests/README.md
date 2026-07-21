@@ -16,8 +16,9 @@ supabase db test
 `supabase db test` starts the local stack (if not already running) and
 executes every `*.test.sql` in this directory as the postgres superuser,
 which can seed the `auth.users` rows the test needs.
-Each test script must emit TAP output (`plan(...)` / `finish()`) so pg_prove
-can report pass/fail correctly in CI.
+Each test script must emit TAP output (`plan(...)` / `finish()`) so
+`supabase db test` (which runs `pg_prove` internally) can report pass/fail
+correctly in CI.
 
 ### Run it against a branch / CI
 
