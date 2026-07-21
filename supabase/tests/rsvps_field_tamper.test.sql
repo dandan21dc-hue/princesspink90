@@ -78,96 +78,151 @@ BEGIN
 END $$;
 
 -- Assertion helper: expect the statement to fail with the tamper message.
-CREATE OR REPLACE FUNCTION pg_temp.expect_reject(_uid uuid, _sql text, _label text) RETURNS void
+CREATE OR REPLACE FUNCTION pg_temp.expect_reject(_uid uuid, _sql text, _label text) RETURNS text
 LANGUAGE plpgsql AS $$
+DECLARE
+  v_result text;
 BEGIN
   BEGIN
     PERFORM pg_temp.as_user(_uid, _sql);
-    PERFORM fail(format('%s — attendee update was NOT blocked', _label));
+    v_result := fail(format('%s — attendee update was NOT blocked', _label));
   EXCEPTION
     WHEN raise_exception THEN
       IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
-      PERFORM pass(format('%s — trigger rejected as expected (%s)', _label, SQLERRM));
+      v_result := pass(format('%s — trigger rejected as expected (%s)', _label, SQLERRM));
     WHEN insufficient_privilege THEN
-      PERFORM pass(format('%s — rejected by RLS/privilege (%s)', _label, SQLERRM));
+      v_result := pass(format('%s — rejected by RLS/privilege (%s)', _label, SQLERRM));
   END;
   EXECUTE 'RESET ROLE';
+  RETURN v_result;
 END $$;
 
 -- Assertion helper: expect the statement to succeed.
-CREATE OR REPLACE FUNCTION pg_temp.expect_allow(_uid uuid, _sql text, _label text) RETURNS void
+CREATE OR REPLACE FUNCTION pg_temp.expect_allow(_uid uuid, _sql text, _label text) RETURNS text
 LANGUAGE plpgsql AS $$
 BEGIN
   PERFORM pg_temp.as_user(_uid, _sql);
-  PERFORM pass(format('%s — update allowed as expected', _label));
+  RETURN pass(format('%s — update allowed as expected', _label));
 EXCEPTION WHEN OTHERS THEN
   EXECUTE 'RESET ROLE';
-  PERFORM fail(format('%s — expected success but got: %s', _label, SQLERRM));
+  RETURN fail(format('%s — expected success but got: %s', _label, SQLERRM));
 END $$;
 
 -- ---------------------------------------------------------------------------
 -- Attendee attempts — every one MUST be rejected
 -- ---------------------------------------------------------------------------
-DO $$
-DECLARE
-  v_attendee uuid := current_setting('test.attendee')::uuid;
-  v_rsvp     uuid := current_setting('test.rsvp')::uuid;
-  v_event    uuid := current_setting('test.event')::uuid;
-BEGIN
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET checked_in_at = now() WHERE id = %L', v_rsvp),
-    'attendee cannot self-check-in');
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET checked_in_at = now() WHERE id = %L', rsvp),
+  'attendee cannot self-check-in')
+FROM vars;
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET checked_in_by = %L WHERE id = %L', v_attendee, v_rsvp),
-    'attendee cannot set checked_in_by');
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET checked_in_by = %L WHERE id = %L', attendee, rsvp),
+  'attendee cannot set checked_in_by')
+FROM vars;
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET door_notes = ''forged'' WHERE id = %L', v_rsvp),
-    'attendee cannot write door_notes');
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET door_notes = ''forged'' WHERE id = %L', rsvp),
+  'attendee cannot write door_notes')
+FROM vars;
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET waiver_signature = ''X'', waiver_accepted_at = now() WHERE id = %L', v_rsvp),
-    'attendee cannot forge waiver acceptance');
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET waiver_signature = ''X'', waiver_accepted_at = now() WHERE id = %L', rsvp),
+  'attendee cannot forge waiver acceptance')
+FROM vars;
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET entry_code = ''PINK-999999'' WHERE id = %L', v_rsvp),
-    'attendee cannot rewrite entry_code');
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET entry_code = ''PINK-999999'' WHERE id = %L', rsvp),
+  'attendee cannot rewrite entry_code')
+FROM vars;
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET entry_phrase = ''Chosen Phrase'' WHERE id = %L', v_rsvp),
-    'attendee cannot rewrite entry_phrase');
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET entry_phrase = ''Chosen Phrase'' WHERE id = %L', rsvp),
+  'attendee cannot rewrite entry_phrase')
+FROM vars;
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET ticket_code = ''FAKE'' WHERE id = %L', v_rsvp),
-    'attendee cannot rewrite ticket_code');
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET ticket_code = ''FAKE'' WHERE id = %L', rsvp),
+  'attendee cannot rewrite ticket_code')
+FROM vars;
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET event_id = %L WHERE id = %L', gen_random_uuid(), v_rsvp),
-    'attendee cannot move rsvp to a different event');
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET event_id = %L WHERE id = %L', gen_random_uuid(), rsvp),
+  'attendee cannot move rsvp to a different event')
+FROM vars;
 
-  PERFORM pg_temp.expect_reject(v_attendee,
-    format('UPDATE public.rsvps SET user_id = %L WHERE id = %L', gen_random_uuid(), v_rsvp),
-    'attendee cannot reassign rsvp ownership');
-END $$;
+WITH vars AS (
+  SELECT
+    current_setting('test.attendee')::uuid AS attendee,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_reject(attendee,
+  format('UPDATE public.rsvps SET user_id = %L WHERE id = %L', gen_random_uuid(), rsvp),
+  'attendee cannot reassign rsvp ownership')
+FROM vars;
 
 -- ---------------------------------------------------------------------------
 -- Host and admin attempts — MUST succeed
 -- ---------------------------------------------------------------------------
-DO $$
-DECLARE
-  v_host  uuid := current_setting('test.host')::uuid;
-  v_admin uuid := current_setting('test.admin')::uuid;
-  v_rsvp  uuid := current_setting('test.rsvp')::uuid;
-BEGIN
-  PERFORM pg_temp.expect_allow(v_host,
-    format('UPDATE public.rsvps SET checked_in_at = now(), checked_in_by = %L WHERE id = %L', v_host, v_rsvp),
-    'event host can check attendee in');
+WITH vars AS (
+  SELECT
+    current_setting('test.host')::uuid AS host_id,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_allow(host_id,
+  format('UPDATE public.rsvps SET checked_in_at = now(), checked_in_by = %L WHERE id = %L', host_id, rsvp),
+  'event host can check attendee in')
+FROM vars;
 
-  PERFORM pg_temp.expect_allow(v_admin,
-    format('UPDATE public.rsvps SET door_notes = ''VIP'' WHERE id = %L', v_rsvp),
-    'admin can annotate door_notes');
-END $$;
+WITH vars AS (
+  SELECT
+    current_setting('test.admin')::uuid AS admin_id,
+    current_setting('test.rsvp')::uuid AS rsvp
+)
+SELECT pg_temp.expect_allow(admin_id,
+  format('UPDATE public.rsvps SET door_notes = ''VIP'' WHERE id = %L', rsvp),
+  'admin can annotate door_notes')
+FROM vars;
 
 SELECT * FROM finish();
 
