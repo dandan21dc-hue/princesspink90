@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null });
 vi.mock("@/integrations/supabase/client.server", () => {
   type Row = { handled: boolean; reason: string | null; received_count: number };
+  type HistoryRow = { last_status: string; handled: boolean; processed_at: string | null };
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
@@ -33,21 +34,17 @@ vi.mock("@/integrations/supabase/client.server", () => {
             error: null,
           }),
           then(
-            resolve: (v: { data: Array<{ last_status: string; handled: boolean; processed_at: string | null }>; error: null }) => unknown,
+            resolve: (v: { data: HistoryRow[]; error: null }) => unknown,
             reject?: (e: unknown) => unknown,
           ) {
-            const rows = [...ledger.entries()]
-              .filter(([k]) => {
-                const [pid, st] = k.split("|");
-                if (eqFilters.payment_id !== undefined && pid !== eqFilters.payment_id) return false;
-                if (eqFilters.last_status !== undefined && st !== eqFilters.last_status) return false;
-                if (neqFilters.last_status !== undefined && st === neqFilters.last_status) return false;
-                return true;
-              })
-              .map(([k, row]) => {
-                const [, st] = k.split("|");
-                return { last_status: st, handled: row.handled, processed_at: null };
-              });
+            const rows: HistoryRow[] = [];
+            for (const [k, row] of ledger.entries()) {
+              const [pid, st] = k.split("|");
+              if (eqFilters.payment_id !== undefined && pid !== eqFilters.payment_id) continue;
+              if (eqFilters.last_status !== undefined && st !== eqFilters.last_status) continue;
+              if (neqFilters.last_status !== undefined && st === neqFilters.last_status) continue;
+              rows.push({ last_status: st, handled: row.handled, processed_at: null });
+            }
             return Promise.resolve({ data: rows, error: null }).then(resolve, reject);
           },
         };
