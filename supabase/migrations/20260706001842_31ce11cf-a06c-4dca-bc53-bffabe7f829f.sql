@@ -95,6 +95,7 @@ $$;
 -- 4. Daily dunning-escalation cron (10:00 UTC)
 DO $$
 DECLARE
+  -- Prerequisite: supabase_vault extension/schema must be enabled and accessible.
   -- Expected vault secret name: SUPABASE_PUBLISHABLE_KEY
   anon_key text := (
     SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'SUPABASE_PUBLISHABLE_KEY' LIMIT 1
@@ -102,7 +103,7 @@ DECLARE
   base_url text := 'https://project--2ea7609b-c928-4ad6-b438-a4db3aadd458-dev.lovable.app';
 BEGIN
   IF anon_key IS NULL OR btrim(anon_key) = '' THEN
-    RAISE EXCEPTION 'Missing Supabase publishable key for dunning-escalation cron. Configure vault secret SUPABASE_PUBLISHABLE_KEY.';
+    RAISE EXCEPTION 'Missing Supabase publishable key for dunning-escalation cron. Add vault secret SUPABASE_PUBLISHABLE_KEY in Supabase Dashboard (Project Settings -> Vault) or via CLI before running this migration.';
   END IF;
 
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'dunning-escalation') THEN
