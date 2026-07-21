@@ -95,7 +95,7 @@ $$;
 -- 4. Daily dunning-escalation cron (10:00 UTC)
 DO $$
 DECLARE
-  anon_key text := 'sb_publishable_ooJ1WmDfZzwdSel-TNlX1A_9a3AZzjp';
+  anon_key text := 'sb_publishable_your-key-here';
   base_url text := 'https://project--2ea7609b-c928-4ad6-b438-a4db3aadd458-dev.lovable.app';
 BEGIN
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'dunning-escalation') THEN
