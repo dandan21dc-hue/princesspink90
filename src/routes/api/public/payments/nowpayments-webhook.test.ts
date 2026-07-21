@@ -4,7 +4,24 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // it via dynamic import inside processIpn, so vi.mock's hoisting still applies.
 const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null });
 vi.mock("@/integrations/supabase/client.server", () => {
-  type Row = { handled: boolean; reason: string | null; received_count: number };
+  type Row = {
+    handled: boolean;
+    reason: string | null;
+    received_count: number;
+    processed_at?: string | null;
+  };
+  type HistorySelectResult = {
+    data: Array<{ last_status: string; handled: boolean; processed_at: string | null }>;
+    error: null;
+  };
+  type LedgerEntry = {
+    payment_id: string;
+    last_status: string;
+    handled: boolean;
+    reason: string | null;
+    received_count: number;
+    processed_at?: string | null;
+  };
   const ledger = new Map<string, Row>();
   const keyOf = (pid: string, status: string) => `${pid}|${status}`;
   const from = (table: string) => {
@@ -24,12 +41,58 @@ vi.mock("@/integrations/supabase/client.server", () => {
       },
       select(_c?: string) {
         const filters: Record<string, string> = {};
+        const notEqFilters: Record<string, string> = {};
+        const entries = (): LedgerEntry[] =>
+          [...ledger.entries()].map(([k, row]) => {
+            const [payment_id, last_status] = k.split("|");
+            return { payment_id, last_status, ...row };
+          });
+        const knownColumns = new Set<keyof LedgerEntry>([
+          "payment_id",
+          "last_status",
+          "handled",
+          "reason",
+          "received_count",
+          "processed_at",
+        ]);
+        const matches = (
+          row: LedgerEntry,
+          filterMap: Record<string, string>,
+          comparator: "eq" | "neq",
+        ) =>
+          Object.entries(filterMap).every(([column, value]) => {
+            if (!knownColumns.has(column as keyof LedgerEntry)) {
+              throw new Error(`unexpected filter column: ${column}`);
+            }
+            const rowValue = row[column as keyof LedgerEntry];
+            if (comparator === "eq") return String(rowValue) === value;
+            return String(rowValue) !== value;
+          });
         const rd = {
           eq: (c: string, v: string) => { filters[c] = v; return rd; },
+          neq: (c: string, v: string) => { notEqFilters[c] = v; return rd; },
           maybeSingle: () => Promise.resolve({
             data: ledger.get(keyOf(filters.payment_id, filters.last_status)) ?? null,
             error: null,
           }),
+          then: <TResult1 = HistorySelectResult, TResult2 = never>(
+            onfulfilled?:
+              | ((value: HistorySelectResult) => TResult1 | PromiseLike<TResult1>)
+              | null,
+            onrejected?:
+              | ((reason: unknown) => TResult2 | PromiseLike<TResult2>)
+              | null,
+          ): Promise<TResult1 | TResult2> => {
+            const data = entries()
+              .filter((row) => matches(row, filters, "eq"))
+              .filter((row) => matches(row, notEqFilters, "neq"))
+              .map((row) => ({
+                last_status: row.last_status,
+                handled: row.handled,
+                processed_at: row.processed_at ?? null,
+              }));
+            return Promise.resolve({ data, error: null }).then(onfulfilled, onrejected);
+          },
         };
         return rd;
       },
@@ -109,12 +172,19 @@ describe("processIpn", () => {
       payment_id: 987654,
     });
     expect(res.handled).toBe(true);
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // grant_all_access_pass_30d + grant_purchase_reward_points
+    expect(rpcMock).toHaveBeenCalledTimes(2);
     expect(rpcMock).toHaveBeenCalledWith("grant_all_access_pass_30d", {
       _user_id: "11111111-1111-1111-1111-111111111111",
       _environment: "sandbox",
       _amount_cents: 1000,
       _external_payment_reference: "nowpayments:987654",
+    });
+    expect(rpcMock).toHaveBeenCalledWith("grant_purchase_reward_points", {
+      _user_id: "11111111-1111-1111-1111-111111111111",
+      _amount_cents: 1000,
+      _external_payment_reference: "nowpayments:987654",
+      _source: "aap30d",
     });
   });
 
@@ -122,11 +192,12 @@ describe("processIpn", () => {
     const evt = { payment_status: "finished", order_id: validOrderId, payment_id: 3003 };
     const first = await processIpn(evt);
     expect(first.handled).toBe(true);
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    // grant_all_access_pass_30d + grant_purchase_reward_points
+    expect(rpcMock).toHaveBeenCalledTimes(2);
     const second = await processIpn(evt);
     expect(second).toMatchObject({ handled: true, duplicate: true });
     // No additional RPC call on redelivery.
-    expect(rpcMock).toHaveBeenCalledTimes(1);
+    expect(rpcMock).toHaveBeenCalledTimes(2);
   });
 
   it("throws when the RPC fails so the webhook returns 5xx and NOWPayments retries", async () => {

@@ -16,6 +16,9 @@ supabase db test
 `supabase db test` starts the local stack (if not already running) and
 executes every `*.test.sql` in this directory as the postgres superuser,
 which can seed the `auth.users` rows the test needs.
+Each test script must emit TAP output (`plan(...)` / `finish()`) so
+`supabase db test` (which runs `pg_prove` internally) can report pass/fail
+correctly in CI.
 
 ### Run it against a branch / CI
 
@@ -32,7 +35,7 @@ Every fixture is created inside a single transaction that ends in
 
 ### What "pass" looks like
 
-`NOTICE: PASS: …` for each of the nine attendee tamper attempts (all
-rejected) and the two positive host/admin attempts (both allowed). Any
-`FAIL: …` line is a real regression — the trigger is no longer blocking
-that column.
+`supabase db test` should print eleven TAP assertions (`ok 1` through
+`ok 11`) covering the nine attendee tamper attempts plus the two
+host/admin positive cases. Any `not ok` line is a real regression — the
+trigger is no longer blocking that column.

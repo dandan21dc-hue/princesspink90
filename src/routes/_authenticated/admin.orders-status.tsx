@@ -284,7 +284,7 @@ function AdminOrdersStatusPage() {
                             </div>
                             <div className="mt-3">
                               <Link
-                                to="/admin/webhook-events"
+                                to="/admin/nowpayments-events"
                                 className="text-[11px] uppercase tracking-widest text-primary hover:underline"
                               >
                                 Open webhook events log →

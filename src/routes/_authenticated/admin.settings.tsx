@@ -1718,7 +1718,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function PricingAuditSection() {
   const listFn = useServerFn(listPricingAudit);
   const exportFn = useServerFn(exportPricingAudit);
-  const navigate = useNavigate({ from: "/_authenticated/admin/settings" });
+  const navigate = useNavigate({ from: Route.fullPath });
   const { q: search, from, to, page, pageSize } = routeApi.useSearch();
   const [exportError, setExportError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -1730,7 +1730,7 @@ function PricingAuditSection() {
     patch: Partial<{ q: string; from: string; to: string; page: number; pageSize: number }>,
   ) => {
     navigate({
-      search: (prev: Record<string, unknown>) => {
+      search: (prev) => {
         const next = { ...prev, ...patch };
         // Any filter change resets to page 1 unless the caller set page explicitly.
         if (patch.page === undefined && ("q" in patch || "from" in patch || "to" in patch || "pageSize" in patch)) {
