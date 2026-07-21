@@ -18,7 +18,7 @@
 BEGIN;
 
 -- Emit TAP output so `supabase db test`/pg_prove can parse this script.
-SELECT plan(1);
+SELECT plan(11);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures
@@ -83,13 +83,13 @@ LANGUAGE plpgsql AS $$
 BEGIN
   BEGIN
     PERFORM pg_temp.as_user(_uid, _sql);
-    RAISE EXCEPTION 'FAIL: % — attendee update was NOT blocked', _label;
+    PERFORM fail(format('%s — attendee update was NOT blocked', _label));
   EXCEPTION
     WHEN raise_exception THEN
       IF SQLERRM LIKE 'FAIL:%' THEN RAISE; END IF;
-      RAISE NOTICE 'PASS: % — trigger rejected as expected (%)', _label, SQLERRM;
+      PERFORM pass(format('%s — trigger rejected as expected (%s)', _label, SQLERRM));
     WHEN insufficient_privilege THEN
-      RAISE NOTICE 'PASS: % — rejected by RLS/privilege (%)', _label, SQLERRM;
+      PERFORM pass(format('%s — rejected by RLS/privilege (%s)', _label, SQLERRM));
   END;
   EXECUTE 'RESET ROLE';
 END $$;
@@ -99,10 +99,10 @@ CREATE OR REPLACE FUNCTION pg_temp.expect_allow(_uid uuid, _sql text, _label tex
 LANGUAGE plpgsql AS $$
 BEGIN
   PERFORM pg_temp.as_user(_uid, _sql);
-  RAISE NOTICE 'PASS: % — update allowed as expected', _label;
+  PERFORM pass(format('%s — update allowed as expected', _label));
 EXCEPTION WHEN OTHERS THEN
   EXECUTE 'RESET ROLE';
-  RAISE EXCEPTION 'FAIL: % — expected success but got: %', _label, SQLERRM;
+  PERFORM fail(format('%s — expected success but got: %s', _label, SQLERRM));
 END $$;
 
 -- ---------------------------------------------------------------------------
@@ -169,7 +169,6 @@ BEGIN
     'admin can annotate door_notes');
 END $$;
 
-SELECT pass('rsvps trigger blocks attendee-only field tampering');
 SELECT * FROM finish();
 
 -- Roll everything back so the test leaves no residue.
