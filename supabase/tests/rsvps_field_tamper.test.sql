@@ -17,6 +17,9 @@
 
 BEGIN;
 
+-- Emit TAP output so `supabase db test`/pg_prove can parse this script.
+SELECT plan(1);
+
 -- ---------------------------------------------------------------------------
 -- Fixtures
 -- ---------------------------------------------------------------------------
@@ -165,6 +168,9 @@ BEGIN
     format('UPDATE public.rsvps SET door_notes = ''VIP'' WHERE id = %L', v_rsvp),
     'admin can annotate door_notes');
 END $$;
+
+SELECT pass('rsvps trigger blocks attendee-only field tampering');
+SELECT * FROM finish();
 
 -- Roll everything back so the test leaves no residue.
 ROLLBACK;
